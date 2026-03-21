@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692022F6F2ACB0071B6C4 /* SecondaryViews.swift */; };
+		8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */; };
+		8C4692072F6F2ACB0071B6C4 /* ISO7816Profiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691FC2F6F2ACB0071B6C4 /* ISO7816Profiles.swift */; };
+		8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */; };
+		8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692032F6F2ACB0071B6C4 /* WalletCardView.swift */; };
+		8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692012F6F2ACB0071B6C4 /* SavedCardDetailView.swift */; };
+		8C46920B2F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692002F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift */; };
+		8C46920C2F6F2ACB0071B6C4 /* NFCUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */; };
 		A00000000000000000000011 /* CardBalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* CardBalApp.swift */; };
 		A00000000000000000000012 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
 		A00000000000000000000013 /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* NFCTransitReader.swift */; };
@@ -14,6 +22,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardWalletStore.swift; sourceTree = "<group>"; };
+		8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCardRecord.swift; sourceTree = "<group>"; };
+		8C4691FC2F6F2ACB0071B6C4 /* ISO7816Profiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISO7816Profiles.swift; sourceTree = "<group>"; };
+		8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCUtils.swift; sourceTree = "<group>"; };
+		8C4692002F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeliCaSNScannerView.swift; sourceTree = "<group>"; };
+		8C4692012F6F2ACB0071B6C4 /* SavedCardDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCardDetailView.swift; sourceTree = "<group>"; };
+		8C4692022F6F2ACB0071B6C4 /* SecondaryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryViews.swift; sourceTree = "<group>"; };
+		8C4692032F6F2ACB0071B6C4 /* WalletCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCardView.swift; sourceTree = "<group>"; };
 		A00000000000000000000001 /* CardBalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardBalApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A00000000000000000000003 /* NFCTransitReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
@@ -34,6 +50,50 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8C4691F82F6F2ACB0071B6C4 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		8C4691FB2F6F2ACB0071B6C4 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */,
+				8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		8C4691FD2F6F2ACB0071B6C4 /* Profiles */ = {
+			isa = PBXGroup;
+			children = (
+				8C4691FC2F6F2ACB0071B6C4 /* ISO7816Profiles.swift */,
+			);
+			path = Profiles;
+			sourceTree = "<group>";
+		};
+		8C4691FF2F6F2ACB0071B6C4 /* NFC */ = {
+			isa = PBXGroup;
+			children = (
+				8C4691FD2F6F2ACB0071B6C4 /* Profiles */,
+				8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */,
+			);
+			path = NFC;
+			sourceTree = "<group>";
+		};
+		8C4692042F6F2ACB0071B6C4 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				8C4692002F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift */,
+				8C4692012F6F2ACB0071B6C4 /* SavedCardDetailView.swift */,
+				8C4692022F6F2ACB0071B6C4 /* SecondaryViews.swift */,
+				8C4692032F6F2ACB0071B6C4 /* WalletCardView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		A00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
@@ -45,6 +105,10 @@
 		A00000000000000000000032 /* CardBal */ = {
 			isa = PBXGroup;
 			children = (
+				8C4691F82F6F2ACB0071B6C4 /* Extensions */,
+				8C4691FB2F6F2ACB0071B6C4 /* Models */,
+				8C4691FF2F6F2ACB0071B6C4 /* NFC */,
+				8C4692042F6F2ACB0071B6C4 /* Views */,
 				A00000000000000000000001 /* CardBalApp.swift */,
 				A00000000000000000000002 /* ContentView.swift */,
 				A00000000000000000000003 /* NFCTransitReader.swift */,
@@ -134,6 +198,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000011 /* CardBalApp.swift in Sources */,
+				8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */,
+				8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */,
+				8C4692072F6F2ACB0071B6C4 /* ISO7816Profiles.swift in Sources */,
+				8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */,
+				8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */,
+				8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */,
+				8C46920B2F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift in Sources */,
+				8C46920C2F6F2ACB0071B6C4 /* NFCUtils.swift in Sources */,
 				A00000000000000000000012 /* ContentView.swift in Sources */,
 				A00000000000000000000013 /* NFCTransitReader.swift in Sources */,
 			);
@@ -164,10 +236,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = sm.nekoko.CardBal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -193,10 +266,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = sm.nekoko.CardBal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -243,7 +317,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
