@@ -22,6 +22,15 @@ struct ContentView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(Color.accentColor)
+        .onAppear {
+            reader.isEnhancedFeliCaDecodingEnabled = cardStore.enhancedFeliCaDecodingEnabled
+            reader.checkIfCardAlreadyEnhanced = { storageIdentifier in
+                cardStore.cards.first(where: { $0.id == storageIdentifier })?.enhancedFeliCaDecoded ?? false
+            }
+        }
+        .onChange(of: cardStore.enhancedFeliCaDecodingEnabled) {
+            reader.isEnhancedFeliCaDecodingEnabled = cardStore.enhancedFeliCaDecodingEnabled
+        }
     }
 }
 
@@ -52,6 +61,9 @@ struct ScanHomeView: View {
                     if let snapshot = reader.latestSnapshot {
                         KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
                         KeyValueRow(title: "Balance", value: snapshot.balanceText ?? "No balance")
+                        if let realSerialNumber = snapshot.realSerialNumber {
+                            KeyValueRow(title: "Real Serial", value: realSerialNumber)
+                        }
                         KeyValueRow(title: "Scanned", value: snapshot.scannedAt.formatted(date: .abbreviated, time: .standard))
                         if let detail = snapshot.balanceDetail {
                             Text(detail).font(.footnote).foregroundStyle(.secondary).padding(.vertical, 2)
@@ -68,6 +80,16 @@ struct ScanHomeView: View {
                     }
                 }
 
+                if let snapshot = reader.latestSnapshot, cardStore.card(withID: snapshot.storageIdentifier) == nil {
+                    Section {
+                        Button {
+                            cardStore.upsert(snapshot: snapshot)
+                        } label: {
+                            Label("Save to Wallet", systemImage: "plus.circle.fill")
+                        }
+                    }
+                }
+
                 Section("Instructions") {
                     Label("Hold card at the back top of the phone", systemImage: "iphone.radiowaves.left.and.right")
                     Label("Keep card steady until scan finishes", systemImage: "hand.tap.fill")
@@ -76,7 +98,8 @@ struct ScanHomeView: View {
             .navigationTitle("Scan")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button { reader.startScanning() } label: { Label("Start Scan", systemImage: "plus.circle.fill").font(.headline) }
+                    Button { reader.beginScanning() } label: { Label("Start Scan", systemImage: "plus.circle.fill").font(.headline) }
+                        .disabled(reader.isScanning)
                 }
             }
             .sheet(item: $detailRoute) { route in
@@ -123,9 +146,22 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("Card Faces") {
+                    NavigationLink {
+                        CardFaceLibraryView(store: store)
+                    } label: {
+                        Label("Manage Card Faces", systemImage: "photo.stack")
+                    }
+                }
+                Section("Experimental") {
+                    Toggle("Enhanced FeliCa Decoding", isOn: $store.enhancedFeliCaDecodingEnabled)
+                    Text("Attempt to retrieve the real serial number for Japanese transit cards (Suica/PASMO) using an external crypto server. Runs once per card.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Section("Backup") {
-                    Button { /* Export action */ } label: { Label("Export Backup", systemImage: "square.and.arrow.up") }
-                    Button { /* Import action */ } label: { Label("Import Backup", systemImage: "square.and.arrow.down") }
+                    Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "cloud.and.arrow.up") }
+                    Button { store.restoreFromiCloud() } label: { Label("Restore from iCloud", systemImage: "cloud.and.arrow.down") }
                 }
                 Section("Information") {
                     HStack { Text("App Version"); Spacer(); Text("1.5.0").foregroundStyle(.secondary) }

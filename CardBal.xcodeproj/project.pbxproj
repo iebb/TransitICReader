@@ -17,7 +17,6 @@
 		8C46920C2F6F2ACB0071B6C4 /* NFCUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */; };
 		A00000000000000000000011 /* CardBalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* CardBalApp.swift */; };
 		A00000000000000000000012 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
-		A00000000000000000000013 /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* NFCTransitReader.swift */; };
 		A00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -32,7 +31,6 @@
 		8C4692032F6F2ACB0071B6C4 /* WalletCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCardView.swift; sourceTree = "<group>"; };
 		A00000000000000000000001 /* CardBalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardBalApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A00000000000000000000003 /* NFCTransitReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
 		A00000000000000000000004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A00000000000000000000006 /* CardBal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CardBal.entitlements; sourceTree = "<group>"; };
@@ -111,7 +109,6 @@
 				8C4692042F6F2ACB0071B6C4 /* Views */,
 				A00000000000000000000001 /* CardBalApp.swift */,
 				A00000000000000000000002 /* ContentView.swift */,
-				A00000000000000000000003 /* NFCTransitReader.swift */,
 				A00000000000000000000004 /* Assets.xcassets */,
 				A00000000000000000000005 /* Info.plist */,
 				A00000000000000000000006 /* CardBal.entitlements */,
@@ -207,7 +204,6 @@
 				8C46920B2F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift in Sources */,
 				8C46920C2F6F2ACB0071B6C4 /* NFCUtils.swift in Sources */,
 				A00000000000000000000012 /* ContentView.swift in Sources */,
-				A00000000000000000000013 /* NFCTransitReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,10 +232,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = sm.nekoko.CardBal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -266,10 +261,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = sm.nekoko.CardBal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

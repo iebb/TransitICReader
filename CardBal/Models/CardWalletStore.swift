@@ -8,11 +8,17 @@ struct SavedFaceAsset: Identifiable, Hashable {
 
 class CardWalletStore: ObservableObject {
     @Published var cards: [SavedCardRecord] = []
+    @Published var enhancedFeliCaDecodingEnabled: Bool {
+        didSet { UserDefaults.standard.set(enhancedFeliCaDecodingEnabled, forKey: enhancedFeliCaDecodingKey) }
+    }
+
     private let userDefaultsKey = "savedTransitCards"
+    private let enhancedFeliCaDecodingKey = "enhanced_felica_decoding_enabled"
     private var saveTask: Task<Void, Never>?
     private var imageCache: [String: UIImage] = [:]
 
     init() {
+        enhancedFeliCaDecodingEnabled = UserDefaults.standard.bool(forKey: enhancedFeliCaDecodingKey)
         load()
     }
 
@@ -27,6 +33,11 @@ class CardWalletStore: ObservableObject {
             cards[index].resultFields = fields
             cards[index].scannedAt = snapshot.scannedAt
             cards[index].cardFamily = cardFamily
+            cards[index].pmm = snapshot.pmm
+            cards[index].systemCode = snapshot.systemCode
+            cards[index].selectedAID = snapshot.selectedAID
+            cards[index].realSerialNumber = snapshot.realSerialNumber ?? cards[index].realSerialNumber
+            cards[index].enhancedFeliCaDecoded = snapshot.realSerialNumber != nil || cards[index].enhancedFeliCaDecoded
         } else {
             let record = SavedCardRecord(
                 id: id,
@@ -49,10 +60,13 @@ class CardWalletStore: ObservableObject {
                 identifierLabel: snapshot.identifierLabel,
                 rawIdentifierValue: snapshot.rawIdentifierValue,
                 identifierValue: snapshot.identifierValue,
+                pmm: snapshot.pmm,
                 selectedAID: snapshot.selectedAID,
                 systemCode: snapshot.systemCode,
                 balanceText: snapshot.balanceText,
                 balanceDetail: snapshot.balanceDetail,
+                realSerialNumber: snapshot.realSerialNumber,
+                enhancedFeliCaDecoded: snapshot.realSerialNumber != nil,
                 resultFields: fields,
                 scannedAt: snapshot.scannedAt,
                 color: defaultColor(for: cardFamily),
@@ -183,6 +197,10 @@ class CardWalletStore: ObservableObject {
             .sorted().map { SavedFaceAsset(fileName: $0) }
     }
 
+    func isFaceAssetUsed(_ fileName: String) -> Bool {
+        cards.contains { $0.faceImageFileName == fileName }
+    }
+
     func card(withID id: String) -> SavedCardRecord? {
         cards.first(where: { $0.id == id })
     }
@@ -236,6 +254,18 @@ class CardWalletStore: ObservableObject {
             try? FileManager.default.removeItem(at: cardFaceFileURL(fileName: asset.fileName))
         }
         save()
+    }
+
+    func backupToiCloud() {
+        guard let data = exportBackup() else { return }
+        NSUbiquitousKeyValueStore.default.set(data, forKey: "icloud_card_backup")
+        NSUbiquitousKeyValueStore.default.synchronize()
+    }
+
+    func restoreFromiCloud() {
+        NSUbiquitousKeyValueStore.default.synchronize()
+        guard let data = NSUbiquitousKeyValueStore.default.data(forKey: "icloud_card_backup") else { return }
+        importBackup(from: data)
     }
 
     func exportBackup() -> Data? {

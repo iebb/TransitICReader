@@ -1,5 +1,49 @@
 import SwiftUI
 
+struct CardFaceLibraryView: View {
+    @ObservedObject var store: CardWalletStore
+
+    var body: some View {
+        List {
+            let assets = store.faceAssets()
+            if assets.isEmpty {
+                ContentUnavailableView("No Face Assets", systemImage: "photo.on.rectangle")
+            } else {
+                ForEach(assets) { asset in
+                    HStack {
+                        if let img = store.loadFaceImage(fileName: asset.fileName) {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 50)
+                                .cornerRadius(8)
+                        }
+                        VStack(alignment: .leading) {
+                            Text(asset.fileName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if store.isFaceAssetUsed(asset.fileName) {
+                                Text("In Use")
+                                    .font(.caption2)
+                                    .padding(4)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(4)
+                            }
+                        }
+                        Spacer()
+                        if !store.isFaceAssetUsed(asset.fileName) {
+                            Button(role: .destructive) { store.deleteFaceAsset(asset.fileName) } label: {
+                                Image(systemName: "trash")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Face Library")
+    }
+}
+
 struct EditableFaceImage: Identifiable {
     let id = UUID()
     let image: UIImage

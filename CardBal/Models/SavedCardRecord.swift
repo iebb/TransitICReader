@@ -123,10 +123,13 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var identifierLabel: String
     var rawIdentifierValue: String
     var identifierValue: String
+    var pmm: String?
     var selectedAID: String?
     var systemCode: String?
     var balanceText: String?
     var balanceDetail: String?
+    var realSerialNumber: String?
+    var enhancedFeliCaDecoded: Bool
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
@@ -156,7 +159,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         return "No balance"
     }
 
-    var cardNumber: String? { fieldValue("Card Number") }
+    var cardNumber: String? { fieldValue("Card Number") ?? realSerialNumber }
 
     var displayedSerialNumber: String {
         let raw: String

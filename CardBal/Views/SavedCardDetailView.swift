@@ -21,6 +21,7 @@ struct SavedCardDetailView: View {
     @State private var draftSerialNumber: String?
     @State private var titleTask: Task<Void, Never>?
     @State private var snTask: Task<Void, Never>?
+    @State private var draftDeleteConfirmation = false
 
     var body: some View {
         if let card = store.card(withID: cardID) {
@@ -59,6 +60,36 @@ struct SavedCardDetailView: View {
             Section("Appearance") {
                 appearanceSection(card: card)
             }
+
+            Section("Information") {
+                KeyValueRow(title: "Card Family", value: card.cardFamily)
+                KeyValueRow(title: "Technology", value: card.technology)
+                KeyValueRow(title: card.identifierLabel, value: card.identifierValue)
+                if let systemCode = card.systemCode {
+                    KeyValueRow(title: "System Code", value: systemCode)
+                }
+                if let pmm = card.pmm {
+                    KeyValueRow(title: "PMm", value: pmm)
+                }
+                if let realSerialNumber = card.realSerialNumber {
+                    KeyValueRow(title: "Real Serial", value: realSerialNumber)
+                }
+            }
+
+            Section {
+                Button("Delete Card", role: .destructive) {
+                    draftDeleteConfirmation = true
+                }
+            }
+        }
+        .alert("Delete Card?", isPresented: $draftDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                store.deleteCard(card.id)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the saved card from your wallet.")
         }
     }
 
