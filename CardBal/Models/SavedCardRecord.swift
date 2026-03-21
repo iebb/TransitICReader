@@ -165,26 +165,36 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         let raw: String
         let trimmed = customDisplaySerialNumber?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         raw = !trimmed.isEmpty ? trimmed : (cardNumber ?? identifierValue)
-        
-        let stripped = raw.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "-", with: "")
-        if technology == "FeliCa" && !stripped.isEmpty {
-            var chars = Array(stripped)
-            var result = ""
-            var count = 0
-            while !chars.isEmpty {
-                if count == 4 && chars.count > 1 {
-                    result = " " + result
-                    count = 0
-                }
-                result = String(chars.removeLast()) + result
-                count += 1
-            }
-            return result
+
+        if technology == "FeliCa" {
+            let formatted = Self.formattedFeliCaSerial(raw)
+            return formatted.isEmpty ? raw : formatted
         }
+
         return raw
     }
 
     func fieldValue(_ title: String) -> String? {
         resultFields.first(where: { $0.title == title })?.value
+    }
+
+    static func formattedFeliCaSerial(_ raw: String) -> String {
+        let normalized = raw.uppercased().filter {
+            $0.unicodeScalars.allSatisfy(CharacterSet.alphanumerics.contains)
+        }
+        guard !normalized.isEmpty else { return "" }
+
+        let firstGroupCount = min(5, normalized.count)
+        let firstGroup = String(normalized.prefix(firstGroupCount))
+        var groups = [firstGroup]
+        var remainder = String(normalized.dropFirst(firstGroupCount))
+
+        while !remainder.isEmpty {
+            let nextCount = min(4, remainder.count)
+            groups.append(String(remainder.prefix(nextCount)))
+            remainder.removeFirst(nextCount)
+        }
+
+        return groups.joined(separator: " ")
     }
 }

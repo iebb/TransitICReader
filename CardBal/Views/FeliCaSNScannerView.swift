@@ -61,15 +61,21 @@ private class SNScannerViewController: UIViewController, AVCaptureVideoDataOutpu
             guard let observations = request.results as? [VNRecognizedTextObservation] else { return }
             for observation in observations {
                 guard let candidate = observation.topCandidates(1).first else { continue }
-                let text = candidate.string.uppercased().replacingOccurrences(of: " ", with: "")
-                if self?.isValidFeliCaSN(text) == true { self?.isFound = true; DispatchQueue.main.async { self?.onRecognized?(text) }; return }
+                let text = candidate.string
+                guard let normalized = self?.normalizedFeliCaSN(from: text) else { continue }
+                self?.isFound = true
+                DispatchQueue.main.async { self?.onRecognized?(normalized) }
+                return
             }
         }
         request.recognitionLevel = .accurate; try? sequenceHandler.perform([request], on: pixelBuffer)
     }
 
-    private func isValidFeliCaSN(_ text: String) -> Bool {
-        let pattern = "^[A-Z]{2}[0-9]{15}$"
-        return text.range(of: pattern, options: .regularExpression) != nil || (text.count >= 15 && CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: text)))
+    private func normalizedFeliCaSN(from text: String) -> String? {
+        let normalized = text.uppercased().filter {
+            $0.unicodeScalars.allSatisfy(CharacterSet.alphanumerics.contains)
+        }
+        guard normalized.count == 17 else { return nil }
+        return SavedCardRecord.formattedFeliCaSerial(normalized)
     }
 }

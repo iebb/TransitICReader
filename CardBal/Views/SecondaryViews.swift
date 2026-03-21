@@ -44,6 +44,80 @@ struct CardFaceLibraryView: View {
     }
 }
 
+struct SavedFaceAssetPickerSheet: View {
+    let store: CardWalletStore
+    let excludingFileName: String?
+    let onSelect: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 108, maximum: 140), spacing: 12)
+    ]
+
+    private var assets: [SavedFaceAsset] {
+        store.faceAssets().filter { $0.fileName != excludingFileName }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if assets.isEmpty {
+                    ContentUnavailableView(
+                        "No Saved Images",
+                        systemImage: "photo.on.rectangle.angled",
+                        description: Text("Add a card image first, then you can reuse it here.")
+                    )
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(assets) { asset in
+                                Button {
+                                    onSelect(asset.fileName)
+                                } label: {
+                                    preview(fileName: asset.fileName)
+                                        .padding(10)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(16)
+                    }
+                }
+            }
+            .navigationTitle("Reuse Design")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func preview(fileName: String) -> some View {
+        if let faceImage = store.loadFaceImage(fileName: fileName) {
+            Image(uiImage: faceImage)
+                .resizable()
+                .scaledToFill()
+                .aspectRatio(85.6 / 53.98, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+                .aspectRatio(85.6 / 53.98, contentMode: .fit)
+                .overlay {
+                    Image(systemName: "photo")
+                        .foregroundStyle(.secondary)
+                }
+        }
+    }
+}
+
 struct EditableFaceImage: Identifiable {
     let id = UUID()
     let image: UIImage

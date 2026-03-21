@@ -17,6 +17,7 @@ struct SavedCardDetailView: View {
     @State private var appearanceMode: AppearanceMode = .colors
     @State private var isShowingMarkerSheet = false
     @State private var isShowingSNScanner = false
+    @State private var isShowingSavedFacePicker = false
     @State private var draftTitle: String?
     @State private var draftSerialNumber: String?
     @State private var titleTask: Task<Void, Never>?
@@ -38,6 +39,9 @@ struct SavedCardDetailView: View {
             }
             .sheet(isPresented: $isShowingMarkerSheet) {
                 markerEditorSheet(card: card)
+            }
+            .sheet(isPresented: $isShowingSavedFacePicker) {
+                savedFacePickerSheet(card: card)
             }
             .onChange(of: selectedPhotoItem) {
                 handlePhotoSelection(selectedPhotoItem)
@@ -151,6 +155,13 @@ struct SavedCardDetailView: View {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) { 
                 Label("Choose From Gallery", systemImage: "photo") 
             }
+            if !store.faceAssets().isEmpty {
+                Button {
+                    isShowingSavedFacePicker = true
+                } label: {
+                    Label("Choose From Saved Card Faces", systemImage: "square.stack.3d.up")
+                }
+            }
             if UIImagePickerController.isSourceTypeAvailable(.camera) { 
                 Button { isShowingCamera = true } label: { Label("Take Photo", systemImage: "camera") } 
             }
@@ -178,7 +189,10 @@ struct SavedCardDetailView: View {
 
     private func snBinding(card: SavedCardRecord) -> Binding<String> {
         Binding(
-            get: { (draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue).replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "-", with: "") },
+            get: {
+                let raw = draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue
+                return card.technology == "FeliCa" ? SavedCardRecord.formattedFeliCaSerial(raw) : raw
+            },
             set: { v in 
                 draftSerialNumber = v
                 snTask?.cancel()
@@ -227,6 +241,17 @@ struct SavedCardDetailView: View {
             onSave: { image in
                 store.setFaceImage(image, for: card.id)
                 pendingFaceImage = nil
+            }
+        )
+    }
+
+    private func savedFacePickerSheet(card: SavedCardRecord) -> some View {
+        SavedFaceAssetPickerSheet(
+            store: store,
+            excludingFileName: card.faceImageFileName,
+            onSelect: { fileName in
+                store.applyFaceAsset(fileName, to: card.id)
+                isShowingSavedFacePicker = false
             }
         )
     }

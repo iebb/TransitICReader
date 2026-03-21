@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WalletCardView: View {
+    private let cardCornerRadius: CGFloat = 22
     let card: SavedCardRecord
     let isExpanded: Bool
     let cardHeight: CGFloat
@@ -8,85 +9,156 @@ struct WalletCardView: View {
     let onVisibleTap: () -> Void
     let showDetails: () -> Void
 
-    var isPhotoFace: Bool { card.faceImageFileName != nil }
+    private var faceImage: UIImage? {
+        card.faceImageFileName.flatMap(loadCardFaceImage)
+    }
+
+    private var isPhotoFace: Bool {
+        faceImage != nil
+    }
+
+    private var shouldShowTitle: Bool {
+        !(isPhotoFace && card.hideTitleOnImage)
+    }
+
+    private var shouldShowSerialNumber: Bool {
+        !card.hideSerialNumber
+    }
+
+    private var titleTextColor: Color { .white }
+    private var balanceTextColor: Color { .white }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(cardBackground)
-                .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
+        GeometryReader { proxy in
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .fill(cardBackground)
 
-            if let fileName = card.faceImageFileName,
-               let faceImage = loadCardFaceImage(fileName: fileName) {
-                Image(uiImage: faceImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: UIScreen.main.bounds.width - 32, height: cardHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .overlay {
-                        if card.imageFaceEnhancer == .mask {
-                            LinearGradient(colors: [.black.opacity(0.6), .clear, .black.opacity(0.4)], startPoint: .top, endPoint: .bottom)
-                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                if let faceImage {
+                    Image(uiImage: faceImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+                }
+
+                if isPhotoFace && card.imageFaceEnhancer == .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.52), location: 0),
+                            .init(color: .black.opacity(0.24), location: 0.18),
+                            .init(color: .black.opacity(0.08), location: 0.34),
+                            .init(color: .clear, location: 0.54)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+                    .allowsHitTesting(false)
+                }
+
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                if card.markerSystemName != nil || card.markerText != nil {
+                                    markerBadge
+                                }
+                                borderedCardText(
+                                    shouldShowTitle ? card.displayTitle : "",
+                                    font: .title3.weight(.semibold),
+                                    foregroundColor: titleTextColor
+                                )
+                            }
+                            if shouldShowSerialNumber {
+                                borderedCardText(
+                                    card.displayedSerialNumber,
+                                    font: .caption.weight(.medium),
+                                    foregroundColor: titleTextColor,
+                                    lineLimit: 1,
+                                    minimumScaleFactor: 0.75
+                                )
+                            }
+                        }
+
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 8) {
+                            borderedCardText(
+                                card.visibleBalance,
+                                font: .system(size: 28, weight: .bold, design: .rounded),
+                                foregroundColor: balanceTextColor,
+                                minimumScaleFactor: 0.75
+                            )
                         }
                     }
-            }
 
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if !card.hideTitleOnImage || !isPhotoFace {
-                            borderedCardText(card.displayTitle, font: .system(size: 22, weight: .bold, design: .rounded), foregroundColor: card.autoTitleTextColor?.color ?? .white)
-                        }
-                        if !card.hideSerialNumber {
-                            borderedCardText(card.displayedSerialNumber, font: .system(.caption, design: .monospaced).weight(.bold), foregroundColor: (card.autoTitleTextColor?.color ?? .white).opacity(0.86))
-                        }
-                    }
                     Spacer()
-                    if let markerSymbolName = card.markerSymbolName {
-                        markerBadge(symbol: markerSymbolName)
+
+                    HStack(alignment: .bottom) {
+                        if isExpanded {
+                            VStack(alignment: .leading, spacing: 4) {
+                                borderedCardText(
+                                    "Last Scanned",
+                                    font: .caption,
+                                    foregroundColor: titleTextColor.opacity(0.86)
+                                )
+                                borderedCardText(
+                                    card.scannedAt.formatted(date: .abbreviated, time: .omitted),
+                                    font: .subheadline.weight(.medium),
+                                    foregroundColor: titleTextColor
+                                )
+                            }
+                        }
+
+                        Spacer()
+
+                        Button(action: showDetails) {
+                            Image(systemName: "chevron.right")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(titleTextColor)
+                                .frame(width: 40, height: 40)
+                                .background((isPhotoFace ? Color.black.opacity(0.22) : Color.white.opacity(0.14)), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Show Details")
                     }
                 }
-                .padding(24)
+                .padding(.top, 11)
+                .padding(.leading, 18)
+                .padding(.trailing, 18)
+                .padding(.bottom, 18)
 
-                Spacer()
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        borderedCardText(card.visibleBalance, font: .system(size: 34, weight: .black, design: .rounded), foregroundColor: card.autoBalanceTextColor?.color ?? .white, minimumScaleFactor: 0.5)
-                        Text("Balance")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle((card.autoBalanceTextColor?.color ?? .white).opacity(0.65))
-                    }
-                    Spacer()
-                    Button(action: showDetails) {
-                        Image(systemName: "chevron.right.circle.fill")
-                            .font(.system(size: 32, weight: .medium))
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(card.autoBalanceTextColor?.color ?? .white)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(24)
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(height: visiblePartHeight)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onVisibleTap)
             }
         }
-        .frame(width: UIScreen.main.bounds.width - 32, height: isExpanded ? cardHeight : visiblePartHeight)
-        .onTapGesture(perform: onVisibleTap)
+        .frame(height: cardHeight)
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
     }
 
     @ViewBuilder
-    private func markerBadge(symbol: String) -> some View {
+    private var markerBadge: some View {
         ZStack {
-            markerBackground(color: card.markerColor.color, size: 28)
-            if symbol.hasPrefix("sf:") {
-                Image(systemName: String(symbol.dropFirst(3)))
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(card.markerOuterColor.color)
-            } else if symbol.hasPrefix("txt:") {
-                Text(String(symbol.dropFirst(4)))
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(card.markerOuterColor.color)
+            markerBackground(color: card.markerOuterColor.color, size: 28)
+            markerBackground(color: card.markerColor.color, size: 22)
+
+            if let markerSystemName = card.markerSystemName {
+                Image(systemName: markerSystemName)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+            } else if let markerText = card.markerText {
+                Text(markerText)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
             }
         }
+        .frame(width: 28, height: 28)
     }
 
     @ViewBuilder
@@ -98,7 +170,12 @@ struct WalletCardView: View {
     @ViewBuilder
     private func borderedCardText(_ text: String, font: Font, foregroundColor: Color, lineLimit: Int? = nil, minimumScaleFactor: CGFloat? = nil) -> some View {
         Text(text).font(font).foregroundStyle(foregroundColor).lineLimit(lineLimit).minimumScaleFactor(minimumScaleFactor ?? 1)
-            .shadow(color: isPhotoFace && card.imageFaceEnhancer == .border ? .black.opacity(0.8) : .clear, radius: 4, x: 0, y: 1.5)
+            .shadow(
+                color: isPhotoFace && card.imageFaceEnhancer == .border ? .black.opacity(0.8) : .clear,
+                radius: isPhotoFace && card.imageFaceEnhancer == .border ? 4 : 0,
+                x: 0,
+                y: 1.5
+            )
     }
 
     private var cardBackground: AnyShapeStyle {

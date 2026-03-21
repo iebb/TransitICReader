@@ -8,17 +8,12 @@ struct SavedFaceAsset: Identifiable, Hashable {
 
 class CardWalletStore: ObservableObject {
     @Published var cards: [SavedCardRecord] = []
-    @Published var enhancedFeliCaDecodingEnabled: Bool {
-        didSet { UserDefaults.standard.set(enhancedFeliCaDecodingEnabled, forKey: enhancedFeliCaDecodingKey) }
-    }
 
     private let userDefaultsKey = "savedTransitCards"
-    private let enhancedFeliCaDecodingKey = "enhanced_felica_decoding_enabled"
     private var saveTask: Task<Void, Never>?
     private var imageCache: [String: UIImage] = [:]
 
     init() {
-        enhancedFeliCaDecodingEnabled = UserDefaults.standard.bool(forKey: enhancedFeliCaDecodingKey)
         load()
     }
 
@@ -36,8 +31,8 @@ class CardWalletStore: ObservableObject {
             cards[index].pmm = snapshot.pmm
             cards[index].systemCode = snapshot.systemCode
             cards[index].selectedAID = snapshot.selectedAID
-            cards[index].realSerialNumber = snapshot.realSerialNumber ?? cards[index].realSerialNumber
-            cards[index].enhancedFeliCaDecoded = snapshot.realSerialNumber != nil || cards[index].enhancedFeliCaDecoded
+            cards[index].realSerialNumber = snapshot.realSerialNumber
+            cards[index].enhancedFeliCaDecoded = false
         } else {
             let record = SavedCardRecord(
                 id: id,
@@ -65,8 +60,8 @@ class CardWalletStore: ObservableObject {
                 systemCode: snapshot.systemCode,
                 balanceText: snapshot.balanceText,
                 balanceDetail: snapshot.balanceDetail,
-                realSerialNumber: snapshot.realSerialNumber,
-                enhancedFeliCaDecoded: snapshot.realSerialNumber != nil,
+                realSerialNumber: nil,
+                enhancedFeliCaDecoded: false,
                 resultFields: fields,
                 scannedAt: snapshot.scannedAt,
                 color: defaultColor(for: cardFamily),
@@ -220,6 +215,13 @@ class CardWalletStore: ObservableObject {
         guard sourceIndex != clampedIndex else { return }
         let movedCard = cards.remove(at: sourceIndex)
         cards.insert(movedCard, at: clampedIndex)
+        save()
+    }
+
+    func bringToFront(_ id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }), index != 0 else { return }
+        let movedCard = cards.remove(at: index)
+        cards.insert(movedCard, at: 0)
         save()
     }
 

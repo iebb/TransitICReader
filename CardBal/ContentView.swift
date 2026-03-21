@@ -22,15 +22,6 @@ struct ContentView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(Color.accentColor)
-        .onAppear {
-            reader.isEnhancedFeliCaDecodingEnabled = cardStore.enhancedFeliCaDecodingEnabled
-            reader.checkIfCardAlreadyEnhanced = { storageIdentifier in
-                cardStore.cards.first(where: { $0.id == storageIdentifier })?.enhancedFeliCaDecoded ?? false
-            }
-        }
-        .onChange(of: cardStore.enhancedFeliCaDecodingEnabled) {
-            reader.isEnhancedFeliCaDecodingEnabled = cardStore.enhancedFeliCaDecodingEnabled
-        }
     }
 }
 
@@ -60,9 +51,11 @@ struct ScanHomeView: View {
                 Section("Result") {
                     if let snapshot = reader.latestSnapshot {
                         KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
-                        KeyValueRow(title: "Balance", value: snapshot.balanceText ?? "No balance")
-                        if let realSerialNumber = snapshot.realSerialNumber {
-                            KeyValueRow(title: "Real Serial", value: realSerialNumber)
+                        ForEach(primaryResultFields(for: snapshot)) { field in
+                            KeyValueRow(title: field.title, value: field.value)
+                        }
+                        if let balanceText = snapshot.balanceText {
+                            KeyValueRow(title: "Balance", value: balanceText)
                         }
                         KeyValueRow(title: "Scanned", value: snapshot.scannedAt.formatted(date: .abbreviated, time: .standard))
                         if let detail = snapshot.balanceDetail {
@@ -80,12 +73,13 @@ struct ScanHomeView: View {
                     }
                 }
 
-                if let snapshot = reader.latestSnapshot, cardStore.card(withID: snapshot.storageIdentifier) == nil {
-                    Section {
-                        Button {
-                            cardStore.upsert(snapshot: snapshot)
-                        } label: {
-                            Label("Save to Wallet", systemImage: "plus.circle.fill")
+                if let snapshot = reader.latestSnapshot,
+                   snapshot.cardFamily == "Lignes d'Azur card",
+                   !niceTicketFields(from: snapshot).isEmpty {
+                    Section("Tickets") {
+                        NiceTicketSummaryCard(snapshot: snapshot)
+                        ForEach(niceTicketFields(from: snapshot)) { field in
+                            KeyValueRow(title: field.title, value: field.value)
                         }
                     }
                 }
@@ -108,6 +102,11 @@ struct ScanHomeView: View {
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailRoute = nil } } }
                 }
             }
+            .onChange(of: reader.latestSnapshot?.id) {
+                if let snapshot = reader.latestSnapshot {
+                    cardStore.upsert(snapshot: snapshot)
+                }
+            }
             .onAppear { if !didAutoStartScan { reader.startScanning(); didAutoStartScan = true } }
         }
     }
@@ -115,22 +114,74 @@ struct ScanHomeView: View {
 
 struct CardsView: View {
     @ObservedObject var store: CardWalletStore
+    @State private var draggedCardID: String?
     @State private var detailRoute: CardDetailRoute?
+    @State private var previewCardID: String?
+
+    private let stackedSpacing: CGFloat = 58
+    private let expandedStackGap: CGFloat = 12
+    private let cardAspectRatio: CGFloat = 85.6 / 53.98
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 20) {
-                    if store.cards.isEmpty {
-                        ContentUnavailableView("No Cards Saved", systemImage: "wallet.bifold", description: Text("Your scanned cards will appear here."))
-                    } else {
-                        ForEach(store.cards) { card in
-                            WalletCardView(card: card, isExpanded: true, cardHeight: 200, visiblePartHeight: 120, onVisibleTap: {}, showDetails: { detailRoute = CardDetailRoute(id: card.id) })
+            Group {
+                if store.cards.isEmpty {
+                    ContentUnavailableView(
+                        "No Cards Yet",
+                        systemImage: "wallet.bifold",
+                        description: Text("Scan a physical card once and it will appear here.")
+                    )
+                } else {
+                    GeometryReader { proxy in
+                        let cardWidth = max(proxy.size.width - 40, 1)
+                        let cardHeight = cardWidth / cardAspectRatio
+
+                        ScrollView {
+                            ZStack(alignment: .top) {
+                                ForEach(Array(store.cards.enumerated().reversed()), id: \.element.id) { index, card in
+                                    WalletCardView(
+                                        card: card,
+                                        isExpanded: previewCardID == card.id,
+                                        cardHeight: cardHeight,
+                                        visiblePartHeight: visibleTapHeight(for: index, cardHeight: cardHeight),
+                                        onVisibleTap: {
+                                            if previewCardID == card.id {
+                                                previewCardID = nil
+                                            } else {
+                                                store.bringToFront(card.id)
+                                                previewCardID = card.id
+                                            }
+                                        },
+                                        showDetails: { detailRoute = CardDetailRoute(id: card.id) }
+                                    )
+                                    .padding(.horizontal, 20)
+                                    .offset(y: cardOffset(for: index, cardHeight: cardHeight))
+                                    .zIndex(zIndex(for: index, cardID: card.id))
+                                    .onDrag {
+                                        previewCardID = nil
+                                        draggedCardID = card.id
+                                        return NSItemProvider(object: card.id as NSString)
+                                    }
+                                    .onDrop(
+                                        of: [UTType.plainText],
+                                        delegate: CardReorderDropDelegate(
+                                            destinationID: card.id,
+                                            store: store,
+                                            draggedCardID: $draggedCardID
+                                        )
+                                    )
+                                }
+                            }
+                            .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
+                            .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
+                            .animation(.spring(response: 0.22, dampingFraction: 0.9), value: draggedCardID)
+                            .padding(.bottom, proxy.safeAreaInsets.bottom + 88)
                         }
                     }
-                }.padding(16)
+                    .background(Color(uiColor: .systemGroupedBackground))
+                }
             }
-            .navigationTitle("Wallet")
+            .navigationTitle("Cards")
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
                     SavedCardDetailView(cardID: route.id, store: store)
@@ -138,6 +189,37 @@ struct CardsView: View {
                 }
             }
         }
+    }
+
+    private func stackHeight(cardHeight: CGFloat) -> CGFloat {
+        if previewCardID == nil {
+            return CGFloat(max(store.cards.count - 1, 0)) * stackedSpacing + cardHeight
+        }
+        return cardHeight + expandedStackGap + CGFloat(max(store.cards.count - 1, 0)) * stackedSpacing
+    }
+
+    private func cardOffset(for index: Int, cardHeight: CGFloat) -> CGFloat {
+        if previewCardID == nil {
+            return CGFloat(index) * stackedSpacing
+        }
+        if index == 0 {
+            return 0
+        }
+        return cardHeight + expandedStackGap + CGFloat(index - 1) * stackedSpacing
+    }
+
+    private func zIndex(for index: Int, cardID: String) -> Double {
+        if draggedCardID == cardID {
+            return 1000
+        }
+        return Double(index)
+    }
+
+    private func visibleTapHeight(for index: Int, cardHeight: CGFloat) -> CGFloat {
+        if previewCardID == nil {
+            return index == 0 ? cardHeight : stackedSpacing
+        }
+        return index == 0 ? min(cardHeight * 0.3, 76) : stackedSpacing
     }
 }
 
@@ -152,12 +234,6 @@ struct SettingsView: View {
                     } label: {
                         Label("Manage Card Faces", systemImage: "photo.stack")
                     }
-                }
-                Section("Experimental") {
-                    Toggle("Enhanced FeliCa Decoding", isOn: $store.enhancedFeliCaDecodingEnabled)
-                    Text("Attempt to retrieve the real serial number for Japanese transit cards (Suica/PASMO) using an external crypto server. Runs once per card.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
                 Section("Backup") {
                     Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "cloud.and.arrow.up") }
@@ -175,6 +251,26 @@ struct SettingsView: View {
 
 struct CardDetailRoute: Identifiable { let id: String }
 
+struct CardReorderDropDelegate: DropDelegate {
+    let destinationID: String
+    let store: CardWalletStore
+    @Binding var draggedCardID: String?
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedCardID, draggedCardID != destinationID else { return }
+        store.moveCard(from: draggedCardID, to: destinationID)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedCardID = nil
+        return true
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+}
+
 func loadCardFaceImage(fileName: String) -> UIImage? {
     let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -187,3 +283,78 @@ extension TransitCardSnapshot {
 }
 
 #Preview { ContentView() }
+
+private func primaryResultFields(for snapshot: TransitCardSnapshot) -> [ResultField] {
+    guard snapshot.cardFamily == "Lignes d'Azur card" else { return snapshot.resultFields }
+    let ticketTitles = Set(niceTicketFieldTitles)
+    return snapshot.resultFields.filter { !ticketTitles.contains($0.title) }
+}
+
+private func niceTicketFields(from snapshot: TransitCardSnapshot) -> [ResultField] {
+    guard snapshot.cardFamily == "Lignes d'Azur card" else { return [] }
+    let ticketTitles = Set(niceTicketFieldTitles)
+    return snapshot.resultFields.filter { ticketTitles.contains($0.title) }
+}
+
+private let niceTicketFieldTitles = [
+    "Loaded Tickets",
+    "Ticket",
+    "Ticket Family",
+    "Contract Serial Number",
+    "Product Code",
+    "Sold At",
+    "Remaining Trips",
+    "Valid Until",
+    "Last Ticket Event",
+    "Route",
+    "Ticket Status"
+]
+
+private struct NiceTicketSummaryCard: View {
+    let snapshot: TransitCardSnapshot
+
+    var body: some View {
+        let ticket = value(for: "Ticket")
+        let remainingTrips = value(for: "Remaining Trips")
+        let validUntil = value(for: "Card Valid Until") ?? value(for: "Valid Until")
+
+        if ticket != nil || remainingTrips != nil || validUntil != nil {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Ticket")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                if let ticket {
+                    Text(ticket)
+                        .font(.title3.weight(.semibold))
+                }
+                HStack(spacing: 12) {
+                    if let remainingTrips {
+                        ticketMetric(title: "Remaining", value: remainingTrips)
+                    }
+                    if let validUntil {
+                        ticketMetric(title: "Valid Until", value: validUntil)
+                    }
+                }
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func value(for title: String) -> String? {
+        snapshot.resultFields.first(where: { $0.title == title })?.value
+    }
+
+    @ViewBuilder
+    private func ticketMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.headline)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
