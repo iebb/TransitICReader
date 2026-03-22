@@ -138,26 +138,49 @@ struct FaceImageEditorSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 20) {
                 ZStack {
-                    Image(uiImage: image)
-                        .resizable().scaledToFill()
-                        .frame(width: 320, height: 200).clipped()
-                        .brightness(brightness).contrast(contrast)
-                        .scaleEffect(scale).offset(offset)
-                        .gesture(DragGesture().onChanged { offset = $0.translation }.onEnded { _ in })
-                }.frame(width: 320, height: 200).overlay(RoundedRectangle(cornerRadius: 0).stroke(Color.accentColor, lineWidth: 2))
+                    renderableView
+                        .frame(width: 320, height: 200)
+                        .clipped()
+                }
+                .frame(width: 320, height: 200)
+                .overlay(RoundedRectangle(cornerRadius: 0).stroke(Color.accentColor, lineWidth: 2))
+                .gesture(DragGesture().onChanged { offset = $0.translation })
 
                 VStack {
                     Slider(value: $brightness, in: -0.5...0.5) { Text("Brightness") }
                     Slider(value: $contrast, in: 0.5...1.5) { Text("Contrast") }
-                    Slider(value: $scale, in: 1.0...3.0) { Text("Scale") }
-                }.padding()
+                    Slider(value: $scale, in: 1.0...5.0) { Text("Scale") }
+                }.padding(.horizontal)
 
-                Button("Save") { onSave(image) }.buttonStyle(.borderedProminent)
+                Button("Save and Crop") { 
+                    saveCroppedImage()
+                }.buttonStyle(.borderedProminent)
             }
             .navigationTitle("Crop Card Face")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: onCancel) } }
+        }
+    }
+
+    @ViewBuilder
+    private var renderableView: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .brightness(brightness)
+            .contrast(contrast)
+            .scaleEffect(scale)
+            .offset(offset)
+    }
+
+    private func saveCroppedImage() {
+        let renderer = ImageRenderer(content: renderableView.frame(width: 320, height: 200))
+        renderer.scale = 3.0 // High quality
+        if let uiImage = renderer.uiImage {
+            onSave(uiImage)
+        } else {
+            onSave(image)
         }
     }
 }
@@ -182,14 +205,13 @@ struct MarkerPreviewBadge: View {
                 if markerSymbolName.hasPrefix("sf:") {
                     Image(systemName: String(markerSymbolName.dropFirst(3)))
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(card.markerOuterColor.color)
                 } else if markerSymbolName.hasPrefix("txt:") {
                     Text(String(markerSymbolName.dropFirst(4)))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(card.markerOuterColor.color)
                 }
             }
         }
+        .foregroundStyle(card.markerOuterColor.color)
     }
 }
 
@@ -211,11 +233,61 @@ struct MarkerEditorSheet: View {
                         ColorPicker("Shape Color", selection: Binding(get: { card.markerColor.color }, set: { store.setMarkerColor($0, for: card.id) }))
                         ColorPicker("Symbol Color", selection: Binding(get: { card.markerOuterColor.color }, set: { store.setMarkerOuterColor($0, for: card.id) }))
                     }
+
+                    Section("Icon Symbol") {
+                        let icons = [
+                            "sf:bus.fill", "sf:tram.fill", "sf:train.side.front.car", "sf:ferry.fill", "sf:bicycle",
+                            "sf:creditcard.fill", "sf:star.fill", "sf:heart.fill", "sf:tag.fill", "sf:briefcase.fill",
+                            "sf:map.fill", "sf:mappin", "sf:house.fill", "sf:lock.fill", "sf:iphone", "sf:bolt.fill",
+                            "sf:leaf.fill", "sf:ticket.fill", "sf:bag.fill", "sf:cart.fill", "sf:airplane",
+                            "sf:antenna.radiowaves.left.and.right", "sf:camera.fill", "sf:flashlight.on.fill",
+                            "sf:music.note", "sf:video.fill", "sf:gamecontroller.fill", "sf:building.fill",
+                            "sf:fuelpump.fill", "sf:cup.and.saucer.fill", "sf:pawprint.fill", "sf:graduationcap.fill"
+                        ]
+                        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map { "txt:\($0)" }
+                        let numbers = "0123456789".map { "txt:\($0)" }
+                        let candidates = icons + letters + numbers
+                        
+                        let columns = [GridItem(.adaptive(minimum: 44))]
+                        LazyVGrid(columns: columns, spacing: 10) {
+                            ForEach(candidates, id: \.self) { id in
+                                iconButton(id, card: card)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
                 }
                 .navigationTitle("Card Icon")
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             }
         }
+    }
+
+    @ViewBuilder
+    private func iconButton(_ id: String, card: SavedCardRecord) -> some View {
+        Button {
+            store.setMarkerSymbolName(id, for: card.id)
+        } label: {
+            ZStack {
+                let isSelected = id == card.markerSymbolName
+                let shapeColor = isSelected ? card.markerColor.color : Color(uiColor: .secondarySystemFill)
+                
+                if card.markerShape == .circle {
+                    Circle().fill(shapeColor)
+                } else {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous).fill(shapeColor)
+                }
+                
+                if id.hasPrefix("sf:") {
+                    Image(systemName: String(id.dropFirst(3))).font(.title3)
+                } else {
+                    Text(String(id.dropFirst(4))).font(.title3.bold())
+                }
+            }
+            .frame(width: 44, height: 44)
+            .foregroundStyle(id == card.markerSymbolName ? card.markerOuterColor.color : .primary)
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -228,5 +300,31 @@ struct KeyValueRow: View {
             Spacer()
             Text(value).multilineTextAlignment(.trailing).textSelection(.enabled)
         }
+    }
+}
+
+struct ImagePicker: UIViewControllerRepresentable {
+    var sourceType: UIImagePickerController.SourceType = .camera
+    var didFinish: (UIImage) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = sourceType
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+        init(_ parent: ImagePicker) { self.parent = parent }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage { parent.didFinish(image) }
+            picker.dismiss(animated: true)
+        }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
     }
 }

@@ -43,6 +43,7 @@ class CardWalletStore: ObservableObject {
                 markerShape: .circle,
                 customTitle: nil,
                 customDisplaySerialNumber: nil,
+                isUsingImage: false,
                 hideTitleOnImage: false,
                 hideSerialNumber: false,
                 imageFaceEnhancer: .mask,
@@ -151,6 +152,12 @@ class CardWalletStore: ObservableObject {
         save()
     }
 
+    func setIsUsingImage(_ isUsing: Bool, for id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        cards[index].isUsingImage = isUsing
+        save()
+    }
+
     func setFaceImage(_ image: UIImage, for id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }),
               let jpegData = image.jpegData(compressionQuality: 0.9) else { return }
@@ -165,18 +172,30 @@ class CardWalletStore: ObservableObject {
                 try jpegData.write(to: cardFaceFileURL(fileName: fileName), options: .atomic)
             }
             cards[index].faceImageFileName = fileName
+            cards[index].isUsingImage = true // Set to true when adding image
             applyAutoImageTextColors(to: &cards[index], image: image)
             save()
         } catch { return }
     }
 
+    func applyFaceAsset(_ fileName: String, to id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }),
+              let image = loadFaceImage(fileName: fileName) else { return }
+        cards[index].faceImageFileName = fileName
+        cards[index].isUsingImage = true // Set to true when applying asset
+        applyAutoImageTextColors(to: &cards[index], image: image)
+        save()
+    }
+
     func removeFaceImage(for id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
         cards[index].faceImageFileName = nil
+        cards[index].isUsingImage = false
         cards[index].autoTitleTextColor = nil
         cards[index].autoBalanceTextColor = nil
         save()
     }
+
 
     func deleteCard(_ id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
@@ -225,15 +244,6 @@ class CardWalletStore: ObservableObject {
         save()
     }
 
-    func applyFaceAsset(_ fileName: String, to id: String) {
-        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
-        cards[index].faceImageFileName = fileName
-        if let image = loadFaceImage(fileName: fileName) {
-            applyAutoImageTextColors(to: &cards[index], image: image)
-        }
-        save()
-    }
-
     func loadFaceImage(fileName: String?) -> UIImage? {
         guard let fileName else { return nil }
         if let cached = imageCache[fileName] { return cached }
@@ -247,6 +257,7 @@ class CardWalletStore: ObservableObject {
     func deleteFaceAsset(_ fileName: String) {
         imageCache.removeValue(forKey: fileName)
         try? FileManager.default.removeItem(at: cardFaceFileURL(fileName: fileName))
+        objectWillChange.send()
         save()
     }
 
@@ -255,6 +266,7 @@ class CardWalletStore: ObservableObject {
         for asset in faceAssets() where !used.contains(asset.fileName) {
             try? FileManager.default.removeItem(at: cardFaceFileURL(fileName: asset.fileName))
         }
+        objectWillChange.send()
         save()
     }
 

@@ -13,16 +13,14 @@ struct WalletCardView: View {
         card.faceImageFileName.flatMap(loadCardFaceImage)
     }
 
-    private var isPhotoFace: Bool {
-        faceImage != nil
-    }
+    private var isPhotoFace: Bool { faceImage != nil && card.finalIsUsingImage }
 
     private var shouldShowTitle: Bool {
-        !(isPhotoFace && card.hideTitleOnImage)
+        !(isPhotoFace && card.finalHideTitle)
     }
 
     private var shouldShowSerialNumber: Bool {
-        !card.hideSerialNumber
+        !card.finalHideSN
     }
 
     private var titleTextColor: Color { .white }
@@ -34,7 +32,7 @@ struct WalletCardView: View {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                     .fill(cardBackground)
 
-                if let faceImage {
+                if let faceImage, card.finalIsUsingImage {
                     Image(uiImage: faceImage)
                         .resizable()
                         .scaledToFill()
@@ -99,18 +97,16 @@ struct WalletCardView: View {
 
                     HStack(alignment: .bottom) {
                         if isExpanded {
-                            VStack(alignment: .leading, spacing: 4) {
-                                borderedCardText(
-                                    "Last Scanned",
-                                    font: .caption,
-                                    foregroundColor: titleTextColor.opacity(0.86)
-                                )
-                                borderedCardText(
-                                    card.scannedAt.formatted(date: .abbreviated, time: .omitted),
-                                    font: .subheadline.weight(.medium),
-                                    foregroundColor: titleTextColor
-                                )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Last Scanned")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .opacity(0.86)
+                                Text(KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt, includeTime: false))
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
                             }
+                            .foregroundStyle(titleTextColor)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(isPhotoFace ? .black.opacity(0.36) : .clear, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                         }
 
                         Spacer()
@@ -145,18 +141,18 @@ struct WalletCardView: View {
     @ViewBuilder
     private var markerBadge: some View {
         ZStack {
-            markerBackground(color: card.markerOuterColor.color, size: 28)
-            markerBackground(color: card.markerColor.color, size: 22)
-
-            if let markerSystemName = card.markerSystemName {
-                Image(systemName: markerSystemName)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
-            } else if let markerText = card.markerText {
-                Text(markerText)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+            markerBackground(color: card.markerColor.color, size: 28)
+            
+            Group {
+                if let markerSystemName = card.markerSystemName {
+                    Image(systemName: markerSystemName)
+                        .font(.system(size: 14, weight: .bold))
+                } else if let markerText = card.markerText {
+                    Text(markerText)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
             }
+            .foregroundStyle(card.markerOuterColor.color)
         }
         .frame(width: 28, height: 28)
     }
@@ -184,8 +180,6 @@ struct WalletCardView: View {
             return AnyShapeStyle(LinearGradient(colors: [card.color.color, card.color.darkerColor, .black], startPoint: .topLeading, endPoint: .bottomTrailing))
         case .sunrise:
             return AnyShapeStyle(LinearGradient(stops: [.init(color: card.color.color, location: 0), .init(color: card.color.color.opacity(0.92), location: 0.28), .init(color: .orange.opacity(0.9), location: 0.72), .init(color: card.color.darkerColor, location: 1)], startPoint: .topLeading, endPoint: .bottomTrailing))
-        case .metro:
-            return AnyShapeStyle(LinearGradient(stops: [.init(color: card.color.darkerColor, location: 0), .init(color: card.color.darkerColor, location: 0.46), .init(color: card.color.color, location: 0.46), .init(color: card.color.color, location: 0.64), .init(color: .black, location: 1)], startPoint: .top, endPoint: .bottom))
         }
     }
 }

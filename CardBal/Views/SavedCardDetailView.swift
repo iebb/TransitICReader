@@ -33,7 +33,7 @@ struct SavedCardDetailView: View {
     private func detailContent(card: SavedCardRecord) -> some View {
         cardDetailList(card: card)
             .navigationTitle(card.displayTitle)
-            .onAppear { appearanceMode = card.faceImageFileName == nil ? .colors : .image }
+            .onAppear { appearanceMode = card.finalIsUsingImage ? .image : .colors }
             .sheet(isPresented: $isShowingSNScanner) {
                 snScannerSheet(card: card)
             }
@@ -46,43 +46,35 @@ struct SavedCardDetailView: View {
             .onChange(of: selectedPhotoItem) {
                 handlePhotoSelection(selectedPhotoItem)
             }
+            .fullScreenCover(isPresented: $isShowingCamera) {
+                ImagePicker { image in
+                    pendingFaceImage = image
+                }
+            }
             .sheet(item: editableFaceImageBinding()) { editable in
                 faceImageEditorSheet(editable: editable, card: card)
             }
     }
 
     private func cardDetailList(card: SavedCardRecord) -> some View {
-        List {
-            Section {
-                cardPreviewSection(card: card)
-            }
+        VStack(spacing: 0) {
+            cardPreviewSection(card: card)
+                .padding()
+                .background(Color(uiColor: .systemGroupedBackground))
 
-            Section("Title") {
-                titleSection(card: card)
-            }
-
-            Section("Appearance") {
-                appearanceSection(card: card)
-            }
-
-            Section("Information") {
-                KeyValueRow(title: "Card Family", value: card.cardFamily)
-                KeyValueRow(title: "Technology", value: card.technology)
-                KeyValueRow(title: card.identifierLabel, value: card.identifierValue)
-                if let systemCode = card.systemCode {
-                    KeyValueRow(title: "System Code", value: systemCode)
+            List {
+                Section("Title") {
+                    titleSection(card: card)
                 }
-                if let pmm = card.pmm {
-                    KeyValueRow(title: "PMm", value: pmm)
-                }
-                if let realSerialNumber = card.realSerialNumber {
-                    KeyValueRow(title: "Real Serial", value: realSerialNumber)
-                }
-            }
 
-            Section {
-                Button("Delete Card", role: .destructive) {
-                    draftDeleteConfirmation = true
+                Section("Appearance") {
+                    appearanceSection(card: card)
+                }
+
+                Section {
+                    Button("Delete Card", role: .destructive) {
+                        draftDeleteConfirmation = true
+                    }
                 }
             }
         }
@@ -99,9 +91,8 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func cardPreviewSection(card: SavedCardRecord) -> some View {
+
         WalletCardView(card: card, isExpanded: true, cardHeight: (UIScreen.main.bounds.width - 32) / (85.6 / 53.98), visiblePartHeight: 92, onVisibleTap: {}, showDetails: {})
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
     }
 
     @ViewBuilder
@@ -134,9 +125,8 @@ struct SavedCardDetailView: View {
             } 
         }
 
-        Toggle("Hide Title On Image", isOn: Binding(get: { card.hideTitleOnImage }, set: { store.setHideTitleOnImage($0, for: card.id) }))
-            .opacity(card.faceImageFileName == nil ? 0 : 1)
-        Toggle("Hide Serial Number", isOn: Binding(get: { card.hideSerialNumber }, set: { store.setHideSerialNumber($0, for: card.id) }))
+        Toggle("Hide Title", isOn: Binding(get: { card.finalHideTitle }, set: { store.setHideTitleOnImage($0, for: card.id) }))
+        Toggle("Hide Serial Number", isOn: Binding(get: { card.finalHideSN }, set: { store.setHideSerialNumber($0, for: card.id) }))
     }
 
     @ViewBuilder
@@ -148,7 +138,7 @@ struct SavedCardDetailView: View {
         .pickerStyle(.segmented)
         .onChange(of: appearanceMode) {
             let mode = appearanceMode
-            if mode == .colors { store.removeFaceImage(for: card.id) } 
+            store.setIsUsingImage(mode == .image, for: card.id)
         }
 
         if appearanceMode == .image {
@@ -164,6 +154,11 @@ struct SavedCardDetailView: View {
             }
             if UIImagePickerController.isSourceTypeAvailable(.camera) { 
                 Button { isShowingCamera = true } label: { Label("Take Photo", systemImage: "camera") } 
+            }
+            if card.faceImageFileName != nil {
+                Button(role: .destructive) { store.removeFaceImage(for: card.id); appearanceMode = .colors } label: {
+                    Label("Remove Current Photo", systemImage: "trash")
+                }
             }
         } else {
             ColorPicker("Card Color", selection: Binding(get: { card.color.color }, set: { store.setColor($0, for: card.id) }), supportsOpacity: false)

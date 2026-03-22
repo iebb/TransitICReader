@@ -73,13 +73,12 @@ struct SavedCardColor: Codable, Hashable {
 }
 
 enum SavedCardDesign: String, Codable, CaseIterable, Identifiable {
-    case classic, sunrise, metro
+    case classic, sunrise
     var id: String { rawValue }
     var title: String {
         switch self {
         case .classic: return "Classic"
         case .sunrise: return "Sunrise"
-        case .metro: return "Metro"
         }
     }
 }
@@ -111,8 +110,9 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var markerShape: SavedCardMarkerShape
     var customTitle: String?
     var customDisplaySerialNumber: String?
-    var hideTitleOnImage: Bool
-    var hideSerialNumber: Bool
+    var isUsingImage: Bool?
+    var hideTitleOnImage: Bool?
+    var hideSerialNumber: Bool?
     var imageFaceEnhancer: ImageFaceEnhancer
     var autoImageTextColors: Bool
     var autoTitleTextColor: SavedCardColor?
@@ -129,7 +129,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var balanceText: String?
     var balanceDetail: String?
     var realSerialNumber: String?
-    var enhancedFeliCaDecoded: Bool
+    var enhancedFeliCaDecoded: Bool?
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
@@ -160,6 +160,10 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     }
 
     var cardNumber: String? { fieldValue("Card Number") ?? realSerialNumber }
+
+    var finalIsUsingImage: Bool { isUsingImage ?? (faceImageFileName != nil) }
+    var finalHideTitle: Bool { hideTitleOnImage ?? false }
+    var finalHideSN: Bool { hideSerialNumber ?? false }
 
     var displayedSerialNumber: String {
         let raw: String
@@ -196,5 +200,43 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         }
 
         return groups.joined(separator: " ")
+    }
+}
+
+extension SavedCardRecord {
+    init(snapshot: TransitCardSnapshot) {
+        self.id = snapshot.storageIdentifier
+        self.cardFamily = snapshot.cardFamily
+        self.markerSymbolName = nil
+        self.markerColor = .black
+        self.markerOuterColor = .white
+        self.markerShape = .circle
+        self.customTitle = nil
+        self.customDisplaySerialNumber = nil
+        self.isUsingImage = false
+        self.hideTitleOnImage = false
+        self.hideSerialNumber = false
+        self.imageFaceEnhancer = .mask
+        self.autoImageTextColors = true
+        self.autoTitleTextColor = nil
+        self.autoBalanceTextColor = nil
+        self.titleTextColorOverride = nil
+        self.balanceTextColorOverride = nil
+        self.technology = snapshot.technology
+        self.identifierLabel = snapshot.identifierLabel
+        self.rawIdentifierValue = snapshot.rawIdentifierValue
+        self.identifierValue = snapshot.identifierValue
+        self.pmm = snapshot.pmm
+        self.selectedAID = snapshot.selectedAID
+        self.systemCode = snapshot.systemCode
+        self.balanceText = snapshot.balanceText
+        self.balanceDetail = snapshot.balanceDetail
+        self.realSerialNumber = snapshot.realSerialNumber
+        self.enhancedFeliCaDecoded = false
+        self.resultFields = snapshot.resultFields.map(SavedCardField.init)
+        self.scannedAt = snapshot.scannedAt
+        self.color = SavedCardColor(red: 0.19, green: 0.38, blue: 0.73) // Default blue
+        self.design = .classic
+        self.faceImageFileName = nil
     }
 }

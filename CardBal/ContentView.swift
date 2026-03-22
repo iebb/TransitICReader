@@ -48,19 +48,27 @@ struct ScanHomeView: View {
                     }
                 }
 
+                if let snapshot = reader.latestSnapshot {
+                    Section("Card Preview") {
+                        WalletCardView(card: snapshot.toCard(), isExpanded: true, cardHeight: 200, visiblePartHeight: 120, onVisibleTap: {}, showDetails: { 
+                            if let savedCard = cardStore.card(withID: snapshot.storageIdentifier) {
+                                detailRoute = CardDetailRoute(id: savedCard.id)
+                            }
+                        })
+                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    }
+                }
+
                 Section("Result") {
                     if let snapshot = reader.latestSnapshot {
                         KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
                         ForEach(primaryResultFields(for: snapshot)) { field in
                             KeyValueRow(title: field.title, value: field.value)
                         }
-                        if let balanceText = snapshot.balanceText {
-                            KeyValueRow(title: "Balance", value: balanceText)
+                        if let balance = snapshot.balanceText {
+                            KeyValueRow(title: "Balance", value: balance)
                         }
-                        KeyValueRow(title: "Scanned", value: snapshot.scannedAt.formatted(date: .abbreviated, time: .standard))
-                        if let detail = snapshot.balanceDetail {
-                            Text(detail).font(.footnote).foregroundStyle(.secondary).padding(.vertical, 2)
-                        }
+                        KeyValueRow(title: "Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(snapshot.scannedAt))
                     } else {
                         Text("No card scanned yet.").foregroundStyle(.secondary)
                     }
@@ -113,7 +121,15 @@ struct ScanHomeView: View {
                     cardStore.upsert(snapshot: snapshot)
                 }
             }
-            .onAppear { if !didAutoStartScan { reader.startScanning(); didAutoStartScan = true } }
+            .onAppear { 
+                let scanOnLaunch = UserDefaults.standard.bool(forKey: "scanOnLaunch")
+                if !didAutoStartScan {
+                    if scanOnLaunch {
+                        reader.startScanning()
+                    }
+                    didAutoStartScan = true 
+                } 
+            }
         }
     }
 }
@@ -144,7 +160,7 @@ struct CardsView: View {
 
                         ScrollView {
                             ZStack(alignment: .top) {
-                                ForEach(Array(store.cards.enumerated().reversed()), id: \.element.id) { index, card in
+                                ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
                                     WalletCardView(
                                         card: card,
                                         isExpanded: previewCardID == card.id,
@@ -161,8 +177,8 @@ struct CardsView: View {
                                         showDetails: { detailRoute = CardDetailRoute(id: card.id) }
                                     )
                                     .padding(.horizontal, 20)
-                                    .offset(y: cardOffset(for: index, cardHeight: cardHeight))
                                     .zIndex(zIndex(for: index, cardID: card.id))
+                                    .offset(y: cardOffset(for: index, cardHeight: cardHeight))
                                     .onDrag {
                                         previewCardID = nil
                                         draggedCardID = card.id
@@ -231,6 +247,9 @@ struct CardsView: View {
 
 struct SettingsView: View {
     @ObservedObject var store: CardWalletStore
+    @AppStorage("scanOnLaunch") private var scanOnLaunch = false
+    @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
+
     var body: some View {
         NavigationStack {
             List {
@@ -245,8 +264,17 @@ struct SettingsView: View {
                     Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "cloud.and.arrow.up") }
                     Button { store.restoreFromiCloud() } label: { Label("Restore from iCloud", systemImage: "cloud.and.arrow.down") }
                 }
+                Section("App Settings") {
+                    Toggle("Scan on Launch", isOn: $scanOnLaunch)
+                    Picker("Date Format", selection: $dateFormat) {
+                        Text("YYYY-MM-DD").tag("yyyy-MM-dd")
+                        Text("DD/MM/YYYY").tag("dd/MM/yyyy")
+                        Text("MM/DD/YYYY").tag("MM/dd/yyyy")
+                        Text("Abbreviated").tag("MMM d, yyyy")
+                    }
+                }
                 Section("Information") {
-                    HStack { Text("App Version"); Spacer(); Text("1.5.0").foregroundStyle(.secondary) }
+                    HStack { Text("App Version"); Spacer(); Text("1.5.1").foregroundStyle(.secondary) }
                     Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
                 }
             }
@@ -286,6 +314,9 @@ func loadCardFaceImage(fileName: String) -> UIImage? {
 
 extension TransitCardSnapshot {
     var storageIdentifier: String { "\(technology)|\(rawIdentifierValue)" }
+    func toCard() -> SavedCardRecord {
+        SavedCardRecord(snapshot: self)
+    }
 }
 
 #Preview { ContentView() }

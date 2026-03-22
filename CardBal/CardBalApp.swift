@@ -22,6 +22,11 @@ struct CardBalApp: App {
 
         UITabBar.appearance().standardAppearance = tabBarAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+
+        UserDefaults.standard.register(defaults: [
+            "scanOnLaunch": true,
+            "dateFormat": "yyyy-MM-dd"
+        ])
     }
 
     var body: some Scene {

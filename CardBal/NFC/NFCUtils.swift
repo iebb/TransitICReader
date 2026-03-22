@@ -451,15 +451,61 @@ private struct FeliCaCardProfile {
     }
 }
 
+struct KSX6924DateFormatting {
+    static func formatBCDDateForDisplay(_ bcdDate: String?) -> String? {
+        guard let bcdDate = bcdDate else { return nil }
+        // bcdDate is expected as YYYY-MM-DD from the BCD parser
+        let parts = bcdDate.split(separator: "-")
+        guard parts.count == 3,
+              let year = Int(parts[0]),
+              let month = Int(parts[1]),
+              let day = Int(parts[2]) else { return bcdDate }
+
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+
+        guard let date = Calendar.current.date(from: components) else { return bcdDate }
+
+        let format = UserDefaults.standard.string(forKey: "dateFormat") ?? "yyyy-MM-dd"
+        let formatter = DateFormatter()
+        formatter.dateFormat = format
+        return formatter.string(from: date)
+    }
+
+    static func formatRawDateForDisplay(_ date: Date, includeTime: Bool = true) -> String {
+        let format = UserDefaults.standard.string(forKey: "dateFormat") ?? "yyyy-MM-dd"
+        let formatter = DateFormatter()
+        
+        var combinedFormat = format
+        if includeTime {
+            // Append time part if needed
+            if format.contains("/") || format.contains("-") {
+                combinedFormat += " HH:mm:ss"
+            } else {
+                combinedFormat += ", HH:mm:ss"
+            }
+        }
+        
+        formatter.dateFormat = combinedFormat
+        return formatter.string(from: date)
+    }
+}
+
 private struct KSX6924CardInfo {
     let cardNumber: String?
     let issueDate: String?
+    let purseInfoFields: [ResultField]?
+    let purseInfoRawFields: [RawDataField]?
 
     init(payload: Data, purseInfo: KSX6924PurseInfo?, configInfo: KSX6924ConfigDFInfo?) {
         self.cardNumber = purseInfo?.serial
             ?? configInfo?.serial
             ?? (payload.count >= 16 ? formatKoreanCardNumber(payload.sliceHexString(start: 8, length: 8)) : nil)
         self.issueDate = purseInfo?.issueDate ?? (payload.count >= 25 ? Self.formatIssueDate(payload[21...24]) : nil)
+        self.purseInfoFields = purseInfo?.resultFields
+        self.purseInfoRawFields = purseInfo?.rawDataFields
     }
 
     var resultFields: [ResultField] {
@@ -468,7 +514,10 @@ private struct KSX6924CardInfo {
             fields.append(ResultField(title: "Card Number", value: cardNumber))
         }
         if let issueDate {
-            fields.append(ResultField(title: "Issue Date", value: issueDate))
+            fields.append(ResultField(title: "Issue Date", value: KSX6924DateFormatting.formatBCDDateForDisplay(issueDate) ?? issueDate))
+        }
+        if let purseInfoFields {
+            fields.append(contentsOf: purseInfoFields)
         }
         return fields
     }
@@ -479,7 +528,7 @@ private struct KSX6924CardInfo {
         let year = String(hex.prefix(4))
         let month = String(hex.dropFirst(4).prefix(2))
         let day = String(hex.suffix(2))
-        if let monthInt = Int(month), let dayInt = Int(day), (1...12).contains(monthInt), (1...31).contains(dayInt) {
+        if let _ = Int(month), let _ = Int(day) {
             return "\(year)-\(month)-\(day)"
         }
         return hex
@@ -500,10 +549,147 @@ struct KSX6924ConfigDFInfo {
     }
 }
 
+// MARK: - KS X 6924 Purse Info Enums (lookup tables)
+
+private enum KSX6924CardType: UInt8 {
+    case prePaid = 0x00
+    case postPay = 0x10
+    case mobilePostPay = 0x20
+
+    var displayName: String {
+        switch self {
+        case .prePaid: return "Pre-paid"
+        case .postPay: return "Post-pay"
+        case .mobilePostPay: return "Mobile post-pay"
+        }
+    }
+
+    static func lookup(_ value: UInt8) -> String {
+        KSX6924CardType(rawValue: value)?.displayName ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
+private enum KSX6924Algorithm: UInt8 {
+    case seed = 0x00
+    case tripleDES = 0x10
+
+    var displayName: String {
+        switch self {
+        case .seed: return "SEED"
+        case .tripleDES: return "3DES"
+        }
+    }
+
+    static func lookup(_ value: UInt8) -> String {
+        KSX6924Algorithm(rawValue: value)?.displayName ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
+private struct KSX6924IDCenter {
+    static let names: [UInt8: String] = [
+        0x00: "Reserved",
+        0x01: "Korea Financial Telecommunications and Clearings Institute",
+        0x02: "A-Cash",
+        0x03: "Mybi",
+        0x05: "V-Cash",
+        0x06: "Mondex Korea",
+        0x07: "Korea Expressway Corporation",
+        0x08: "Korea Smart Card Corporation",
+        0x09: "KORAIL Networks",
+        0x0b: "EB Card Corporation",
+        0x0c: "Seoul Bus Transport Association",
+        0x0d: "Cardnet"
+    ]
+
+    static func lookup(_ value: UInt8) -> String {
+        names[value] ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
+private struct KSX6924UserCode {
+    static let names: [UInt8: String] = [
+        0x01: "Regular/Normal",
+        0x02: "Child",
+        0x04: "Youth",
+        0x06: "Elderly",
+        0x0f: "Test",
+        0xff: "Inactive"
+    ]
+
+    static func lookup(_ value: UInt8) -> String {
+        names[value] ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
+private struct KSX6924DisRate {
+    static let names: [UInt8: String] = [
+        0x00: "No discount",
+        0x10: "Disabled, basic",
+        0x11: "Disabled, companion",
+        0x20: "Merit, basic",
+        0x21: "Merit, companion"
+    ]
+
+    static func lookup(_ value: UInt8) -> String {
+        names[value] ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
+private struct KSX6924TCode {
+    static let names: [UInt8: String] = [
+        0x00: "None",
+        0x01: "SK Telecom",
+        0x02: "Korea Telecom",
+        0x03: "LG Uplus"
+    ]
+
+    static func lookup(_ value: UInt8) -> String {
+        names[value] ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
+private struct KSX6924CCode {
+    static let names: [UInt8: String] = [
+        0x00: "None",
+        0x01: "KB Kookmin Bank",
+        0x02: "Nonghyup Bank",
+        0x03: "Lotte Card",
+        0x04: "BC Card",
+        0x05: "Samsung Card",
+        0x06: "Shinhan Bank",
+        0x07: "Citibank Korea",
+        0x08: "Korea Exchange Bank",
+        0x09: "Woori",
+        0x0a: "Hana SK Card",
+        0x0b: "Hyundai Capital Services"
+    ]
+
+    static func lookup(_ value: UInt8) -> String {
+        names[value] ?? String(format: "Unknown (0x%02X)", value)
+    }
+}
+
 private struct KSX6924PurseInfo {
     let rawData: Data
     let serial: String
     let issueDate: String?
+
+    // Full purse info fields (matching on-card binary layout)
+    let cardType: UInt8?
+    let algorithm: UInt8?
+    let vk: UInt8?
+    let idCenter: UInt8?
+    let csn: String?        // 8 bytes BCD
+    let idtr: String?       // 5 bytes BCD
+    let expiryDate: String?
+    let userCode: UInt8?
+    let disRate: UInt8?
+    let balMax: Int?         // 4 bytes big-endian
+    let bra: String?         // 2 bytes BCD
+    let mmax: Int?           // 4 bytes big-endian
+    let tcode: UInt8?
+    let ccode: UInt8?
+    let rfu: String?         // 8 bytes
 
     init?(fciPayload: Data) {
         guard let purseInfoData = findTLVValue(tag: [0xB0], in: fciPayload), purseInfoData.count >= 21 else {
@@ -511,12 +697,141 @@ private struct KSX6924PurseInfo {
         }
 
         self.rawData = purseInfoData
-        self.serial = formatKoreanCardNumber(purseInfoData.sliceHexString(start: 4, length: 8))
-        self.issueDate = purseInfoData.count >= 21 ? Self.parseBCDDate(purseInfoData[17...20]) : nil
+
+        // Purse info structure layout (KS X 6924):
+        //  0: cardType (1)
+        //  1: alg (1)
+        //  2: vk (1)
+        //  3: idCenter (1)
+        //  4-11: CSN (8 bytes BCD)
+        // 12-16: IDTR (5 bytes BCD)
+        // 17-20: issueDate (4 bytes BCD: YYYYMMDD)
+        // 21-24: expiryDate (4 bytes BCD: YYYYMMDD)
+        // 25: userCode (1)
+        // 26: disRate (1)
+        // 27-30: balMax (4 bytes big-endian)
+        // 31-32: BRA (2 bytes BCD)
+        // 33-36: mmax (4 bytes big-endian)
+        // 37: tcode (1)
+        // 38: ccode (1)
+        // 39-46: RFU (8 bytes)
+
+        self.cardType = purseInfoData.count > 0 ? purseInfoData[purseInfoData.startIndex] : nil
+        self.algorithm = purseInfoData.count > 1 ? purseInfoData[purseInfoData.startIndex + 1] : nil
+        self.vk = purseInfoData.count > 2 ? purseInfoData[purseInfoData.startIndex + 2] : nil
+        self.idCenter = purseInfoData.count > 3 ? purseInfoData[purseInfoData.startIndex + 3] : nil
+
+        self.csn = purseInfoData.count >= 12 ? purseInfoData.sliceHexString(start: 4, length: 8) : nil
+        self.serial = formatKoreanCardNumber(csn ?? purseInfoData.sliceHexString(start: 4, length: 8))
+
+        self.idtr = purseInfoData.count >= 17 ? purseInfoData.sliceHexString(start: 12, length: 5) : nil
+        self.issueDate = purseInfoData.count >= 21 ? Self.parseBCDDate(purseInfoData, offset: 17) : nil
+        self.expiryDate = purseInfoData.count >= 25 ? Self.parseBCDDate(purseInfoData, offset: 21) : nil
+        self.userCode = purseInfoData.count > 25 ? purseInfoData[purseInfoData.startIndex + 25] : nil
+        self.disRate = purseInfoData.count > 26 ? purseInfoData[purseInfoData.startIndex + 26] : nil
+        self.balMax = purseInfoData.count >= 31 ? purseInfoData.bigEndianInt(start: 27, length: 4) : nil
+        self.bra = purseInfoData.count >= 33 ? purseInfoData.sliceHexString(start: 31, length: 2) : nil
+        self.mmax = purseInfoData.count >= 37 ? purseInfoData.bigEndianInt(start: 33, length: 4) : nil
+        self.tcode = purseInfoData.count > 37 ? purseInfoData[purseInfoData.startIndex + 37] : nil
+        self.ccode = purseInfoData.count > 38 ? purseInfoData[purseInfoData.startIndex + 38] : nil
+        self.rfu = purseInfoData.count >= 47 ? purseInfoData.sliceHexString(start: 39, length: 8) : nil
     }
 
-    private static func parseBCDDate(_ bytes: Data.SubSequence) -> String? {
-        let hex = bytes.map { String(format: "%02X", $0) }.joined()
+    var resultFields: [ResultField] {
+        var fields: [ResultField] = []
+        if let cardType {
+            fields.append(ResultField(title: "Card Type", value: KSX6924CardType.lookup(cardType)))
+        }
+        if let algorithm {
+            fields.append(ResultField(title: "Algorithm", value: KSX6924Algorithm.lookup(algorithm)))
+        }
+        if let idCenter {
+            fields.append(ResultField(title: "ID Center", value: KSX6924IDCenter.lookup(idCenter)))
+        }
+        if let userCode {
+            fields.append(ResultField(title: "User Type", value: KSX6924UserCode.lookup(userCode)))
+        }
+        if let disRate {
+            fields.append(ResultField(title: "Discount", value: KSX6924DisRate.lookup(disRate)))
+        }
+        if let expiryDate {
+            fields.append(ResultField(title: "Expiry Date", value: KSX6924DateFormatting.formatBCDDateForDisplay(expiryDate) ?? ""))
+        }
+        if let balMax {
+            fields.append(ResultField(title: "Max Balance", value: formatCurrency(amount: Decimal(balMax), code: "KRW", fractionDigits: 0)))
+        }
+        if let mmax {
+            fields.append(ResultField(title: "Max Transaction", value: formatCurrency(amount: Decimal(mmax), code: "KRW", fractionDigits: 0)))
+        }
+        if let tcode {
+            fields.append(ResultField(title: "Telecom", value: KSX6924TCode.lookup(tcode)))
+        }
+        if let ccode {
+            fields.append(ResultField(title: "Credit Card", value: KSX6924CCode.lookup(ccode)))
+        }
+        return fields
+    }
+
+    var rawDataFields: [RawDataField] {
+        var fields: [RawDataField] = [
+            RawDataField(title: "Raw Purse Info", value: rawData.hexString),
+            RawDataField(title: "Length", value: "\(rawData.count) bytes")
+        ]
+        if let cardType {
+            fields.append(RawDataField(title: "Card Type", value: String(format: "0x%02X → %@", cardType, KSX6924CardType.lookup(cardType))))
+        }
+        if let algorithm {
+            fields.append(RawDataField(title: "Algorithm", value: String(format: "0x%02X → %@", algorithm, KSX6924Algorithm.lookup(algorithm))))
+        }
+        if let vk {
+            fields.append(RawDataField(title: "VK", value: String(format: "0x%02X", vk)))
+        }
+        if let idCenter {
+            fields.append(RawDataField(title: "ID Center", value: String(format: "0x%02X → %@", idCenter, KSX6924IDCenter.lookup(idCenter))))
+        }
+        if let csn {
+            fields.append(RawDataField(title: "CSN (BCD)", value: csn))
+        }
+        if let idtr {
+            fields.append(RawDataField(title: "IDTR (BCD)", value: idtr))
+        }
+        if let issueDate {
+            fields.append(RawDataField(title: "Issue Date (BCD)", value: issueDate))
+        }
+        if let expiryDate {
+            fields.append(RawDataField(title: "Expiry Date (BCD)", value: expiryDate))
+        }
+        if let userCode {
+            fields.append(RawDataField(title: "User Code", value: String(format: "0x%02X → %@", userCode, KSX6924UserCode.lookup(userCode))))
+        }
+        if let disRate {
+            fields.append(RawDataField(title: "Discount Rate", value: String(format: "0x%02X → %@", disRate, KSX6924DisRate.lookup(disRate))))
+        }
+        if let balMax {
+            fields.append(RawDataField(title: "Max Balance", value: "\(balMax)"))
+        }
+        if let bra {
+            fields.append(RawDataField(title: "BRA (BCD)", value: bra))
+        }
+        if let mmax {
+            fields.append(RawDataField(title: "Max Transaction", value: "\(mmax)"))
+        }
+        if let tcode {
+            fields.append(RawDataField(title: "T-Code", value: String(format: "0x%02X → %@", tcode, KSX6924TCode.lookup(tcode))))
+        }
+        if let ccode {
+            fields.append(RawDataField(title: "C-Code", value: String(format: "0x%02X → %@", ccode, KSX6924CCode.lookup(ccode))))
+        }
+        if let rfu {
+            fields.append(RawDataField(title: "RFU", value: rfu))
+        }
+        return fields
+    }
+
+    private static func parseBCDDate(_ data: Data, offset: Int) -> String? {
+        guard data.count >= offset + 4 else { return nil }
+        let startIdx = data.startIndex + offset
+        let hex = data[startIdx..<(startIdx + 4)].map { String(format: "%02X", $0) }.joined()
         guard hex.count == 8 else { return nil }
         let year = String(hex.prefix(4))
         let month = String(hex.dropFirst(4).prefix(2))
@@ -735,7 +1050,9 @@ extension NFCTransitReader {
         ]
 
         if let parsedBalance {
-            rawSections.append(RawDataSection(title: "Decoded Balance", fields: parsedBalance.rawFields))
+            var fields = [RawDataField(title: "Decoder", value: parsedBalance.detail)]
+            fields.append(contentsOf: parsedBalance.rawFields)
+            rawSections.append(RawDataSection(title: "Decoded Balance", fields: fields))
         }
 
         if profile.displayName == "Japan Transit IC" {
@@ -826,7 +1143,9 @@ extension NFCTransitReader {
         ]
 
         if let parsedBalance {
-            rawSections.append(RawDataSection(title: "Decoded Balance", fields: parsedBalance.rawFields))
+            var fields = [RawDataField(title: "Decoder", value: parsedBalance.detail)]
+            fields.append(contentsOf: parsedBalance.rawFields)
+            rawSections.append(RawDataSection(title: "Decoded Balance", fields: fields))
         }
 
         if let cardInfoResponse {
@@ -840,6 +1159,10 @@ extension NFCTransitReader {
                     ]
                 )
             )
+        }
+
+        if let purseInfoRawFields = parsedCardInfo.purseInfoRawFields {
+            rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseInfoRawFields))
         }
 
         return TransitCardSnapshot(
@@ -1271,10 +1594,7 @@ private func formatCalypsoDay(_ bits: String) -> String? {
     guard let value = Int(bits, radix: 2) else { return nil }
     let reference = Date(timeIntervalSince1970: 852_073_200)
     let date = reference.addingTimeInterval(TimeInterval(value * 86_400))
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "fr_FR")
-    formatter.dateFormat = "dd/MM/yy"
-    return formatter.string(from: date)
+    return KSX6924DateFormatting.formatRawDateForDisplay(date)
 }
 
 private func formatCompactTime(_ bits: String) -> String? {
