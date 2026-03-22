@@ -300,6 +300,157 @@ private enum NFCTestError: Error {
     case unsupportedCard
 }
 
+private struct FeliCaCardProfile {
+    let displayName: String
+    let systemCode: String
+    let serviceCode: String
+    let serviceCodeLittleEndian: Data
+    let cardNumberTitle: String?
+    let brandOverrides: [String: String]
+    let parseBalance: (Data, Date) -> ParsedBalance?
+
+    static func matching(candidates: [String]) -> FeliCaCardProfile? {
+        let normalized = Set(candidates.map { $0.uppercased() })
+        return all.first(where: { normalized.contains($0.systemCode) })
+    }
+
+    private static let all: [FeliCaCardProfile] = [
+        FeliCaCardProfile(
+            displayName: "Japan Transit IC",
+            systemCode: "0003",
+            serviceCode: "008B",
+            serviceCodeLittleEndian: Data([0x8B, 0x00]),
+            cardNumberTitle: "Card Number (IDm)",
+            brandOverrides: [
+                "86A7": "Suica",
+                "927A": "Hayakaken"
+            ],
+            parseBalance: { block, _ in
+                guard block.count >= 13 else { return nil }
+                let balance = Int(block[11]) | (Int(block[12]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY", fractionDigits: 0),
+                    detail: "Parsed from bytes 11-12 in little-endian order from service 0x008B.",
+                    rawFields: [
+                        RawDataField(title: "Balance Bytes", value: block.sliceHexString(start: 11, length: 2)),
+                        RawDataField(title: "Stored Value", value: String(balance)),
+                        RawDataField(title: "Formula", value: "Int(byte11) + (Int(byte12) << 8)")
+                    ]
+                )
+            }
+        ),
+        FeliCaCardProfile(
+            displayName: "Octopus",
+            systemCode: "8008",
+            serviceCode: "0117",
+            serviceCodeLittleEndian: Data([0x17, 0x01]),
+            cardNumberTitle: "Card Number (IDm)",
+            brandOverrides: [:],
+            parseBalance: { block, scannedAt in
+                guard block.count >= 4 else { return nil }
+                let rawStored = block.bigEndianInt(start: 0, length: 4)
+                let offset = octopusOffset(for: scannedAt)
+                let octopusValue = Decimal(rawStored - offset) / 10
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: octopusValue, code: "HKD", fractionDigits: 1),
+                    detail: "Octopus stores a raw value with an offset. The current formula is (raw - \(offset)) / 10.",
+                    rawFields: [
+                        RawDataField(title: "Balance Bytes", value: block.sliceHexString(start: 0, length: 4)),
+                        RawDataField(title: "Stored Value", value: String(rawStored)),
+                        RawDataField(title: "Offset", value: String(offset)),
+                        RawDataField(title: "Formula", value: "(\(rawStored) - \(offset)) / 10 = \(octopusValue)")
+                    ]
+                )
+            }
+        ),
+        FeliCaCardProfile(
+            displayName: "IruCa",
+            systemCode: "DE80",
+            serviceCode: "008B",
+            serviceCodeLittleEndian: Data([0x8B, 0x00]),
+            cardNumberTitle: "Card Number (IDm)",
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard block.count >= 13 else { return nil }
+                let balance = Int(block[11]) | (Int(block[12]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY", fractionDigits: 0),
+                    detail: "Parsed from bytes 11-12 in little-endian order from service 0x008B.",
+                    rawFields: [
+                        RawDataField(title: "Balance Bytes", value: block.sliceHexString(start: 11, length: 2)),
+                        RawDataField(title: "Stored Value", value: String(balance)),
+                        RawDataField(title: "Formula", value: "Int(byte11) + (Int(byte12) << 8)")
+                    ]
+                )
+            }
+        ),
+        FeliCaCardProfile(
+            displayName: "SAPICA",
+            systemCode: "865E",
+            serviceCode: "008B",
+            serviceCodeLittleEndian: Data([0x8B, 0x00]),
+            cardNumberTitle: "Card Number (IDm)",
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard block.count >= 13 else { return nil }
+                let balance = Int(block[11]) | (Int(block[12]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY", fractionDigits: 0),
+                    detail: "Parsed from bytes 11-12 in little-endian order from service 0x008B.",
+                    rawFields: [
+                        RawDataField(title: "Balance Bytes", value: block.sliceHexString(start: 11, length: 2)),
+                        RawDataField(title: "Stored Value", value: String(balance)),
+                        RawDataField(title: "Formula", value: "Int(byte11) + (Int(byte12) << 8)")
+                    ]
+                )
+            }
+        ),
+        FeliCaCardProfile(
+            displayName: "PASPY",
+            systemCode: "8592",
+            serviceCode: "008B",
+            serviceCodeLittleEndian: Data([0x8B, 0x00]),
+            cardNumberTitle: "Card Number (IDm)",
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard block.count >= 13 else { return nil }
+                let balance = Int(block[11]) | (Int(block[12]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY", fractionDigits: 0),
+                    detail: "Parsed from bytes 11-12 in little-endian order from service 0x008B.",
+                    rawFields: [
+                        RawDataField(title: "Balance Bytes", value: block.sliceHexString(start: 11, length: 2)),
+                        RawDataField(title: "Stored Value", value: String(balance)),
+                        RawDataField(title: "Formula", value: "Int(byte11) + (Int(byte12) << 8)")
+                    ]
+                )
+            }
+        )
+    ]
+
+    func detectedBrand(using systemCodes: [String]) -> String {
+        for systemCode in systemCodes.map({ $0.uppercased() }) {
+            if let match = brandOverrides[systemCode] {
+                return match
+            }
+        }
+        return displayName
+    }
+
+    func resultFields(forIDm idm: String, detectedBrand: String) -> [ResultField] {
+        var fields: [ResultField] = []
+        if displayName == "Japan Transit IC" {
+            fields.append(ResultField(title: "Detected Type", value: detectedBrand))
+            if detectedBrand == displayName {
+                fields.append(ResultField(title: "Note", value: "Exact brand is not exposed on this card's public FeliCa common-area data. Cards like ICOCA, manaca, TOICA, PASMO, and others can share the same profile."))
+            }
+        }
+        guard let cardNumberTitle else { return fields }
+        fields.append(ResultField(title: cardNumberTitle, value: idm))
+        return fields
+    }
+}
+
 private struct KSX6924CardInfo {
     let cardNumber: String?
     let issueDate: String?
@@ -507,89 +658,112 @@ private struct NiceEventSummary {
 extension NFCTransitReader {
     private func decodeFeliCaSnapshot(from tag: any NFCFeliCaTag) async throws -> TransitCardSnapshot {
         let scannedAt = Date()
-        let idm = tag.currentIDm.hexString.uppercased()
+        let rawIDm = tag.currentIDm.hexString.uppercased()
+        let formattedIDm = formatFeliCaIDm(rawIDm)
+        let systemCodeBytes = tag.currentSystemCode.hexString.uppercased()
+        let systemCodeCandidates = tag.currentSystemCode.systemCodeCandidates.map { $0.uppercased() }
+        let requestedSystemCodes = (try? await tag.requestSystemCodes()) ?? []
+        let allSystemCodes = Array(Set((systemCodeCandidates + requestedSystemCodes).map { $0.uppercased() })).sorted()
         let (_, pmmData, _) = try await tag.polling(
             systemCode: tag.currentSystemCode,
             requestCode: .noRequest,
             timeSlot: .max1
         )
         let pmm = pmmData.hexString.uppercased()
-
-        let profiles: [String: (String, String)] = [
-            "0003": ("Japan Transit IC", "008B"),
-            "8008": ("Octopus", "0117"),
-            "DE80": ("IruCa", "008B"),
-            "865E": ("SAPICA", "008B"),
-            "8592": ("PASPY", "008B")
-        ]
-
-        let systemCodes = tag.currentSystemCode.systemCodeCandidates
-        var matchedProfile: (String, String, String)?
-        for systemCode in systemCodes {
-            if let profile = profiles[systemCode] {
-                matchedProfile = (profile.0, systemCode, profile.1)
-                break
-            }
-        }
-
-        guard let profile = matchedProfile else {
+        guard let profile = FeliCaCardProfile.matching(candidates: allSystemCodes) else {
             return TransitCardSnapshot(
                 technology: "FeliCa",
-                cardFamily: "FeliCa Card",
+                cardFamily: "Unsupported FeliCa Card",
                 identifierLabel: "IDm",
-                identifierValue: formatFeliCaIDm(idm),
-                rawIdentifierValue: idm,
+                identifierValue: formattedIDm,
+                rawIdentifierValue: rawIDm,
                 pmm: pmm,
-                systemCode: systemCodes.first,
+                systemCode: systemCodeCandidates.first,
                 selectedAID: nil,
                 balanceText: nil,
-                balanceDetail: "Unsupported system code.",
+                balanceDetail: "No balance decoder is configured for this FeliCa system code.",
                 realSerialNumber: nil,
                 resultFields: [],
-                rawSections: [],
+                rawSections: [
+                    RawDataSection(
+                        title: "Tag",
+                        fields: [
+                            RawDataField(title: "Technology", value: "FeliCa"),
+                            RawDataField(title: "IDm", value: formattedIDm),
+                            RawDataField(title: "PMm", value: pmm),
+                            RawDataField(title: "Current System Code Bytes", value: systemCodeBytes),
+                            RawDataField(title: "System Code Candidates", value: systemCodeCandidates.joined(separator: ", ")),
+                            RawDataField(title: "Requested System Codes", value: requestedSystemCodes.isEmpty ? "Unavailable" : requestedSystemCodes.joined(separator: ", "))
+                        ]
+                    )
+                ],
                 scannedAt: scannedAt
             )
         }
 
-        let serviceData = Data(hexString: profile.2)
         let readResult = try await tag.readWithoutEncryption(
-            serviceCodeList: [Data([serviceData[1], serviceData[0]])],
+            serviceCodeList: [profile.serviceCodeLittleEndian],
             blockList: [Data([0x80, 0x00])]
         )
-
         let block = readResult.2.first
-        var balanceText: String?
-        var balanceDetail: String?
+        let parsedBalance = block.flatMap { profile.parseBalance($0, scannedAt) }
+        let detectedBrand = profile.detectedBrand(using: allSystemCodes)
 
-        if profile.1 == "0003" || profile.1 == "DE80" || profile.1 == "865E" || profile.1 == "8592" {
-            if let block, block.count >= 13 {
-                let balance = Int(block[11]) | (Int(block[12]) << 8)
-                balanceText = formatCurrency(amount: Decimal(balance), code: "JPY", fractionDigits: 0)
-                balanceDetail = "Balance: ¥\(balance)"
-            }
-        } else if profile.1 == "8008" {
-            if let block, block.count >= 4 {
-                let rawStored = block.bigEndianInt(start: 0, length: 4)
-                let value = Decimal(rawStored - octopusOffset(for: scannedAt)) / 10
-                balanceText = formatCurrency(amount: value, code: "HKD", fractionDigits: 1)
-                balanceDetail = "Balance: $\(value)"
-            }
+        var rawSections: [RawDataSection] = [
+            RawDataSection(
+                title: "Tag",
+                fields: [
+                    RawDataField(title: "Technology", value: "FeliCa"),
+                    RawDataField(title: "IDm", value: formattedIDm),
+                    RawDataField(title: "PMm", value: pmm),
+                    RawDataField(title: "System Code", value: profile.systemCode),
+                    RawDataField(title: "Current System Code Bytes", value: systemCodeBytes),
+                    RawDataField(title: "System Code Candidates", value: systemCodeCandidates.joined(separator: ", ")),
+                    RawDataField(title: "Requested System Codes", value: requestedSystemCodes.isEmpty ? "Unavailable" : requestedSystemCodes.joined(separator: ", "))
+                ]
+            ),
+            RawDataSection(
+                title: "Read Without Encryption",
+                fields: [
+                    RawDataField(title: "Service Code", value: profile.serviceCode),
+                    RawDataField(title: "Status Flag 1", value: String(readResult.0)),
+                    RawDataField(title: "Status Flag 2", value: String(readResult.1)),
+                    RawDataField(title: "Block Count", value: String(readResult.2.count)),
+                    RawDataField(title: "Block 0", value: block?.hexString ?? "Unavailable")
+                ]
+            )
+        ]
+
+        if let parsedBalance {
+            rawSections.append(RawDataSection(title: "Decoded Balance", fields: parsedBalance.rawFields))
+        }
+
+        if profile.displayName == "Japan Transit IC" {
+            rawSections.append(
+                RawDataSection(
+                    title: "Card Type Detection",
+                    fields: [
+                        RawDataField(title: "Detected Type", value: detectedBrand),
+                        RawDataField(title: "Note", value: "Some Japanese transit cards share the common system code 0003, so exact brand detection is only possible when the card also exposes a unique extra system code.")
+                    ]
+                )
+            )
         }
 
         return TransitCardSnapshot(
             technology: "FeliCa",
-            cardFamily: profile.0,
+            cardFamily: detectedBrand,
             identifierLabel: "IDm",
-            identifierValue: formatFeliCaIDm(idm),
-            rawIdentifierValue: idm,
+            identifierValue: formattedIDm,
+            rawIdentifierValue: rawIDm,
             pmm: pmm,
-            systemCode: profile.1,
+            systemCode: profile.systemCode,
             selectedAID: nil,
-            balanceText: balanceText,
-            balanceDetail: balanceDetail,
+            balanceText: parsedBalance?.formatted,
+            balanceDetail: parsedBalance?.detail,
             realSerialNumber: nil,
-            resultFields: [ResultField(title: "IDm", value: formatFeliCaIDm(idm))],
-            rawSections: [],
+            resultFields: profile.resultFields(forIDm: formattedIDm, detectedBrand: detectedBrand),
+            rawSections: rawSections,
             scannedAt: scannedAt
         )
     }
@@ -913,6 +1087,19 @@ extension NFCFeliCaTag {
                     continuation.resume(throwing: error)
                 } else {
                     continuation.resume(returning: (idm, pmm, error))
+                }
+            }
+        }
+    }
+
+    func requestSystemCodes() async throws -> [String] {
+        try await withCheckedThrowingContinuation { continuation in
+            self.requestSystemCode { result in
+                switch result {
+                case .success(let systemCodes):
+                    continuation.resume(returning: systemCodes.map(\.hexString).map { $0.uppercased() })
+                case .failure(let error):
+                    continuation.resume(throwing: error)
                 }
             }
         }

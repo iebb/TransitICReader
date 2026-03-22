@@ -11,6 +11,21 @@ struct KSX6924CardProfile {
     static func matching(aid: String, configInfo: KSX6924ConfigDFInfo? = nil) -> KSX6924CardProfile {
         let normalized = aid.uppercased()
         if let p = all.first(where: { $0.aid == normalized }) { return p }
+        if normalized.hasPrefix("D410000003") {
+            return KSX6924CardProfile(displayName: "T-money", aid: normalized, parseBalance: ksx6924BalanceParser)
+        }
+        if normalized.hasPrefix("D410000014") {
+            return KSX6924CardProfile(displayName: "EZL / Cashbee", aid: normalized, parseBalance: ksx6924BalanceParser)
+        }
+        if normalized.hasPrefix("D410000029") {
+            return KSX6924CardProfile(displayName: "NAMANE", aid: normalized, parseBalance: ksx6924BalanceParser)
+        }
+        if normalized.hasPrefix("D410000030") {
+            return KSX6924CardProfile(displayName: "MOIBA", aid: normalized, parseBalance: ksx6924BalanceParser)
+        }
+        if normalized.hasPrefix("D410650990") {
+            return KSX6924CardProfile(displayName: "K-Cash", aid: normalized, parseBalance: ksx6924BalanceParser)
+        }
         return KSX6924CardProfile(displayName: "ISO7816 Transit Card", aid: normalized, parseBalance: ksx6924BalanceParser)
     }
 
@@ -131,8 +146,19 @@ enum NFCISO7816AccessPolicy {
     static let exactAIDs: Set<String> = [
         "A0000004520001", "D4100000030001", "D4100000140001", "D410000029000001", "D4100000300001", "D4106509900020"
     ]
+
+    static let ksx6924AllowedPrefixes: [String] = [
+        "D410000003",
+        "D410000014",
+        "D410000029",
+        "D410000030",
+        "D410650990"
+    ]
+
     static func isAllowed(aid: String) -> Bool {
         let normalized = aid.uppercased()
-        return exactAIDs.contains(normalized) || CalypsoCardProfile.supportedPrefixes.contains { normalized.hasPrefix($0) }
+        return exactAIDs.contains(normalized)
+            || ksx6924AllowedPrefixes.contains { normalized.hasPrefix($0) }
+            || CalypsoCardProfile.supportedPrefixes.contains { normalized.hasPrefix($0) }
     }
 }

@@ -175,7 +175,7 @@ struct SavedCardDetailView: View {
 
     private func titleBinding(card: SavedCardRecord) -> Binding<String> {
         Binding(
-            get: { draftTitle ?? card.customTitle ?? card.cardFamily },
+            get: { draftTitle ?? card.customTitle ?? "" },
             set: { v in 
                 draftTitle = v
                 titleTask?.cancel()

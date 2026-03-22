@@ -66,6 +66,12 @@ struct ScanHomeView: View {
                     }
                 }
 
+                if let snapshot = reader.latestSnapshot, !snapshot.rawSections.isEmpty {
+                    Section("Raw Data") {
+                        RawDataSectionList(snapshot: snapshot)
+                    }
+                }
+
                 if let snapshot = reader.latestSnapshot, let savedCard = cardStore.card(withID: snapshot.storageIdentifier) {
                     Section("Saved Card") {
                         WalletCardView(card: savedCard, isExpanded: true, cardHeight: 200, visiblePartHeight: 120, onVisibleTap: {}, showDetails: { detailRoute = CardDetailRoute(id: savedCard.id) })
@@ -356,5 +362,31 @@ private struct NiceTicketSummaryCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+private struct RawDataSectionList: View {
+    let snapshot: TransitCardSnapshot
+
+    var body: some View {
+        ForEach(snapshot.rawSections) { section in
+            DisclosureGroup(section.title) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(section.fields) { field in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(field.title)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(field.value)
+                                .font(.footnote.monospaced())
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .padding(.top, 6)
+            }
+        }
     }
 }
