@@ -22,18 +22,36 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NFCReaderUsageDescription</key>
 	<string>Scan supported transit IC cards to show the card identifier and stored balance.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Capture a photo to use as a custom card face design.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Select a photo from your library to use as a custom card face design.</string>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.ad.neko.cardbal</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+			<true/>
+			<key>NSUbiquitousContainerName</key>
+			<string>CardBal</string>
+			<key>NSUbiquitousContainerSupportedServiceTypes</key>
+			<array>
+				<string>NativeContents</string>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>

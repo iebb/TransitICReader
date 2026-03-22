@@ -1,43 +1,6 @@
 import Foundation
 import CoreNFC
 
-struct KSX6924CardProfile {
-    let displayName: String
-    let aid: String
-    let parseBalance: (Data) -> ParsedBalance?
-
-    static let configDFAID = "A0000004520001"
-
-    static func matching(aid: String, configInfo: KSX6924ConfigDFInfo? = nil) -> KSX6924CardProfile {
-        let normalized = aid.uppercased()
-        if let p = all.first(where: { $0.aid == normalized }) { return p }
-        if normalized.hasPrefix("D410000003") {
-            return KSX6924CardProfile(displayName: "T-money", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        if normalized.hasPrefix("D410000014") {
-            return KSX6924CardProfile(displayName: "EZL / Cashbee", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        if normalized.hasPrefix("D410000029") {
-            return KSX6924CardProfile(displayName: "NAMANE", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        if normalized.hasPrefix("D410000030") {
-            return KSX6924CardProfile(displayName: "MOIBA", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        if normalized.hasPrefix("D410650990") {
-            return KSX6924CardProfile(displayName: "K-Cash", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        return KSX6924CardProfile(displayName: "ISO7816 Transit Card", aid: normalized, parseBalance: ksx6924BalanceParser)
-    }
-
-    private static let all: [KSX6924CardProfile] = [
-        KSX6924CardProfile(displayName: "T-money", aid: "D4100000030001", parseBalance: ksx6924BalanceParser),
-        KSX6924CardProfile(displayName: "EZL / Cashbee", aid: "D4100000140001", parseBalance: ksx6924BalanceParser),
-        KSX6924CardProfile(displayName: "NAMANE", aid: "D410000029000001", parseBalance: ksx6924BalanceParser),
-        KSX6924CardProfile(displayName: "MOIBA", aid: "D4100000300001", parseBalance: ksx6924BalanceParser),
-        KSX6924CardProfile(displayName: "K-Cash", aid: "D4106509900020", parseBalance: ksx6924BalanceParser)
-    ]
-}
-
 struct CalypsoProbeTarget {
     let title: String
     let description: String
@@ -142,23 +105,22 @@ struct CalypsoCardProfile {
     ]
 }
 
-enum NFCISO7816AccessPolicy {
-    static let exactAIDs: Set<String> = [
-        "A0000004520001", "D4100000030001", "D4100000140001", "D410000029000001", "D4100000300001", "D4106509900020", "A000000632010105"
-    ]
-
-    static let ksx6924AllowedPrefixes: [String] = [
-        "D410000003",
-        "D410000014",
-        "D410000029",
-        "D410000030",
-        "D410650990"
-    ]
-
-    static func isAllowed(aid: String) -> Bool {
-        let normalized = aid.uppercased()
-        return exactAIDs.contains(normalized)
-            || ksx6924AllowedPrefixes.contains { normalized.hasPrefix($0) }
-            || CalypsoCardProfile.supportedPrefixes.contains { normalized.hasPrefix($0) }
+extension NFCISO7816APDU {
+    static func getData(tag: UInt16) -> NFCISO7816APDU {
+        NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xCA, p1Parameter: UInt8(tag >> 8), p2Parameter: UInt8(tag & 0xFF), data: Data(), expectedResponseLength: 256)
+    }
+    
+    static func getDataCommandData(tag: UInt16) -> Data {
+        Data([0x00, 0xCA, UInt8(tag >> 8), UInt8(tag & 0xFF), 0x00])
+    }
+    
+    static func readRecord(recordNumber: UInt8, sfi: UInt8) -> NFCISO7816APDU {
+        let p2 = (sfi << 3) | 0x01 | 0x04
+        return NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recordNumber, p2Parameter: p2, data: Data(), expectedResponseLength: 256)
+    }
+    
+    static func readRecordCommandData(recordNumber: UInt8, sfi: UInt8) -> Data {
+        let p2 = (sfi << 3) | 0x01 | 0x04
+        return Data([0x00, 0xB2, recordNumber, p2, 0x00])
     }
 }

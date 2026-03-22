@@ -1,0 +1,75 @@
+{
+  "fill" : {
+    "automatic-gradient" : "extended-srgb:0.07059,0.11765,0.16863,1.00000"
+  },
+  "groups" : [
+    {
+      "blur-material" : null,
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : {
+            "linear-gradient" : [
+              "srgb:0.42517,0.73174,1.00000,1.00000",
+              "display-p3:0.89081,0.93767,1.00000,1.00000"
+            ],
+            "orientation" : {
+              "start" : {
+                "x" : 0.5,
+                "y" : 1
+              },
+              "stop" : {
+                "x" : 0.5,
+                "y" : 0.3
+              }
+            }
+          },
+          "glass" : true,
+          "image-name" : "card-transfer.png",
+          "name" : "card-transfer",
+          "position" : {
+            "scale" : 1.66,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "hidden" : false,
+          "image-name" : "spark.png",
+          "name" : "spark",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              -38.75
+            ]
+          }
+        }
+      ],
+      "lighting" : "combined",
+      "position" : {
+        "scale" : 0.8,
+        "translation-in-points" : [
+          0,
+          0
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

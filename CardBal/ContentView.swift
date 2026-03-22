@@ -22,6 +22,11 @@ struct ContentView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(Color.accentColor)
+        .onChange(of: reader.latestSnapshot?.id) { _ in
+            if let snapshot = reader.latestSnapshot {
+                cardStore.upsert(snapshot: snapshot)
+            }
+        }
     }
 }
 
@@ -39,11 +44,11 @@ struct ScanHomeView: View {
                     Section {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Label("CardBal Transit", systemImage: "wave.3.right.circle.fill").font(.title3.bold())
+                                Label("Scan Your Transit Card", systemImage: "wave.3.right.circle.fill").font(.title3.bold())
                                 Spacer()
                                 Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
                             }
-                            Text("Scan physical transit cards like Suica, Octopus, T-money, and EZL/Cashbee.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
                         }.padding(.vertical, 6)
                     }
                 }
@@ -102,28 +107,12 @@ struct ScanHomeView: View {
             }
             .navigationTitle("Scan")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button { reader.startScanning(options: [.iso18092, .iso14443]) } label: { Label("FeliCa & ISO7816", systemImage: "bolt.fill") }
-                        Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa Only", systemImage: "wave.3.left") }
-                        Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO7816 (T-Union) Only", systemImage: "creditcard.fill") }
-                    } label: {
-                        Label("Start Scan", systemImage: "plus.circle.fill").font(.headline)
-                    } primaryAction: {
-                        reader.startScanning()
-                    }
-                    .disabled(reader.isScanning)
-                }
+                ScanToolbarItem(reader: reader)
             }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
                     SavedCardDetailView(cardID: route.id, store: cardStore)
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailRoute = nil } } }
-                }
-            }
-            .onChange(of: reader.latestSnapshot?.id) {
-                if let snapshot = reader.latestSnapshot {
-                    cardStore.upsert(snapshot: snapshot)
                 }
             }
             .onAppear { 
@@ -137,6 +126,7 @@ struct ScanHomeView: View {
             }
         }
     }
+
     private func bestDisplayCard(for snapshot: TransitCardSnapshot) -> SavedCardRecord {
         if let saved = cardStore.card(withID: snapshot.storageIdentifier) {
             var updated = saved
@@ -153,7 +143,6 @@ struct ScanHomeView: View {
 struct CardsView: View {
     @ObservedObject var store: CardWalletStore
     @ObservedObject var reader: NFCTransitReader
-    @State private var draggedCardID: String?
     @State private var detailRoute: CardDetailRoute?
     @State private var previewCardID: String?
 
@@ -194,27 +183,13 @@ struct CardsView: View {
                                         showDetails: { detailRoute = CardDetailRoute(id: card.id) }
                                     )
                                     .padding(.horizontal, 20)
-                                    .zIndex(zIndex(for: index, cardID: card.id))
+                                    .zIndex(zIndex(for: index))
                                     .offset(y: cardOffset(for: index, cardHeight: cardHeight))
-                                    .onDrag {
-                                        previewCardID = nil
-                                        draggedCardID = card.id
-                                        return NSItemProvider(object: card.id as NSString)
-                                    }
-                                    .onDrop(
-                                        of: [UTType.plainText],
-                                        delegate: CardReorderDropDelegate(
-                                            destinationID: card.id,
-                                            store: store,
-                                            draggedCardID: $draggedCardID
-                                        )
-                                    )
                                 }
                             }
                             .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
                             .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
-                            .animation(.spring(response: 0.22, dampingFraction: 0.9), value: draggedCardID)
-                            .padding(.bottom, proxy.safeAreaInsets.bottom + 88)
+                            .padding(.bottom, proxy.safeAreaInsets.bottom + 120)
                         }
                     }
                     .background(Color(uiColor: .systemGroupedBackground))
@@ -222,17 +197,7 @@ struct CardsView: View {
             }
             .navigationTitle("Cards")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button { reader.startScanning(options: [.iso18092, .iso14443]) } label: { Label("FeliCa & ISO7816", systemImage: "bolt.fill") }
-                        Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa Only", systemImage: "wave.3.left") }
-                        Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO7816 (T-Union) Only", systemImage: "creditcard.fill") }
-                    } label: {
-                        Image(systemName: "plus.circle.fill").font(.title3)
-                    } primaryAction: {
-                        reader.startScanning()
-                    }
-                }
+                ScanToolbarItem(reader: reader)
             }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
@@ -260,10 +225,7 @@ struct CardsView: View {
         return cardHeight + expandedStackGap + CGFloat(index - 1) * stackedSpacing
     }
 
-    private func zIndex(for index: Int, cardID: String) -> Double {
-        if draggedCardID == cardID {
-            return 1000
-        }
+    private func zIndex(for index: Int) -> Double {
         return Double(index)
     }
 
@@ -292,8 +254,22 @@ struct SettingsView: View {
                     }
                 }
                 Section("Backup") {
-                    Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "cloud.and.arrow.up") }
-                    Button { store.restoreFromiCloud() } label: { Label("Restore from iCloud", systemImage: "cloud.and.arrow.down") }
+                    if store.isSyncing {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ProgressView(value: store.syncProgress)
+                                .tint(.accentColor)
+                            if let msg = store.syncMessage {
+                                Text(msg)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .transition(.opacity)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    } else {
+                        Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "icloud.and.arrow.up") }
+                        Button { store.restoreFromiCloud() } label: { Label("Restore from iCloud", systemImage: "icloud.and.arrow.down") }
+                    }
                 }
                 Section("App Settings") {
                     Toggle("Scan on Launch", isOn: $scanOnLaunch)
@@ -323,27 +299,6 @@ struct SettingsView: View {
 
 struct CardDetailRoute: Identifiable { let id: String }
 
-struct CardReorderDropDelegate: DropDelegate {
-    let destinationID: String
-    let store: CardWalletStore
-    @Binding var draggedCardID: String?
-
-    func dropEntered(info: DropInfo) {
-        guard let draggedCardID, draggedCardID != destinationID else { return }
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            store.moveCard(from: draggedCardID, to: destinationID)
-        }
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggedCardID = nil
-        return true
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-}
 
 func loadCardFaceImage(fileName: String) -> UIImage? {
     let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -465,6 +420,26 @@ private struct RawDataSectionList: View {
                 }
                 .padding(.top, 6)
             }
+        }
+    }
+}
+
+struct ScanToolbarItem: ToolbarContent {
+    @ObservedObject var reader: NFCTransitReader
+    
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }
+                Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
+                Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }
+            } label: {
+                Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                    .imageScale(.large)
+            } primaryAction: {
+                reader.startScanning()
+            }
+            .disabled(reader.isScanning)
         }
     }
 }

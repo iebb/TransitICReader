@@ -1,16 +1,25 @@
 import Foundation
 import CoreNFC
 
-struct TUnionDecoder {
-    static func decode(tag: NFCISO7816Tag, applicationAID: String, selectedAID: String, initialSelectResponse: NFCISO7816ResponseAPDU?, scannedAt: Date) async throws -> TransitCardSnapshot {
-        let isTUnion = applicationAID == "A000000632010105"
-        guard isTUnion else { throw NFCTestError.unsupportedCard }
+struct TUnionDecoder: TransitCardDecoder {
+    static func canDecode(tag: NFCTag) async -> Bool {
+        guard case .iso7816(let iso) = tag else { return false }
+        return iso.initialSelectedAID == "A000000632010105"
+    }
+
+    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+        guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
+        let selectedAID = iso.initialSelectedAID
+        let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
+        let initialResponse = try? await iso.sendCommand(apdu: selectApdu)
+        let applicationAID = selectedAID
+        let initialSelectResponse = initialResponse.map { NFCISO7816ResponseAPDU(statusWord1: $0.1, statusWord2: $0.2, payload: $0.0) }
         
         print("[TUnion] Decoding. AID=\(applicationAID), Selected=\(selectedAID)")
         
         // T-Union Balance Command: 80 5C 00 02 04
         let apdu = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
-        let balanceResponse = try await tag.sendCommand(apdu: apdu)
+        let balanceResponse = try await iso.sendCommand(apdu: apdu)
         let payload = balanceResponse.0
         
         print("[TUnion] Balance Payload: \(payload.hexString), SW: \(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2))")
@@ -19,7 +28,7 @@ struct TUnionDecoder {
         var rawSections: [RawDataSection] = [
             RawDataSection(title: "Tag", fields: [
                 RawDataField(title: "Technology", value: "ISO7816"),
-                RawDataField(title: "UID", value: tag.identifier.hexString),
+                RawDataField(title: "UID", value: iso.identifier.hexString),
                 RawDataField(title: "Selected AID", value: selectedAID),
                 RawDataField(title: "Application AID", value: applicationAID)
             ]),
@@ -35,16 +44,39 @@ struct TUnionDecoder {
         var cardFamily = "T-Union"
         var brandRegion = "T-Union Cities"
         var issuingCity: String?
+        var cardTypeStr: String?
+        var issueDateStr: String?
+        var expiryDateStr: String?
         
         // Octopus T-Union (嶺南通·八达通) and some others store the CAN in the FCI Tag 9F0C!
         if let fci = initialSelectResponse?.payload {
             print("[TUnion] Checking FCI for metadata...")
             
-            // Try to find 9F0C tag (Application Meta)
+            // Try to find 9F0C tag (Application Meta) - Primary metadata source
             if let meta = findTUnionTag([0x9F, 0x0C], in: fci) {
-                // T-Union_Master logic:
-                // CARD NUMBER: offset 10 (decimal), length 10 bytes BCD (with optional leading 0)
-                // CITY ID: offset 2 (decimal), length 2 bytes (Hex-like string in GBT JSON)
+                print("[TUnion] Meta tag 9F0C found, size: \(meta.count)")
+                
+                // Offset 0 (len 1): Card Type BCD
+                if meta.count >= 1 {
+                    cardTypeStr = decodeTUnionCardType(meta[0])
+                }
+                
+                // Offset 2 (len 2): City ID (发卡地)
+                if meta.count >= 4 {
+                    let cityIdSubdata = meta.subdata(in: 2..<4)
+                    let cityId = cityIdSubdata.hexString.uppercased()
+                    let cityName = TUnionCityDatabase.lookupCityName(for: cityId)
+                    issuingCity = cityName ?? "City \(cityId)"
+                    print("[TUnion] City ID found: \(cityId) (\(issuingCity ?? "Unknown"))")
+                }
+                
+                // Add App Metadata to raw sections
+                rawSections.append(RawDataSection(title: "App Metadata (9F0C)", fields: [
+                    RawDataField(title: "Full Payload", value: meta.hexString),
+                    RawDataField(title: "Raw City ID", value: meta.subdata(in: 2..<4).hexString.uppercased())
+                ]))
+                
+                // Offset 10 (len 10): Card Number (CAN)
                 if meta.count >= 20 {
                     let cnData = meta.subdata(in: 10..<20)
                     if let extracted = validateAndCleanCAN(cnData.hexString) {
@@ -52,10 +84,26 @@ struct TUnionDecoder {
                         brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
                     }
                 }
-                if meta.count >= 4 {
-                    let cityId = meta.subdata(in: 2..<4).hexString.uppercased()
-                    issuingCity = TUnionCityDatabase.lookupCityName(for: cityId)
-                    print("[TUnion] City ID found: \(cityId) (\(issuingCity ?? "Unknown"))")
+                
+                // Offset 20 (0x14, len 4): Issue Date BCD (签发日期)
+                if meta.count >= 24 {
+                    issueDateStr = formatChinaBCDDate(meta.subdata(in: 20..<24).hexString)
+                }
+                
+                // Offset 24 (0x18, len 4): Expiry Date BCD (到期日期)
+                if meta.count >= 28 {
+                    expiryDateStr = formatChinaBCDDate(meta.subdata(in: 24..<28).hexString)
+                }
+            }
+            
+            // Card info tag 9F08 / 9F00 - Secondary source?
+            if realSN == nil {
+                if let cardInfo = findTUnionTag([0x9F, 0x00], in: fci) ?? findTUnionTag([0x9F, 0x08], in: fci) {
+                    if cardInfo.count >= 28 {
+                        if expiryDateStr == nil {
+                            expiryDateStr = formatChinaBCDDate(cardInfo.subdata(in: 24..<28).hexString)
+                        }
+                    }
                 }
             }
             
@@ -69,10 +117,20 @@ struct TUnionDecoder {
             
             if let sn = realSN {
                 resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(sn)))
-                resultFields.append(ResultField(title: "Region", value: brandRegion))
+                resultFields.append(ResultField(title: "Brand", value: brandRegion))
+                if let type = cardTypeStr {
+                    resultFields.append(ResultField(title: "Card Type", value: type))
+                }
                 if let city = issuingCity {
                     resultFields.append(ResultField(title: "Issuing City", value: city))
                 }
+                if let issue = issueDateStr {
+                    resultFields.append(ResultField(title: "Issue Date", value: issue))
+                }
+                if let expiry = expiryDateStr {
+                    resultFields.append(ResultField(title: "Expiry Date", value: expiry))
+                }
+                
                 rawSections.append(RawDataSection(title: "Found in FCI", fields: [
                     RawDataField(title: "Payload", value: fci.hexString)
                 ]))
@@ -89,7 +147,7 @@ struct TUnionDecoder {
                     let p2 = (sfi << 3) | 0x04
                     let probeApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recNo, p2Parameter: p2, data: Data(), expectedResponseLength: 256)
                     
-                    if let response = try? await tag.sendCommand(apdu: probeApdu) {
+                    if let response = try? await iso.sendCommand(apdu: probeApdu) {
                         if response.1 == 0x90 {
                             let info = response.0
                             print("[TUnion] Probed SFI \(String(format: "%02X", sfi)) Rec \(recNo): \(info.hexString)")
@@ -98,7 +156,11 @@ struct TUnionDecoder {
                                     realSN = extracted
                                     brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
                                     resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
-                                    resultFields.append(ResultField(title: "Region", value: brandRegion))
+                                    resultFields.append(ResultField(title: "Brand", value: brandRegion))
+                                    if let type = cardTypeStr { resultFields.append(ResultField(title: "Card Type", value: type)) }
+                                    if let city = issuingCity { resultFields.append(ResultField(title: "Issuing City", value: city)) }
+                                    if let issue = issueDateStr { resultFields.append(ResultField(title: "Issue Date", value: issue)) }
+                                    if let expiry = expiryDateStr { resultFields.append(ResultField(title: "Expiry Date", value: expiry)) }
                                     rawSections.append(RawDataSection(title: "Found in SFI \(String(format: "%02X", sfi))", fields: [
                                         RawDataField(title: "Source", value: "Read Record \(recNo)"),
                                         RawDataField(title: "Payload", value: info.hexString)
@@ -107,7 +169,7 @@ struct TUnionDecoder {
                             }
                         } else if response.1 == 0x69 && response.2 == 0x81 {
                             let readBinary = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 64)
-                            if let binResp = try? await tag.sendCommand(apdu: readBinary), binResp.1 == 0x90 {
+                            if let binResp = try? await iso.sendCommand(apdu: readBinary), binResp.1 == 0x90 {
                                 let info = binResp.0
                                 print("[TUnion] Probed SFI \(String(format: "%02X", sfi)) Binary: \(info.hexString)")
                                 if let extracted = extractCAN(from: info) {
@@ -115,7 +177,11 @@ struct TUnionDecoder {
                                         realSN = extracted
                                         brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
                                         resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
-                                        resultFields.append(ResultField(title: "Region", value: brandRegion))
+                                        resultFields.append(ResultField(title: "Brand", value: brandRegion))
+                                        if let type = cardTypeStr { resultFields.append(ResultField(title: "Card Type", value: type)) }
+                                        if let city = issuingCity { resultFields.append(ResultField(title: "Issuing City", value: city)) }
+                                        if let issue = issueDateStr { resultFields.append(ResultField(title: "Issue Date", value: issue)) }
+                                        if let expiry = expiryDateStr { resultFields.append(ResultField(title: "Expiry Date", value: expiry)) }
                                     }
                                 }
                             }
@@ -127,20 +193,20 @@ struct TUnionDecoder {
         
         return TransitCardSnapshot(
             technology: "ISO7816",
-            cardFamily: cardFamily, // standardized to "T-Union" earlier
+            cardFamily: "China T-Union",
             identifierLabel: "UID",
-            identifierValue: tag.identifier.hexString,
-            rawIdentifierValue: tag.identifier.hexString,
+            identifierValue: iso.identifier.hexString,
+            rawIdentifierValue: iso.identifier.hexString,
             pmm: nil,
             systemCode: nil,
-            selectedAID: selectedAID,
+            selectedAID: applicationAID,
             balanceText: parsedBalance?.formatted,
-            balanceDetail: parsedBalance?.detail,
+            balanceDetail: "CNY balance for T-Union card.",
             realSerialNumber: realSN,
-            region: issuingCity ?? brandRegion,
+            region: brandRegion,
             resultFields: resultFields,
             rawSections: rawSections,
-            scannedAt: Date()
+            scannedAt: scannedAt
         )
     }
 
@@ -262,6 +328,10 @@ struct TUnionDecoder {
         let month = bcd.dropFirst(4).prefix(2)
         let day = bcd.suffix(2)
         return "\(year)-\(month)-\(day)"
+    }
+    
+    private static func decodeTUnionCardType(_ type: UInt8) -> String {
+        return "Type \(String(format: "%02X", type))"
     }
 }
 

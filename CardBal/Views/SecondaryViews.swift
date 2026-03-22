@@ -378,6 +378,10 @@ struct MarkerPreviewBadge: View {
                     Text(String(markerSymbolName.dropFirst(4)))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                 }
+            } else {
+                Image(systemName: "slash.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
             }
         }
         .foregroundStyle(card.markerOuterColor.color)
@@ -419,6 +423,25 @@ struct MarkerEditorSheet: View {
                         
                         let columns = [GridItem(.adaptive(minimum: 44))]
                         LazyVGrid(columns: columns, spacing: 10) {
+                            Button {
+                                store.setMarkerSymbolName(nil, for: card.id)
+                            } label: {
+                                ZStack {
+                                    if card.markerShape == .circle {
+                                        Circle()
+                                            .strokeBorder(Color.secondary, style: StrokeStyle(lineWidth: 1, dash: [4]))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                            .strokeBorder(Color.secondary, style: StrokeStyle(lineWidth: 1, dash: [4]))
+                                    }
+                                    Image(systemName: "slash.circle")
+                                        .font(.title3)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+
                             ForEach(candidates, id: \.self) { id in
                                 iconButton(id, card: card)
                             }
