@@ -76,6 +76,6 @@ private class SNScannerViewController: UIViewController, AVCaptureVideoDataOutpu
             $0.unicodeScalars.allSatisfy(CharacterSet.alphanumerics.contains)
         }
         guard normalized.count == 17 else { return nil }
-        return SavedCardRecord.formattedFeliCaSerial(normalized)
+        return SavedCardRecord.formattedFeliCaSerial(normalized, cardFamily: "")
     }
 }

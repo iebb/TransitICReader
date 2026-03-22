@@ -156,7 +156,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var visibleBalance: String {
         if let balanceText, !balanceText.isEmpty { return balanceText }
         if let trips = fieldValue("Remaining Trips") { return "\(trips) trips" }
-        return "No balance"
+        return ""
     }
 
     var cardNumber: String? { fieldValue("Card Number") ?? realSerialNumber }
@@ -171,34 +171,73 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         raw = !trimmed.isEmpty ? trimmed : (cardNumber ?? identifierValue)
 
         if technology == "FeliCa" {
-            let formatted = Self.formattedFeliCaSerial(raw)
+            let formatted = Self.formattedFeliCaSerial(raw, cardFamily: cardFamily)
             return formatted.isEmpty ? raw : formatted
         }
-
         return raw
+    }
+
+    func privacyFormattedSerialNumber(mode: Int) -> String {
+        // mode 0: Full, 1: Last digits, 2: Hidden
+        if mode == 2 { return "" }
+        let full = displayedSerialNumber
+        if mode == 0 { return full }
+        
+        let digitsOnly = full.filter { "0123456789".contains($0) }
+        let alphanumerics = full.filter { $0.isLetter || $0.isNumber }
+        
+        if cardFamily == "Octopus" {
+             // Octopus example: 1234 5678 (Y) -> 5678
+             if digitsOnly.count >= 8 {
+                 let start = digitsOnly.index(digitsOnly.startIndex, offsetBy: 4)
+                 let end = digitsOnly.index(start, offsetBy: 4)
+                 return String(digitsOnly[start..<end])
+             }
+             return String(digitsOnly.suffix(4))
+        } else if cardFamily == "Lignes d'Azur card" {
+            return String(alphanumerics.suffix(3))
+        } else {
+            return String(alphanumerics.suffix(4))
+        }
     }
 
     func fieldValue(_ title: String) -> String? {
         resultFields.first(where: { $0.title == title })?.value
     }
 
-    static func formattedFeliCaSerial(_ raw: String) -> String {
-        let normalized = raw.uppercased().filter {
-            $0.unicodeScalars.allSatisfy(CharacterSet.alphanumerics.contains)
-        }
+    static func formattedFeliCaSerial(_ raw: String, cardFamily: String) -> String {
+        let normalized = raw.uppercased().filter { $0.isLetter || $0.isNumber }
         guard !normalized.isEmpty else { return "" }
-
-        let firstGroupCount = min(5, normalized.count)
-        let firstGroup = String(normalized.prefix(firstGroupCount))
-        var groups = [firstGroup]
-        var remainder = String(normalized.dropFirst(firstGroupCount))
-
-        while !remainder.isEmpty {
-            let nextCount = min(4, remainder.count)
-            groups.append(String(remainder.prefix(nextCount)))
-            remainder.removeFirst(nextCount)
+        
+        // Octopus special formatting: 1234 5678 (9)
+        if cardFamily == "Octopus" {
+            if normalized.count == 9 {
+                 return "\(normalized.prefix(4)) \(normalized.dropFirst(4).prefix(4)) (\(normalized.suffix(1)))"
+            } else if normalized.count == 8 {
+                 return "\(normalized.prefix(4)) \(normalized.suffix(4))"
+            }
         }
 
+        // 17-digit FeliCa specialized formatting: 5-4-4-4 (Standard for Suica/Pasmo)
+        if normalized.count == 17 {
+            let first = String(normalized.prefix(5))
+            var remainder = normalized.dropFirst(5)
+            var groups = [first]
+            while !remainder.isEmpty {
+                let count = min(4, remainder.count)
+                groups.append(String(remainder.prefix(count)))
+                remainder.removeFirst(count)
+            }
+            return groups.joined(separator: " ")
+        }
+
+        var groups: [String] = []
+        var remainder = normalized
+        while !remainder.isEmpty {
+            let count = min(4, remainder.count)
+            groups.append(String(remainder.prefix(count)))
+            remainder.removeFirst(count)
+        }
         return groups.joined(separator: " ")
     }
 }

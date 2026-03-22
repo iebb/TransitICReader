@@ -99,7 +99,7 @@ struct SavedCardDetailView: View {
     private func titleSection(card: SavedCardRecord) -> some View {
         Button { isShowingMarkerSheet = true } label: {
             HStack { 
-                Label("Icon", systemImage: "circle.circle").foregroundStyle(.primary)
+                Text("Icon").foregroundStyle(.primary)
                 Spacer()
                 MarkerPreviewBadge(card: card)
                 Image(systemName: "chevron.right").foregroundStyle(.tertiary) 
@@ -186,7 +186,7 @@ struct SavedCardDetailView: View {
         Binding(
             get: {
                 let raw = draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue
-                return card.technology == "FeliCa" ? SavedCardRecord.formattedFeliCaSerial(raw) : raw
+                return card.technology == "FeliCa" ? SavedCardRecord.formattedFeliCaSerial(raw, cardFamily: card.cardFamily) : raw
             },
             set: { v in 
                 draftSerialNumber = v

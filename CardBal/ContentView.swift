@@ -16,7 +16,7 @@ struct ContentView: View {
         TabView {
             ScanHomeView(reader: reader, cardStore: cardStore)
                 .tabItem { Label("Scan", systemImage: "dot.radiowaves.left.and.right") }
-            CardsView(store: cardStore)
+            CardsView(store: cardStore, reader: reader)
                 .tabItem { Label("Cards", systemImage: "wallet.bifold") }
             SettingsView(store: cardStore)
                 .tabItem { Label("Settings", systemImage: "gearshape") }
@@ -49,13 +49,17 @@ struct ScanHomeView: View {
                 }
 
                 if let snapshot = reader.latestSnapshot {
+                    let cardToDisplay = bestDisplayCard(for: snapshot)
                     Section("Card Preview") {
-                        WalletCardView(card: snapshot.toCard(), isExpanded: true, cardHeight: 200, visiblePartHeight: 120, onVisibleTap: {}, showDetails: { 
-                            if let savedCard = cardStore.card(withID: snapshot.storageIdentifier) {
-                                detailRoute = CardDetailRoute(id: savedCard.id)
-                            }
-                        })
-                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                        GeometryReader { proxy in
+                            let cardWidth = max(proxy.size.width, 1)
+                            let cardHeight = cardWidth / (85.6 / 53.98)
+                            WalletCardView(card: cardToDisplay, isExpanded: true, cardHeight: cardHeight, visiblePartHeight: cardHeight, onVisibleTap: {}, showDetails: { 
+                                detailRoute = CardDetailRoute(id: cardToDisplay.id)
+                            })
+                        }
+                        .frame(height: (UIScreen.main.bounds.width - 40) / (85.6 / 53.98))
+                        .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                     }
                 }
 
@@ -77,13 +81,6 @@ struct ScanHomeView: View {
                 if let snapshot = reader.latestSnapshot, !snapshot.rawSections.isEmpty {
                     Section("Raw Data") {
                         RawDataSectionList(snapshot: snapshot)
-                    }
-                }
-
-                if let snapshot = reader.latestSnapshot, let savedCard = cardStore.card(withID: snapshot.storageIdentifier) {
-                    Section("Saved Card") {
-                        WalletCardView(card: savedCard, isExpanded: true, cardHeight: 200, visiblePartHeight: 120, onVisibleTap: {}, showDetails: { detailRoute = CardDetailRoute(id: savedCard.id) })
-                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                     }
                 }
 
@@ -132,10 +129,22 @@ struct ScanHomeView: View {
             }
         }
     }
+    private func bestDisplayCard(for snapshot: TransitCardSnapshot) -> SavedCardRecord {
+        if let saved = cardStore.card(withID: snapshot.storageIdentifier) {
+            var updated = saved
+            updated.balanceText = snapshot.balanceText
+            updated.balanceDetail = snapshot.balanceDetail
+            updated.scannedAt = snapshot.scannedAt
+            updated.resultFields = snapshot.resultFields.map(SavedCardField.init)
+            return updated
+        }
+        return snapshot.toCard()
+    }
 }
 
 struct CardsView: View {
     @ObservedObject var store: CardWalletStore
+    @ObservedObject var reader: NFCTransitReader
     @State private var draggedCardID: String?
     @State private var detailRoute: CardDetailRoute?
     @State private var previewCardID: String?
@@ -204,6 +213,13 @@ struct CardsView: View {
                 }
             }
             .navigationTitle("Cards")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { reader.beginScanning() } label: {
+                        Image(systemName: "plus.circle.fill").font(.title3)
+                    }
+                }
+            }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
                     SavedCardDetailView(cardID: route.id, store: store)
@@ -249,6 +265,7 @@ struct SettingsView: View {
     @ObservedObject var store: CardWalletStore
     @AppStorage("scanOnLaunch") private var scanOnLaunch = false
     @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
+    @AppStorage("snDisplayMode") private var snDisplayMode = 0
 
     var body: some View {
         NavigationStack {
@@ -273,6 +290,13 @@ struct SettingsView: View {
                         Text("Abbreviated").tag("MMM d, yyyy")
                     }
                 }
+                Section("Privacy") {
+                    Picker("Serial Number Display", selection: $snDisplayMode) {
+                        Text("Full").tag(0)
+                        Text("Masked (Last Digits)").tag(1)
+                        Text("Hidden").tag(2)
+                    }
+                }
                 Section("Information") {
                     HStack { Text("App Version"); Spacer(); Text("1.5.1").foregroundStyle(.secondary) }
                     Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
@@ -292,7 +316,9 @@ struct CardReorderDropDelegate: DropDelegate {
 
     func dropEntered(info: DropInfo) {
         guard let draggedCardID, draggedCardID != destinationID else { return }
-        store.moveCard(from: draggedCardID, to: destinationID)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            store.moveCard(from: draggedCardID, to: destinationID)
+        }
     }
 
     func performDrop(info: DropInfo) -> Bool {
@@ -313,7 +339,14 @@ func loadCardFaceImage(fileName: String) -> UIImage? {
 }
 
 extension TransitCardSnapshot {
-    var storageIdentifier: String { "\(technology)|\(rawIdentifierValue)" }
+    var storageIdentifier: String {
+        // Japanese FeliCa cards use stable IDm. 
+        // Korean ISO7816 cards can use randomized UIDs, so favor internal SN.
+        if technology == "ISO7816", let sn = realSerialNumber {
+            return "\(technology)|\(sn)"
+        }
+        return "\(technology)|\(rawIdentifierValue)"
+    }
     func toCard() -> SavedCardRecord {
         SavedCardRecord(snapshot: self)
     }

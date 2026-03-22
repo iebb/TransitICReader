@@ -116,6 +116,15 @@ extension NFCISO7816APDU {
         NFCISO7816APDU(data: ksx6924CardInfoCommand)!
     }
 
+    static var tunionBalance: NFCISO7816APDU {
+        NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
+    }
+
+    static var tunionCardInfo: NFCISO7816APDU {
+        // Read Record 1 of SFI 0x05
+        NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x2C, data: Data(), expectedResponseLength: 0)
+    }
+
     static var ksx6924BalanceCommand: Data {
         Data([0x90, 0x4C, 0x00, 0x00, 0x04])
     }
@@ -248,6 +257,40 @@ final class NFCTransitReader: NSObject, ObservableObject {
         session.invalidate(errorMessage: message)
         isScanning = false
     }
+
+    private func mergeDualModeSnapshots(feliCa: TransitCardSnapshot, iso7816: TransitCardSnapshot) -> TransitCardSnapshot {
+        var mergedResults = feliCa.resultFields
+        mergedResults.append(contentsOf: iso7816.resultFields)
+        
+        var mergedRaw = feliCa.rawSections
+        mergedRaw.append(contentsOf: iso7816.rawSections)
+        
+        // Construct a dual balance display: "Balance 1 / Balance 2"
+        let b1 = feliCa.balanceText ?? "No balance"
+        let b2 = iso7816.balanceText ?? "No balance"
+        let dualBalance = "\(b1) / \(b2)"
+        
+        let d1 = feliCa.balanceDetail ?? ""
+        let d2 = iso7816.balanceDetail ?? ""
+        let dualDetail = "FeliCa: \(d1)\n\nISO7816: \(d2)"
+        
+        return TransitCardSnapshot(
+            technology: "Dual Mode",
+            cardFamily: "\(feliCa.cardFamily) + \(iso7816.cardFamily)",
+            identifierLabel: "Dual Mode UID",
+            identifierValue: feliCa.identifierValue, // Use FeliCa IDm as the primary stable key
+            rawIdentifierValue: feliCa.rawIdentifierValue,
+            pmm: feliCa.pmm,
+            systemCode: feliCa.systemCode,
+            selectedAID: iso7816.selectedAID,
+            balanceText: dualBalance,
+            balanceDetail: dualDetail,
+            realSerialNumber: feliCa.realSerialNumber ?? iso7816.realSerialNumber,
+            resultFields: mergedResults,
+            rawSections: mergedRaw,
+            scannedAt: feliCa.scannedAt
+        )
+    }
 }
 
 extension NFCTransitReader: NFCTagReaderSessionDelegate {
@@ -268,35 +311,48 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
     }
 
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
-        guard let tag = tags.first else { return }
-
         Task {
-            do {
-                try await session.connect(to: tag)
-                let snapshot: TransitCardSnapshot
+            var feliCaSnapshot: TransitCardSnapshot?
+            var iso7816Snapshot: TransitCardSnapshot?
+            
+            // Try to scan all detected tags to catch dual-mode cards (e.g. FeliCa + T-Union)
+            for tag in tags {
+                do {
+                    try await session.connect(to: tag)
+                    switch tag {
+                    case .feliCa(let feliCa):
+                        feliCaSnapshot = try await decodeFeliCaSnapshot(from: feliCa)
+                    case .iso7816(let iso7816):
+                        iso7816Snapshot = try await decodeISO7816Snapshot(from: iso7816)
+                    default:
+                        break
+                    }
+                } catch {
+                    logger.error("Failed to connect/decode tag during multi-tag scan: \(error.localizedDescription)")
+                }
+            }
 
-                switch tag {
-                case .feliCa(let feliCa):
-                    snapshot = try await decodeFeliCaSnapshot(from: feliCa)
-                case .iso7816(let iso7816):
-                    snapshot = try await decodeISO7816Snapshot(from: iso7816)
-                default:
-                    throw NFCTestError.unsupportedCard
+            // Determine final snapshot on MainActor
+            await MainActor.run {
+                let finalSnapshot: TransitCardSnapshot?
+                if let feliCa = feliCaSnapshot, let iso7816 = iso7816Snapshot {
+                    // Merge dual-mode card data
+                    finalSnapshot = self.mergeDualModeSnapshots(feliCa: feliCa, iso7816: iso7816)
+                } else {
+                    finalSnapshot = feliCaSnapshot ?? iso7816Snapshot
                 }
 
-                await MainActor.run {
-                    self.finish(with: snapshot, session: session)
-                }
-            } catch {
-                await MainActor.run {
-                    self.fail("Failed to read card.", session: session)
+                if let finalSnapshot {
+                    self.finish(with: finalSnapshot, session: session)
+                } else {
+                    self.fail("Could not read any supported transit card data.", session: session)
                 }
             }
         }
     }
 }
 
-private enum NFCTestError: Error {
+enum NFCTestError: Error {
     case unsupportedCard
 }
 
@@ -549,125 +605,7 @@ struct KSX6924ConfigDFInfo {
     }
 }
 
-// MARK: - KS X 6924 Purse Info Enums (lookup tables)
-
-private enum KSX6924CardType: UInt8 {
-    case prePaid = 0x00
-    case postPay = 0x10
-    case mobilePostPay = 0x20
-
-    var displayName: String {
-        switch self {
-        case .prePaid: return "Pre-paid"
-        case .postPay: return "Post-pay"
-        case .mobilePostPay: return "Mobile post-pay"
-        }
-    }
-
-    static func lookup(_ value: UInt8) -> String {
-        KSX6924CardType(rawValue: value)?.displayName ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
-
-private enum KSX6924Algorithm: UInt8 {
-    case seed = 0x00
-    case tripleDES = 0x10
-
-    var displayName: String {
-        switch self {
-        case .seed: return "SEED"
-        case .tripleDES: return "3DES"
-        }
-    }
-
-    static func lookup(_ value: UInt8) -> String {
-        KSX6924Algorithm(rawValue: value)?.displayName ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
-
-private struct KSX6924IDCenter {
-    static let names: [UInt8: String] = [
-        0x00: "Reserved",
-        0x01: "Korea Financial Telecommunications and Clearings Institute",
-        0x02: "A-Cash",
-        0x03: "Mybi",
-        0x05: "V-Cash",
-        0x06: "Mondex Korea",
-        0x07: "Korea Expressway Corporation",
-        0x08: "Korea Smart Card Corporation",
-        0x09: "KORAIL Networks",
-        0x0b: "EB Card Corporation",
-        0x0c: "Seoul Bus Transport Association",
-        0x0d: "Cardnet"
-    ]
-
-    static func lookup(_ value: UInt8) -> String {
-        names[value] ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
-
-private struct KSX6924UserCode {
-    static let names: [UInt8: String] = [
-        0x01: "Regular/Normal",
-        0x02: "Child",
-        0x04: "Youth",
-        0x06: "Elderly",
-        0x0f: "Test",
-        0xff: "Inactive"
-    ]
-
-    static func lookup(_ value: UInt8) -> String {
-        names[value] ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
-
-private struct KSX6924DisRate {
-    static let names: [UInt8: String] = [
-        0x00: "No discount",
-        0x10: "Disabled, basic",
-        0x11: "Disabled, companion",
-        0x20: "Merit, basic",
-        0x21: "Merit, companion"
-    ]
-
-    static func lookup(_ value: UInt8) -> String {
-        names[value] ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
-
-private struct KSX6924TCode {
-    static let names: [UInt8: String] = [
-        0x00: "None",
-        0x01: "SK Telecom",
-        0x02: "Korea Telecom",
-        0x03: "LG Uplus"
-    ]
-
-    static func lookup(_ value: UInt8) -> String {
-        names[value] ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
-
-private struct KSX6924CCode {
-    static let names: [UInt8: String] = [
-        0x00: "None",
-        0x01: "KB Kookmin Bank",
-        0x02: "Nonghyup Bank",
-        0x03: "Lotte Card",
-        0x04: "BC Card",
-        0x05: "Samsung Card",
-        0x06: "Shinhan Bank",
-        0x07: "Citibank Korea",
-        0x08: "Korea Exchange Bank",
-        0x09: "Woori",
-        0x0a: "Hana SK Card",
-        0x0b: "Hyundai Capital Services"
-    ]
-
-    static func lookup(_ value: UInt8) -> String {
-        names[value] ?? String(format: "Unknown (0x%02X)", value)
-    }
-}
+// MARK: - KS X 6924 Purse Info Structure
 
 private struct KSX6924PurseInfo {
     let rawData: Data
@@ -1099,8 +1037,7 @@ extension NFCTransitReader {
         }
 
         let applicationAID = configInfo?.mainApplicationAID ?? selectedAID
-        let profile = KSX6924CardProfile.matching(aid: applicationAID, configInfo: configInfo)
-
+        
         let selectResponse: NFCISO7816ResponseAPDU?
         if applicationAID == selectedAID {
             selectResponse = initialSelectResponse
@@ -1111,15 +1048,14 @@ extension NFCTransitReader {
             selectResponse = try? await sendISO7816Command(.selectByName(applicationAID), to: tag)
         }
 
-        let balanceResponse = try await sendISO7816Command(.ksx6924Balance, to: tag)
-        let cardInfoResponse = try? await sendISO7816Command(.ksx6924CardInfo, to: tag)
-        let purseInfo = selectResponse.flatMap { KSX6924PurseInfo(fciPayload: $0.payload ?? Data()) }
-        let cardInfoPayload = cardInfoResponse?.payload ?? Data()
-        let parsedCardInfo = KSX6924CardInfo(payload: cardInfoPayload, purseInfo: purseInfo, configInfo: configInfo)
-
+        let isTUnion = applicationAID == "A000000632010105"
+        let balanceResponse = try await sendISO7816Command(isTUnion ? .tunionBalance : .ksx6924Balance, to: tag)
+        let cardInfoResponse = try? await sendISO7816Command(isTUnion ? .tunionCardInfo : .ksx6924CardInfo, to: tag)
         let payload = balanceResponse.payload ?? Data()
-        let parsedBalance = profile.parseBalance(payload)
-
+        var parsedBalance: ParsedBalance?
+        var realSN: String?
+        var cardFamily = "ISO7816"
+        var resultFields: [ResultField] = []
         var rawSections: [RawDataSection] = [
             RawDataSection(
                 title: "Tag",
@@ -1128,19 +1064,53 @@ extension NFCTransitReader {
                     RawDataField(title: "UID", value: tag.identifier.hexString),
                     RawDataField(title: "Selected AID", value: selectedAID),
                     RawDataField(title: "Application AID", value: applicationAID),
-                    RawDataField(title: "Historical Bytes", value: tag.historicalBytes?.hexString ?? "Unavailable"),
-                    RawDataField(title: "Application Data", value: tag.applicationData?.hexString ?? "Unavailable")
+                    RawDataField(title: "Historical Bytes", value: tag.historicalBytes?.hexString ?? "Unavailable")
                 ]
             ),
             RawDataSection(
                 title: "Balance APDU",
                 fields: [
-                    RawDataField(title: "Command", value: NFCISO7816APDU.ksx6924BalanceCommand.hexString),
+                    RawDataField(title: "Command", value: (isTUnion ? Data([0x80, 0x5C, 0x00, 0x02, 0x04]) : Data([0x90, 0x4C, 0x00, 0x00, 0x04])).hexString),
                     RawDataField(title: "Response Payload", value: payload.hexString),
                     RawDataField(title: "SW1SW2", value: balanceResponse.statusWords)
                 ]
             )
         ]
+
+        if isTUnion {
+            cardFamily = "T-Union"
+            let tunionSnapshot = try await TUnionDecoder.decode(tag: tag, applicationAID: applicationAID, selectedAID: selectedAID, initialSelectResponse: selectResponse, scannedAt: scannedAt)
+            
+            cardFamily = tunionSnapshot.cardFamily
+            parsedBalance = ParsedBalance(formatted: tunionSnapshot.balanceText ?? "0.00元", detail: tunionSnapshot.balanceDetail ?? "", rawFields: [])
+            resultFields = tunionSnapshot.resultFields
+            rawSections = tunionSnapshot.rawSections
+            realSN = tunionSnapshot.realSerialNumber
+        } else {
+            // Korean and Other ISO7816 cards logic continues here
+            let profile = KSX6924CardProfile.matching(aid: applicationAID, configInfo: configInfo)
+            let purseInfoData = selectResponse?.payload.flatMap { findTLVValue(tag: [0xB0], in: $0) }
+            let purseInfo = selectResponse?.payload.flatMap { KSX6924PurseInfo(fciPayload: $0) }
+            
+            let cardInfoPayload = cardInfoResponse?.payload ?? Data()
+            let parsedCardInfo = KSX6924CardInfo(payload: cardInfoPayload, purseInfo: purseInfo, configInfo: configInfo)
+            
+            parsedBalance = profile.parseBalance(payload)
+            realSN = parsedCardInfo.cardNumber
+            cardFamily = profile.displayName
+            resultFields = parsedCardInfo.resultFields
+            
+            if let cardInfoResponse {
+                rawSections.append(RawDataSection(title: "Card Info APDU (KS X 6924)", fields: [
+                    RawDataField(title: "Command", value: "00B2010C00"),
+                    RawDataField(title: "Response", value: cardInfoPayload.hexString),
+                    RawDataField(title: "SW1SW2", value: cardInfoResponse.statusWords)
+                ]))
+            }
+            if let purseInfoRawFields = parsedCardInfo.purseInfoRawFields {
+                rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseInfoRawFields))
+            }
+        }
 
         if let parsedBalance {
             var fields = [RawDataField(title: "Decoder", value: parsedBalance.detail)]
@@ -1148,38 +1118,21 @@ extension NFCTransitReader {
             rawSections.append(RawDataSection(title: "Decoded Balance", fields: fields))
         }
 
-        if let cardInfoResponse {
-            rawSections.append(
-                RawDataSection(
-                    title: "Card Info APDU",
-                    fields: [
-                        RawDataField(title: "Command", value: NFCISO7816APDU.ksx6924CardInfoCommand.hexString),
-                        RawDataField(title: "Response Payload", value: cardInfoPayload.hexString),
-                        RawDataField(title: "SW1SW2", value: cardInfoResponse.statusWords)
-                    ]
-                )
-            )
-        }
-
-        if let purseInfoRawFields = parsedCardInfo.purseInfoRawFields {
-            rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseInfoRawFields))
-        }
-
         return TransitCardSnapshot(
             technology: "ISO7816",
-            cardFamily: profile.displayName,
-            identifierLabel: parsedCardInfo.cardNumber == nil ? "UID" : "Card Number",
-            identifierValue: parsedCardInfo.cardNumber ?? tag.identifier.hexString,
+            cardFamily: cardFamily,
+            identifierLabel: "UID",
+            identifierValue: tag.identifier.hexString,
             rawIdentifierValue: tag.identifier.hexString,
             pmm: nil,
             systemCode: nil,
-            selectedAID: applicationAID,
+            selectedAID: selectedAID,
             balanceText: parsedBalance?.formatted,
             balanceDetail: parsedBalance?.detail,
-            realSerialNumber: nil,
-            resultFields: parsedCardInfo.resultFields,
+            realSerialNumber: realSN,
+            resultFields: resultFields,
             rawSections: rawSections,
-            scannedAt: scannedAt
+            scannedAt: Date()
         )
     }
 
@@ -1400,6 +1353,7 @@ extension NFCTransitReader {
             return String(clean[start..<end])
         }.joined(separator: " ")
     }
+
 }
 
 extension NFCFeliCaTag {

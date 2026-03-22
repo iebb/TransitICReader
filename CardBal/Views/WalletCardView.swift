@@ -8,6 +8,7 @@ struct WalletCardView: View {
     let visiblePartHeight: CGFloat
     let onVisibleTap: () -> Void
     let showDetails: () -> Void
+    @AppStorage("snDisplayMode") private var snDisplayMode = 0
 
     private var faceImage: UIImage? {
         card.faceImageFileName.flatMap(loadCardFaceImage)
@@ -72,43 +73,44 @@ struct WalletCardView: View {
                                 )
                             }
                             if shouldShowSerialNumber {
-                                borderedCardText(
-                                    card.displayedSerialNumber,
-                                    font: .caption.weight(.medium),
-                                    foregroundColor: titleTextColor,
-                                    lineLimit: 1,
-                                    minimumScaleFactor: 0.75
-                                )
+                                let snText = card.privacyFormattedSerialNumber(mode: snDisplayMode)
+                                if !snText.isEmpty {
+                                    borderedCardText(
+                                        snText,
+                                        font: .caption.weight(.medium),
+                                        foregroundColor: titleTextColor,
+                                        lineLimit: 1,
+                                        minimumScaleFactor: 0.75
+                                    )
+                                }
                             }
+                            
                         }
 
                         Spacer()
-                        VStack(alignment: .trailing, spacing: 8) {
+                        VStack(alignment: .trailing, spacing: 4) {
                             borderedCardText(
                                 card.visibleBalance,
                                 font: .system(size: 28, weight: .bold, design: .rounded),
                                 foregroundColor: balanceTextColor,
                                 minimumScaleFactor: 0.75
                             )
+                            
+                            // Mini Last Scanned - Always visible top part
+                            let dateText = KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt, includeTime: false)
+                            if !dateText.isEmpty && dateText != "Unknown" {
+                                Text(dateText)
+                                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .foregroundStyle(titleTextColor)
+                                    .background(.black.opacity(0.24), in: Capsule())
+                            }
                         }
                     }
 
                     Spacer()
 
                     HStack(alignment: .bottom) {
-                        if isExpanded {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Last Scanned")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .opacity(0.86)
-                                Text(KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt, includeTime: false))
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                            }
-                            .foregroundStyle(titleTextColor)
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(isPhotoFace ? .black.opacity(0.36) : .clear, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        }
-
                         Spacer()
 
                         Button(action: showDetails) {
@@ -127,11 +129,22 @@ struct WalletCardView: View {
                 .padding(.trailing, 18)
                 .padding(.bottom, 18)
 
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(height: visiblePartHeight)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: onVisibleTap)
+                if visiblePartHeight > 0 && !isExpanded {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: visiblePartHeight)
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onVisibleTap)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if isExpanded {
+                    // Tap on expanded card background should trigger onVisibleTap?
+                    // Optional: onVisibleTap()
+                } else {
+                    onVisibleTap()
+                }
             }
         }
         .frame(height: cardHeight)

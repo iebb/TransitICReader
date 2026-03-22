@@ -131,38 +131,194 @@ struct FaceImageEditorSheet: View {
     let image: UIImage
     let onCancel: () -> Void
     let onSave: (UIImage) -> Void
+    
     @State private var offset: CGSize = .zero
-    @State private var scale: CGFloat = 1
+    @State private var dragOffset: CGSize = .zero
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
     @State private var brightness: Double = 0.0
     @State private var contrast: Double = 1.0
-
+    @State private var rotation: Double = 0.0
+    @State private var vPerspective: Double = 0.0
+    @State private var hPerspective: Double = 0.0
+    @State private var activeTab: Int = 0 // 0: Crop, 1: Adjust, 2: Perspective
+    
+    private let cardAspectRatio: CGFloat = 85.6 / 53.98
+    
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                ZStack {
-                    renderableView
-                        .frame(width: 320, height: 200)
-                        .clipped()
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Preview Area
+                    ZStack {
+                        // Anchored base to prevent huge images from pushing layout width
+                        Color.clear.frame(width: 320, height: 320 / cardAspectRatio)
+                            .overlay(renderableView)
+                        
+                        // Theatrical Mask
+                        Color.black.opacity(0.5)
+                            .mask(
+                                Rectangle()
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .frame(width: 320, height: 320 / cardAspectRatio)
+                                            .blendMode(.destinationOut)
+                                    )
+                            )
+                            .compositingGroup()
+                        
+                        // Card Guide Border
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white, lineWidth: 2)
+                            .frame(width: 320, height: 320 / cardAspectRatio)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture()
+                            .onChanged { val in
+                                dragOffset = val.translation
+                            }
+                            .onEnded { val in
+                                offset = CGSize(width: offset.width + val.translation.width, height: offset.height + val.translation.height)
+                                dragOffset = .zero
+                            }
+                    )
+                    .simultaneousGesture(
+                        MagnificationGesture()
+                            .onChanged { val in
+                                scale = lastScale * val
+                            }
+                            .onEnded { val in
+                                lastScale = scale
+                            }
+                    )
+                    
+                    // Controls Area
+                    VStack(spacing: 16) {
+                        Picker("Mode", selection: $activeTab) {
+                            Image(systemName: "crop").tag(0)
+                            Image(systemName: "slider.horizontal.3").tag(1)
+                            Image(systemName: "skew").tag(2)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        
+                        Group {
+                            if activeTab == 0 {
+                                cropControls
+                            } else if activeTab == 1 {
+                                adjustControls
+                            } else {
+                                perspectiveControls
+                            }
+                        }
+                        .padding(.horizontal)
+                        .frame(height: 100)
+                        
+                        Divider().background(Color.white.opacity(0.2))
+                        
+                        HStack {
+                            Button("Cancel", action: onCancel).foregroundStyle(.white)
+                            Spacer()
+                            Button("Reset") { reset() }.foregroundStyle(.gray)
+                            Spacer()
+                            Button { saveCroppedImage() } label: {
+                                Text("Done").bold().padding(.horizontal, 16).padding(.vertical, 8)
+                                    .background(Color.white, in: Capsule())
+                                    .foregroundStyle(.black)
+                            }
+                        }
+                        .padding()
+                    }
+                    .background(Color(uiColor: .systemBackground).colorScheme(.dark))
                 }
-                .frame(width: 320, height: 200)
-                .overlay(RoundedRectangle(cornerRadius: 0).stroke(Color.accentColor, lineWidth: 2))
-                .gesture(DragGesture().onChanged { offset = $0.translation })
-
-                VStack {
-                    Slider(value: $brightness, in: -0.5...0.5) { Text("Brightness") }
-                    Slider(value: $contrast, in: 0.5...1.5) { Text("Contrast") }
-                    Slider(value: $scale, in: 1.0...5.0) { Text("Scale") }
-                }.padding(.horizontal)
-
-                Button("Save and Crop") { 
-                    saveCroppedImage()
-                }.buttonStyle(.borderedProminent)
             }
-            .navigationTitle("Crop Card Face")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: onCancel) } }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) { Text("Edit card face").foregroundStyle(.white).bold() }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { withAnimation { rotation = (rotation + 90).truncatingRemainder(dividingBy: 360) } } label: {
+                        Image(systemName: "rotate.right").foregroundStyle(.white)
+                    }
+                }
+            }
         }
     }
-
+    
+    @ViewBuilder
+    private var cropControls: some View {
+        VStack {
+            Text("Zoom").font(.caption).foregroundStyle(.secondary)
+            Slider(value: $scale, in: 0.5...8.0).tint(.white)
+        }
+    }
+    
+    @ViewBuilder
+    private var adjustControls: some View {
+        VStack(spacing: 8) {
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "sun.max.fill").font(.caption2).foregroundStyle(.secondary)
+                    Text("Brightness").font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                }
+                Slider(value: $brightness, in: -0.5...0.5).tint(.white)
+            }
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "circle.lefthalf.filled").font(.caption2).foregroundStyle(.secondary)
+                    Text("Contrast").font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                }
+                Slider(value: $contrast, in: 0.5...1.5).tint(.white)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var perspectiveControls: some View {
+        VStack(spacing: 8) {
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "arrow.up.and.down.square").font(.caption2).foregroundStyle(.secondary)
+                    #if os(iOS)
+                    Text("Vertical").font(.caption2).foregroundStyle(.secondary)
+                    #endif
+                    Spacer()
+                }
+                Slider(value: $vPerspective, in: -0.3...0.3).tint(.white)
+            }
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "arrow.left.and.right.square").font(.caption2).foregroundStyle(.secondary)
+                    #if os(iOS)
+                    Text("Horizontal").font(.caption2).foregroundStyle(.secondary)
+                    #endif
+                    Spacer()
+                }
+                Slider(value: $hPerspective, in: -0.3...0.3).tint(.white)
+            }
+        }
+    }
+    
+    private func reset() {
+        withAnimation {
+            offset = .zero
+            dragOffset = .zero
+            scale = 1.0
+            lastScale = 1.0
+            brightness = 0.0
+            contrast = 1.0
+            rotation = 0.0
+            vPerspective = 0.0
+            hPerspective = 0.0
+        }
+    }
+    
     @ViewBuilder
     private var renderableView: some View {
         Image(uiImage: image)
@@ -170,13 +326,26 @@ struct FaceImageEditorSheet: View {
             .scaledToFill()
             .brightness(brightness)
             .contrast(contrast)
+            .rotationEffect(.degrees(rotation))
+            .projectionEffect(perspectiveTransform)
             .scaleEffect(scale)
-            .offset(offset)
+            .offset(CGSize(width: offset.width + dragOffset.width, height: offset.height + dragOffset.height))
     }
-
+    
+    private var perspectiveTransform: ProjectionTransform {
+        var transform = CATransform3DIdentity
+        transform.m34 = -1.0 / 1000
+        transform = CATransform3DRotate(transform, vPerspective, 1, 0, 0)
+        transform = CATransform3DRotate(transform, hPerspective, 0, 1, 0)
+        return ProjectionTransform(transform)
+    }
+    
     private func saveCroppedImage() {
-        let renderer = ImageRenderer(content: renderableView.frame(width: 320, height: 200))
-        renderer.scale = 3.0 // High quality
+        let renderer = ImageRenderer(content: 
+            renderableView
+                .frame(width: 320, height: 320 / cardAspectRatio)
+        )
+        renderer.scale = 3.0
         if let uiImage = renderer.uiImage {
             onSave(uiImage)
         } else {
