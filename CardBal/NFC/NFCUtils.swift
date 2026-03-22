@@ -122,7 +122,7 @@ extension NFCISO7816APDU {
 
     static var tunionCardInfo: NFCISO7816APDU {
         // Read Record 1 of SFI 0x05
-        NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x2C, data: Data(), expectedResponseLength: 0)
+        NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x2C, data: Data(), expectedResponseLength: 256)
     }
 
     static var ksx6924BalanceCommand: Data {
@@ -316,19 +316,24 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
             var iso7816Snapshot: TransitCardSnapshot?
             
             // Try to scan all detected tags to catch dual-mode cards (e.g. FeliCa + T-Union)
-            for tag in tags {
+            logger.debug("Detected \(tags.count) tags.")
+            for (i, tag) in tags.enumerated() {
                 do {
+                    logger.debug("Connecting to tag [\(i)]...")
                     try await session.connect(to: tag)
                     switch tag {
                     case .feliCa(let feliCa):
+                        logger.debug("Tag [\(i)] is FeliCa. Decoding...")
                         feliCaSnapshot = try await decodeFeliCaSnapshot(from: feliCa)
                     case .iso7816(let iso7816):
+                        logger.debug("Tag [\(i)] is ISO7816. AID=\(iso7816.initialSelectedAID). Decoding...")
                         iso7816Snapshot = try await decodeISO7816Snapshot(from: iso7816)
                     default:
+                        logger.debug("Tag [\(i)] is unsupported protocol.")
                         break
                     }
                 } catch {
-                    logger.error("Failed to connect/decode tag during multi-tag scan: \(error.localizedDescription)")
+                    logger.error("Failed to connect/decode tag [\(i)]: \(error.localizedDescription)")
                 }
             }
 
@@ -1078,7 +1083,7 @@ extension NFCTransitReader {
         ]
 
         if isTUnion {
-            cardFamily = "T-Union"
+            logger.debug("Identified T-Union card. Delegating to TUnionDecoder...")
             let tunionSnapshot = try await TUnionDecoder.decode(tag: tag, applicationAID: applicationAID, selectedAID: selectedAID, initialSelectResponse: selectResponse, scannedAt: scannedAt)
             
             cardFamily = tunionSnapshot.cardFamily

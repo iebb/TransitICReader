@@ -6,9 +6,14 @@ struct TUnionDecoder {
         let isTUnion = applicationAID == "A000000632010105"
         guard isTUnion else { throw NFCTestError.unsupportedCard }
         
+        print("[TUnion] Decoding. AID=\(applicationAID), Selected=\(selectedAID)")
+        
         // T-Union Balance Command: 80 5C 00 02 04
-        let balanceResponse = try await tag.sendCommand(apdu: NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4))
+        let apdu = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
+        let balanceResponse = try await tag.sendCommand(apdu: apdu)
         let payload = balanceResponse.0
+        
+        print("[TUnion] Balance Payload: \(payload.hexString), SW: \(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2))")
         
         var resultFields: [ResultField] = []
         var rawSections: [RawDataSection] = [
@@ -28,47 +33,91 @@ struct TUnionDecoder {
         let parsedBalance = parseTUnionBalance(payload)
         var realSN: String?
         var cardFamily = "T-Union"
+        var brandRegion = "T-Union Cities"
+        var issuingCity: String?
         
-        // T-Union cards can store metadata in multiple SFIs depending on the region/manufacturer.
-        let metadataProbes: [(title: String, sfi: UInt8, p2: UInt8)] = [
-            ("SFI 15", 0x15, 0xAC), // File 15 (Common)
-            ("SFI 05", 0x05, 0x2C), // File 05 (Alternative)
-            ("SFI 11", 0x11, 0x8C), // File 17 (Some local cards)
-            ("SFI 01", 0x01, 0x0C)  // File 01 (Legacy/Early)
-        ]
+        // Octopus T-Union (嶺南通·八达通) and some others store the CAN in the FCI Tag 9F0C!
+        if let fci = initialSelectResponse?.payload {
+            print("[TUnion] Checking FCI for metadata...")
+            
+            // Try to find 9F0C tag (Application Meta)
+            if let meta = findTUnionTag([0x9F, 0x0C], in: fci) {
+                // T-Union_Master logic:
+                // CARD NUMBER: offset 10 (decimal), length 10 bytes BCD (with optional leading 0)
+                // CITY ID: offset 2 (decimal), length 2 bytes (Hex-like string in GBT JSON)
+                if meta.count >= 20 {
+                    let cnData = meta.subdata(in: 10..<20)
+                    if let extracted = validateAndCleanCAN(cnData.hexString) {
+                        realSN = extracted
+                        brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
+                    }
+                }
+                if meta.count >= 4 {
+                    let cityId = meta.subdata(in: 2..<4).hexString.uppercased()
+                    issuingCity = TUnionCityDatabase.lookupCityName(for: cityId)
+                    print("[TUnion] City ID found: \(cityId) (\(issuingCity ?? "Unknown"))")
+                }
+            }
+            
+            // Fallback: Pattern search whole FCI if Tag parsing didn't find the number
+            if realSN == nil {
+                if let extracted = extractCAN(from: fci) {
+                    realSN = extracted
+                    brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
+                }
+            }
+            
+            if let sn = realSN {
+                resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(sn)))
+                resultFields.append(ResultField(title: "Region", value: brandRegion))
+                if let city = issuingCity {
+                    resultFields.append(ResultField(title: "Issuing City", value: city))
+                }
+                rawSections.append(RawDataSection(title: "Found in FCI", fields: [
+                    RawDataField(title: "Payload", value: fci.hexString)
+                ]))
+            }
+        }
         
-        for probe in metadataProbes {
-            // Probe common records (Rec 1 is most common for metadata)
-            for recNo in UInt8(1)...UInt8(2) {
-                let apdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recNo, p2Parameter: probe.p2, data: Data(), expectedResponseLength: 0)
-                if let response = try? await tag.sendCommand(apdu: apdu), response.1 == 0x90 {
-                    let info = response.0
-                    rawSections.append(RawDataSection(title: "Card Info APDU (\(probe.title) Rec \(recNo))", fields: [
-                        RawDataField(title: "Response", value: info.hexString),
-                        RawDataField(title: "SW1SW2", value: String(format: "%02X%02X", response.1, response.2))
-                    ]))
+        // Deep Scan: T-Union cards vary by region. Exhaustively probe SFIs if not found in FCI.
+        if realSN == nil {
+            for sfi in UInt8(1)...UInt8(31) {
+                if realSN != nil { break }
+                
+                // Try READ RECORD (Linear Fixed Files)
+                for recNo in UInt8(1)...UInt8(3) {
+                    let p2 = (sfi << 3) | 0x04
+                    let probeApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recNo, p2Parameter: p2, data: Data(), expectedResponseLength: 256)
                     
-                    if let extracted = extractCAN(from: info) {
-                        if realSN == nil {
-                            realSN = extracted
-                            cardFamily = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union"
-                            resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
-                            
-                            // Try to parse dates if it looks like standard File 15 record 1
-                            if info.count >= 30 {
-                                let startDate = info.sliceHexString(start: 22, length: 4)
-                                let expiryDate = info.sliceHexString(start: 26, length: 4)
-                                if let start = formatChinaBCDDate(startDate) {
-                                    resultFields.append(ResultField(title: "Valid From", value: start))
-                                }
-                                if let expiry = formatChinaBCDDate(expiryDate) {
-                                    resultFields.append(ResultField(title: "Valid Until", value: expiry))
+                    if let response = try? await tag.sendCommand(apdu: probeApdu) {
+                        if response.1 == 0x90 {
+                            let info = response.0
+                            print("[TUnion] Probed SFI \(String(format: "%02X", sfi)) Rec \(recNo): \(info.hexString)")
+                            if let extracted = extractCAN(from: info) {
+                                if realSN == nil {
+                                    realSN = extracted
+                                    brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
+                                    resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
+                                    resultFields.append(ResultField(title: "Region", value: brandRegion))
+                                    rawSections.append(RawDataSection(title: "Found in SFI \(String(format: "%02X", sfi))", fields: [
+                                        RawDataField(title: "Source", value: "Read Record \(recNo)"),
+                                        RawDataField(title: "Payload", value: info.hexString)
+                                    ]))
                                 }
                             }
-                            
-                            if info.count >= 8 {
-                                let issuer = info.sliceHexString(start: 0, length: 8)
-                                resultFields.append(ResultField(title: "Issuer ID", value: issuer))
+                        } else if response.1 == 0x69 && response.2 == 0x81 {
+                            let readBinary = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 64)
+                            if let binResp = try? await tag.sendCommand(apdu: readBinary), binResp.1 == 0x90 {
+                                let info = binResp.0
+                                print("[TUnion] Probed SFI \(String(format: "%02X", sfi)) Binary: \(info.hexString)")
+                                if let extracted = extractCAN(from: info) {
+                                    if realSN == nil {
+                                        realSN = extracted
+                                        brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
+                                        resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
+                                        resultFields.append(ResultField(title: "Region", value: brandRegion))
+                                    }
+                                }
                             }
                         }
                     }
@@ -93,48 +142,85 @@ struct TUnionDecoder {
             scannedAt: scannedAt
         )
     }
+
+    private static func findTUnionTag(_ tag: [UInt8], in data: Data) -> Data? {
+        var i = 0
+        let bytes = [UInt8](data)
+        while i < bytes.count {
+            // Check for tag match
+            var tagMatch = true
+            for (j, byte) in tag.enumerated() {
+                if i + j >= bytes.count || bytes[i + j] != byte {
+                    tagMatch = false
+                    break
+                }
+            }
+            
+            if tagMatch {
+                let lengthIndex = i + tag.count
+                if lengthIndex < bytes.count {
+                    let length = Int(bytes[lengthIndex])
+                    let contentStart = lengthIndex + 1
+                    let contentEnd = contentStart + length
+                    if contentEnd <= bytes.count {
+                        return data.subdata(in: contentStart..<contentEnd)
+                    }
+                }
+            }
+            
+            // If it's a constructed tag (0x6F, 0xA5), enter it
+            if bytes[i] == 0x6F || bytes[i] == 0xA5 {
+                i += 2 // Skip tag and length and enter
+                continue
+            }
+            
+            i += 1
+        }
+        return nil
+    }
     
     private static func extractCAN(from data: Data) -> String? {
         let hex = data.hexString.uppercased()
         
-        // Strategy 1: Standard offset 12 (bytes), 10 bytes BCD.
-        if data.count >= 22 {
-            let start = 12 * 2
-            let end = min(start + 20, hex.count)
-            let range = hex.index(hex.startIndex, offsetBy: start)..<hex.index(hex.startIndex, offsetBy: end)
-            let candidate = String(hex[range])
-            if let clean = validateAndCleanCAN(candidate) { return clean }
-        }
+        // Known T-Union prefixes.
+        // Special case for Octopus T-Union: It's often BCD with a leading zero-nibble.
+        // e.g. 031048500...
+        let prefixes = ["3104", "3101", "3105", "3110", "3140", "3102", "3106", "3107", "3180", "4131"]
+        let bcdZeroPrefixes = prefixes.map { "0\($0)" }
         
-        // Strategy 2: Pattern search for known T-Union prefixes (310x, 311x, 314x, etc.)
-        let knownPrefixes = ["3104", "3105", "3110", "3140", "3101", "3102", "3106", "3107"]
-        for prefix in knownPrefixes {
+        let allSearchPrefixes = prefixes + bcdZeroPrefixes
+        
+        for prefix in allSearchPrefixes {
             if let range = hex.range(of: prefix) {
                 let startIndex = hex.distance(from: hex.startIndex, to: range.lowerBound)
-                let end = min(startIndex + 20, hex.count)
+                
+                // If it starts with 0 (BCD padding), we want 20 chars total to get 19 digits.
+                let isZeroPadded = prefix.hasPrefix("0")
+                let length = isZeroPadded ? 20 : 19
+                
+                let end = min(startIndex + length, hex.count)
                 let subRange = hex.index(hex.startIndex, offsetBy: startIndex)..<hex.index(hex.startIndex, offsetBy: end)
                 let candidate = String(hex[subRange])
                 if let clean = validateAndCleanCAN(candidate) { return clean }
             }
         }
-        
         return nil
     }
     
     private static func validateAndCleanCAN(_ hexCandidate: String) -> String? {
-        // Strip hex padding (F)
         var clean = hexCandidate.replacingOccurrences(of: "F", with: "")
         
-        // Handle leading zero padding (some cards have a leading 0 in the 10-byte/9-byte field)
+        // Strip leading zero if it was meant for BCD padding
         if clean.count == 20 && clean.hasPrefix("0") {
             clean = String(clean.dropFirst())
         }
         
-        // T-Union numbers (CAN) are 16-19 digits.
         if clean.count >= 16 && clean.count <= 19 {
-            // Must be all digits
             let digitSet = CharacterSet.decimalDigits
             if clean.rangeOfCharacter(from: digitSet.inverted) == nil {
+                if clean.allSatisfy({ $0 == "0" }) {
+                    return nil
+                }
                 return clean
             }
         }
@@ -142,16 +228,13 @@ struct TUnionDecoder {
     }
     
     private static func parseTUnionBalance(_ payload: Data) -> ParsedBalance? {
-        // T-Union balance is a 4-byte big-endian integer in cents
         guard payload.count >= 4 else { return nil }
         let balanceCents = Int32(bigEndian: payload.withUnsafeBytes { $0.load(as: Int32.self) })
         let amount = Double(balanceCents) / 100.0
-        
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = "CNY"
         formatter.locale = Locale(identifier: "zh_CN")
-        
         let balanceText = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)元"
         return ParsedBalance(
             formatted: balanceText,
@@ -191,6 +274,15 @@ struct TUnionCityDatabase {
         return json
     }()
     
+    private static let cityCodes: [String: String] = {
+        guard let url = Bundle.main.url(forResource: "TUnionCityCodes", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            return [:]
+        }
+        return json
+    }()
+    
     private static let sortedEntries: [(prefix: String, name: String)] = {
         cardNames.map { (prefix: $0.key, name: $0.value) }.sorted { $0.prefix.count > $1.prefix.count }
     }()
@@ -200,5 +292,9 @@ struct TUnionCityDatabase {
             if value.hasPrefix(entry.prefix) { return entry.name }
         }
         return nil
+    }
+    
+    static func lookupCityName(for cityId: String) -> String? {
+        return cityCodes[cityId]
     }
 }
