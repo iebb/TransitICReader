@@ -40,6 +40,7 @@ struct TransitCardSnapshot: Identifiable {
     let balanceText: String?
     let balanceDetail: String?
     let realSerialNumber: String?
+    let region: String?
     let resultFields: [ResultField]
     let rawSections: [RawDataSection]
     let scannedAt: Date
@@ -217,17 +218,17 @@ final class NFCTransitReader: NSObject, ObservableObject {
         }
     }
 
-    func startScanning() {
-        beginScanning()
+    func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443]) {
+        beginScanning(options: options)
     }
 
-    func beginScanning() {
+    func beginScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443]) {
         guard isNFCAvailable else {
             updateStatus("NFC reading is not available.", kind: .error)
             return
         }
 
-        guard let session = NFCTagReaderSession(pollingOption: [.iso18092, .iso14443], delegate: self, queue: nil) else {
+        guard let session = NFCTagReaderSession(pollingOption: options, delegate: self, queue: nil) else {
             updateStatus("Unable to start session.", kind: .error)
             return
         }
@@ -286,6 +287,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
             balanceText: dualBalance,
             balanceDetail: dualDetail,
             realSerialNumber: feliCa.realSerialNumber ?? iso7816.realSerialNumber,
+            region: feliCa.region ?? iso7816.region,
             resultFields: mergedResults,
             rawSections: mergedRaw,
             scannedAt: feliCa.scannedAt
@@ -941,6 +943,7 @@ extension NFCTransitReader {
                 balanceText: nil,
                 balanceDetail: "No balance decoder is configured for this FeliCa system code.",
                 realSerialNumber: nil,
+                region: nil,
                 resultFields: [],
                 rawSections: [
                     RawDataSection(
@@ -1022,6 +1025,7 @@ extension NFCTransitReader {
             balanceText: parsedBalance?.formatted,
             balanceDetail: parsedBalance?.detail,
             realSerialNumber: nil,
+            region: nil,
             resultFields: profile.resultFields(forIDm: formattedIDm, detectedBrand: detectedBrand),
             rawSections: rawSections,
             scannedAt: scannedAt
@@ -1135,6 +1139,7 @@ extension NFCTransitReader {
             balanceText: parsedBalance?.formatted,
             balanceDetail: parsedBalance?.detail,
             realSerialNumber: realSN,
+            region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
             scannedAt: Date()
@@ -1309,6 +1314,7 @@ extension NFCTransitReader {
             balanceText: nil,
             balanceDetail: nil,
             realSerialNumber: nil,
+            region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
             scannedAt: scannedAt

@@ -129,6 +129,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var balanceText: String?
     var balanceDetail: String?
     var realSerialNumber: String?
+    var region: String?
     var enhancedFeliCaDecoded: Bool?
     var resultFields: [SavedCardField]
     var scannedAt: Date
@@ -150,7 +151,8 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
     var displayTitle: String {
         let trimmed = customTitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? cardFamily : trimmed
+        if !trimmed.isEmpty { return trimmed }
+        return region ?? cardFamily
     }
 
     var visibleBalance: String {
@@ -271,6 +273,7 @@ extension SavedCardRecord {
         self.balanceText = snapshot.balanceText
         self.balanceDetail = snapshot.balanceDetail
         self.realSerialNumber = snapshot.realSerialNumber
+        self.region = snapshot.region
         self.enhancedFeliCaDecoded = false
         self.resultFields = snapshot.resultFields.map(SavedCardField.init)
         self.scannedAt = snapshot.scannedAt

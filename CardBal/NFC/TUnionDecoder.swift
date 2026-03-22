@@ -127,9 +127,9 @@ struct TUnionDecoder {
         
         return TransitCardSnapshot(
             technology: "ISO7816",
-            cardFamily: cardFamily,
-            identifierLabel: "CAN",
-            identifierValue: realSN ?? tag.identifier.hexString,
+            cardFamily: cardFamily, // standardized to "T-Union" earlier
+            identifierLabel: "UID",
+            identifierValue: tag.identifier.hexString,
             rawIdentifierValue: tag.identifier.hexString,
             pmm: nil,
             systemCode: nil,
@@ -137,9 +137,10 @@ struct TUnionDecoder {
             balanceText: parsedBalance?.formatted,
             balanceDetail: parsedBalance?.detail,
             realSerialNumber: realSN,
+            region: issuingCity ?? brandRegion,
             resultFields: resultFields,
             rawSections: rawSections,
-            scannedAt: scannedAt
+            scannedAt: Date()
         )
     }
 
@@ -234,7 +235,7 @@ struct TUnionDecoder {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = "CNY"
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = Locale.current
         let balanceText = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)元"
         return ParsedBalance(
             formatted: balanceText,

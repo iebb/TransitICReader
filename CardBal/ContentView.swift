@@ -103,8 +103,16 @@ struct ScanHomeView: View {
             .navigationTitle("Scan")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button { reader.beginScanning() } label: { Label("Start Scan", systemImage: "plus.circle.fill").font(.headline) }
-                        .disabled(reader.isScanning)
+                    Menu {
+                        Button { reader.startScanning(options: [.iso18092, .iso14443]) } label: { Label("FeliCa & ISO7816", systemImage: "bolt.fill") }
+                        Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa Only", systemImage: "wave.3.left") }
+                        Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO7816 (T-Union) Only", systemImage: "creditcard.fill") }
+                    } label: {
+                        Label("Start Scan", systemImage: "plus.circle.fill").font(.headline)
+                    } primaryAction: {
+                        reader.startScanning()
+                    }
+                    .disabled(reader.isScanning)
                 }
             }
             .sheet(item: $detailRoute) { route in
@@ -215,8 +223,14 @@ struct CardsView: View {
             .navigationTitle("Cards")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { reader.beginScanning() } label: {
+                    Menu {
+                        Button { reader.startScanning(options: [.iso18092, .iso14443]) } label: { Label("FeliCa & ISO7816", systemImage: "bolt.fill") }
+                        Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa Only", systemImage: "wave.3.left") }
+                        Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO7816 (T-Union) Only", systemImage: "creditcard.fill") }
+                    } label: {
                         Image(systemName: "plus.circle.fill").font(.title3)
+                    } primaryAction: {
+                        reader.startScanning()
                     }
                 }
             }
