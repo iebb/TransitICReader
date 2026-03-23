@@ -17,12 +17,26 @@ struct TUnionDecoder: TransitCardDecoder {
         
         print("[TUnion] Decoding. AID=\(applicationAID), Selected=\(selectedAID)")
         
-        // T-Union Balance Command: 80 5C 00 02 04
-        let apdu = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
-        let balanceResponse = try await iso.sendCommand(apdu: apdu)
-        let payload = balanceResponse.0
+        // T-Union Balance: Probe multiple indices (0x01, 0x02) and handle composite results
+        var balancePayloads: [UInt8: Data] = [:]
         
-        print("[TUnion] Balance Payload: \(payload.hexString), SW: \(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2))")
+        // Final Strategy: Based on diagnostic logs, Shanghai cards provide:
+        // P1=0x00, P2=0x02 -> Primary Purse (32.00)
+        // P1=0x01, P2=0x02 -> Negative Balance / Debt (8.00)
+        
+        print("[TUnion] Reading Primary Purse (P1=00, P2=02)...")
+        let apdu00 = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
+        if let resp = try? await iso.sendCommand(apdu: apdu00), resp.1 == 0x90 {
+            balancePayloads[0x02] = resp.0
+            print("[TUnion]   Success: \(resp.0.hexString)")
+        }
+
+        print("[TUnion] Reading Negative Balance (P1=01, P2=02)...")
+        let apdu01 = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x01, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
+        if let resp = try? await iso.sendCommand(apdu: apdu01), resp.1 == 0x90 {
+            balancePayloads[0x82] = resp.0
+            print("[TUnion]   Success: \(resp.0.hexString)")
+        }
         
         var resultFields: [ResultField] = []
         var rawSections: [RawDataSection] = [
@@ -31,15 +45,21 @@ struct TUnionDecoder: TransitCardDecoder {
                 RawDataField(title: "UID", value: iso.identifier.hexString),
                 RawDataField(title: "Selected AID", value: selectedAID),
                 RawDataField(title: "Application AID", value: applicationAID)
-            ]),
-            RawDataSection(title: "Balance APDU", fields: [
-                RawDataField(title: "Command", value: "805C000204"),
-                RawDataField(title: "Response Payload", value: payload.hexString),
-                RawDataField(title: "SW1SW2", value: String(format: "%02X%02X", balanceResponse.1, balanceResponse.2))
             ])
         ]
         
-        let parsedBalance = parseTUnionBalance(payload)
+        for (p2, payload) in balancePayloads.sorted(by: { $0.key < $1.key }) {
+            let label = (p2 == 0x82) ? "Balance 1" : "Balance 0"
+            let p1 = (p2 == 0x82) ? "01" : "00"
+            let realP2 = (p2 == 0x82) ? "02" : String(format: "%02X", p2)
+            
+            rawSections.append(RawDataSection(title: label, fields: [
+                RawDataField(title: "Command", value: "805C\(p1)\(realP2)04"),
+                RawDataField(title: "Response Payload", value: payload.hexString)
+            ]))
+        }
+        
+        let parsedBalance = parseTUnionBalances(balancePayloads)
         var realSN: String?
         var cardFamily = "T-Union"
         var brandRegion = "T-Union Cities"
@@ -200,12 +220,12 @@ struct TUnionDecoder: TransitCardDecoder {
             pmm: nil,
             systemCode: nil,
             selectedAID: applicationAID,
-            balanceText: parsedBalance?.formatted,
+            balanceText: parsedBalance.formatted,
             balanceDetail: "CNY balance for T-Union card.",
             realSerialNumber: realSN,
             region: brandRegion,
             resultFields: resultFields,
-            rawSections: rawSections,
+            rawSections: rawSections + parsedBalance.rawSections,
             scannedAt: scannedAt
         )
     }
@@ -281,7 +301,6 @@ struct TUnionDecoder: TransitCardDecoder {
         if clean.count == 20 && clean.hasPrefix("0") {
             clean = String(clean.dropFirst())
         }
-        
         if clean.count >= 16 && clean.count <= 19 {
             let digitSet = CharacterSet.decimalDigits
             if clean.rangeOfCharacter(from: digitSet.inverted) == nil {
@@ -294,22 +313,38 @@ struct TUnionDecoder: TransitCardDecoder {
         return nil
     }
     
-    private static func parseTUnionBalance(_ payload: Data) -> ParsedBalance? {
-        guard payload.count >= 4 else { return nil }
-        let balanceCents = Int32(bigEndian: payload.withUnsafeBytes { $0.load(as: Int32.self) })
-        let amount = Double(balanceCents) / 100.0
+    private static func parseTUnionBalances(_ payloads: [UInt8: Data]) -> (formatted: String, rawSections: [RawDataSection]) {
+        var registerFields: [RawDataField] = []
+        
+        // Extract Purse (P1=0x00, P2=0x02)
+        let purse: Int32 = payloads[0x02].flatMap { d in
+             guard d.count >= 4 else { return nil }
+             return Int32(bigEndian: d.subdata(in: 0..<4).withUnsafeBytes { $0.load(as: Int32.self) })
+        } ?? 0
+        
+        // Extract Debt (P1=0x01, P2=0x02) stored in virtual index 0x82
+        let debt: Int32 = payloads[0x82].flatMap { d in
+             guard d.count >= 4 else { return nil }
+             return Int32(bigEndian: d.subdata(in: 0..<4).withUnsafeBytes { $0.load(as: Int32.self) })
+        } ?? 0
+
+        // Rule: Final = Purse - Debt
+        let selectedCents = purse - debt
+        
+        registerFields.append(RawDataField(title: "Balance 0", value: "\(Double(purse)/100.0) CNY"))
+        registerFields.append(RawDataField(title: "Balance 1", value: "\(Double(debt)/100.0) CNY"))
+        registerFields.append(RawDataField(title: "Final Balance (B0 - B1)", value: "\(Double(selectedCents)/100.0) CNY"))
+        
+        let amount = Double(selectedCents) / 100.0
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = "CNY"
-        formatter.locale = Locale.current
+        formatter.locale = Locale(identifier: "zh_CN")
         let balanceText = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)元"
-        return ParsedBalance(
+        
+        return (
             formatted: balanceText,
-            detail: "Parsed from T-Union purse (big-endian 4-byte integer)",
-            rawFields: [
-                RawDataField(title: "Raw Value", value: String(balanceCents)),
-                RawDataField(title: "Converted Amount", value: String(amount))
-            ]
+            rawSections: [RawDataSection(title: "Parsed Registers", fields: registerFields)]
         )
     }
 

@@ -12,14 +12,27 @@ struct ContentView: View {
     @StateObject private var reader = NFCTransitReader()
     @StateObject private var cardStore = CardWalletStore()
 
+    @State private var selectedTab = 0
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             ScanHomeView(reader: reader, cardStore: cardStore)
-                .tabItem { Label("Scan", systemImage: "dot.radiowaves.left.and.right") }
+                .tabItem {
+                    Label("Scan", systemImage: "sensor.tag.radiowaves.forward.fill")
+                }
+                .tag(0)
+            
             CardsView(store: cardStore, reader: reader)
-                .tabItem { Label("Cards", systemImage: "wallet.bifold") }
+                .tabItem {
+                    Label("Cards", systemImage: "wallet.bifold.fill")
+                }
+                .tag(1)
+            
             SettingsView(store: cardStore)
-                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape.fill")
+                }
+                .tag(2)
         }
         .tint(Color.accentColor)
         .onChange(of: reader.latestSnapshot?.id) { _ in
@@ -154,11 +167,19 @@ struct CardsView: View {
         NavigationStack {
             Group {
                 if store.cards.isEmpty {
-                    ContentUnavailableView(
-                        "No Cards Yet",
-                        systemImage: "wallet.bifold",
-                        description: Text("Scan a physical card once and it will appear here.")
-                    )
+                    VStack(spacing: 20) {
+                        Image(systemName: "wallet.bifold")
+                            .font(.system(size: 80))
+                            .foregroundStyle(.secondary)
+                        Text("No Cards Yet")
+                            .font(.title.bold())
+                        Text("Scan a physical card once and it will appear here.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     GeometryReader { proxy in
                         let cardWidth = max(proxy.size.width - 40, 1)
@@ -190,9 +211,9 @@ struct CardsView: View {
                             .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
                             .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
                             .padding(.bottom, proxy.safeAreaInsets.bottom + 120)
+                            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
                         }
                     }
-                    .background(Color(uiColor: .systemGroupedBackground))
                 }
             }
             .navigationTitle("Cards")
@@ -429,17 +450,21 @@ struct ScanToolbarItem: ToolbarContent {
     
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }
-                Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
-                Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }
+            Button {
+                reader.startScanning()
             } label: {
                 Image(systemName: "sensor.tag.radiowaves.forward.fill")
                     .imageScale(.large)
-            } primaryAction: {
-                reader.startScanning()
+                    .foregroundStyle(.primary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .disabled(reader.isScanning)
+            .contextMenu {
+                Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }
+                Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
+                Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }
+            }
         }
     }
 }

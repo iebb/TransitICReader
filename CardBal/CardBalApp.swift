@@ -5,11 +5,7 @@ import UIKit
 struct CardBalApp: App {
     init() {
         let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithTransparentBackground()
-        tabBarAppearance.shadowColor = .clear
-
-        UITabBar.appearance().standardAppearance = tabBarAppearance
-        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        tabBarAppearance.configureWithDefaultBackground()
 
         UserDefaults.standard.register(defaults: [
             "scanOnLaunch": true,
@@ -20,6 +16,7 @@ struct CardBalApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(.primary)
         }
     }
 }

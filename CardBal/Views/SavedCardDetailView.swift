@@ -43,8 +43,8 @@ struct SavedCardDetailView: View {
             .sheet(isPresented: $isShowingSavedFacePicker) {
                 savedFacePickerSheet(card: card)
             }
-            .onChange(of: selectedPhotoItem) {
-                handlePhotoSelection(selectedPhotoItem)
+            .onChange(of: selectedPhotoItem) { newValue in
+                handlePhotoSelection(newValue)
             }
             .fullScreenCover(isPresented: $isShowingCamera) {
                 ImagePicker { image in
@@ -136,8 +136,7 @@ struct SavedCardDetailView: View {
             Text("Image").tag(AppearanceMode.image) 
         }
         .pickerStyle(.segmented)
-        .onChange(of: appearanceMode) {
-            let mode = appearanceMode
+        .onChange(of: appearanceMode) { mode in
             store.setIsUsingImage(mode == .image, for: card.id)
         }
 

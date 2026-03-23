@@ -7,7 +7,15 @@ struct CardFaceLibraryView: View {
         List {
             let assets = store.faceAssets()
             if assets.isEmpty {
-                ContentUnavailableView("No Face Assets", systemImage: "photo.on.rectangle")
+                VStack(spacing: 20) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 64))
+                        .foregroundStyle(.secondary)
+                    Text("No Face Assets")
+                        .font(.title2.bold())
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(assets) { asset in
                     HStack {
@@ -63,11 +71,19 @@ struct SavedFaceAssetPickerSheet: View {
         NavigationStack {
             Group {
                 if assets.isEmpty {
-                    ContentUnavailableView(
-                        "No Saved Images",
-                        systemImage: "photo.on.rectangle.angled",
-                        description: Text("Add a card image first, then you can reuse it here.")
-                    )
+                    VStack(spacing: 20) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 64))
+                            .foregroundStyle(.secondary)
+                        Text("No Saved Images")
+                            .font(.title2.bold())
+                        Text("Add a card image first, then you can reuse it here.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 12) {
