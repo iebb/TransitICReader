@@ -96,6 +96,15 @@ struct ScanHomeView: View {
                     }
                 }
 
+                if let snapshot = reader.latestSnapshot, !snapshot.transactions.isEmpty {
+                    Section("Recent Transactions") {
+                        ForEach(snapshot.transactions) { tx in
+                            TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
+                                .padding(.vertical, 4)
+                        }
+                    }
+                }
+
                 if let snapshot = reader.latestSnapshot, !snapshot.rawSections.isEmpty {
                     Section("Raw Data") {
                         RawDataSectionList(snapshot: snapshot)
@@ -442,6 +451,10 @@ private struct RawDataSectionList: View {
                 .padding(.top, 6)
             }
         }
+    }
+
+    static func systemCodeRow(_ codes: [String]) -> RawDataField {
+        RawDataField(title: "System Codes", value: codes.joined(separator: ", "))
     }
 }
 

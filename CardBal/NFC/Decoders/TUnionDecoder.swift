@@ -157,59 +157,8 @@ struct TUnionDecoder: TransitCardDecoder {
             }
         }
         
-        // Deep Scan: T-Union cards vary by region. Exhaustively probe SFIs if not found in FCI.
-        if realSN == nil {
-            for sfi in UInt8(1)...UInt8(31) {
-                if realSN != nil { break }
-                
-                // Try READ RECORD (Linear Fixed Files)
-                for recNo in UInt8(1)...UInt8(3) {
-                    let p2 = (sfi << 3) | 0x04
-                    let probeApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recNo, p2Parameter: p2, data: Data(), expectedResponseLength: 256)
-                    
-                    if let response = try? await iso.sendCommand(apdu: probeApdu) {
-                        if response.1 == 0x90 {
-                            let info = response.0
-                            print("[TUnion] Probed SFI \(String(format: "%02X", sfi)) Rec \(recNo): \(info.hexString)")
-                            if let extracted = extractCAN(from: info) {
-                                if realSN == nil {
-                                    realSN = extracted
-                                    brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
-                                    resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
-                                    resultFields.append(ResultField(title: "Brand", value: brandRegion))
-                                    if let type = cardTypeStr { resultFields.append(ResultField(title: "Card Type", value: type)) }
-                                    if let city = issuingCity { resultFields.append(ResultField(title: "Issuing City", value: city)) }
-                                    if let issue = issueDateStr { resultFields.append(ResultField(title: "Issue Date", value: issue)) }
-                                    if let expiry = expiryDateStr { resultFields.append(ResultField(title: "Expiry Date", value: expiry)) }
-                                    rawSections.append(RawDataSection(title: "Found in SFI \(String(format: "%02X", sfi))", fields: [
-                                        RawDataField(title: "Source", value: "Read Record \(recNo)"),
-                                        RawDataField(title: "Payload", value: info.hexString)
-                                    ]))
-                                }
-                            }
-                        } else if response.1 == 0x69 && response.2 == 0x81 {
-                            let readBinary = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 64)
-                            if let binResp = try? await iso.sendCommand(apdu: readBinary), binResp.1 == 0x90 {
-                                let info = binResp.0
-                                print("[TUnion] Probed SFI \(String(format: "%02X", sfi)) Binary: \(info.hexString)")
-                                if let extracted = extractCAN(from: info) {
-                                    if realSN == nil {
-                                        realSN = extracted
-                                        brandRegion = TUnionCityDatabase.lookupCardName(for: extracted) ?? "T-Union Cities"
-                                        resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(extracted)))
-                                        resultFields.append(ResultField(title: "Brand", value: brandRegion))
-                                        if let type = cardTypeStr { resultFields.append(ResultField(title: "Card Type", value: type)) }
-                                        if let city = issuingCity { resultFields.append(ResultField(title: "Issuing City", value: city)) }
-                                        if let issue = issueDateStr { resultFields.append(ResultField(title: "Issue Date", value: issue)) }
-                                        if let expiry = expiryDateStr { resultFields.append(ResultField(title: "Expiry Date", value: expiry)) }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // Transaction History: SFI 0x18 is the standard for T-Union/PBOC
+        let transactions = await readTUnionTransactions(iso: iso)
         
         return TransitCardSnapshot(
             technology: "ISO7816",
@@ -226,8 +175,47 @@ struct TUnionDecoder: TransitCardDecoder {
             region: brandRegion,
             resultFields: resultFields,
             rawSections: rawSections + parsedBalance.rawSections,
+            transactions: transactions,
             scannedAt: scannedAt
         )
+    }
+
+    private static func readTUnionTransactions(iso: NFCISO7816Tag) async -> [TransitTransaction] {
+        var txs: [TransitTransaction] = []
+        let sfi: UInt8 = 0x18
+        let p2 = (sfi << 3) | 0x04
+        
+        for recNo in UInt8(1)...UInt8(10) {
+            let apdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recNo, p2Parameter: p2, data: Data(), expectedResponseLength: 0)
+            guard let resp = try? await iso.sendCommand(apdu: apdu), resp.1 == 0x90 else { break }
+            let data = resp.0
+            guard data.count >= 23 else { continue }
+            
+            // PBOC Transaction Record (standard 23 bytes)
+            // 0-1: Counter, 2-4: Overdraft, 5-8: Amount, 9: Type, 10-15: Terminal, 16-19: Date (BCD), 20-22: Time (BCD)
+            let amountVal = Int32(bigEndian: data.subdata(in: 5..<9).withUnsafeBytes { $0.load(as: Int32.self) })
+            let typeByte = data[9]
+            let dateBCD = data.subdata(in: 16..<20).hexString
+            let timeBCD = data.subdata(in: 20..<23).hexString
+            
+            let typeStr = (typeByte == 0x01 || typeByte == 0x05) ? "Top-up" : "Consumption"
+            let amount = Decimal(amountVal) / 100
+            
+            let dateStr = dateBCD + timeBCD
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyyMMddHHmmss"
+            let date = fmt.date(from: dateStr)
+            
+            txs.append(TransitTransaction(
+                date: date,
+                amount: amount,
+                terminalID: data.subdata(in: 10..<16).hexString.uppercased(),
+                type: typeStr,
+                balanceAfter: nil,
+                location: nil
+            ))
+        }
+        return txs
     }
 
     private static func findTUnionTag(_ tag: [UInt8], in data: Data) -> Data? {

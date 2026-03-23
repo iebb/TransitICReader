@@ -71,6 +71,7 @@ struct CalypsoDecoder: TransitCardDecoder {
             region: "Nice, France",
             resultFields: resultFields,
             rawSections: rawSections,
+            transactions: [],
             scannedAt: scannedAt
         )
     }

@@ -131,6 +131,11 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var realSerialNumber: String?
     var region: String?
     var enhancedFeliCaDecoded: Bool?
+    var issuingCity: String?
+    var cardTypeStr: String?
+    var issueDateStr: String?
+    var expiryDateStr: String?
+    var transactions: [TransitTransaction]
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
@@ -275,6 +280,11 @@ extension SavedCardRecord {
         self.realSerialNumber = snapshot.realSerialNumber
         self.region = snapshot.region
         self.enhancedFeliCaDecoded = false
+        self.issuingCity = snapshot.resultFields.first(where: {$0.title == "Issuing City"})?.value
+        self.cardTypeStr = snapshot.resultFields.first(where: {$0.title == "Card Type"})?.value
+        self.issueDateStr = snapshot.resultFields.first(where: {$0.title == "Issue Date"})?.value
+        self.expiryDateStr = snapshot.resultFields.first(where: {$0.title == "Expiry Date"})?.value
+        self.transactions = snapshot.transactions
         self.resultFields = snapshot.resultFields.map(SavedCardField.init)
         self.scannedAt = snapshot.scannedAt
         self.color = SavedCardColor(red: 0.19, green: 0.38, blue: 0.73) // Default blue

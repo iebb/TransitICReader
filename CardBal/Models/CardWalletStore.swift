@@ -84,42 +84,13 @@ class CardWalletStore: ObservableObject {
             cards[index].selectedAID = snapshot.selectedAID
             cards[index].realSerialNumber = snapshot.realSerialNumber
             cards[index].enhancedFeliCaDecoded = false
+            cards[index].transactions = snapshot.transactions
+            cards[index].issuingCity = snapshot.resultFields.first(where: { $0.title == "Issuing City" })?.value
+            cards[index].cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
+            cards[index].issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
+            cards[index].expiryDateStr = snapshot.resultFields.first(where: { $0.title == "Expiry Date" })?.value
         } else {
-            let record = SavedCardRecord(
-                id: id,
-                cardFamily: cardFamily,
-                markerSymbolName: nil,
-                markerColor: .white,
-                markerOuterColor: .black,
-                markerShape: .circle,
-                customTitle: nil,
-                customDisplaySerialNumber: nil,
-                isUsingImage: false,
-                hideTitleOnImage: false,
-                hideSerialNumber: false,
-                imageFaceEnhancer: .mask,
-                autoImageTextColors: true,
-                autoTitleTextColor: nil,
-                autoBalanceTextColor: nil,
-                titleTextColorOverride: nil,
-                balanceTextColorOverride: nil,
-                technology: snapshot.technology,
-                identifierLabel: snapshot.identifierLabel,
-                rawIdentifierValue: snapshot.rawIdentifierValue,
-                identifierValue: snapshot.identifierValue,
-                pmm: snapshot.pmm,
-                selectedAID: snapshot.selectedAID,
-                systemCode: snapshot.systemCode,
-                balanceText: snapshot.balanceText,
-                balanceDetail: snapshot.balanceDetail,
-                realSerialNumber: nil,
-                enhancedFeliCaDecoded: false,
-                resultFields: fields,
-                scannedAt: snapshot.scannedAt,
-                color: defaultColor(for: cardFamily),
-                design: .classic,
-                faceImageFileName: nil
-            )
+            let record = SavedCardRecord(snapshot: snapshot)
             cards.insert(record, at: 0)
         }
         save()

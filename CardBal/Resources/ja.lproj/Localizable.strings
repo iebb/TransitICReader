@@ -1,0 +1,70 @@
+/* Japanese Localizations */
+
+"suica_terminal_3" = "精算機";
+"suica_terminal_4" = "携帯型端末";
+"suica_terminal_5" = "車載端末";
+"suica_terminal_7" = "券売機";
+"suica_terminal_8" = "券売機";
+"suica_terminal_9" = "入金機";
+"suica_terminal_18" = "券売機";
+"suica_terminal_20" = "券売機等";
+"suica_terminal_21" = "券売機等";
+"suica_terminal_22" = "改札機";
+"suica_terminal_23" = "簡易改札機";
+"suica_terminal_24" = "窓口端末";
+"suica_terminal_25" = "窓口端末";
+"suica_terminal_26" = "改札端末";
+"suica_terminal_27" = "携帯電話";
+"suica_terminal_28" = "乗継精算機";
+"suica_terminal_29" = "連絡改札機";
+"suica_terminal_31" = "簡易入金機";
+"suica_terminal_70" = "VIEW ALTTE";
+"suica_terminal_72" = "VIEW ALTTE";
+"suica_terminal_199" = "物販端末";
+"suica_terminal_200" = "自販機";
+
+"suica_process_1" = "改札出場";
+"suica_process_2" = "チャージ";
+"suica_process_3" = "磁気券購入";
+"suica_process_4" = "精算";
+"suica_process_5" = "入場精算";
+"suica_process_6" = "改札窓口処理";
+"suica_process_7" = "新規発行";
+"suica_process_8" = "窓口控除";
+"suica_process_13" = "バス";
+"suica_process_15" = "バス";
+"suica_process_17" = "再発行処理";
+"suica_process_19" = "支払(新幹線利用)";
+"suica_process_20" = "入場時オートチャージ";
+"suica_process_21" = "出場時オートチャージ";
+"suica_process_31" = "バスチャージ";
+"suica_process_35" = "バス路面電車企画券購入";
+"suica_process_70" = "物販";
+"suica_process_72" = "特典チャージ";
+"suica_process_73" = "レジ入金";
+"suica_process_74" = "物販取消";
+"suica_process_75" = "入場物販";
+"suica_process_132" = "他社精算";
+"suica_process_133" = "他社入場精算";
+"suica_process_198" = "現金併用物販";
+"suica_process_203" = "入場現金併用物販";
+
+"top_up" = "チャージ";
+"consumption" = "利用";
+
+"pay_00" = "現金 / なし";
+"pay_02" = "VIEW";
+"pay_0B" = "PiTaPa";
+"pay_0D" = "オートチャージ対応PASMO";
+"pay_3F" = "モバイルSuica(VIEW決済以外)";
+
+"io_00" = "該当なし";
+"io_01" = "入場";
+"io_02" = "入場/出場";
+"io_03" = "定期入場/出場";
+"io_04" = "入場/定期出場";
+"io_0E" = "窓口出場";
+"io_0F" = "入場/出場(バス等)";
+"io_12" = "料金定期入場/出場";
+"io_17" = "入場/出場(乗継割引)";
+"io_21" = "入場/出場(バス等乗継割引)";

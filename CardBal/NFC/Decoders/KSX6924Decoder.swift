@@ -67,6 +67,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             region: nil,
             resultFields: parsedCardInfo.resultFields,
             rawSections: rawSections,
+            transactions: [],
             scannedAt: scannedAt
         )
     }

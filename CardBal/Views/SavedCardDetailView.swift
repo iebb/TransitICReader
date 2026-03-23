@@ -63,8 +63,18 @@ struct SavedCardDetailView: View {
                 .background(Color(uiColor: .systemGroupedBackground))
 
             List {
-                Section("Title") {
+                Section("Settings") {
                     titleSection(card: card)
+                }
+
+                Section("Card Information") {
+                    cardInfoSection(card: card)
+                }
+
+                if !card.transactions.isEmpty {
+                    Section("Recent Transactions") {
+                        transactionsSection(card: card)
+                    }
                 }
 
                 Section("Appearance") {
@@ -130,6 +140,41 @@ struct SavedCardDetailView: View {
     }
 
     @ViewBuilder
+    private func cardInfoSection(card: SavedCardRecord) -> some View {
+        KeyValueRow(title: "Technology", value: card.technology)
+        if let city = card.issuingCity { KeyValueRow(title: "Issuing City", value: city) }
+        if let type = card.cardTypeStr { KeyValueRow(title: "Card Type", value: type) }
+        if let issue = card.issueDateStr { KeyValueRow(title: "Issue Date", value: issue) }
+        if let expiry = card.expiryDateStr { KeyValueRow(title: "Expiry Date", value: expiry) }
+        
+        if card.technology == "FeliCa", let sc = card.systemCode {
+            KeyValueRow(title: "System Code", value: sc)
+        }
+        
+        if !card.resultFields.isEmpty {
+             DisclosureGroup("All Decoded Metadata") {
+                 VStack(alignment: .leading, spacing: 10) {
+                     ForEach(card.resultFields) { field in
+                         HStack {
+                             Text(field.title).font(.caption).foregroundStyle(.secondary)
+                             Spacer()
+                             Text(field.value).font(.caption).foregroundStyle(.primary)
+                         }
+                     }
+                 }.padding(.vertical, 4)
+             }
+        }
+    }
+
+    @ViewBuilder
+    private func transactionsSection(card: SavedCardRecord) -> some View {
+        ForEach(card.transactions) { tx in
+            TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                .padding(.vertical, 4)
+        }
+    }
+
+    @ViewBuilder
     private func appearanceSection(card: SavedCardRecord) -> some View {
         Picker("Design Type", selection: $appearanceMode) { 
             Text("Colors").tag(AppearanceMode.colors)
@@ -184,8 +229,7 @@ struct SavedCardDetailView: View {
     private func snBinding(card: SavedCardRecord) -> Binding<String> {
         Binding(
             get: {
-                let raw = draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue
-                return card.technology == "FeliCa" ? SavedCardRecord.formattedFeliCaSerial(raw, cardFamily: card.cardFamily) : raw
+                draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue
             },
             set: { v in 
                 draftSerialNumber = v

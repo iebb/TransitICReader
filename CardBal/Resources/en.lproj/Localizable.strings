@@ -1,0 +1,70 @@
+/* English Localizations */
+
+"suica_terminal_3" = "Fare Adjustment Machine";
+"suica_terminal_4" = "Portable Terminal";
+"suica_terminal_5" = "On-board Terminal";
+"suica_terminal_7" = "Vending Machine";
+"suica_terminal_8" = "Vending Machine";
+"suica_terminal_9" = "Deposit Machine";
+"suica_terminal_18" = "Vending Machine";
+"suica_terminal_20" = "Vending Machine etc.";
+"suica_terminal_21" = "Vending Machine etc.";
+"suica_terminal_22" = "Ticket Gate";
+"suica_terminal_23" = "Simplified Ticket Gate";
+"suica_terminal_24" = "Counter Terminal";
+"suica_terminal_25" = "Counter Terminal";
+"suica_terminal_26" = "Gate Terminal";
+"suica_terminal_27" = "Mobile Phone";
+"suica_terminal_28" = "Transfer Adjustment Machine";
+"suica_terminal_29" = "Interconnecting Gate";
+"suica_terminal_31" = "Simplified Deposit Machine";
+"suica_terminal_70" = "VIEW ALTTE";
+"suica_terminal_72" = "VIEW ALTTE";
+"suica_terminal_199" = "Sales Terminal";
+"suica_terminal_200" = "Vending Machine";
+
+"suica_process_1" = "Fare Payment";
+"suica_process_2" = "Top-up / Charge";
+"suica_process_3" = "Magnetic Ticket Purchase";
+"suica_process_4" = "Fare Adjustment";
+"suica_process_5" = "Entry Fare Adjustment";
+"suica_process_6" = "Window Processing";
+"suica_process_7" = "New Card Issuance";
+"suica_process_8" = "Window Deduction";
+"suica_process_13" = "Bus";
+"suica_process_15" = "Bus";
+"suica_process_17" = "Card Re-issuance";
+"suica_process_19" = "Shinkansen Payment";
+"suica_process_20" = "Auto-charge (Entry Gate)";
+"suica_process_21" = "Auto-charge (Exit Gate)";
+"suica_process_31" = "Bus Charge";
+"suica_process_35" = "Bus/Tram Special Ticket";
+"suica_process_70" = "Goods Purchase";
+"suica_process_72" = "Reward/Points Redemption";
+"suica_process_73" = "Cash Deposit (POS)";
+"suica_process_74" = "Transaction Cancellation";
+"suica_process_75" = "Station Goods Purchase";
+"suica_process_132" = "Other Co. Adjustment";
+"suica_process_133" = "Other Co. Entry Adjustment";
+"suica_process_198" = "Purchase (Cash Combined)";
+"suica_process_203" = "Purchase (Cash Combined - Inside Gate)";
+
+"top_up" = "Top-up";
+"consumption" = "Consumption";
+
+"pay_00" = "Cash / None";
+"pay_02" = "VIEW";
+"pay_0B" = "PiTaPa";
+"pay_0D" = "Auto-charge PASMO";
+"pay_3F" = "Mobile Suica (non-VIEW)";
+
+"io_00" = "Not Applicable";
+"io_01" = "Entry";
+"io_02" = "Entry/Exit";
+"io_03" = "Season Entry/Exit";
+"io_04" = "Entry/Season Exit";
+"io_0E" = "Window Exit";
+"io_0F" = "Entry/Exit (Bus etc.)";
+"io_12" = "Fare Season Entry/Exit";
+"io_17" = "Entry/Exit (Transfer Discount)";
+"io_21" = "Entry/Exit (Bus Transfer Discount)";

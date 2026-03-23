@@ -1,0 +1,70 @@
+/* Simplified Chinese Localizations */
+
+"suica_terminal_3" = "精算机";
+"suica_terminal_4" = "便携终端";
+"suica_terminal_5" = "车载终端";
+"suica_terminal_7" = "售票机";
+"suica_terminal_8" = "售票机";
+"suica_terminal_9" = "存款机";
+"suica_terminal_18" = "售票机";
+"suica_terminal_20" = "售票机等";
+"suica_terminal_21" = "售票机等";
+"suica_terminal_22" = "进站闸机";
+"suica_terminal_23" = "简易闸机";
+"suica_terminal_24" = "窗口终端";
+"suica_terminal_25" = "窗口终端";
+"suica_terminal_26" = "闸机终端";
+"suica_terminal_27" = "手机";
+"suica_terminal_28" = "换乘精算机";
+"suica_terminal_29" = "联络闸机";
+"suica_terminal_31" = "简易存款机";
+"suica_terminal_70" = "VIEW ALTTE";
+"suica_terminal_72" = "VIEW ALTTE";
+"suica_terminal_199" = "物贩终端";
+"suica_terminal_200" = "自动贩卖机";
+
+"suica_process_1" = "出站结算";
+"suica_process_2" = "充值 / 入金";
+"suica_process_3" = "购买磁卡票";
+"suica_process_4" = "补票结算";
+"suica_process_5" = "进站补票结算";
+"suica_process_6" = "票务窗口处理";
+"suica_process_7" = "新卡发行";
+"suica_process_8" = "窗口扣款";
+"suica_process_13" = "巴士";
+"suica_process_15" = "巴士";
+"suica_process_17" = "补卡处理";
+"suica_process_19" = "新干线支付";
+"suica_process_20" = "进站自动充值";
+"suica_process_21" = "出站自动充值";
+"suica_process_31" = "巴士充值";
+"suica_process_35" = "巴士路面电车企画券";
+"suica_process_70" = "商品支付";
+"suica_process_72" = "奖励/积分兑换";
+"suica_process_73" = "收银台充值";
+"suica_process_74" = "支付取消";
+"suica_process_75" = "站内商品支付";
+"suica_process_132" = "跨公司结算";
+"suica_process_133" = "跨公司进站结算";
+"suica_process_198" = "现金合并支付";
+"suica_process_203" = "站内现金合并支付";
+
+"top_up" = "充值";
+"consumption" = "消费";
+
+"pay_00" = "现金 / 无";
+"pay_02" = "VIEW";
+"pay_0B" = "PiTaPa";
+"pay_0D" = "自动充值 PASMO";
+"pay_3F" = "移动 Suica (非 VIEW)";
+
+"io_00" = "不适用";
+"io_01" = "进站";
+"io_02" = "进站/出站";
+"io_03" = "定期进站/出站";
+"io_04" = "进站/定期出站";
+"io_0E" = "窗口出站";
+"io_0F" = "进站/出站(巴士等)";
+"io_12" = "票价定期进站/出站";
+"io_17" = "进站/出站(换乘优惠)";
+"io_21" = "进站/出站(巴士换乘优惠)";

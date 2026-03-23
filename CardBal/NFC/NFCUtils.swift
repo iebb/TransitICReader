@@ -17,16 +17,48 @@ struct RawDataSection: Identifiable, Hashable {
     let fields: [RawDataField]
 }
 
-struct RawDataField: Identifiable, Hashable {
-    let id = UUID()
+struct RawDataField: Identifiable, Codable, Hashable, Equatable {
+    var id: String { title + value }
     let title: String
     let value: String
+    
+    static func systemCodeRow(_ codes: [String]) -> RawDataField {
+        RawDataField(title: "System Codes", value: codes.joined(separator: ", "))
+    }
 }
 
 struct ParsedBalance: Hashable {
     let formatted: String
     let detail: String
     let rawFields: [RawDataField]
+}
+
+struct TransitTransaction: Identifiable, Hashable, Codable {
+    let id: UUID
+    let date: Date?
+    let time: String?
+    let amount: Decimal
+    let terminalID: String?
+    let type: String
+    let balanceAfter: Decimal?
+    let location: String?
+    let entryStation: String?
+    let exitStation: String?
+    let rawData: String?
+    
+    init(date: Date?, time: String? = nil, amount: Decimal, terminalID: String?, type: String, balanceAfter: Decimal? = nil, location: String? = nil, entryStation: String? = nil, exitStation: String? = nil, rawData: String? = nil) {
+        self.id = UUID()
+        self.date = date
+        self.time = time
+        self.amount = amount
+        self.terminalID = terminalID
+        self.type = type
+        self.balanceAfter = balanceAfter
+        self.location = location
+        self.entryStation = entryStation
+        self.exitStation = exitStation
+        self.rawData = rawData
+    }
 }
 
 struct TransitCardSnapshot: Identifiable {
@@ -45,6 +77,7 @@ struct TransitCardSnapshot: Identifiable {
     let region: String?
     let resultFields: [ResultField]
     let rawSections: [RawDataSection]
+    let transactions: [TransitTransaction]
     let scannedAt: Date
 }
 
@@ -79,218 +112,293 @@ enum NFCISO7816AccessPolicy {
     }
 }
 
-// MARK: - NFCTransitReader
-
-@MainActor
-final class NFCTransitReader: NSObject, ObservableObject {
-    private let logger = Logger(subsystem: "ad.neko.cardbal", category: "NFC")
-
-    @Published private(set) var latestSnapshot: TransitCardSnapshot?
-    @Published private(set) var statusMessage = "Ready to scan."
-    @Published private(set) var isScanning = false
-
-    private var latestStatusKind: StatusKind = .idle
-    private var session: NFCTagReaderSession?
-
-    private let decoders: [TransitCardDecoder.Type] = [
-        TUnionDecoder.self,
-        KSX6924Decoder.self,
-        EdyDecoder.self,
-        WAONDecoder.self,
-        NanacoDecoder.self,
-        JapaneseICDecoder.self,
-        CalypsoDecoder.self
-    ]
-
-    var isNFCAvailable: Bool {
-        NFCTagReaderSession.readingAvailable
-    }
-
-    var statusSymbol: String {
-        switch latestStatusKind {
-        case .idle: return "dot.radiowaves.left.and.right"
-        case .success: return "checkmark.circle.fill"
-        case .error: return "exclamationmark.triangle.fill"
-        }
-    }
-
-    var statusColor: Color {
-        switch latestStatusKind {
-        case .idle: return .secondary
-        case .success: return .green
-        case .error: return .orange
-        }
-    }
-
-    func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
-        beginScanning(options: options)
-    }
-
-    func beginScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
-        guard isNFCAvailable else {
-            updateStatus("NFC reading is not available.", kind: .error)
-            return
-        }
-
-        guard let session = NFCTagReaderSession(pollingOption: options, delegate: self, queue: nil) else {
-            updateStatus("Unable to start session.", kind: .error)
-            return
-        }
-
-        session.alertMessage = "Hold your iPhone near a transit card."
-        self.session = session
-        isScanning = true
-        updateStatus("Scanning...", kind: .idle)
-        session.begin()
-    }
-
-    private func updateStatus(_ message: String, kind: StatusKind) {
-        statusMessage = message
-        latestStatusKind = kind
-        logger.log("Status: \(message)")
-    }
-
-    private func finish(with snapshot: TransitCardSnapshot, session: NFCTagReaderSession) {
-        latestSnapshot = snapshot
-        updateStatus("Read successful: \(snapshot.cardFamily)", kind: .success)
-        session.invalidate()
-        isScanning = false
-    }
-
-    private func fail(_ message: String, session: NFCTagReaderSession) {
-        updateStatus(message, kind: .error)
-        session.invalidate(errorMessage: message)
-        isScanning = false
-    }
-
-    private func mergeDualModeSnapshots(feliCa: TransitCardSnapshot, iso7816: TransitCardSnapshot) -> TransitCardSnapshot {
-        var mergedResults = feliCa.resultFields
-        mergedResults.append(contentsOf: iso7816.resultFields)
-        
-        var mergedRaw = feliCa.rawSections
-        mergedRaw.append(contentsOf: iso7816.rawSections)
-        
-        let dualBalance = "\(feliCa.balanceText ?? "No balance") / \(iso7816.balanceText ?? "No balance")"
-        let dualDetail = "FeliCa: \(feliCa.balanceDetail ?? "")\n\nISO7816: \(iso7816.balanceDetail ?? "")"
-        
-        return TransitCardSnapshot(
-            technology: "Dual Mode",
-            cardFamily: "\(feliCa.cardFamily) + \(iso7816.cardFamily)",
-            identifierLabel: "Dual Mode UID",
-            identifierValue: feliCa.identifierValue,
-            rawIdentifierValue: feliCa.rawIdentifierValue,
-            pmm: feliCa.pmm,
-            systemCode: feliCa.systemCode,
-            selectedAID: iso7816.selectedAID,
-            balanceText: dualBalance,
-            balanceDetail: dualDetail,
-            realSerialNumber: feliCa.realSerialNumber ?? iso7816.realSerialNumber,
-            region: feliCa.region ?? iso7816.region,
-            resultFields: mergedResults,
-            rawSections: mergedRaw,
-            scannedAt: feliCa.scannedAt
-        )
-    }
-}
-
-// MARK: - Delegate
-
-extension NFCTransitReader: NFCTagReaderSessionDelegate {
-    nonisolated func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-        logger.log("NFC session active.")
-    }
-
-    nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        Task { @MainActor in
-            self.isScanning = false
-            let nsError = error as NSError
-            if nsError.code != 200 {
-                self.updateStatus("Session invalidated: \(error.localizedDescription)", kind: .error)
-            } else {
-                self.updateStatus("Ready to scan.", kind: .idle)
-            }
-        }
-    }
-
-    nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
-        Task {
-            var feliCaSnapshot: TransitCardSnapshot?
-            var iso7816Snapshot: TransitCardSnapshot?
-            let scannedAt = Date()
-            
-            logger.debug("Detected \(tags.count) tags.")
-            for tag in tags {
-                do {
-                    try await session.connect(to: tag)
-                    
-                    for decoder in decoders {
-                        if await decoder.canDecode(tag: tag) {
-                            do {
-                                let snapshot = try await decoder.decode(tag: tag, scannedAt: scannedAt)
-                                if snapshot.technology == "FeliCa" {
-                                    feliCaSnapshot = snapshot
-                                } else {
-                                    iso7816Snapshot = snapshot
-                                }
-                                break // Found a successful decoder for this tag
-                            } catch NFCTestError.unsupportedCard {
-                                // This decoder couldn't actually handle it, try the next one
-                                continue
-                            } catch {
-                                logger.error("Fatal error in decoder \(decoder): \(error.localizedDescription)")
-                                throw error
-                            }
-                        }
-                    }
-                } catch {
-                    logger.error("Failed to decode tag: \(error.localizedDescription)")
-                }
-            }
-
-            await MainActor.run {
-                let finalSnapshot: TransitCardSnapshot?
-                if let feliCa = feliCaSnapshot, let iso7816 = iso7816Snapshot {
-                    finalSnapshot = self.mergeDualModeSnapshots(feliCa: feliCa, iso7816: iso7816)
-                } else {
-                    finalSnapshot = feliCaSnapshot ?? iso7816Snapshot
-                }
-
-                if let finalSnapshot {
-                    self.finish(with: finalSnapshot, session: session)
-                } else {
-                    self.fail("Could not read any supported transit card data.", session: session)
-                }
-            }
-        }
-    }
-}
+// NFCTransitReader moved to NFC/NFCTransitReader.swift
 
 // MARK: - Helpers & Extensions
 
-func formatCurrency(amount: Decimal, code: String, fractionDigits: Int = 2) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .currency
-    formatter.currencyCode = code
-    formatter.minimumFractionDigits = fractionDigits
-    formatter.maximumFractionDigits = fractionDigits
-    return formatter.string(from: amount as NSDecimalNumber) ?? "\(amount) \(code)"
+// Helpers moved to end of file
+
+struct TransitTransactionRow: View {
+    let tx: TransitTransaction
+    let cardFamily: String?
+    @State private var showingDetails = false
+    
+    var body: some View {
+        Button {
+            showingDetails = true
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: iconMapping.name)
+                    .font(.title2)
+                    .frame(width: 30)
+                    .foregroundStyle(iconMapping.color)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(tx.type)
+                        .font(.headline)
+                    HStack(spacing: 4) {
+                        if let date = tx.date {
+                            Text(date, style: .date).font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text("Unknown Date").font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let loc = tx.location {
+                             Text("•").font(.caption).foregroundStyle(.tertiary)
+                             Text(loc).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if let term = tx.terminalID, term != tx.type {
+                        Text(term).font(.system(size: 11)).foregroundStyle(.tertiary)
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    if tx.amount != 0 {
+                        Text((tx.type.lowercased().contains("top-up") || tx.type.lowercased().contains("charge") ? "+" : "-") + 
+                             formatCurrency(amount: tx.amount, code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                            .font(.headline.monospacedDigit().bold())
+                    }
+                    
+                    if let bal = tx.balanceAfter {
+                        Text(formatCurrency(amount: bal, code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingDetails) {
+            TransactionDetailView(tx: tx, cardFamily: cardFamily)
+        }
+    }
+    
+    private var iconMapping: (name: String, color: Color) {
+        let low = tx.type.lowercased()
+        if low.contains("top-up") || low.contains("charge") || low.contains("入金") { 
+            return ("arrow.down.left.circle.fill", .green) 
+        }
+        if low.contains("goods") || low.contains("物販") || low.contains("purchase") { 
+            return ("cart.fill", .orange) 
+        }
+        if low.contains("bus") || low.contains("バス") { 
+            return ("bus.fill", .cyan) 
+        }
+        if low.contains("fare") || low.contains("journey") || low.contains("gate") || low.contains("運賃") || tx.entryStation != nil { 
+            return ("tram.fill", .blue) 
+        }
+        if low.contains("ticket") || low.contains("purchase") || low.contains("券") { 
+            return ("ticket.fill", .purple) 
+        }
+        if low.contains("issuance") || low.contains("発行") { 
+            return ("plus.app.fill", .indigo) 
+        }
+        if low.contains("adjustment") || low.contains("清算") { 
+            return ("hammer.fill", .brown) 
+        }
+        if low.contains("refund") || low.contains("返金") { 
+            return ("arrow.uturn.left.circle.fill", .red) 
+        }
+        return ("creditcard.fill", .accentColor)
+    }
+    
+    private var currencyCode: String {
+        cardFamily == "Octopus" ? "HKD" : (cardFamily?.contains("China") == true ? "CNY" : "JPY")
+    }
 }
 
-func octopusOffset(for date: Date) -> Int {
-    let formatter = ISO8601DateFormatter()
-    let changeDate = formatter.date(from: "2017-10-01T00:00:00+08:00") ?? .distantPast
-    return date >= changeDate ? 500 : 350
+struct TransactionDetailView: View {
+    let tx: TransitTransaction
+    let cardFamily: String?
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Transaction Summary") {
+                    LabeledContent("Process", value: tx.type)
+                    if let term = tx.terminalID {
+                        LabeledContent("Terminal", value: term)
+                    }
+                    if let date = tx.date {
+                        LabeledContent("Date", value: date.formatted(date: .numeric, time: .omitted))
+                    }
+                    if let time = tx.time {
+                        LabeledContent("Time", value: time)
+                    }
+                    if let amount = tx.amount != 0 ? tx.amount : nil {
+                        LabeledContent("Amount", value: formatCurrency(amount: amount, code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                    }
+                    if let balance = tx.balanceAfter {
+                        LabeledContent("Balance After", value: formatCurrency(amount: balance, code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                    }
+                }
+                
+                if tx.entryStation != nil || tx.exitStation != nil {
+                    Section("Journey Details") {
+                        if let entry = tx.entryStation {
+                            LabeledContent(tx.type.lowercased().contains("bus") ? "Operator" : "Entry", value: entry)
+                        }
+                        if let exit = tx.exitStation {
+                            LabeledContent(tx.type.lowercased().contains("bus") ? "Station" : "Exit", value: exit)
+                        }
+                    }
+                } else if let loc = tx.location {
+                    Section("Location / Info") {
+                        Text(loc).font(.headline)
+                    }
+                }
+                
+                if let raw = tx.rawData {
+                    Section("Hex Dump (16 Bytes)") {
+                        Text(raw)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                        
+                        if cardFamily == "Japan Transit IC" {
+                             SuicaRawBreakdownView(raw: raw)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Transaction Detail")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+    
+    private var currencyCode: String {
+        cardFamily == "Octopus" ? "HKD" : (cardFamily?.contains("China") == true ? "CNY" : "JPY")
+    }
 }
 
-func formatFeliCaIDm(_ idm: String) -> String {
-    let clean = idm.uppercased()
-    guard clean.count == 16 else { return clean }
-    return stride(from: 0, to: 16, by: 4).map { index in
-        let start = clean.index(clean.startIndex, offsetBy: index)
-        let end = clean.index(start, offsetBy: 4)
-        return String(clean[start..<end])
-    }.joined(separator: " ")
+struct SuicaRawBreakdownView: View {
+    let raw: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            let data = Data(hexString: raw)
+            if data.count >= 16 {
+                let console = data[0]
+                let process = data[1]
+                let payType = data[2]
+                let ioType = data[3]
+                
+                let regionFull = Int(data[15])
+                let r1 = (regionFull >> 6) & 0x03
+                let r2 = (regionFull >> 4) & 0x03
+                let entryH = (regionFull >> 2) & 0x03
+                let exitH = regionFull & 0x03
+                
+                Group {
+                    DetailRawRow(title: "Terminal", value: japaneseTerminal(console), hex: String(format: "0x%02X", console))
+                    DetailRawRow(title: "Process", value: japaneseProcess(process), hex: String(format: "0x%02X", process))
+                    DetailRawRow(title: "Payment Type", value: paymentType(payType), hex: String(format: "0x%02X", payType))
+                    DetailRawRow(title: "Entry/Exit", value: ioTypeStatus(ioType), hex: String(format: "0x%02X", ioType))
+                }
+                
+                let rawDate = Int(data[4]) << 8 | Int(data[5])
+                let dateStr = String(format: "%02d-%02d-%02d", (rawDate >> 9) & 0x7F, (rawDate >> 5) & 0x0F, rawDate & 0x1F)
+                DetailRawRow(title: "Processing Date", value: "20\(dateStr)", hex: data.subdata(in: 4..<6).hexString)
+                
+                if console == 199 || console == 200 || process == 70 || process == 198 || process == 203 {
+                    let timeData = Int(data[6]) << 8 | Int(data[7])
+                    let hour = (timeData >> 11) & 0x1F
+                    let minute = (timeData >> 5) & 0x3F
+                    let second = (timeData & 0x1F) * 2
+                    let timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
+                    DetailRawRow(title: "Processing Time", value: timeStr, hex: data.subdata(in: 6..<8).hexString)
+                    
+                    let shopTerm = data.subdata(in: 8..<10).hexString.uppercased()
+                    DetailRawRow(title: "Vending Terminal ID", value: shopTerm, hex: "")
+                } else {
+                    let entryLow = Int(data[6]) << 8 | Int(data[7])
+                    let exitLow = Int(data[8]) << 8 | Int(data[9])
+                    
+                    if process == 13 || process == 15 {
+                        let operatorName = BusResolver.shared.resolve(entryLow) ?? "Bus Operator \(String(format: "%04X", entryLow))"
+                        let stopName = exitLow == 0 ? "N/A" : "Station \(String(format: "%04X", exitLow))"
+                        
+                        DetailRawRow(title: "Bus Operator", value: operatorName, hex: String(format: "0x%04X", entryLow))
+                        DetailRawRow(title: "Bus Station", value: stopName, hex: String(format: "0x%04X", exitLow))
+                    } else {
+                        let fullEntryCode = (r1 << 16) | entryLow
+                        let fullExitCode = (r1 << 16) | exitLow
+                        
+                        let entryName = StationResolver.shared.resolve(fullEntryCode) ?? "(Region \(r1)) Station \(String(format: "%04X", entryLow))"
+                        let exitName = StationResolver.shared.resolve(fullExitCode) ?? (exitLow == 0 ? nil : "(Region \(r1)) Station \(String(format: "%04X", exitLow))")
+                        
+                        DetailRawRow(title: "Entry Station", value: entryName, hex: "\(r1)-[0x\(String(format: "%04X", entryLow))]")
+                        if let exit = exitName {
+                            DetailRawRow(title: "Exit Station", value: exit, hex: "\(r1)-[0x\(String(format: "%04X", exitLow))]")
+                        } else {
+                            DetailRawRow(title: "Exit Station", value: "None", hex: "")
+                        }
+                    }
+                }
+                
+                let balance = Int(data[10]) | (Int(data[11]) << 8)
+                DetailRawRow(title: "Balance", value: "¥\(balance)", hex: data.subdata(in: 10..<12).hexString)
+                
+                // byte 12 remains unknown
+                DetailRawRow(title: "Unknown (Byte 12)", value: String(format: "0x%02X", data[12]), hex: "")
+                
+                // Byte 13, 14 Transaction serial
+                let serial = Int(data[13]) << 8 | Int(data[14])
+                DetailRawRow(title: "Transaction Serial", value: "\(serial)", hex: data.subdata(in: 13..<15).hexString)
+                
+                // Byte 15 Station Region Code
+                DetailRawRow(title: "Station Region Code", value: "\(r1), \(r2)", hex: String(format: "0x%02X", regionFull))
+            }
+        }
+        .padding(.top, 4)
+    }
+    
+    private func paymentType(_ type: UInt8) -> String {
+        Localizer.localize(String(format: "pay_%02X", type))
+    }
+    
+    private func ioTypeStatus(_ type: UInt8) -> String {
+        Localizer.localize(String(format: "io_%02X", type))
+    }
+    
+    // Copy-pasted helper from decoder for UI
+    private func japaneseTerminal(_ console: UInt8) -> String {
+        Localizer.localize("suica_terminal_\(console)")
+    }
+    private func japaneseProcess(_ process: UInt8) -> String {
+        Localizer.localize("suica_process_\(process)")
+    }
 }
+
+struct DetailRawRow: View {
+    let title: String
+    let value: String
+    let hex: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Text(value)
+                if !hex.isEmpty {
+                    Text("[\(hex)]").font(.caption.monospaced()).foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+}
+
+// octopusOffset moved to end of file
+// formatFeliCaIDm moved to end of file
 
 extension Data {
     var hexString: String { map { String(format: "%02X", $0) }.joined() }
@@ -303,6 +411,18 @@ extension Data {
     func bigEndianInt(start: Int, length: Int) -> Int {
         guard start >= 0, length > 0, count >= start + length else { return 0 }
         return self[start..<(start + length)].reduce(0) { ($0 << 8) | Int($1) }
+    }
+    
+    var systemCodeCandidates: [String] {
+        guard count >= 1 else { return [] }
+        let count = Int(self[0])
+        var candidates: [String] = []
+        for i in 0..<count {
+            let start = 1 + (i * 2)
+            guard self.count >= start + 2 else { break }
+            candidates.append(self[start..<(start+2)].hexString.uppercased())
+        }
+        return candidates
     }
 }
 
@@ -363,4 +483,60 @@ func parseBERTLVs(in data: Data) -> [BERTLVNode] {
 
 extension String {
     func binaryDecimalString() -> String { String(Int(self, radix: 2) ?? 0) }
+}
+
+func formatCurrency(amount: Decimal, code: String, fractionDigits: Int = 0) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = code
+    formatter.minimumFractionDigits = fractionDigits
+    formatter.maximumFractionDigits = fractionDigits
+    return formatter.string(from: amount as NSDecimalNumber) ?? "\(code) \(amount)"
+}
+
+func octopusOffset(for date: Date) -> Int {
+    let calendar = Calendar.current
+    let components = calendar.dateComponents([.year, .month, .day], from: date)
+    if let year = components.year, let month = components.month, let day = components.day {
+        if year > 2010 || (year == 2010 && month > 12) || (year == 2010 && month == 12 && day >= 1) {
+            return 350
+        }
+    }
+    return 35
+}
+
+func formatFeliCaIDm(_ idm: String) -> String {
+    let clean = idm.uppercased()
+    guard clean.count == 16 else { return clean }
+    return stride(from: 0, to: 16, by: 4).map { index in
+        let start = clean.index(clean.startIndex, offsetBy: index)
+        let end = clean.index(start, offsetBy: 4)
+        return String(clean[start..<end])
+    }.joined(separator: " ")
+}
+
+func formatFeliCaIDi(_ data: Data) -> String {
+    guard data.count >= 8 else { return data.hexString }
+
+    let issuerHex = data.subdata(in: 0..<2).hexString.uppercased()
+    let remainder = data.subdata(in: 2..<4).hexString.uppercased()
+    let issuer: String
+    switch issuerHex {
+    case "0102": issuer = "JH"
+    case "0103": issuer = "JE"
+    case "0104": issuer = "JC"
+    case "0105": issuer = "JW"
+    case "0107": issuer = "JK"
+    case "0252": issuer = "PB"
+    case "0387": issuer = "TP"
+    case "04AD": issuer = "SU"
+    case "05D5": issuer = "NR"
+    case "05D7": issuer = "FC"
+    default: issuer = issuerHex
+    }
+
+    let value = (Int(data[4]) << 8) | Int(data[5])
+    let datePart = String(format: "%02d%02d%02d", (value >> 9) & 0x3F, (value >> 5) & 0x0F, value & 0x1F)
+    let tail = String(format: "%05d", (Int(data[6]) << 8) | Int(data[7]))
+    return "\(issuer)\(remainder)\(datePart)\(tail)"
 }
