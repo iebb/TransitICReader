@@ -165,7 +165,7 @@ class CardWalletStore: ObservableObject {
         let snUpper = sn.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
         cards[index].realSerialNumber = snUpper
         
-        let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "PI": "PiTaPa", "TO": "TOICA"]
+        let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "TO": "TOICA"]
         for (prefix, brand) in jpPrefixes {
             if snUpper.hasPrefix(prefix) {
                 cards[index].cardFamily = brand
@@ -317,8 +317,7 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
             CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
             CardPreset(id: "TOICA", name: "TOICA", fileName: "toica"),
-            CardPreset(id: "PiTaPa", name: "PiTaPa", fileName: "pitapa"),
-            CardPreset(id: "EZL", name: "EZL / EZ-Link / Cashbee", fileName: "ezl"),
+            CardPreset(id: "EZL", name: "EZL / Cashbee", fileName: "ezl"),
             CardPreset(id: "TM", name: "T-money", fileName: "tmoney")
         ]
     }

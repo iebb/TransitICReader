@@ -627,12 +627,32 @@ struct ReorderCardsView: View {
         List {
             ForEach(store.cards) { card in
                 HStack(spacing: 12) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(card.color.color)
-                        .frame(width: 32, height: 20)
+                    if let img = store.loadFaceImage(fileName: card.faceImageFileName), card.finalIsUsingImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 32, height: 20)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    } else {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(card.color.color)
+                            .frame(width: 32, height: 20)
+                    }
+                    
                     Text(card.displayTitle)
                         .font(.body.weight(.medium))
+                    
+                    if card.finalIsUsingImage {
+                        Image(systemName: "photo")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    
                     Spacer()
+                    
+                    Text(card.privacyFormattedSerialNumber(mode: 1))
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
             }
             .onMove { from, to in

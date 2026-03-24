@@ -107,12 +107,13 @@ struct TransactionDecoderRegistry {
             return JapaneseICDecoder.decodeTransaction(block: data, context: contextData, index: index, family: family)
         } else if technology == "ISO7816" {
             // KS X 6924 (Korean T-money/EZL/NAMANE)
+            let brand = ICCardBrand.from(family: family)
             if data.count == 52 {
-                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: false, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: brand == .namane, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
             } else if data.count == 23 {
                 return TUnionDecoder.decodePBOC(data: data, index: index)
             } else {
-                let isNAMANE = family == "NAMANE"
+                let isNAMANE = brand == .namane
                 if isNAMANE && data.count == 14 {
                     return KSX6924Decoder.parseNAMANELog(data, sfi: 14, recordIndex: index + 1, isNAMANE: true, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
                 }
@@ -205,6 +206,10 @@ struct TransitCardSnapshot: Identifiable {
     }
     
     let scannedAt: Date
+    
+    var brand: ICCardBrand {
+        ICCardBrand.from(family: cardFamily)
+    }
 }
 
 enum StatusKind {
@@ -266,7 +271,7 @@ struct TransitTransactionRow: View {
                         let isRecordOnly = tx.time?.contains("Record #") ?? false
                         let isTimeMissing = tx.time == nil || isRecordOnly || tx.time?.lowercased() == "n/a"
                         
-                        if let date = tx.date {
+                        if let date = tx.date, date.timeIntervalSince1970 > 86400 {
                             Text(date.formatted(date: .numeric, time: isTimeMissing ? .omitted : .complete))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
@@ -325,11 +330,7 @@ struct TransitTransactionRow: View {
     }
     
     private var currencyCode: String {
-        if cardFamily == "Octopus" { return "HKD" }
-        if cardFamily?.contains("China") == true { return "CNY" }
-        let koreanFamilies = ["T-money", "NAMANE", "Climate Card", "EZL / Cashbee", "MOIBA", "K-Cash"]
-        if let family = cardFamily, koreanFamilies.contains(family) { return "KRW" }
-        return "JPY"
+        ICCardBrand.from(family: cardFamily ?? "").region.currencyCode
     }
 }
 
@@ -342,10 +343,10 @@ struct TransactionDetailView: View {
         NavigationStack {
             List {
                 Section("Transaction Summary") {
-                    let f = (cardFamily ?? "").lowercased()
-                    let isKorean = f.contains("namane") || f.contains("t-money") || f.contains("ks x") || f.contains("climate") || f.contains("ezl")
-                    let isJapan = f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca")
-                    let isNAMANE = f.contains("namane")
+                    let brand = ICCardBrand.from(family: cardFamily ?? "")
+                    let isKorean = brand.isKorean
+                    let isJapan = brand.isJapan
+                    let isNAMANE = brand == .namane
                     
                     LabeledContent {
                         Text(tx.type)

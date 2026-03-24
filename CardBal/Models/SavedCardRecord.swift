@@ -202,46 +202,6 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned)
     }
 
-    init(snapshot: TransitCardSnapshot) {
-        self.id = snapshot.storageIdentifier
-        self.cardFamily = snapshot.cardFamily
-        self.markerSymbolName = nil
-        self.markerColor = .black
-        self.markerOuterColor = .white
-        self.markerShape = .circle
-        self.customTitle = nil
-        self.customDisplaySerialNumber = nil
-        self.isUsingImage = nil
-        self.hideTitleOnImage = nil
-        self.hideSerialNumber = nil
-        self.imageFaceEnhancer = .mask
-        self.autoImageTextColors = true
-        self.technology = snapshot.technology
-        self.identifierLabel = snapshot.identifierLabel
-        self.rawIdentifierValue = snapshot.rawIdentifierValue
-        self.identifierValue = snapshot.identifierValue
-        self.pmm = snapshot.pmm
-        self.systemCode = snapshot.systemCode
-        self.selectedAID = snapshot.selectedAID
-        self.balanceText = snapshot.balanceText
-        self.balanceDetail = snapshot.balanceDetail
-        self.realSerialNumber = snapshot.realSerialNumber
-        self.region = snapshot.resultFields.first(where: { $0.title == "Region" })?.value
-        self.enhancedFeliCaDecoded = nil
-        self.issuingCity = snapshot.resultFields.first(where: { $0.title == "Issuing City" })?.value
-        self.cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
-        self.issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
-        self.expiryDateStr = snapshot.resultFields.first(where: { $0.title == "Expiry Date" })?.value
-        self.rawTransactions = snapshot.rawTransactions
-        self.rawTransitHistory = snapshot.transitHistory.compactMap { $0.raw }
-        self.resultFields = snapshot.resultFields.map(SavedCardField.init)
-        self.scannedAt = snapshot.scannedAt
-        self.color = SavedCardColor(color: snapshot.color)
-        self.design = .classic
-        self.faceImageFileName = nil
-        self.order = 0
-        self.isPinned = nil
-    }
 
     var transactions: [TransitTransaction] {
         rawTransactions.enumerated().compactMap { idx, hex in
@@ -375,9 +335,9 @@ extension SavedCardRecord {
         self.markerShape = .circle
         self.customTitle = nil
         self.customDisplaySerialNumber = nil
-        self.isUsingImage = false
-        self.hideTitleOnImage = false
-        self.hideSerialNumber = false
+        self.isUsingImage = nil
+        self.hideTitleOnImage = nil
+        self.hideSerialNumber = nil
         self.imageFaceEnhancer = .mask
         self.autoImageTextColors = true
         self.autoTitleTextColor = nil
@@ -394,7 +354,7 @@ extension SavedCardRecord {
         self.balanceText = snapshot.balanceText
         self.balanceDetail = snapshot.balanceDetail
         self.realSerialNumber = snapshot.realSerialNumber
-        self.region = snapshot.region
+        self.region = snapshot.resultFields.first(where: { $0.title == "Region" })?.value
         self.enhancedFeliCaDecoded = false
         self.issuingCity = snapshot.resultFields.first(where: {$0.title == "Issuing City"})?.value
         self.cardTypeStr = snapshot.resultFields.first(where: {$0.title == "Card Type"})?.value
@@ -407,6 +367,8 @@ extension SavedCardRecord {
         self.color = Self.defaultColor(for: snapshot.cardFamily)
         self.design = .classic
         self.faceImageFileName = nil
+        self.order = 0
+        self.isPinned = nil
     }
 
     private static func defaultColor(for family: String) -> SavedCardColor {
