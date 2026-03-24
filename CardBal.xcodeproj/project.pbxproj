@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
 		0EFAFB50E232381B6246D786 /* icoca.png in Resources */ = {isa = PBXBuildFile; fileRef = DD02F5701AE4C47C4D43B861 /* icoca.png */; };
 		1B6A2C8BF37E5CB823EB883C /* Localizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118B2F4C7E32F920855B0DF5 /* Localizer.swift */; };
 		1B8F4CB55CA980FA310E0F04 /* hayakaken.png in Resources */ = {isa = PBXBuildFile; fileRef = 3720A3E74F7150E885F94341 /* hayakaken.png */; };
@@ -58,6 +59,7 @@
 		1549B4485C7F51C95EF084A7 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = CardBal/Resources/en.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
 		280A750331F0F722A143051F /* BusResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BusResolver.swift; path = Helpers/BusResolver.swift; sourceTree = "<group>"; };
 		3720A3E74F7150E885F94341 /* hayakaken.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = hayakaken.png; path = Presets/hayakaken.png; sourceTree = "<group>"; };
+		3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NAMANEDecoder.swift; sourceTree = "<group>"; };
 		3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = nimoca.png; path = Presets/nimoca.png; sourceTree = "<group>"; };
 		454A3A745671012F6C832F91 /* StationResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StationResolver.swift; path = Helpers/StationResolver.swift; sourceTree = "<group>"; };
 		4B309782727CA0A2F1BE5974 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
@@ -206,6 +208,7 @@
 				8C4692312F6F2ACB0071B6C4 /* WAONDecoder.swift */,
 				8C4692322F6F2ACB0071B6C4 /* NanacoDecoder.swift */,
 				8C4692242F6F2ACB0071B6C4 /* CalypsoDecoder.swift */,
+				3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */,
 			);
 			path = Decoders;
 			sourceTree = "<group>";
@@ -387,6 +390,7 @@
 				62A4280F4F3DFCBAB17B785D /* BusResolver.swift in Sources */,
 				E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */,
 				B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */,
+				0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

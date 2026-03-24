@@ -170,7 +170,7 @@ struct TransactionDecoderRegistry {
             } else {
                 let isNAMANE = brand == .namane
                 if isNAMANE && data.count == 14 {
-                    return KSX6924Decoder.parseNAMANELog(data, sfi: 14, recordIndex: index + 1, isNAMANE: true, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+                    return NAMANEDecoder.parseNAMANELog(data, sfi: 14, recordIndex: index + 1, isNAMANE: true, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "NAMANE"))
                 }
                 return KSX6924Decoder.parseSingleTransaction(data, sfi: 4, recordIndex: index + 1, isNAMANE: isNAMANE, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
             }

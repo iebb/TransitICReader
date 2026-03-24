@@ -170,26 +170,19 @@ struct KSX6924Decoder: TransitCardDecoder {
     static func parseSingleTransaction(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
         if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { return nil }
         
-        if block.count >= 40 {
-            // New Layout:
-            // 0: Type (1 trip, 2 topup)
-            // 1: Unknown
-            // 2-5: New Balance (4 BE)
-            // 6-9: NTEP (4 BE)
-            // 10-13: M Fare (4 BE)
-            // 14-21: IDSAM (8 BCD)
-            // 22-25: NTSAM (4 BE)
-            // 26-32: Timestamp (7 BCD)
+        if block.count >= 14 {
+            // New Layout (40+) or Compact (14+ bytes)
+            // Offset 0: Type
+            // Offset 1: Unknown
+            // Offset 2-5: Balance (4 BE)
+            // Offset 6-9: NTEP / Record ID (4 BE)
+            // Offset 10-13: Amount (4 BE)
             
             let balanceVal = block.bigEndianInt(start: 2, length: 4)
             let balance = Decimal(balanceVal)
-            
             let ntep = block.bigEndianInt(start: 6, length: 4)
             let fareVal = block.bigEndianInt(start: 10, length: 4)
             let fare = Decimal(fareVal)
-            
-            let idsam = block.subdata(in: 14..<22).hexString
-            let ntsam = block.bigEndianInt(start: 22, length: 4)
             
             let type = block[0]
             let isTopup = type == 0x02
@@ -198,10 +191,19 @@ struct KSX6924Decoder: TransitCardDecoder {
             if fareVal == 0 { typeStr = "Entry" }
             
             var foundDate: Date?
-            var displayTime = (isNAMANE || (!isNAMANE && sfi == 4)) ? "Record #\(ntep)" : "N/A"
+            var displayTime = (isNAMANE || (!isNAMANE && (sfi == 4 || sfi == 14))) ? "Record #\(ntep)" : "N/A"
             
-            if block.count >= 26 + 7 {
-                let h = block.subdata(in: 26..<26+7).hexString
+            // Optional: IDSAM and NTSAM if available (40+ layout)
+            var idsam: String?
+            var ntsam: Int?
+            
+            if block.count >= 25 {
+                idsam = block.subdata(in: 14..<min(22, block.count)).hexString
+                ntsam = block.count >= 25 ? Int(block.bigEndianInt(start: 22, length: 4)) : nil
+            }
+            
+            if block.count >= 33 {
+                let h = block.subdata(in: 26..<33).hexString
                 if h != "00000000000000" && h.hasPrefix("20") {
                     var components = DateComponents()
                     components.year = Int(h.prefix(4))
@@ -220,10 +222,7 @@ struct KSX6924Decoder: TransitCardDecoder {
                 }
             }
             
-            let syntheticDate = Date(timeIntervalSince1970: TimeInterval(ntep * 3600)) 
-            
-            logger.error("[KSX6924_TX] SFI \(sfi) Rec \(ntep): Bal=\(balanceVal), Fare=\(fareVal)")
-            return TransitTransaction(date: foundDate ?? syntheticDate, time: displayTime, amount: signedAmount, terminalID: idsam, type: typeStr, balanceAfter: balance, rawData: block.hexString, recordNumber: ntep, ntsam: ntsam)
+            return TransitTransaction(date: foundDate, time: displayTime, amount: signedAmount, terminalID: idsam ?? block.prefix(2).hexString, type: typeStr, balanceAfter: balance, rawData: block.hexString, recordNumber: Int(ntep), ntsam: ntsam)
         }
         return nil
     }
@@ -313,8 +312,7 @@ struct KSX6924Decoder: TransitCardDecoder {
                 }
             }
             
-            let syntheticDate = Date(timeIntervalSince1970: TimeInterval(recordIndex * 3600))
-            let tx = TransitTransaction(date: foundDate ?? syntheticDate, time: displayTime, amount: -cost, terminalID: block.prefix(2).hexString, type: "Transit" + details, balanceAfter: balance, rawData: block.hexString)
+            let tx = TransitTransaction(date: foundDate, time: displayTime, amount: -cost, terminalID: block.prefix(2).hexString, type: "Transit" + details, balanceAfter: balance, rawData: block.hexString)
             return tx
         }
         return nil
@@ -345,27 +343,6 @@ struct KSX6924Decoder: TransitCardDecoder {
         return (date, timeStr)
     }
 
-    static func parseNAMANELog(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
-        if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { return nil }
-        // Offset 0: Type
-        // Offset 2-5: Balance (4 BE)
-        // Offset 6-9: Counter / Record ID (4 BE)
-        // Offset 10-13: Amount (4 BE)
-        if block.count >= 14 {
-            let balance = Decimal(block.bigEndianInt(start: 2, length: 4))
-            let amountVal = block.bigEndianInt(start: 10, length: 4)
-            let amount = Decimal(amountVal)
-            let type = block[0]
-            let isTopup = type == 0x02
-            let signedAmount = isTopup ? amount : -amount
-            let typeStr = isTopup ? "Top-up" : (amountVal == 0 ? "Entry" : "Payment")
-            let cardRecordID = Int(block.bigEndianInt(start: 6, length: 4))
-            let displayTime = "Record #\(cardRecordID)"
-            let syntheticDate = Date(timeIntervalSince1970: TimeInterval(cardRecordID * 3600))
-            return TransitTransaction(date: syntheticDate, time: displayTime, amount: signedAmount, terminalID: block.prefix(2).hexString, type: typeStr, balanceAfter: balance, rawData: block.hexString)
-        }
-        return nil
-    }
 }
 
 private struct KSX6924CardProfile {
@@ -395,7 +372,7 @@ private struct KSX6924CardProfile {
         }
         if normalized.hasPrefix("D410000029") { 
             return KSX6924CardProfile(displayName: "NAMANE", aid: normalized, targetSFIs: [14], 
-                sfiParsers: [14: KSX6924Decoder.parseNAMANELog],
+                sfiParsers: [14: NAMANEDecoder.parseNAMANELog],
                 parseBalance: ksx6924BalanceParser) 
         }
         // if normalized.hasPrefix("D410000030") { return KSX6924CardProfile(displayName: "MOIBA", aid: normalized, targetSFIs: [4], sfiParsers: [4: KSX6924Decoder.parseSingleTransaction], parseBalance: ksx6924BalanceParser) }
