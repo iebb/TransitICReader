@@ -1,9 +1,13 @@
-# macOS
-.DS_Store
-
 # Xcode
-build/
+#
+# User settings
+xcuserdata/
+
+# xcode build files
 DerivedData/
+build/
+
+# xcode patterns
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -12,15 +16,30 @@ DerivedData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
-xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Other
+*.xcuserstate
 *.xccheckout
 *.moved-aside
-DerivedData
-*.hmap
 *.ipa
-*.xcuserstate
-
-# Project
-project.xcworkspace/
 *.xcarchive
+*.hmap
+*.db
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.swp
+*~
+*.lock
+
+# Project-specific logs
 build_log.txt

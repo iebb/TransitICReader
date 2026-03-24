@@ -56,12 +56,13 @@
 		0BA3AB59E280822BC0508F6C /* toica.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = toica.png; path = Presets/toica.png; sourceTree = "<group>"; };
 		118B2F4C7E32F920855B0DF5 /* Localizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Localizer.swift; path = Helpers/Localizer.swift; sourceTree = "<group>"; };
 		280A750331F0F722A143051F /* BusResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BusResolver.swift; path = Helpers/BusResolver.swift; sourceTree = "<group>"; };
+		2AE4F53FAE7661FAF72C6E4A /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/Localizable.strings"; sourceTree = SOURCE_ROOT; };
 		3720A3E74F7150E885F94341 /* hayakaken.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = hayakaken.png; path = Presets/hayakaken.png; sourceTree = "<group>"; };
+		3A4BB1EE096602DC8198F489 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = CardBal/Resources/en.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
 		3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = nimoca.png; path = Presets/nimoca.png; sourceTree = "<group>"; };
 		454A3A745671012F6C832F91 /* StationResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StationResolver.swift; path = Helpers/StationResolver.swift; sourceTree = "<group>"; };
 		61F8D27C459BCDC1BC1CA738 /* suica.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = suica.png; path = Presets/suica.png; sourceTree = "<group>"; };
-		6D53BA7EE0FBD65F3B1E6D1F /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
-		6DBB971EEA60F8E1C32E1321 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = CardBal/Resources/en.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
+		71A48798FB82B4CC43D713CB /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
 		74B3BF2807E457CDC85FCEF1 /* manaca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = manaca.png; path = Presets/manaca.png; sourceTree = "<group>"; };
 		778D6BD48FAABE736183556A /* sugoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = sugoca.png; path = Presets/sugoca.png; sourceTree = "<group>"; };
 		80112233445566778899AA01 /* TUnionCityCodes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TUnionCityCodes.json; sourceTree = "<group>"; };
@@ -93,7 +94,6 @@
 		A0000000000000000000002A /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoProfiles.swift; sourceTree = "<group>"; };
 		B11B0256184978348338611A /* FeliCaProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeliCaProfiles.swift; sourceTree = "<group>"; };
-		B11C55A85EBCAA4418BC7364 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/Localizable.strings"; sourceTree = SOURCE_ROOT; };
 		C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPBusCodes.csv; sourceTree = "<group>"; };
 		D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
 		DD02F5701AE4C47C4D43B861 /* icoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = icoca.png; path = Presets/icoca.png; sourceTree = "<group>"; };
@@ -396,9 +396,9 @@
 		B92C7A81DE3948B73C63013F /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
-				6DBB971EEA60F8E1C32E1321 /* en */,
-				6D53BA7EE0FBD65F3B1E6D1F /* ja */,
-				B11C55A85EBCAA4418BC7364 /* zh-Hans */,
+				3A4BB1EE096602DC8198F489 /* en */,
+				71A48798FB82B4CC43D713CB /* ja */,
+				2AE4F53FAE7661FAF72C6E4A /* zh-Hans */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";

@@ -8,6 +8,8 @@ struct WalletCardView: View {
     let visiblePartHeight: CGFloat
     let onVisibleTap: () -> Void
     let showDetails: () -> Void
+    let showTransactions: () -> Void
+    let showTransit: () -> Void
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
     @State private var copied = false
 
@@ -30,16 +32,19 @@ struct WalletCardView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let width = proxy.size.width
+            let dynamicRadius = width / 27.0
+            
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous)
                     .fill(cardBackground)
 
                 if let faceImage, card.finalIsUsingImage {
                     Image(uiImage: faceImage)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height)
-                        .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+                        .frame(width: width, height: proxy.size.height)
+                        .clipShape(RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous))
                 }
 
                 if isPhotoFace && card.imageFaceEnhancer == .mask {
@@ -53,11 +58,11 @@ struct WalletCardView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous))
                     .allowsHitTesting(false)
                 }
 
-                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
 
                 VStack(alignment: .leading, spacing: 16) {
@@ -127,19 +132,53 @@ struct WalletCardView: View {
 
                     Spacer()
 
-                    HStack(alignment: .bottom) {
-                        Spacer()
-
-                        Button(action: showDetails) {
-                            Image(systemName: "chevron.right")
-                                .font(.headline.weight(.semibold))
-                                .foregroundStyle(titleTextColor)
-                                .frame(width: 40, height: 40)
-                                .background((isPhotoFace ? Color.black.opacity(0.22) : Color.white.opacity(0.14)), in: Circle())
+        let showHistoryButtons = isExpanded && (!card.rawTransactions.isEmpty || !card.rawTransitHistory.isEmpty)
+        
+        HStack(alignment: .bottom) {
+            if showHistoryButtons {
+                HStack(spacing: 8) {
+                    if !card.rawTransactions.isEmpty {
+                        Button(action: showTransactions) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "list.bullet")
+                                Text("\(card.rawTransactions.count) Tx")
+                            }
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .foregroundStyle(isPhotoFace ? .white : .primary)
+                            .background((isPhotoFace ? Color.black.opacity(0.3) : Color.white.opacity(0.18)), in: Capsule())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Show Details")
                     }
+                    
+                    if !card.rawTransitHistory.isEmpty {
+                        Button(action: showTransit) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "map")
+                                Text("\(card.rawTransitHistory.count) Trips")
+                            }
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .foregroundStyle(isPhotoFace ? .white : .primary)
+                            .background((isPhotoFace ? Color.black.opacity(0.3) : Color.white.opacity(0.18)), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Button(action: showDetails) {
+                Image(systemName: "chevron.right")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(titleTextColor)
+                    .frame(width: 40, height: 40)
+                    .background((isPhotoFace ? Color.black.opacity(0.22) : Color.white.opacity(0.14)), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Show Details")
+        }
                 }
                 .padding(.top, 11)
                 .padding(.leading, 18)

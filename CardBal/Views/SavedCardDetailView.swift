@@ -25,11 +25,15 @@ struct SavedCardDetailView: View {
     @State private var titleTask: Task<Void, Never>?
     @State private var snTask: Task<Void, Never>?
     @State private var draftDeleteConfirmation = false
+    @State private var activeHistoryItem: HistorySheetItem?
 
     var body: some View {
         if let card = store.card(withID: cardID) {
             detailContent(card: card)
                 .onAppear { viewSelection = initialSelection }
+                .sheet(item: $activeHistoryItem) { item in
+                    QuickHistorySheet(mode: item.mode, card: item.card)
+                }
         }
     }
 
@@ -60,16 +64,15 @@ struct SavedCardDetailView: View {
     }
 
     private func cardDetailList(card: SavedCardRecord) -> some View {
-        VStack(spacing: 0) {
+        List {
             if viewSelection == .settings {
-                cardPreviewSection(card: card)
-                    .padding()
-                    .background(Color(uiColor: .systemGroupedBackground))
-            }
-
-            List {
-                if viewSelection == .settings {
-                    Section("Settings") {
+                Section {
+                    cardPreviewSection(card: card)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
+                
+                Section("Settings") {
                         titleSection(card: card)
                     }
 
@@ -91,7 +94,6 @@ struct SavedCardDetailView: View {
                 } else if viewSelection == .transit {
                     transitHistorySection(card: card)
                 }
-            }
         }
         .alert("Delete Card?", isPresented: $draftDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -106,8 +108,16 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func cardPreviewSection(card: SavedCardRecord) -> some View {
-
-        WalletCardView(card: card, isExpanded: true, cardHeight: (UIScreen.main.bounds.width - 32) / (85.6 / 53.98), visiblePartHeight: 92, onVisibleTap: {}, showDetails: {})
+        WalletCardView(
+            card: card,
+            isExpanded: true,
+            cardHeight: (UIScreen.main.bounds.width - 32) / (27.0 / 17.0),
+            visiblePartHeight: 92,
+            onVisibleTap: {},
+            showDetails: {},
+            showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
+            showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
+        )
     }
 
     @ViewBuilder

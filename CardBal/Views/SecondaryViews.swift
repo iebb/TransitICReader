@@ -83,7 +83,7 @@ struct SavedFaceAssetPickerSheet: View {
                                             Image(uiImage: img)
                                                 .resizable()
                                                 .scaledToFill()
-                                                .aspectRatio(85.6 / 53.98, contentMode: .fit)
+                                                .aspectRatio(27.0 / 17.0, contentMode: .fit)
                                                 .frame(maxWidth: .infinity)
                                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                         }
@@ -137,13 +137,13 @@ struct SavedFaceAssetPickerSheet: View {
             Image(uiImage: faceImage)
                 .resizable()
                 .scaledToFill()
-                .aspectRatio(85.6 / 53.98, contentMode: .fit)
+                .aspectRatio(27.0 / 17.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         } else {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground))
-                .aspectRatio(85.6 / 53.98, contentMode: .fit)
+                .aspectRatio(27.0 / 17.0, contentMode: .fit)
                 .overlay {
                     Image(systemName: "photo")
                         .foregroundStyle(.secondary)
@@ -177,7 +177,7 @@ struct FaceImageEditorSheet: View {
     @State private var hPerspective: Double = 0.0
     @State private var activeTab: Int = 0 // 0: Crop, 1: Adjust, 2: Perspective
     
-    private let cardAspectRatio: CGFloat = 85.6 / 53.98
+    private let cardAspectRatio: CGFloat = 27.0 / 17.0
     
     var body: some View {
         NavigationStack {
@@ -570,4 +570,72 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
     }
+}
+struct QuickHistorySheet: View {
+    let mode: HistoryMode
+    let card: SavedCardRecord
+    @Environment(\.dismiss) private var dismiss
+
+    enum HistoryMode {
+        case transactions, transit
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if mode == .transactions {
+                    transactionsSection
+                } else {
+                    transitSection
+                }
+            }
+            .navigationTitle(mode == .transactions ? "Transactions" : "Transit Activity")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var transactionsSection: some View {
+        Section {
+            let sorted = card.transactions.sorted { t1, t2 in
+                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
+                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
+            }
+            if sorted.isEmpty {
+                Text("No records found").foregroundStyle(.secondary)
+            } else {
+                ForEach(sorted) { tx in
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    private var transitSection: some View {
+        Section {
+            let sorted = card.transitHistory.sorted { t1, t2 in
+                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
+                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
+            }
+            if sorted.isEmpty {
+                Text("No records found").foregroundStyle(.secondary)
+            } else {
+                ForEach(sorted) { tx in
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+}
+
+struct HistorySheetItem: Identifiable {
+    let id = UUID()
+    let mode: QuickHistorySheet.HistoryMode
+    let card: SavedCardRecord
 }

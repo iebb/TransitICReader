@@ -128,6 +128,12 @@ class CardWalletStore: ObservableObject {
         if let match = allPresets.first(where: { family.contains($0.name.lowercased()) }) {
             applyPreset(match, to: id)
         } 
+        // Fallback for Climate Card to T-money preset
+        else if family.contains("climate") {
+            if let match = allPresets.first(where: { $0.id == "TM" }) {
+                applyPreset(match, to: id)
+            }
+        }
         // Try SN prefix match
         else {
             let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "TO": "TOICA"]
@@ -166,7 +172,12 @@ class CardWalletStore: ObservableObject {
                 break
             }
         }
-        autoApplyPresetIfMatching(id: id)
+        
+        // Ensure auto-preset application triggers if not already using an image
+        if cards[index].faceImageFileName == nil {
+            autoApplyPresetIfMatching(id: id)
+        }
+        
         save()
     }
 
@@ -305,7 +316,10 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "TP", name: "Manaca", fileName: "manaca"),
             CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
             CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
-            CardPreset(id: "TOICA", name: "TOICA", fileName: "toica")
+            CardPreset(id: "TOICA", name: "TOICA", fileName: "toica"),
+            CardPreset(id: "PiTaPa", name: "PiTaPa", fileName: "pitapa"),
+            CardPreset(id: "EZL", name: "EZL / EZ-Link / Cashbee", fileName: "ezl"),
+            CardPreset(id: "TM", name: "T-money", fileName: "tmoney")
         ]
     }
 

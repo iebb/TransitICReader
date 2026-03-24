@@ -46,6 +46,7 @@ struct ContentView: View {
 struct ScanHomeView: View {
     @ObservedObject var reader: NFCTransitReader
     @ObservedObject var cardStore: CardWalletStore
+    @State private var activeHistoryItem: HistorySheetItem?
     @State private var isShowingSNScanner = false
     @State private var didAutoStartScan = false
     @State private var detailRoute: CardDetailRoute?
@@ -72,13 +73,23 @@ struct ScanHomeView: View {
                     Section("Card Preview") {
                         GeometryReader { proxy in
                             let cardWidth = max(proxy.size.width, 1)
-                            let cardHeight = cardWidth / (85.6 / 53.98)
-                            WalletCardView(card: cardToDisplay, isExpanded: true, cardHeight: cardHeight, visiblePartHeight: cardHeight, onVisibleTap: {}, showDetails: { 
-                                detailRoute = CardDetailRoute(id: cardToDisplay.id)
-                            })
+                            let cardHeight = cardWidth / (27.0 / 17.0)
+                            WalletCardView(
+                                card: cardToDisplay,
+                                isExpanded: true,
+                                cardHeight: cardHeight,
+                                visiblePartHeight: cardHeight,
+                                onVisibleTap: {},
+                                showDetails: { detailRoute = CardDetailRoute(id: cardToDisplay.id) },
+                                showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: cardToDisplay) },
+                                showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: cardToDisplay) }
+                            )
                         }
-                        .frame(height: (UIScreen.main.bounds.width - 40) / (85.6 / 53.98))
+                        .frame(height: (UIScreen.main.bounds.width - 40) / (27.0 / 17.0))
                         .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                        .sheet(item: $activeHistoryItem) { item in
+                            QuickHistorySheet(mode: item.mode, card: item.card)
+                        }
                     }
 
                     Section("Result") {
@@ -240,10 +251,11 @@ struct CardsView: View {
     @ObservedObject var reader: NFCTransitReader
     @State private var detailRoute: CardDetailRoute?
     @State private var previewCardID: String?
+    @State private var activeHistoryItem: HistorySheetItem?
 
     private let stackedSpacing: CGFloat = 58
     private let expandedStackGap: CGFloat = 12
-    private let cardAspectRatio: CGFloat = 85.6 / 53.98
+    private let cardAspectRatio: CGFloat = 27.0 / 17.0
 
     var body: some View {
         NavigationStack {
@@ -270,39 +282,30 @@ struct CardsView: View {
                         ScrollView {
                             ZStack(alignment: .top) {
                                 ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
-                                    VStack(spacing: 12) {
-                                        WalletCardView(
-                                            card: card,
-                                            isExpanded: previewCardID == card.id,
-                                            cardHeight: cardHeight,
-                                            visiblePartHeight: visibleTapHeight(for: index, cardHeight: cardHeight),
-                                            onVisibleTap: {
-                                                if previewCardID == card.id {
-                                                    previewCardID = nil
-                                                } else {
-                                                    store.bringToFront(card.id)
-                                                    previewCardID = card.id
-                                                }
-                                            },
-                                            showDetails: { detailRoute = CardDetailRoute(id: card.id) }
-                                        )
-                                        
-                                        if previewCardID == card.id {
-                                            HStack(spacing: 12) {
-                                                ArchiveButton(title: "[\(card.rawTransactions.count) transaction records]", color: card.color.color) { 
-                                                    detailRoute = CardDetailRoute(id: card.id, tab: .transactions) 
-                                                }
-                                                ArchiveButton(title: "[\(card.rawTransitHistory.count) transit records]", color: card.color.color) {
-                                                    detailRoute = CardDetailRoute(id: card.id, tab: .transit)
-                                                }
+                                    WalletCardView(
+                                        card: card,
+                                        isExpanded: previewCardID == card.id,
+                                        cardHeight: cardHeight,
+                                        visiblePartHeight: visibleTapHeight(for: index, cardHeight: cardHeight),
+                                        onVisibleTap: {
+                                            if previewCardID == card.id {
+                                                previewCardID = nil
+                                            } else {
+                                                store.bringToFront(card.id)
+                                                previewCardID = card.id
                                             }
-                                            .transition(.move(edge: .top).combined(with: .opacity))
-                                        }
-                                    }
+                                        },
+                                        showDetails: { detailRoute = CardDetailRoute(id: card.id) },
+                                        showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
+                                        showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
+                                    )
                                     .padding(.horizontal, 20)
                                     .zIndex(zIndex(for: index))
                                     .offset(y: cardOffset(for: index, cardHeight: cardHeight))
                                 }
+                            }
+                            .sheet(item: $activeHistoryItem) { item in
+                                QuickHistorySheet(mode: item.mode, card: item.card)
                             }
                             .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
                             .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
@@ -449,6 +452,12 @@ struct ArchiveButton: View {
 
 
 func loadCardFaceImage(fileName: String) -> UIImage? {
+    // 1. Try loading from Assets first (for presets)
+    if let assetImage = UIImage(named: fileName) {
+        return assetImage
+    }
+    
+    // 2. Fallback to local file system
     let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
     let url = base.appendingPathComponent("CardBal/CardFaces", isDirectory: true).appendingPathComponent(fileName)
