@@ -142,7 +142,106 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var color: SavedCardColor
     var design: SavedCardDesign
     var faceImageFileName: String?
-    var order: Int = 0
+    var order: Int
+    var isPinned: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, cardFamily, markerSymbolName, markerColor, markerOuterColor, markerShape
+        case customTitle, customDisplaySerialNumber, isUsingImage, hideTitleOnImage, hideSerialNumber
+        case imageFaceEnhancer, autoImageTextColors, autoTitleTextColor, autoBalanceTextColor
+        case titleTextColorOverride, balanceTextColorOverride, technology, identifierLabel
+        case rawIdentifierValue, identifierValue, pmm, selectedAID, systemCode, balanceText
+        case balanceDetail, realSerialNumber, region, enhancedFeliCaDecoded, issuingCity
+        case cardTypeStr, issueDateStr, expiryDateStr, rawTransactions, rawTransitHistory
+        case resultFields, scannedAt, color, design, faceImageFileName, order, isPinned
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        cardFamily = try container.decode(String.self, forKey: .cardFamily)
+        markerSymbolName = try container.decodeIfPresent(String.self, forKey: .markerSymbolName)
+        markerColor = try container.decode(SavedCardColor.self, forKey: .markerColor)
+        markerOuterColor = try container.decode(SavedCardColor.self, forKey: .markerOuterColor)
+        markerShape = try container.decode(SavedCardMarkerShape.self, forKey: .markerShape)
+        customTitle = try container.decodeIfPresent(String.self, forKey: .customTitle)
+        customDisplaySerialNumber = try container.decodeIfPresent(String.self, forKey: .customDisplaySerialNumber)
+        isUsingImage = try container.decodeIfPresent(Bool.self, forKey: .isUsingImage)
+        hideTitleOnImage = try container.decodeIfPresent(Bool.self, forKey: .hideTitleOnImage)
+        hideSerialNumber = try container.decodeIfPresent(Bool.self, forKey: .hideSerialNumber)
+        imageFaceEnhancer = try container.decode(ImageFaceEnhancer.self, forKey: .imageFaceEnhancer)
+        autoImageTextColors = try container.decode(Bool.self, forKey: .autoImageTextColors)
+        autoTitleTextColor = try container.decodeIfPresent(SavedCardColor.self, forKey: .autoTitleTextColor)
+        autoBalanceTextColor = try container.decodeIfPresent(SavedCardColor.self, forKey: .autoBalanceTextColor)
+        titleTextColorOverride = try container.decodeIfPresent(SavedCardColor.self, forKey: .titleTextColorOverride)
+        balanceTextColorOverride = try container.decodeIfPresent(SavedCardColor.self, forKey: .balanceTextColorOverride)
+        technology = try container.decode(String.self, forKey: .technology)
+        identifierLabel = try container.decode(String.self, forKey: .identifierLabel)
+        rawIdentifierValue = try container.decode(String.self, forKey: .rawIdentifierValue)
+        identifierValue = try container.decode(String.self, forKey: .identifierValue)
+        pmm = try container.decodeIfPresent(String.self, forKey: .pmm)
+        selectedAID = try container.decodeIfPresent(String.self, forKey: .selectedAID)
+        systemCode = try container.decodeIfPresent(String.self, forKey: .systemCode)
+        balanceText = try container.decodeIfPresent(String.self, forKey: .balanceText)
+        balanceDetail = try container.decodeIfPresent(String.self, forKey: .balanceDetail)
+        realSerialNumber = try container.decodeIfPresent(String.self, forKey: .realSerialNumber)
+        region = try container.decodeIfPresent(String.self, forKey: .region)
+        enhancedFeliCaDecoded = try container.decodeIfPresent(Bool.self, forKey: .enhancedFeliCaDecoded)
+        issuingCity = try container.decodeIfPresent(String.self, forKey: .issuingCity)
+        cardTypeStr = try container.decodeIfPresent(String.self, forKey: .cardTypeStr)
+        issueDateStr = try container.decodeIfPresent(String.self, forKey: .issueDateStr)
+        expiryDateStr = try container.decodeIfPresent(String.self, forKey: .expiryDateStr)
+        rawTransactions = try container.decode([String].self, forKey: .rawTransactions)
+        rawTransitHistory = try container.decode([String].self, forKey: .rawTransitHistory)
+        resultFields = try container.decode([SavedCardField].self, forKey: .resultFields)
+        scannedAt = try container.decode(Date.self, forKey: .scannedAt)
+        color = try container.decode(SavedCardColor.self, forKey: .color)
+        design = try container.decode(SavedCardDesign.self, forKey: .design)
+        faceImageFileName = try container.decodeIfPresent(String.self, forKey: .faceImageFileName)
+        order = try container.decodeIfPresent(Int.self, forKey: .order) ?? 0
+        isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned)
+    }
+
+    init(snapshot: TransitCardSnapshot) {
+        self.id = snapshot.storageIdentifier
+        self.cardFamily = snapshot.cardFamily
+        self.markerSymbolName = nil
+        self.markerColor = .black
+        self.markerOuterColor = .white
+        self.markerShape = .circle
+        self.customTitle = nil
+        self.customDisplaySerialNumber = nil
+        self.isUsingImage = nil
+        self.hideTitleOnImage = nil
+        self.hideSerialNumber = nil
+        self.imageFaceEnhancer = .mask
+        self.autoImageTextColors = true
+        self.technology = snapshot.technology
+        self.identifierLabel = snapshot.identifierLabel
+        self.rawIdentifierValue = snapshot.rawIdentifierValue
+        self.identifierValue = snapshot.identifierValue
+        self.pmm = snapshot.pmm
+        self.systemCode = snapshot.systemCode
+        self.selectedAID = snapshot.selectedAID
+        self.balanceText = snapshot.balanceText
+        self.balanceDetail = snapshot.balanceDetail
+        self.realSerialNumber = snapshot.realSerialNumber
+        self.region = snapshot.resultFields.first(where: { $0.title == "Region" })?.value
+        self.enhancedFeliCaDecoded = nil
+        self.issuingCity = snapshot.resultFields.first(where: { $0.title == "Issuing City" })?.value
+        self.cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
+        self.issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
+        self.expiryDateStr = snapshot.resultFields.first(where: { $0.title == "Expiry Date" })?.value
+        self.rawTransactions = snapshot.rawTransactions
+        self.rawTransitHistory = snapshot.transitHistory.compactMap { $0.raw }
+        self.resultFields = snapshot.resultFields.map(SavedCardField.init)
+        self.scannedAt = snapshot.scannedAt
+        self.color = SavedCardColor(color: snapshot.color)
+        self.design = .classic
+        self.faceImageFileName = nil
+        self.order = 0
+        self.isPinned = nil
+    }
 
     var transactions: [TransitTransaction] {
         rawTransactions.enumerated().compactMap { idx, hex in
