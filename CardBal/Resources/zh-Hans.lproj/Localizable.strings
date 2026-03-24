@@ -52,6 +52,9 @@
 "top_up" = "充值";
 "consumption" = "消费";
 
+"tap_on" = "进站";
+"tap_off" = "出站";
+
 "pay_00" = "现金 / 无";
 "pay_02" = "VIEW";
 "pay_0B" = "PiTaPa";

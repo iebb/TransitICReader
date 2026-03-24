@@ -77,6 +77,12 @@ struct SavedCardDetailView: View {
                     }
                 }
 
+                if !card.transitHistory.isEmpty {
+                    Section("Transit Activity") {
+                        transitHistorySection(card: card)
+                    }
+                }
+
                 Section("Appearance") {
                     appearanceSection(card: card)
                 }
@@ -168,7 +174,27 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func transactionsSection(card: SavedCardRecord) -> some View {
-        ForEach(card.transactions) { tx in
+        let sorted = card.transactions.sorted { t1, t2 in
+            if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
+                return r1 > r2
+            }
+            return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
+        }
+        ForEach(sorted) { tx in
+            TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                .padding(.vertical, 4)
+        }
+    }
+
+    @ViewBuilder
+    private func transitHistorySection(card: SavedCardRecord) -> some View {
+        let sorted = card.transitHistory.sorted { t1, t2 in
+            if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
+                return r1 > r2
+            }
+            return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
+        }
+        ForEach(sorted) { tx in
             TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
                 .padding(.vertical, 4)
         }
@@ -189,12 +215,10 @@ struct SavedCardDetailView: View {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) { 
                 Label("Choose From Gallery", systemImage: "photo") 
             }
-            if !store.faceAssets().isEmpty {
-                Button {
-                    isShowingSavedFacePicker = true
-                } label: {
-                    Label("Choose From Saved Card Faces", systemImage: "square.stack.3d.up")
-                }
+            Button {
+                isShowingSavedFacePicker = true
+            } label: {
+                Label("Choose From Preset Designs", systemImage: "square.stack.3d.up")
             }
             if UIImagePickerController.isSourceTypeAvailable(.camera) { 
                 Button { isShowingCamera = true } label: { Label("Take Photo", systemImage: "camera") } 
@@ -289,6 +313,10 @@ struct SavedCardDetailView: View {
             excludingFileName: card.faceImageFileName,
             onSelect: { fileName in
                 store.applyFaceAsset(fileName, to: card.id)
+                isShowingSavedFacePicker = false
+            },
+            onSelectPreset: { preset in
+                store.applyPreset(preset, to: card.id)
                 isShowingSavedFacePicker = false
             }
         )

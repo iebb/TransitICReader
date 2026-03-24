@@ -106,6 +106,7 @@ struct EdyDecoder: TransitCardDecoder {
             resultFields: finalResultFields,
             rawSections: rawSections,
             transactions: [],
+            transitHistory: [],
             scannedAt: scannedAt
         )
     }

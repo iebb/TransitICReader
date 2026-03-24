@@ -136,6 +136,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var issueDateStr: String?
     var expiryDateStr: String?
     var transactions: [TransitTransaction]
+    var transitHistory: [TransitTransaction]
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
@@ -285,10 +286,25 @@ extension SavedCardRecord {
         self.issueDateStr = snapshot.resultFields.first(where: {$0.title == "Issue Date"})?.value
         self.expiryDateStr = snapshot.resultFields.first(where: {$0.title == "Expiry Date"})?.value
         self.transactions = snapshot.transactions
+        self.transitHistory = snapshot.transitHistory
         self.resultFields = snapshot.resultFields.map(SavedCardField.init)
         self.scannedAt = snapshot.scannedAt
-        self.color = SavedCardColor(red: 0.19, green: 0.38, blue: 0.73) // Default blue
+        self.color = Self.defaultColor(for: snapshot.cardFamily)
         self.design = .classic
         self.faceImageFileName = nil
+    }
+
+    private static func defaultColor(for family: String) -> SavedCardColor {
+        let f = family.lowercased()
+        if f.contains("suica") { return SavedCardColor(red: 0.1, green: 0.58, blue: 0.12) } // Suica Green
+        if f.contains("pasmo") { return SavedCardColor(red: 0.88, green: 0.28, blue: 0.44) } // PASMO Pink
+        if f.contains("icoca") { return SavedCardColor(red: 0.0, green: 0.48, blue: 0.72) } // ICOCA Blue
+        if f.contains("hayakaken") { return SavedCardColor(red: 0.0, green: 0.68, blue: 0.94) } // Hayakaken Cyan
+        if f.contains("sugoca") { return SavedCardColor(red: 0.82, green: 0.1, blue: 0.12) } // SUGOCA Red
+        if f.contains("manaca") { return SavedCardColor(red: 0.96, green: 0.53, blue: 0.14) } // Manaca Orange/Yellow
+        if f.contains("t-money") || f.contains("ezl") { return SavedCardColor(red: 0.94, green: 0.5, blue: 0.0) } // Transit Orange
+        if f.contains("octopus") { return SavedCardColor(red: 0.92, green: 0.48, blue: 0.1) } // Octopus Amber
+        if f.contains("china") || f.contains("union") { return SavedCardColor(red: 0.75, green: 0.1, blue: 0.12) } // T-Union Red
+        return SavedCardColor(red: 0.19, green: 0.38, blue: 0.73) // Default brand color
     }
 }

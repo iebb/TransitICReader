@@ -52,6 +52,9 @@
 "top_up" = "Top-up";
 "consumption" = "Consumption";
 
+"tap_on" = "Tap On";
+"tap_off" = "Tap Off";
+
 "pay_00" = "Cash / None";
 "pay_02" = "VIEW";
 "pay_0B" = "PiTaPa";

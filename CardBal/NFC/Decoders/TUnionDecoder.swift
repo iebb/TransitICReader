@@ -176,6 +176,7 @@ struct TUnionDecoder: TransitCardDecoder {
             resultFields: resultFields,
             rawSections: rawSections + parsedBalance.rawSections,
             transactions: transactions,
+            transitHistory: [],
             scannedAt: scannedAt
         )
     }

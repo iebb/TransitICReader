@@ -78,6 +78,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
             resultFields: resultFields,
             rawSections: rawSections,
             transactions: (profile.displayName == "Japan Transit IC") ? (await readSuicaTransactions(feliCa: feliCa)) : [],
+            transitHistory: [],
             scannedAt: scannedAt
         )
     }
@@ -209,7 +210,8 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 location: location,
                 entryStation: entryStation,
                 exitStation: exitStation,
-                rawData: block.hexString.uppercased()
+                rawData: block.hexString.uppercased(),
+                recordNumber: Int(block[13]) << 8 | Int(block[14])
             ))
         }
         return txs
@@ -231,7 +233,19 @@ private struct FeliCaProfile {
         return all.first(where: { normalized.contains($0.systemCode) })
     }
 
-    func detectedBrand(using systemCodes: [String]) -> String {
+    func detectedBrand(using systemCodes: [String], realSN: String? = nil) -> String {
+        if let sn = realSN?.uppercased() {
+            if sn.hasPrefix("JE") { return "Suica" }
+            if sn.hasPrefix("PB") { return "PASMO" }
+            if sn.hasPrefix("JW") { return "ICOCA" }
+            if sn.hasPrefix("FC") { return "Hayakaken" }
+            if sn.hasPrefix("JK") { return "SUGOCA" }
+            if sn.hasPrefix("TP") { return "Manaca" }
+            if sn.hasPrefix("KI") { return "Kitaca" }
+            if sn.hasPrefix("NI") { return "Nimoca" }
+            if sn.hasPrefix("PI") { return "PiTaPa" }
+            if sn.hasPrefix("TO") { return "TOICA" }
+        }
         for systemCode in systemCodes.map({ $0.uppercased() }) {
             if let match = brandOverrides[systemCode] { return match }
         }
@@ -244,7 +258,13 @@ private struct FeliCaProfile {
             systemCode: "0003",
             serviceCode: "008B",
             serviceCodeLittleEndian: Data([0x8B, 0x00]),
-            brandOverrides: ["86A7": "Suica", "927A": "Hayakaken"],
+            brandOverrides: [
+                "86A7": "Suica", 
+                "927A": "Hayakaken",
+                "90A2": "PASMO",
+                "90B1": "ICOCA",
+                "86A1": "SUGOCA"
+            ],
             parseBalance: { block, _ in
                 guard block.count >= 13 else { return nil }
                 let balance = Int(block[11]) | (Int(block[12]) << 8)

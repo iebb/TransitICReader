@@ -73,9 +73,9 @@ private class SNScannerViewController: UIViewController, AVCaptureVideoDataOutpu
 
     private func normalizedFeliCaSN(from text: String) -> String? {
         let normalized = text.uppercased().filter {
-            $0.unicodeScalars.allSatisfy(CharacterSet.alphanumerics.contains)
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".contains($0)
         }
         guard normalized.count == 17 else { return nil }
-        return SavedCardRecord.formattedFeliCaSerial(normalized, cardFamily: "")
+        return normalized
     }
 }

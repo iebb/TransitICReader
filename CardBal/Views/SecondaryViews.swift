@@ -56,6 +56,7 @@ struct SavedFaceAssetPickerSheet: View {
     let store: CardWalletStore
     let excludingFileName: String?
     let onSelect: (String) -> Void
+    let onSelectPreset: (CardPreset) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -69,39 +70,56 @@ struct SavedFaceAssetPickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if assets.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.secondary)
-                        Text("No Saved Images")
-                            .font(.title2.bold())
-                        Text("Add a card image first, then you can reuse it here.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Section {
                         LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(assets) { asset in
+                            ForEach(store.presets()) { preset in
                                 Button {
-                                    onSelect(asset.fileName)
+                                    onSelectPreset(preset)
                                 } label: {
-                                    preview(fileName: asset.fileName)
-                                        .padding(10)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        if let img = UIImage(named: preset.fileName) {
+                                            Image(uiImage: img)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .aspectRatio(85.6 / 53.98, contentMode: .fit)
+                                                .frame(maxWidth: .infinity)
+                                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                        }
+                                        Text(preset.name).font(.caption.bold()).lineLimit(1).foregroundStyle(.secondary)
+                                    }
+                                    .padding(10)
+                                    .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(16)
+                    } header: {
+                        Text("Presets").font(.headline).foregroundStyle(.secondary).padding(.horizontal, 4)
+                    }
+
+                    if !assets.isEmpty {
+                        Section {
+                            LazyVGrid(columns: columns, spacing: 12) {
+                                ForEach(assets) { asset in
+                                    Button {
+                                        onSelect(asset.fileName)
+                                    } label: {
+                                        preview(fileName: asset.fileName)
+                                            .padding(10)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        } header: {
+                            Text("Saved Designs").font(.headline).foregroundStyle(.secondary).padding(.horizontal, 4)
+                        }
                     }
                 }
+                .padding(16)
             }
             .navigationTitle("Reuse Design")
             .navigationBarTitleDisplayMode(.inline)

@@ -94,6 +94,7 @@ struct WAONDecoder: TransitCardDecoder {
             resultFields: resultFields,
             rawSections: rawSections,
             transactions: [],
+            transitHistory: [],
             scannedAt: scannedAt
         )
     }

@@ -7,6 +7,12 @@ struct SavedFaceAsset: Identifiable, Hashable {
     var id: String { fileName }
 }
 
+struct CardPreset: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let fileName: String
+}
+
 class CardWalletStore: ObservableObject {
     @Published var cards: [SavedCardRecord] = []
     @Published var isSyncing: Bool = false
@@ -85,15 +91,45 @@ class CardWalletStore: ObservableObject {
             cards[index].realSerialNumber = snapshot.realSerialNumber
             cards[index].enhancedFeliCaDecoded = false
             cards[index].transactions = snapshot.transactions
+            cards[index].transitHistory = snapshot.transitHistory
             cards[index].issuingCity = snapshot.resultFields.first(where: { $0.title == "Issuing City" })?.value
             cards[index].cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
             cards[index].issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
             cards[index].expiryDateStr = snapshot.resultFields.first(where: { $0.title == "Expiry Date" })?.value
+            autoApplyPresetIfMatching(id: id)
         } else {
             let record = SavedCardRecord(snapshot: snapshot)
             cards.insert(record, at: 0)
+            autoApplyPresetIfMatching(id: id)
         }
         save()
+    }
+
+    private func autoApplyPresetIfMatching(id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        let card = cards[index]
+        if card.faceImageFileName != nil { return }
+        
+        let family = card.cardFamily.lowercased()
+        let sn = card.realSerialNumber?.uppercased() ?? ""
+        
+        let allPresets = presets()
+        // Try family name match
+        if let match = allPresets.first(where: { family.contains($0.name.lowercased()) }) {
+            applyPreset(match, to: id)
+        } 
+        // Try SN prefix match
+        else {
+            let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "PI": "PiTaPa", "TO": "TOICA"]
+            for (prefix, brand) in jpPrefixes {
+                if sn.hasPrefix(prefix) {
+                    if let match = allPresets.first(where: { $0.name == brand }) {
+                        applyPreset(match, to: id)
+                        break
+                    }
+                }
+            }
+        }
     }
 
     func setCustomTitle(_ title: String, for id: String) {
@@ -105,6 +141,22 @@ class CardWalletStore: ObservableObject {
     func setCustomDisplaySerialNumber(_ sn: String, for id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
         cards[index].customDisplaySerialNumber = sn
+        save()
+    }
+
+    func setRealSerialNumber(_ sn: String, for id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        let snUpper = sn.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        cards[index].realSerialNumber = snUpper
+        
+        let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "PI": "PiTaPa", "TO": "TOICA"]
+        for (prefix, brand) in jpPrefixes {
+            if snUpper.hasPrefix(prefix) {
+                cards[index].cardFamily = brand
+                break
+            }
+        }
+        autoApplyPresetIfMatching(id: id)
         save()
     }
 
@@ -231,6 +283,38 @@ class CardWalletStore: ObservableObject {
         return deduplicatedFaceFileNames(fileNames)
             .filter { $0.lowercased().hasSuffix(".jpg") || $0.lowercased().hasSuffix(".jpeg") || $0.lowercased().hasSuffix(".png") }
             .sorted().map { SavedFaceAsset(fileName: $0) }
+    }
+
+    func presets() -> [CardPreset] {
+        return [
+            CardPreset(id: "JE", name: "Suica", fileName: "suica"),
+            CardPreset(id: "PB", name: "PASMO", fileName: "pasmo"),
+            CardPreset(id: "JW", name: "ICOCA", fileName: "icoca"),
+            CardPreset(id: "FC", name: "Hayakaken", fileName: "hayakaken"),
+            CardPreset(id: "JK", name: "SUGOCA", fileName: "sugoca"),
+            CardPreset(id: "TP", name: "Manaca", fileName: "manaca"),
+            CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
+            CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
+            CardPreset(id: "PiTaPa", name: "PiTaPa", fileName: "pitapa"),
+            CardPreset(id: "TOICA", name: "TOICA", fileName: "toica")
+        ]
+    }
+
+    func applyPreset(_ preset: CardPreset, to id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }),
+              let image = UIImage(named: preset.fileName) else { return }
+              
+        // We actually want to copy it to the face directory so it behaves like a regular asset (for sync/iCloud)
+        if let jpegData = image.jpegData(compressionQuality: 0.9) {
+            let fileName = "\(preset.fileName).jpg"
+            let url = cardFaceFileURL(fileName: fileName)
+            try? jpegData.write(to: url)
+            
+            cards[index].faceImageFileName = fileName
+            cards[index].isUsingImage = true
+            applyAutoImageTextColors(to: &cards[index], image: image)
+            save()
+        }
     }
 
     func isFaceAssetUsed(_ fileName: String) -> Bool {

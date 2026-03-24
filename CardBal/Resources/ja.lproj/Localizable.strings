@@ -52,6 +52,9 @@
 "top_up" = "チャージ";
 "consumption" = "利用";
 
+"tap_on" = "入場";
+"tap_off" = "出場";
+
 "pay_00" = "現金 / なし";
 "pay_02" = "VIEW";
 "pay_0B" = "PiTaPa";

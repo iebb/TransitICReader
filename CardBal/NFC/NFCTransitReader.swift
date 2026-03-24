@@ -48,6 +48,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
+        print("[READER] Starting session with options: \(options)")
         beginScanning(options: options)
     }
 
@@ -114,6 +115,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
             resultFields: mergedResults,
             rawSections: mergedRaw,
             transactions: feliCa.transactions + iso7816.transactions,
+            transitHistory: feliCa.transitHistory + iso7816.transitHistory,
             scannedAt: feliCa.scannedAt
         )
     }
@@ -137,7 +139,16 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
     }
 
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
+        let msgDet = "[READER] Detected \(tags.count) tag(s)"
+        os_log("%{public}@", msgDet)
+        if tags.count > 1 {
+            session.alertMessage = "More than 1 card detected. Please keep only 1."
+            session.restartPolling()
+            return
+        }
+        
         guard let tag = tags.first else { return }
+        NSLog("[READER] Processing tag: \(tag)")
 
         Task {
             do {
@@ -184,6 +195,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                                     resultFields: feliCaSnapshot.resultFields,
                                     rawSections: feliCaSnapshot.rawSections,
                                     transactions: feliCaSnapshot.transactions,
+                                    transitHistory: feliCaSnapshot.transitHistory,
                                     scannedAt: feliCaSnapshot.scannedAt
                                 )
                             }

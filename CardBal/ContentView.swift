@@ -46,6 +46,7 @@ struct ContentView: View {
 struct ScanHomeView: View {
     @ObservedObject var reader: NFCTransitReader
     @ObservedObject var cardStore: CardWalletStore
+    @State private var isShowingSNScanner = false
     @State private var didAutoStartScan = false
     @State private var detailRoute: CardDetailRoute?
     @AppStorage("hideWelcomeMessage") private var hideWelcomeMessage = false
@@ -79,10 +80,8 @@ struct ScanHomeView: View {
                         .frame(height: (UIScreen.main.bounds.width - 40) / (85.6 / 53.98))
                         .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                     }
-                }
 
-                Section("Result") {
-                    if let snapshot = reader.latestSnapshot {
+                    Section("Result") {
                         KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
                         ForEach(primaryResultFields(for: snapshot)) { field in
                             KeyValueRow(title: field.title, value: field.value)
@@ -91,34 +90,88 @@ struct ScanHomeView: View {
                             KeyValueRow(title: "Balance", value: balance)
                         }
                         KeyValueRow(title: "Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(snapshot.scannedAt))
-                    } else {
+                        
+                        // JP physical SN scan link
+                        let f = snapshot.cardFamily.lowercased()
+                        if snapshot.technology == "FeliCa" && (snapshot.systemCode == "0003" || f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("ic")) {
+                            let sn = cardStore.card(withID: snapshot.storageIdentifier)?.realSerialNumber
+                            if sn == nil {
+                                Button {
+                                    isShowingSNScanner = true
+                                } label: {
+                                    Label("Link Physical S/N", systemImage: "barcode.viewfinder")
+                                }
+                                .tint(Color.accentColor)
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .listRowSeparator(.hidden)
+                                .padding(.top, 4)
+                            } else {
+                                KeyValueRow(title: "Physical S/N", value: sn!)
+                            }
+                        }
+                    }
+
+                    if !snapshot.transactions.isEmpty {
+                        Section("Recent Transactions") {
+                            let sorted = snapshot.transactions.sorted { t1, t2 in
+                                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
+                                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
+                            }
+                            ForEach(sorted) { tx in
+                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
+                                    .padding(.vertical, 4)
+                            }
+                        }
+                    }
+
+                    if !snapshot.transitHistory.isEmpty {
+                        Section("Transit Activity") {
+                            let sorted = snapshot.transitHistory.sorted { t1, t2 in
+                                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
+                                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
+                            }
+                            ForEach(sorted) { tx in
+                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
+                                    .padding(.vertical, 4)
+                            }
+                        }
+                    }
+
+                    if !snapshot.rawSections.isEmpty {
+                        Section("Raw Data") {
+                            RawDataSectionList(snapshot: snapshot)
+                        }
+                    }
+                    
+                    if snapshot.cardFamily == "Lignes d'Azur card",
+                       !niceTicketFields(from: snapshot).isEmpty {
+                        Section("Tickets") {
+                            NiceTicketSummaryCard(snapshot: snapshot)
+                            ForEach(niceTicketFields(from: snapshot)) { field in
+                                KeyValueRow(title: field.title, value: field.value)
+                            }
+                        }
+                    }
+                } else if !reader.isScanning {
+                    Section("Result") {
                         Text("No card scanned yet.").foregroundStyle(.secondary)
                     }
                 }
 
-                if let snapshot = reader.latestSnapshot, !snapshot.transactions.isEmpty {
-                    Section("Recent Transactions") {
-                        ForEach(snapshot.transactions) { tx in
-                            TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
-                                .padding(.vertical, 4)
+                if reader.isScanning {
+                    Section {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 8) {
+                                ProgressView()
+                                Text("Scanning Card...")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
                         }
-                    }
-                }
-
-                if let snapshot = reader.latestSnapshot, !snapshot.rawSections.isEmpty {
-                    Section("Raw Data") {
-                        RawDataSectionList(snapshot: snapshot)
-                    }
-                }
-
-                if let snapshot = reader.latestSnapshot,
-                   snapshot.cardFamily == "Lignes d'Azur card",
-                   !niceTicketFields(from: snapshot).isEmpty {
-                    Section("Tickets") {
-                        NiceTicketSummaryCard(snapshot: snapshot)
-                        ForEach(niceTicketFields(from: snapshot)) { field in
-                            KeyValueRow(title: field.title, value: field.value)
-                        }
+                        .padding(.vertical, 20)
                     }
                 }
 
@@ -138,9 +191,8 @@ struct ScanHomeView: View {
                 }
             }
             .onAppear { 
-                let scanOnLaunch = UserDefaults.standard.bool(forKey: "scanOnLaunch")
                 if !didAutoStartScan {
-                    if scanOnLaunch {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         reader.startScanning()
                     }
                     didAutoStartScan = true 
@@ -269,7 +321,7 @@ struct CardsView: View {
 
 struct SettingsView: View {
     @ObservedObject var store: CardWalletStore
-    @AppStorage("scanOnLaunch") private var scanOnLaunch = false
+    @AppStorage("scanOnLaunch") private var scanOnLaunch = true
     @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
 
@@ -436,14 +488,24 @@ private struct RawDataSectionList: View {
             DisclosureGroup(section.title) {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(section.fields) { field in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(field.title)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(field.value)
-                                .font(.footnote.monospaced())
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(field.title)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(field.value)
+                                    .font(.footnote.monospaced())
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            Button {
+                                UIPasteboard.general.string = field.value
+                            } label: {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
                         }
                         .padding(.vertical, 2)
                     }

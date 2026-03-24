@@ -1,40 +1,131 @@
 import Foundation
 import CoreNFC
+import os
 
 struct KSX6924Decoder: TransitCardDecoder {
     static func canDecode(tag: NFCTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         let aid = iso.initialSelectedAID
-        return aid.hasPrefix("A0000000014B4F52") || aid == "A0000004520001" || aid.hasPrefix("D4100000") || aid.hasPrefix("D41065")
+        let can = aid.hasPrefix("A0000000014B4F52") || aid == "A0000004520001" || aid.hasPrefix("D4100000") || aid.hasPrefix("D41065")
+        let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
+        logger.error("[KSX6924] canDecode evaluation: AID=\(aid, privacy: .public), Result=\(can ? 1 : 0)")
+        return can
     }
 
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
         let selectedAID = iso.initialSelectedAID
         
-        let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
-        let initialResponse = try? await iso.sendCommand(apdu: selectApdu)
-        let initialSelectResponse = initialResponse.map { NFCISO7816ResponseAPDU(statusWord1: $0.1, statusWord2: $0.2, payload: $0.0) }
+        let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
+        logger.error("[KSX6924] Starting decode for AID: \(selectedAID, privacy: .public)")
         
-        let configInfo = initialSelectResponse.flatMap { KSX6924ConfigDFInfo(fciPayload: $0.payload ?? Data(), selectedAID: selectedAID) }
+        let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
+        logger.error("[KSX6924_APDU] TX Select AID: \(selectedAID, privacy: .public)")
+        let initialResponse = try await iso.sendCommand(apdu: selectApdu)
+        logger.error("[KSX6924_APDU] RX Select AID: SW=\(String(format: "%02X%02X", initialResponse.1, initialResponse.2)), Data=\(initialResponse.0.hexString)")
+        
+        let initialSelectResponse = NFCISO7816ResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
+        
+        let configInfo = KSX6924ConfigDFInfo(fciPayload: initialSelectResponse.payload ?? Data(), selectedAID: selectedAID)
         let applicationAID = configInfo?.mainApplicationAID ?? selectedAID
         
         if applicationAID != selectedAID {
             let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: applicationAID), expectedResponseLength: 256)
-            _ = try? await iso.sendCommand(apdu: selectApdu)
+            logger.error("[KSX6924_APDU] TX Select App AID: \(applicationAID, privacy: .public)")
+            let res = try await iso.sendCommand(apdu: selectApdu)
+            logger.error("[KSX6924_APDU] RX Select App AID: SW=\(String(format: "%02X%02X", res.1, res.2)), Data=\(res.0.hexString)")
         }
         
         let balanceApdu = NFCISO7816APDU(instructionClass: 0x90, instructionCode: 0x4C, p1Parameter: 0x00, p2Parameter: 0x00, data: Data(), expectedResponseLength: 4)
+        logger.error("[KSX6924_APDU] TX Get Balance")
         let balanceResponse = try await iso.sendCommand(apdu: balanceApdu)
+        logger.error("[KSX6924_APDU] RX Get Balance: SW=\(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2)), Data=\(balanceResponse.0.hexString)")
         
         let infoApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x0C, data: Data(), expectedResponseLength: 256)
+        logger.error("[KSX6924_APDU] TX Get Info (P1:01, P2:0C)")
         let infoResponse = try? await iso.sendCommand(apdu: infoApdu)
+        if let infoRes = infoResponse {
+            logger.error("[KSX6924_APDU] RX Get Info: SW=\(String(format: "%02X%02X", infoRes.1, infoRes.2)), Data=\(infoRes.0.hexString)")
+        }
         
         let profile = KSX6924CardProfile.matching(aid: applicationAID)
-        let purseInfo = (initialSelectResponse?.payload).flatMap { KSX6924PurseInfo(fciPayload: $0) }
+        let purseInfo = KSX6924PurseInfo(fciPayload: initialSelectResponse.payload ?? Data())
         let parsedCardInfo = KSX6924CardInfo(payload: infoResponse?.0 ?? Data(), purseInfo: purseInfo, configInfo: configInfo)
         
         let parsedBalance = profile.parseBalance(balanceResponse.0)
+        
+        var transactions: [TransitTransaction] = []
+        var transitHistory: [TransitTransaction] = []
+        let isNAMANE = profile.displayName == "NAMANE"
+        
+        for sfi in profile.targetSFIs {
+            logger.error("[KSX6924] Target SFI for \(profile.displayName): \(sfi)")
+            let parser = profile.sfiParsers[sfi] ?? KSX6924Decoder.parseSingleTransaction
+            
+            // Try standard P2 (SFI in P2) and alternate P2 (SFI in P1)
+            for p2 in [(sfi << 3) | 4, UInt8(0x00)] {
+                var tempTx: [TransitTransaction] = []
+                var foundViaRecord = false
+                
+                for i in 1...20 {
+                    let le = 256
+                    let recApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: le)
+                    logger.error("[KSX6924_APDU] TX Read Record SFI:\(sfi) P2:\(String(format: "%02X", p2)) Rec:\(i)")
+                    guard var res = try? await iso.sendCommand(apdu: recApdu) else { break }
+                    logger.error("[KSX6924_APDU] RX Read Record: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
+                    
+                    if res.1 == 0x6C {
+                        let newLe = Int(res.2)
+                        let retryApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: newLe)
+                        guard let resRetry = try? await iso.sendCommand(apdu: retryApdu) else { break }
+                        res = resRetry
+                    }
+                    
+                    if res.1 == 0x90, res.2 == 0x00, res.0.count >= 16 {
+                        if let tx = parser(res.0, sfi, i, isNAMANE, logger) {
+                            tempTx.append(tx)
+                            foundViaRecord = true
+                        }
+                    } else if res.1 == 0x6A {
+                        break
+                    }
+                }
+                
+                if !foundViaRecord && p2 != 0x00 {
+                    let binApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 256)
+                    logger.error("[KSX6924_APDU] TX Read Binary SFI:\(sfi)")
+                    if let res = try? await iso.sendCommand(apdu: binApdu) {
+                        logger.error("[KSX6924_APDU] RX Read Binary: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
+                        if res.1 == 0x90, res.2 == 0x00, res.0.count >= 32 {
+                            for strideLen in [16, 23, 27, 32, 44, 46, 48] {
+                                var strideTx: [TransitTransaction] = []
+                                for i in 0..<(res.0.count / strideLen) {
+                                    let block = res.0.subdata(in: (i*strideLen)..<((i+1)*strideLen))
+                                    if let tx = parser(block, sfi, i + 1, isNAMANE, logger) { strideTx.append(tx) }
+                                }
+                                if !strideTx.isEmpty { tempTx = strideTx; break }
+                            }
+                        }
+                    }
+                }
+                
+                if !tempTx.isEmpty {
+                    let isTransit = (sfi == 1 || sfi == 2 || sfi == 3)
+                    if isTransit {
+                        // Invert record order so newest (first read) gets highest number
+                        let count = tempTx.count
+                        tempTx = tempTx.enumerated().map { idx, tx in
+                            TransitTransaction(date: tx.date, time: tx.time, amount: tx.amount, terminalID: tx.terminalID, type: tx.type, balanceAfter: tx.balanceAfter, location: tx.location, entryStation: tx.entryStation, exitStation: tx.exitStation, rawData: tx.rawData, recordNumber: count - idx, ntsam: tx.ntsam, distance: tx.distance)
+                        }
+                        transitHistory.append(contentsOf: tempTx)
+                    } else {
+                        transactions.append(contentsOf: tempTx)
+                    }
+                    logger.error("[KSX6924] SUCCESS: Found \(tempTx.count) logs in SFI \(sfi), categorized as \(isTransit ? "Transit" : "Balance") history")
+                    break
+                }
+            }
+        }
         
         var rawSections: [RawDataSection] = [
             RawDataSection(title: "Tag", fields: [
@@ -61,53 +152,259 @@ struct KSX6924Decoder: TransitCardDecoder {
             pmm: nil,
             systemCode: nil,
             selectedAID: applicationAID,
-            balanceText: parsedBalance?.formatted,
-            balanceDetail: parsedBalance?.detail,
+            balanceText: parsedBalance.formatted,
+            balanceDetail: parsedBalance.detail,
             realSerialNumber: parsedCardInfo.cardNumber,
-            region: nil,
+            region: "South Korea",
             resultFields: parsedCardInfo.resultFields,
             rawSections: rawSections,
-            transactions: [],
+            transactions: transactions.sorted(by: { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }),
+            transitHistory: transitHistory.sorted(by: { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }),
             scannedAt: scannedAt
         )
+    }
+
+    static func parseSingleTransaction(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
+        if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { return nil }
+        
+        if block.count >= 40 {
+            // New Layout:
+            // 0: Type (1 trip, 2 topup)
+            // 1: Unknown
+            // 2-5: New Balance (4 BE)
+            // 6-9: NTEP (4 BE)
+            // 10-13: M Fare (4 BE)
+            // 14-21: IDSAM (8 BCD)
+            // 22-25: NTSAM (4 BE)
+            // 26-32: Timestamp (7 BCD)
+            
+            let balanceVal = block.bigEndianInt(start: 2, length: 4)
+            let balance = Decimal(balanceVal)
+            
+            let ntep = block.bigEndianInt(start: 6, length: 4)
+            let fareVal = block.bigEndianInt(start: 10, length: 4)
+            let fare = Decimal(fareVal)
+            
+            let idsam = block.subdata(in: 14..<22).hexString
+            let ntsam = block.bigEndianInt(start: 22, length: 4)
+            
+            let type = block[0]
+            let isTopup = type == 0x02
+            let signedAmount = isTopup ? fare : -fare
+            var typeStr = isTopup ? "Top-up" : "Payment"
+            if fareVal == 0 { typeStr = "Entry" }
+            
+            var foundDate: Date?
+            var displayTime = (isNAMANE || (!isNAMANE && sfi == 4)) ? "Record #\(ntep)" : "N/A"
+            
+            if block.count >= 26 + 7 {
+                let h = block.subdata(in: 26..<26+7).hexString
+                if h != "00000000000000" && h.hasPrefix("20") {
+                    var components = DateComponents()
+                    components.year = Int(h.prefix(4))
+                    components.month = Int(h.dropFirst(4).prefix(2))
+                    components.day = Int(h.dropFirst(6).prefix(2))
+                    components.hour = Int(h.dropFirst(8).prefix(2))
+                    components.minute = Int(h.dropFirst(10).prefix(2))
+                    components.second = Int(h.dropFirst(12).prefix(2))
+                    
+                    if let yr = components.year, yr >= 2020, yr <= 2030,
+                       let mo = components.month, mo >= 1, mo <= 12,
+                       let dy = components.day, dy >= 1, dy <= 31 {
+                        foundDate = Calendar.current.date(from: components)
+                        displayTime = String(format: "%02d:%02d:%02d", components.hour ?? 0, components.minute ?? 0, components.second ?? 0)
+                    }
+                }
+            }
+            
+            let syntheticDate = Date(timeIntervalSince1970: TimeInterval(ntep * 3600)) 
+            
+            logger.error("[KSX6924_TX] SFI \(sfi) Rec \(ntep): Bal=\(balanceVal), Fare=\(fareVal)")
+            return TransitTransaction(date: foundDate ?? syntheticDate, time: displayTime, amount: signedAmount, terminalID: idsam, type: typeStr, balanceAfter: balance, rawData: block.hexString, recordNumber: ntep, ntsam: ntsam)
+        }
+        return nil
+    }
+
+    static func parseTransitHistory(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
+        logger.error("[KSX6924_TH] Parsing Record \(recordIndex) from SFI \(sfi): \(block.hexString)")
+        if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { 
+            return nil 
+        }
+        // T-money SFI 3 Transit Record (52 bytes)
+        if block.count >= 52 {
+            let tripState = block[2]
+            let subtype = block[8]
+            
+            let dtRaw = UInt32(block.bigEndianInt(start: 11, length: 4))
+            let timestamp = decodeTMoneyPackedTime(dtRaw)
+            
+            let distanceM = block.bigEndianInt(start: 18, length: 3)
+            let amountMain = block.bigEndianInt(start: 22, length: 2)
+            let extraExitCharge = block.bigEndianInt(start: 34, length: 2) * 10
+            let locationCode = block.bigEndianInt(start: 44, length: 2)
+            var typeStr = "unknown"
+            var amountToDisplay = amountMain
+            var cat: TransactionCategory = .unknown
+            
+            let isTrain = (subtype == 0x20 || subtype == 0x30)
+            
+            if tripState == 0x00 { 
+                typeStr = NSLocalizedString("tap_on", comment: "tap-on")
+                cat = isTrain ? .trainOn : .busOn
+            } else if tripState == 0x01 { 
+                typeStr = NSLocalizedString("tap_off", comment: "tap-off")
+                cat = isTrain ? .trainOff : .busOff
+                amountToDisplay = extraExitCharge
+            }
+            
+            let distKm = Double(distanceM) / 1000.0
+            let details = distKm > 0 ? String(format: " (%.1f km)", distKm) : ""
+            
+            let tx = TransitTransaction(
+                date: timestamp.date,
+                time: timestamp.timeStr,
+                amount: Decimal(-amountToDisplay),
+                terminalID: String(format: "%04X", locationCode),
+                type: typeStr + details,
+                category: cat,
+                balanceAfter: nil,
+                rawData: block.hexString,
+                recordNumber: recordIndex,
+                distance: distKm > 0 ? distKm : nil
+            )
+            return tx
+        }
+        
+        // Legacy/Generic (16-32 bytes)
+        if block.count >= 18 {
+            let balance = Decimal(block.bigEndianInt(start: 14, length: 4))
+            let cost = Decimal(block.bigEndianInt(start: 10, length: 4))
+            
+            var foundDate: Date?
+            var displayTime = "Record #\(recordIndex)"
+            if block.count >= 9 {
+                let h = block.subdata(in: 2..<9).hexString
+                if h != "00000000000000" && h.hasPrefix("20") {
+                    var components = DateComponents()
+                    components.year = Int(h.prefix(4))
+                    components.month = Int(h.dropFirst(4).prefix(2))
+                    components.day = Int(h.dropFirst(6).prefix(2))
+                    components.hour = Int(h.dropFirst(8).prefix(2))
+                    components.minute = Int(h.dropFirst(10).prefix(2))
+                    components.second = Int(h.dropFirst(12).prefix(2))
+                    
+                    if let yr = components.year, yr >= 2020, yr <= 2030,
+                       let mo = components.month, mo >= 1, mo <= 12,
+                       let dy = components.day, dy >= 1, dy <= 31 {
+                        foundDate = Calendar.current.date(from: components)
+                        displayTime = String(format: "%02d:%02d:%02d", components.hour ?? 0, components.minute ?? 0, components.second ?? 0)
+                    }
+                }
+            }
+            
+            var details = ""
+            if block.count >= 24 {
+                let km = Int(block[22]) * 256 + Int(block[23])
+                if km > 0 {
+                    details = " (\(km) km)"
+                }
+            }
+            
+            let syntheticDate = Date(timeIntervalSince1970: TimeInterval(recordIndex * 3600))
+            let tx = TransitTransaction(date: foundDate ?? syntheticDate, time: displayTime, amount: -cost, terminalID: block.prefix(2).hexString, type: "Transit" + details, balanceAfter: balance, rawData: block.hexString)
+            return tx
+        }
+        return nil
+    }
+
+    private static func decodeTMoneyPackedTime(_ v: UInt32) -> (date: Date, timeStr: String) {
+        let dateWord = UInt16(v >> 16)
+        let timeWord = UInt16(v & 0xFFFF)
+        
+        let year = 2000 + Int(dateWord >> 9)
+        let month = Int((dateWord >> 5) & 0x0F)
+        let day = Int(dateWord & 0x1F)
+        
+        let hour = Int(timeWord >> 11)
+        let minute = Int((timeWord >> 5) & 0x3F)
+        let second = Int(timeWord & 0x1F) * 2
+        
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        components.hour = hour
+        components.minute = minute
+        components.second = second
+        
+        let date = Calendar.current.date(from: components) ?? Date.distantPast
+        let timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
+        return (date, timeStr)
+    }
+
+    static func parseNAMANELog(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
+        if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { return nil }
+        // Offset 0: Type
+        // Offset 2-5: Balance (4 BE)
+        // Offset 6-9: Counter / Record ID (4 BE)
+        // Offset 10-13: Amount (4 BE)
+        if block.count >= 14 {
+            let balance = Decimal(block.bigEndianInt(start: 2, length: 4))
+            let amountVal = block.bigEndianInt(start: 10, length: 4)
+            let amount = Decimal(amountVal)
+            let type = block[0]
+            let isTopup = type == 0x02
+            let signedAmount = isTopup ? amount : -amount
+            let typeStr = isTopup ? "Top-up" : (amountVal == 0 ? "Entry" : "Payment")
+            let cardRecordID = Int(block.bigEndianInt(start: 6, length: 4))
+            let displayTime = "Record #\(cardRecordID)"
+            let syntheticDate = Date(timeIntervalSince1970: TimeInterval(cardRecordID * 3600))
+            return TransitTransaction(date: syntheticDate, time: displayTime, amount: signedAmount, terminalID: block.prefix(2).hexString, type: typeStr, balanceAfter: balance, rawData: block.hexString)
+        }
+        return nil
     }
 }
 
 private struct KSX6924CardProfile {
     let displayName: String
     let aid: String
-    let parseBalance: (Data) -> ParsedBalance?
+    let targetSFIs: [UInt8]
+    let sfiParsers: [UInt8: (Data, UInt8, Int, Bool, os.Logger) -> TransitTransaction?]
+    let parseBalance: (Data) -> ParsedBalance
 
     static func matching(aid: String) -> KSX6924CardProfile {
         let normalized = aid.uppercased()
-        
-        // Climate Card (Gi-hu-dong-haeng)
-        if normalized == "D4100000030006" {
-            return KSX6924CardProfile(displayName: "Climate Card", aid: normalized, parseBalance: ksx6924BalanceParser)
+        if normalized.hasPrefix("D410000003") { 
+            return KSX6924CardProfile(displayName: "T-money", aid: normalized, targetSFIs: [3, 4], 
+                sfiParsers: [
+                    3: KSX6924Decoder.parseTransitHistory,
+                    4: KSX6924Decoder.parseSingleTransaction
+                ],
+                parseBalance: ksx6924BalanceParser) 
         }
-        
-        if normalized.hasPrefix("D410000003") {
-            return KSX6924CardProfile(displayName: "T-money", aid: normalized, parseBalance: ksx6924BalanceParser)
+        if normalized.hasPrefix("D410000014") { 
+            return KSX6924CardProfile(displayName: "EZL / Cashbee", aid: normalized, targetSFIs: [3, 4], 
+                sfiParsers: [
+                    3: KSX6924Decoder.parseTransitHistory,
+                    4: KSX6924Decoder.parseSingleTransaction
+                ],
+                parseBalance: ksx6924BalanceParser) 
         }
-        if normalized.hasPrefix("D410000014") {
-            return KSX6924CardProfile(displayName: "EZL / Cashbee", aid: normalized, parseBalance: ksx6924BalanceParser)
+        if normalized.hasPrefix("D410000029") { 
+            return KSX6924CardProfile(displayName: "NAMANE", aid: normalized, targetSFIs: [14], 
+                sfiParsers: [14: KSX6924Decoder.parseNAMANELog],
+                parseBalance: ksx6924BalanceParser) 
         }
-        if normalized.hasPrefix("D410000029") {
-            return KSX6924CardProfile(displayName: "NAMANE", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        if normalized.hasPrefix("D410000030") {
-            return KSX6924CardProfile(displayName: "MOIBA", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        if normalized.hasPrefix("D410650990") {
-            return KSX6924CardProfile(displayName: "K-Cash", aid: normalized, parseBalance: ksx6924BalanceParser)
-        }
-        
-        return KSX6924CardProfile(displayName: "KS X 6924", aid: normalized, parseBalance: ksx6924BalanceParser)
+        // if normalized.hasPrefix("D410000030") { return KSX6924CardProfile(displayName: "MOIBA", aid: normalized, targetSFIs: [4], sfiParsers: [4: KSX6924Decoder.parseSingleTransaction], parseBalance: ksx6924BalanceParser) }
+        // if normalized.hasPrefix("D410650990") { return KSX6924CardProfile(displayName: "K-Cash", aid: normalized, targetSFIs: [4], sfiParsers: [4: KSX6924Decoder.parseSingleTransaction], parseBalance: ksx6924BalanceParser) }
+        return KSX6924CardProfile(displayName: "KS X 6924", aid: normalized, targetSFIs: [4], 
+            sfiParsers: [4: KSX6924Decoder.parseSingleTransaction],
+            parseBalance: ksx6924BalanceParser)
     }
 }
 
-private func ksx6924BalanceParser(data: Data) -> ParsedBalance? {
-    guard data.count >= 4 else { return nil }
+private func ksx6924BalanceParser(data: Data) -> ParsedBalance {
+    guard data.count >= 4 else { return ParsedBalance(formatted: "Error", detail: "Short data", rawFields: []) }
     let balance = data.bigEndianInt(start: 0, length: 4)
     return ParsedBalance(
         formatted: formatCurrency(amount: Decimal(balance), code: "KRW", fractionDigits: 0),
@@ -131,14 +428,12 @@ private struct KSX6924CardInfo {
     let issueDate: String?
     let purseInfoFields: [ResultField]?
     let purseInfoRawFields: [RawDataField]?
-    
     init(payload: Data, purseInfo: KSX6924PurseInfo?, configInfo: KSX6924ConfigDFInfo?) {
         self.cardNumber = purseInfo?.serial ?? configInfo?.serial ?? (payload.count >= 16 ? formatKoreanCardNumber(payload.sliceHexString(start: 8, length: 8)) : nil)
         self.issueDate = purseInfo?.issueDate ?? (payload.count >= 25 ? Self.formatIssueDate(payload.subdata(in: 21..<25)) : nil)
         self.purseInfoFields = purseInfo?.resultFields
         self.purseInfoRawFields = purseInfo?.purseInfoRawFields
     }
-    
     var resultFields: [ResultField] {
         var fields: [ResultField] = []
         if let cardNumber { fields.append(ResultField(title: "Card Number", value: cardNumber)) }
@@ -146,7 +441,6 @@ private struct KSX6924CardInfo {
         if let purseInfoFields { fields.append(contentsOf: purseInfoFields) }
         return fields
     }
-
     private static func formatIssueDate(_ bytes: Data) -> String? {
         let hex = bytes.hexString
         guard hex.count == 8 else { return nil }
@@ -178,24 +472,5 @@ private struct KSX6924PurseInfo {
 private func formatKoreanCardNumber(_ hex: String) -> String {
     let clean = hex.uppercased()
     guard clean.count == 16 else { return clean }
-    return stride(from: 0, to: 16, by: 4).map { index in
-        let start = clean.index(clean.startIndex, offsetBy: index)
-        let end = clean.index(start, offsetBy: 4)
-        return String(clean[start..<end])
-    }.joined(separator: " ")
-}
-
-extension Data {
-    init(hexString: String) {
-        var data = Data()
-        var text = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
-        if text.count % 2 != 0 { text = "0" + text }
-        var status = text.startIndex
-        while status < text.endIndex {
-            let nextIndex = text.index(status, offsetBy: 2)
-            if let byte = UInt8(text[status..<nextIndex], radix: 16) { data.append(byte) }
-            status = nextIndex
-        }
-        self = data
-    }
+    return stride(from: 0, to: 16, by: 4).map { index in String(clean[clean.index(clean.startIndex, offsetBy: index)..<clean.index(clean.startIndex, offsetBy: index+4)]) }.joined(separator: " ")
 }
