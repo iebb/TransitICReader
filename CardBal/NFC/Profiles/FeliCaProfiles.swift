@@ -26,7 +26,6 @@ public struct FeliCaProfile {
              if sn.hasPrefix("TP") { return "Manaca" }
              if sn.hasPrefix("KI") { return "Kitaca" }
              if sn.hasPrefix("NI") { return "Nimoca" }
-             if sn.hasPrefix("PI") { return "PiTaPa" }
              if sn.hasPrefix("TO") { return "TOICA" }
         }
         
@@ -65,7 +64,6 @@ public struct FeliCaProfile {
             "8FC1": "OKICA",
             "9027": "Kumamoto IC",
             "927A": "Hayakaken",
-            "8036": "Hayakaken",
             "93EC": "Ntasu T-Card"
         ]
         
@@ -120,7 +118,39 @@ public struct FeliCaProfile {
         ),
         FeliCaProfile(
             displayName: "IruCa",
-            systemCode: "DE80", // Keep as DE80 if it was working? User said 80DE. I'll check both.
+            systemCode: "80DE",
+            serviceCode: "008B",
+            serviceCodeLittleEndian: Data([0x8B, 0x00]),
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard block.count >= 13 else { return nil }
+                let balance = Int(block[11]) | (Int(block[12]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY"),
+                    detail: "Parsed from bytes 11-12.",
+                    rawFields: [RawDataField(title: "Value", value: "\(balance)")]
+                )
+            }
+        ),
+        FeliCaProfile(
+            displayName: "PASPY",
+            systemCode: "8592",
+            serviceCode: "008B",
+            serviceCodeLittleEndian: Data([0x8B, 0x00]),
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard block.count >= 13 else { return nil }
+                let balance = Int(block[11]) | (Int(block[12]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY"),
+                    detail: "Parsed from bytes 11-12.",
+                    rawFields: [RawDataField(title: "Value", value: "\(balance)")]
+                )
+            }
+        ),
+        FeliCaProfile(
+            displayName: "SAPICA",
+            systemCode: "865E",
             serviceCode: "008B",
             serviceCodeLittleEndian: Data([0x8B, 0x00]),
             brandOverrides: [:],

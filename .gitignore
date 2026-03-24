@@ -22,3 +22,5 @@ DerivedData
 
 # Project
 project.xcworkspace/
+*.xcarchive
+build_log.txt

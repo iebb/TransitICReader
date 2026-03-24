@@ -64,10 +64,13 @@ struct TransitTransaction: Identifiable, Hashable, Codable {
     let location: String?
     let entryStation: String?
     let exitStation: String?
+    let entryStationCode: String?
+    let exitStationCode: String?
+    let regionCode: Int?
     let rawData: String?
     let distance: Double?
     
-    init(date: Date?, time: String? = nil, amount: Decimal, terminalID: String?, type: String, category: TransactionCategory = .unknown, balanceAfter: Decimal? = nil, location: String? = nil, entryStation: String? = nil, exitStation: String? = nil, rawData: String? = nil, recordNumber: Int? = nil, ntsam: Int? = nil, distance: Double? = nil) {
+    init(date: Date?, time: String? = nil, amount: Decimal, terminalID: String?, type: String, category: TransactionCategory = .unknown, balanceAfter: Decimal? = nil, location: String? = nil, entryStation: String? = nil, exitStation: String? = nil, entryStationCode: String? = nil, exitStationCode: String? = nil, regionCode: Int? = nil, rawData: String? = nil, recordNumber: Int? = nil, ntsam: Int? = nil, distance: Double? = nil) {
         self.id = UUID()
         self.date = date
         self.time = time
@@ -81,8 +84,42 @@ struct TransitTransaction: Identifiable, Hashable, Codable {
         self.location = location
         self.entryStation = entryStation
         self.exitStation = exitStation
+        self.entryStationCode = entryStationCode
+        self.exitStationCode = exitStationCode
+        self.regionCode = regionCode
         self.rawData = rawData
         self.distance = distance
+    }
+}
+
+// MARK: - Decode on Demand Registry
+struct TransactionDecoderRegistry {
+    static func decode(raw: String, family: String, technology: String, context: [String], at index: Int) -> TransitTransaction? {
+        let data = Data(hexString: raw)
+        
+        // Skip empty/all-zeros block check
+        if data.allSatisfy({ $0 == 0x00 }) && !raw.isEmpty { return nil }
+
+        let contextData = context.compactMap { Data(hexString: $0) }
+        
+        if technology == "FeliCa" {
+            // Suica/Pasmo (Japanese Transit IC)
+            return JapaneseICDecoder.decodeTransaction(block: data, context: contextData, index: index, family: family)
+        } else if technology == "ISO7816" {
+            // KS X 6924 (Korean T-money/EZL/NAMANE)
+            if data.count == 52 {
+                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: false, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+            } else if data.count == 23 {
+                return TUnionDecoder.decodePBOC(data: data, index: index)
+            } else {
+                let isNAMANE = family == "NAMANE"
+                if isNAMANE && data.count == 14 {
+                    return KSX6924Decoder.parseNAMANELog(data, sfi: 14, recordIndex: index + 1, isNAMANE: true, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+                }
+                return KSX6924Decoder.parseSingleTransaction(data, sfi: 4, recordIndex: index + 1, isNAMANE: isNAMANE, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+            }
+        }
+        return nil
     }
 }
 
@@ -101,7 +138,7 @@ extension TransitTransaction {
         case .bus: return ("bus.fill", .cyan)
         case .payment, .unknown:
             let low = self.type.lowercased()
-            if low.contains("top-up") || low.contains("charge") || low.contains("入金") { 
+            if low.contains("top-up") || low.contains("charge") || low.contains("入入") || low.contains("入金") || low.contains("チャージ") { 
                 return ("arrow.down.left.circle.fill", .green) 
             }
             if low.contains("tap on") || low.contains("tap-on") || low.contains("进站") || low.contains("入場") || low.contains("tapon") { 
@@ -110,13 +147,13 @@ extension TransitTransaction {
             if low.contains("tap off") || low.contains("tap-off") || low.contains("出站") || low.contains("出場") || low.contains("tapoff") { 
                 return ("bus", .indigo) 
             }
-            if low.contains("goods") || low.contains("物販") || low.contains("purchase") { 
+            if low.contains("goods") || low.contains("物販") || low.contains("purchase") || low.contains("買い物") { 
                 return ("cart.fill", .orange) 
             }
             if low.contains("bus") || low.contains("バス") { 
                 return ("bus.fill", .cyan) 
             }
-            if low.contains("fare") || low.contains("journey") || low.contains("gate") || low.contains("運賃") || self.entryStation != nil { 
+            if low.contains("fare") || low.contains("journey") || low.contains("gate") || low.contains("運賃") || low.contains("利用") || self.entryStation != nil { 
                 return ("tram.fill", .blue) 
             }
             if low.contains("ticket") || low.contains("purchase") || low.contains("券") { 
@@ -152,8 +189,21 @@ struct TransitCardSnapshot: Identifiable {
     let region: String?
     let resultFields: [ResultField]
     let rawSections: [RawDataSection]
-    let transactions: [TransitTransaction]
-    let transitHistory: [TransitTransaction]
+    let rawTransactions: [String]
+    let rawTransitHistory: [String]
+    
+    var transactions: [TransitTransaction] {
+        rawTransactions.enumerated().compactMap { idx, hex in
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx)
+        }
+    }
+    
+    var transitHistory: [TransitTransaction] {
+        rawTransitHistory.enumerated().compactMap { idx, hex in
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx)
+        }
+    }
+    
     let scannedAt: Date
 }
 
@@ -242,9 +292,13 @@ struct TransitTransactionRow: View {
                 
                 VStack(alignment: .trailing, spacing: 2) {
                     if tx.amount != 0 {
-                        Text((tx.type.lowercased().contains("top-up") || tx.type.lowercased().contains("charge") ? "+" : "-") + 
+                        let lowType = tx.type.lowercased()
+                        let isTopUp = lowType.contains("top-up") || lowType.contains("charge") || lowType.contains("入金") || lowType.contains("チャージ")
+                        
+                        Text((isTopUp ? "+" : "-") + 
                              formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
                             .font(.headline.monospacedDigit().bold())
+                            .foregroundStyle(isTopUp ? .green : .primary)
                     } else {
                         Text("No Charge")
                             .font(.headline.monospacedDigit().bold())
@@ -298,12 +352,19 @@ struct TransactionDetailView: View {
                     } label: {
                         HStack {
                             Circle().fill(tx.iconInfo.color).frame(width: 8, height: 8)
-                            Text("Process")
+                            Text("TX Type")
                         }
                     }
                     
                     if let term = tx.terminalID, !isKorean {
-                        LabeledContent("Terminal", value: term)
+                        LabeledContent {
+                            Text(term)
+                        } label: {
+                            HStack {
+                                Circle().fill(.red).frame(width: 8, height: 8)
+                                Text("Terminal")
+                            }
+                        }
                     }
                     let lowType = tx.type.lowercased()
                     let isPurchase = tx.category == .purchase || lowType.contains("purchase") || lowType.contains("goods") || lowType.contains("物販")
@@ -338,7 +399,7 @@ struct TransactionDetailView: View {
                             Text(signedAmount)
                         } label: {
                             HStack {
-                                Circle().fill(.orange).frame(width: 8, height: 8)
+                                Circle().fill(.green).frame(width: 8, height: 8)
                                 Text("Amount")
                             }
                         }
@@ -357,19 +418,31 @@ struct TransactionDetailView: View {
                     
                     if let entry = tx.entryStation, !isPurchase {
                          LabeledContent {
-                             Text(entry)
+                             HStack(spacing: 4) {
+                                 Text(entry)
+                                 if let code = tx.entryStationCode {
+                                     Text("[\(code)]").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.tertiary)
+                                 }
+                             }
                          } label: {
-                             HStack {
-                                 Circle().fill(.cyan).frame(width: 8, height: 8)
+                             HStack(spacing: 6) {
+                                 Circle().fill(regionColor(tx.regionCode)).frame(width: 8, height: 8)
+                                 Circle().fill(.blue).frame(width: 8, height: 8)
                                  Text(tx.type.lowercased().contains("bus") ? "Operator" : "Entry")
                              }
                          }
                     }
                     if let exit = tx.exitStation, !isPurchase {
                          LabeledContent {
-                             Text(exit)
+                             HStack(spacing: 4) {
+                                 Text(exit)
+                                 if let code = tx.exitStationCode {
+                                     Text("[\(code)]").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.tertiary)
+                                 }
+                             }
                          } label: {
-                             HStack {
+                             HStack(spacing: 6) {
+                                 Circle().fill(regionColor(tx.regionCode)).frame(width: 8, height: 8)
                                  Circle().fill(.teal).frame(width: 8, height: 8)
                                  Text(tx.type.lowercased().contains("bus") ? "Station" : "Exit")
                              }
@@ -435,9 +508,9 @@ struct TransactionDetailView: View {
                         CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: cardFamily ?? "")
                         
                         let f = (cardFamily ?? "").lowercased()
-                        if f.contains("japan") || f.contains("suica") || f.contains("pasmo") {
-                             SuicaRawBreakdownView(raw: raw)
-                        } else if f.contains("t-money") || f.contains("ezl") || f.contains("namane") || f.contains("ks x") {
+                        if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") {
+                             SuicaRawBreakdownView(raw: raw, tx: tx)
+                        } else if f.contains("t-money") || f.contains("ezl") || f.contains("namane") || f.contains("ks x") || f.contains("climate") {
                              KoreanRawBreakdownView(raw: raw)
                         }
                     }
@@ -460,6 +533,17 @@ struct TransactionDetailView: View {
         let koreanFamilies = ["T-money", "NAMANE", "Climate Card", "EZL / Cashbee", "MOIBA", "K-Cash"]
         if let family = cardFamily, koreanFamilies.contains(family) { return "KRW" }
         return "JPY"
+    }
+
+    private func regionColor(_ area: Int?) -> Color {
+        guard let area = area else { return .secondary }
+        switch area {
+        case 0: return .green   // Kanto
+        case 1: return .orange  // Tokai
+        case 2: return .blue    // Kansai
+        case 3: return .cyan    // Kyushu
+        default: return .secondary
+        }
     }
 }
 
@@ -545,6 +629,7 @@ struct KoreanRawBreakdownView: View {
 
 struct SuicaRawBreakdownView: View {
     let raw: String
+    var tx: TransitTransaction? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -557,20 +642,17 @@ struct SuicaRawBreakdownView: View {
                 
                 let regionFull = Int(data[15])
                 let r1 = (regionFull >> 6) & 0x03
-                let r2 = (regionFull >> 4) & 0x03
-                let entryH = (regionFull >> 2) & 0x03
-                let exitH = regionFull & 0x03
                 
                 Group {
                     DetailRawRow(title: "Terminal", value: japaneseTerminal(console), hex: String(format: "0x%02X", console), color: .red)
-                    DetailRawRow(title: "Process", value: japaneseProcess(process), hex: String(format: "0x%02X", process), color: .orange)
+                    DetailRawRow(title: "TX Type", value: japaneseProcess(process), hex: String(format: "0x%02X", process), color: tx?.iconInfo.color ?? .orange)
                     DetailRawRow(title: "Payment Type", value: paymentType(payType), hex: String(format: "0x%02X", payType), color: .purple)
                     DetailRawRow(title: "Entry/Exit", value: ioTypeStatus(ioType), hex: String(format: "0x%02X", ioType), color: .pink)
                 }
                 
                 let rawDate = Int(data[4]) << 8 | Int(data[5])
                 let dateStr = String(format: "%02d-%02d-%02d", (rawDate >> 9) & 0x7F, (rawDate >> 5) & 0x0F, rawDate & 0x1F)
-                DetailRawRow(title: "Processing Date", value: "20\(dateStr)", hex: data.subdata(in: 4..<6).hexString, color: .brown)
+                DetailRawRow(title: "Processing Date", value: "20\(dateStr)", hex: data.subdata(in: 4..<6).hexString, color: .orange)
                 
                 if console == 199 || console == 200 || process == 70 || process == 198 || process == 203 {
                     let timeData = Int(data[6]) << 8 | Int(data[7])
@@ -578,10 +660,10 @@ struct SuicaRawBreakdownView: View {
                     let minute = (timeData >> 5) & 0x3F
                     let second = (timeData & 0x1F) * 2
                     let timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
-                    DetailRawRow(title: "Processing Time", value: timeStr, hex: data.subdata(in: 6..<8).hexString, color: .purple)
+                    DetailRawRow(title: "Processing Time", value: timeStr, hex: data.subdata(in: 6..<8).hexString, color: .cyan)
                     
                     let shopTerm = data.subdata(in: 8..<10).hexString.uppercased()
-                    DetailRawRow(title: "Vending Terminal ID", value: shopTerm, hex: "", color: .cyan)
+                    DetailRawRow(title: "Vending Terminal ID", value: shopTerm, hex: shopTerm, color: .teal)
                 } else {
                     let entryLow = Int(data[6]) << 8 | Int(data[7])
                     let exitLow = Int(data[8]) << 8 | Int(data[9])
@@ -591,35 +673,24 @@ struct SuicaRawBreakdownView: View {
                         let stopName = exitLow == 0 ? "N/A" : "Station \(String(format: "%04X", exitLow))"
                         
                         DetailRawRow(title: "Bus Operator", value: operatorName, hex: String(format: "0x%04X", entryLow), color: .cyan)
-                        DetailRawRow(title: "Bus Station", value: stopName, hex: String(format: "0x%04X", exitLow), color: .teal)
+                        DetailRawRow(title: "Bus Stop", value: stopName, hex: String(format: "0x%04X", exitLow), color: .teal)
                     } else {
                         let fullEntryCode = (r1 << 16) | entryLow
                         let fullExitCode = (r1 << 16) | exitLow
                         
-                        let entryName = StationResolver.shared.resolve(fullEntryCode) ?? "(Region \(r1)) Station \(String(format: "%04X", entryLow))"
-                        let exitName = StationResolver.shared.resolve(fullExitCode) ?? (exitLow == 0 ? nil : "(Region \(r1)) Station \(String(format: "%04X", exitLow))")
+                        let entryName = StationResolver.shared.resolve(fullEntryCode) ?? "Station \(String(format: "%X%04X", r1, entryLow))"
+                        let exitName = StationResolver.shared.resolve(fullExitCode) ?? (exitLow == 0 ? nil : "Station \(String(format: "%X%04X", r1, exitLow))")
                         
-                        DetailRawRow(title: "Entry Station", value: entryName, hex: "\(r1)-[0x\(String(format: "%04X", entryLow))]", color: .cyan)
-                        if let exit = exitName {
-                            DetailRawRow(title: "Exit Station", value: exit, hex: "\(r1)-[0x\(String(format: "%04X", exitLow))]", color: .teal)
-                        } else {
-                            DetailRawRow(title: "Exit Station", value: "None", hex: "", color: .teal)
+                        DetailRawRow(title: "Entry Station", value: entryName, hex: String(format: "0x%04X", entryLow), color: .cyan)
+                        if let exitName = exitName {
+                            DetailRawRow(title: "Exit Station", value: exitName, hex: String(format: "0x%04X", exitLow), color: .teal)
                         }
                     }
                 }
                 
-                let balance = Int(data[10]) | (Int(data[11]) << 8)
-                DetailRawRow(title: "Balance", value: "¥\(balance)", hex: data.subdata(in: 10..<12).hexString, color: .green)
-                
-                // byte 12 remains unknown
-                DetailRawRow(title: "Unknown (Byte 12)", value: String(format: "0x%02X", data[12]), hex: "")
-                
-                // Byte 13, 14 Transaction serial
-                let serial = Int(data[13]) << 8 | Int(data[14])
-                DetailRawRow(title: "Transaction Serial", value: "\(serial)", hex: data.subdata(in: 13..<15).hexString, color: .blue)
-                
-                // Byte 15 Station Region Code
-                DetailRawRow(title: "Station Region Code", value: "\(r1), \(r2)", hex: String(format: "0x%02X", regionFull), color: .indigo)
+                DetailRawRow(title: "Balance (LE)", value: "¥\(Int(data[10]) | (Int(data[11]) << 8))", hex: data.subdata(in: 10..<12).hexString, color: .green)
+                DetailRawRow(title: "Sequence", value: "\(data.bigEndianInt(start: 12, length: 3))", hex: data.subdata(in: 12..<15).hexString, color: .gray)
+                DetailRawRow(title: "Region Code", value: "\(r1)", hex: String(format: "0x%02X", regionFull), color: .brown)
             }
         }
         .padding(.top, 4)
@@ -838,10 +909,10 @@ struct CardRawDataHighlightView: View {
         let data = Data(hexString: raw)
         let highlights = getHighlights(for: cardFamily, tx: tx, dataCount: data.count)
         
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(0..<((data.count + 7) / 8), id: \.self) { row in
                 HStack(spacing: 0) {
-                    Text(String(format: "0x%02X: ", row * 8))
+                    Text(String(format: "0x%02X ", row * 8))
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.tertiary)
                         .padding(.trailing, 6)
@@ -863,16 +934,14 @@ struct CardRawDataHighlightView: View {
                     }
                 }
             }
-            if !highlights.isEmpty {
-                Divider().padding(.vertical, 6)
-                ForEach(highlights, id: \.label) { h in
-                    HStack {
-                        Circle().fill(h.color).frame(width: 8, height: 8)
-                        Text(h.label).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-            }
         }
+        .frame(
+            minWidth: 0,
+            maxWidth: .infinity,
+            minHeight: 0,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
         .padding(.vertical, 8)
         .overlay(alignment: .topTrailing) {
             Button {
@@ -930,23 +999,24 @@ struct CardRawDataHighlightView: View {
             }
         }
         
-        let isJP = f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("kitaca") || 
+        let isJP = f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || 
+                   f.contains("sugoca") || f.contains("nimoca") || f.contains("kitaca") || f.contains("toica") ||
                    f.contains("tobu") || f.contains("japan") || f.contains("feli") || f.contains("ic")
         if isJP && dataCount == 16 {
             let lowType = tx?.type.lowercased() ?? ""
             let isPurchase = tx?.category == .purchase || lowType.contains("purchase") || lowType.contains("goods") || lowType.contains("物販")
             
             return [
-                Highlight(range: 0..<1, color: .red, label: "Console"),
-                Highlight(range: 1..<2, color: tx?.iconInfo.color ?? .blue, label: "Process"),
-                Highlight(range: 2..<3, color: .purple, label: "Payment"),
-                Highlight(range: 3..<4, color: .pink, label: "E/E Flag"),
-                Highlight(range: 4..<6, color: .orange, label: "Date"),
-                Highlight(range: 6..<8, color: .cyan, label: isPurchase ? "Time" : "Entry Stn"),
-                Highlight(range: 8..<10, color: .teal, label: isPurchase ? "Unk/Shop" : "Exit Stn"),
+                Highlight(range: 0..<1, color: .red, label: "Terminal"),
+                Highlight(range: 1..<2, color: tx?.iconInfo.color ?? .blue, label: "TX Type"),
+                Highlight(range: 2..<3, color: .purple, label: "Payment Type"),
+                Highlight(range: 3..<4, color: .pink, label: "Entry/Exit"),
+                Highlight(range: 4..<6, color: .orange, label: "Processing Date"),
+                Highlight(range: 6..<8, color: .cyan, label: isPurchase ? "Processing Time" : "Entry Station"),
+                Highlight(range: 8..<10, color: .teal, label: isPurchase ? "Vending Terminal ID" : "Exit Station"),
                 Highlight(range: 10..<12, color: .green, label: "Balance (LE)"),
                 Highlight(range: 12..<15, color: .gray, label: "Sequence"),
-                Highlight(range: 15..<16, color: .brown, label: "Region")
+                Highlight(range: 15..<16, color: .brown, label: "Region Code")
             ]
         }
         

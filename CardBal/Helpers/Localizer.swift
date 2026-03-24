@@ -12,25 +12,19 @@ struct Localizer {
             lprojName = "zh-Hans"
         }
         
-        // Attempt to load from the specific bundle
+        // Attempt to load from the specific bundle using standard NSLocalizedString which handles caching well
         if let path = Bundle.main.path(forResource: lprojName, ofType: "lproj"),
            let bundle = Bundle(path: path) {
-            let localized = bundle.localizedString(forKey: key, value: nil, table: nil)
-            if localized != key {
-                return localized
-            }
+            return NSLocalizedString(key, tableName: nil, bundle: bundle, value: key, comment: "")
         }
         
-        // Fallback to English if the current locale bundle is missing the key
+        // Fallback to English
         if lprojName != "en",
            let path = Bundle.main.path(forResource: "en", ofType: "lproj"),
            let bundle = Bundle(path: path) {
-            let localized = bundle.localizedString(forKey: key, value: nil, table: nil)
-            if localized != key {
-                return localized
-            }
+            return NSLocalizedString(key, tableName: nil, bundle: bundle, value: key, comment: "")
         }
         
-        return key
+        return NSLocalizedString(key, value: key, comment: "")
     }
 }

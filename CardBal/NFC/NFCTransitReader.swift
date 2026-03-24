@@ -114,8 +114,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
             region: feliCa.region ?? iso7816.region,
             resultFields: mergedResults,
             rawSections: mergedRaw,
-            transactions: feliCa.transactions + iso7816.transactions,
-            transitHistory: feliCa.transitHistory + iso7816.transitHistory,
+            rawTransactions: feliCa.rawTransactions + iso7816.rawTransactions,
+            rawTransitHistory: feliCa.rawTransitHistory + iso7816.rawTransitHistory,
             scannedAt: feliCa.scannedAt
         )
     }
@@ -202,8 +202,8 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                                     region: feliCaSnapshot.region,
                                     resultFields: updatedFields,
                                     rawSections: feliCaSnapshot.rawSections,
-                                    transactions: feliCaSnapshot.transactions,
-                                    transitHistory: feliCaSnapshot.transitHistory,
+                                    rawTransactions: feliCaSnapshot.rawTransactions,
+                                    rawTransitHistory: feliCaSnapshot.rawTransitHistory,
                                     scannedAt: feliCaSnapshot.scannedAt
                                 )
                             }

@@ -83,7 +83,13 @@ struct ScanHomeView: View {
 
                     Section("Result") {
                         KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
-                        ForEach(primaryResultFields(for: snapshot)) { field in
+                        
+                        // Explicitly separate IDm and Physical S/N for FeliCa
+                        if snapshot.technology == "FeliCa" {
+                            KeyValueRow(title: "IDm", value: snapshot.identifierValue)
+                        }
+                        
+                        ForEach(primaryResultFields(for: snapshot).filter { $0.title != "Card Number (IDm)" && $0.title != "IDm" }) { field in
                             KeyValueRow(title: field.title, value: field.value)
                         }
                         if let balance = snapshot.balanceText {
@@ -91,23 +97,29 @@ struct ScanHomeView: View {
                         }
                         KeyValueRow(title: "Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(snapshot.scannedAt))
                         
-                        // JP physical SN scan link
+                        // Physical SN link/edit logic
                         let f = snapshot.cardFamily.lowercased()
                         if snapshot.technology == "FeliCa" && (snapshot.systemCode == "0003" || f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("ic")) {
                             let sn = cardStore.card(withID: snapshot.storageIdentifier)?.realSerialNumber
-                            if sn == nil {
-                                Button {
-                                    isShowingSNScanner = true
-                                } label: {
-                                    Label("Link Physical S/N", systemImage: "barcode.viewfinder")
+                            HStack {
+                                Label("Physical S/N", systemImage: "barcode.viewfinder").foregroundStyle(.secondary)
+                                Spacer()
+                                if let sn = sn {
+                                    HStack(spacing: 8) {
+                                        TextField("XX123 A456...", text: Binding(get: { sn ?? "" }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
+                                            .multilineTextAlignment(.trailing)
+                                            .textFieldStyle(.plain)
+                                            .font(.system(.body, design: .monospaced))
+                                        
+                                        Button { isShowingSNScanner = true } label: {
+                                            Image(systemName: "barcode.viewfinder").font(.caption)
+                                        }.buttonStyle(.bordered).controlSize(.mini)
+                                    }
+                                } else {
+                                    Button("Scan to Link") { isShowingSNScanner = true }
+                                        .font(.caption.bold())
+                                        .buttonStyle(.bordered).controlSize(.small)
                                 }
-                                .tint(Color.accentColor)
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .listRowSeparator(.hidden)
-                                .padding(.top, 4)
-                            } else {
-                                KeyValueRow(title: "Physical S/N", value: sn!)
                             }
                         }
                     }
@@ -186,8 +198,17 @@ struct ScanHomeView: View {
             }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
-                    SavedCardDetailView(cardID: route.id, store: cardStore)
+                    SavedCardDetailView(cardID: route.id, store: cardStore, initialSelection: route.tab)
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailRoute = nil } } }
+                }
+                .presentationDetents(route.tab == .settings ? [.large] : [.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $isShowingSNScanner) {
+                if let snapshot = reader.latestSnapshot {
+                    FeliCaSNScannerView { sn in
+                        cardStore.setRealSerialNumber(sn, for: snapshot.storageIdentifier)
+                    }
                 }
             }
             .onAppear { 
@@ -249,21 +270,35 @@ struct CardsView: View {
                         ScrollView {
                             ZStack(alignment: .top) {
                                 ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
-                                    WalletCardView(
-                                        card: card,
-                                        isExpanded: previewCardID == card.id,
-                                        cardHeight: cardHeight,
-                                        visiblePartHeight: visibleTapHeight(for: index, cardHeight: cardHeight),
-                                        onVisibleTap: {
-                                            if previewCardID == card.id {
-                                                previewCardID = nil
-                                            } else {
-                                                store.bringToFront(card.id)
-                                                previewCardID = card.id
+                                    VStack(spacing: 12) {
+                                        WalletCardView(
+                                            card: card,
+                                            isExpanded: previewCardID == card.id,
+                                            cardHeight: cardHeight,
+                                            visiblePartHeight: visibleTapHeight(for: index, cardHeight: cardHeight),
+                                            onVisibleTap: {
+                                                if previewCardID == card.id {
+                                                    previewCardID = nil
+                                                } else {
+                                                    store.bringToFront(card.id)
+                                                    previewCardID = card.id
+                                                }
+                                            },
+                                            showDetails: { detailRoute = CardDetailRoute(id: card.id) }
+                                        )
+                                        
+                                        if previewCardID == card.id {
+                                            HStack(spacing: 12) {
+                                                ArchiveButton(title: "[\(card.rawTransactions.count) transaction records]", color: card.color.color) { 
+                                                    detailRoute = CardDetailRoute(id: card.id, tab: .transactions) 
+                                                }
+                                                ArchiveButton(title: "[\(card.rawTransitHistory.count) transit records]", color: card.color.color) {
+                                                    detailRoute = CardDetailRoute(id: card.id, tab: .transit)
+                                                }
                                             }
-                                        },
-                                        showDetails: { detailRoute = CardDetailRoute(id: card.id) }
-                                    )
+                                            .transition(.move(edge: .top).combined(with: .opacity))
+                                        }
+                                    }
                                     .padding(.horizontal, 20)
                                     .zIndex(zIndex(for: index))
                                     .offset(y: cardOffset(for: index, cardHeight: cardHeight))
@@ -272,13 +307,23 @@ struct CardsView: View {
                             .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
                             .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
                             .padding(.bottom, proxy.safeAreaInsets.bottom + 120)
-                            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
                         }
                     }
                 }
             }
+            .background(Color(uiColor: .systemBackground).ignoresSafeArea())
             .navigationTitle("Cards")
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if !store.cards.isEmpty {
+                        NavigationLink {
+                            ReorderCardsView(store: store)
+                        } label: {
+                            Image(systemName: "list.number")
+                                .imageScale(.medium)
+                        }
+                    }
+                }
                 ScanToolbarItem(reader: reader)
             }
             .sheet(item: $detailRoute) { route in
@@ -379,7 +424,28 @@ struct SettingsView: View {
     }
 }
 
-struct CardDetailRoute: Identifiable { let id: String }
+struct CardDetailRoute: Identifiable {
+    enum Selection { case settings, transactions, transit }
+    let id: String
+    var tab: Selection = .settings
+}
+
+struct ArchiveButton: View {
+    let title: String
+    let color: Color
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
 
 
 func loadCardFaceImage(fileName: String) -> UIImage? {
@@ -540,6 +606,34 @@ struct ScanToolbarItem: ToolbarContent {
                 Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
                 Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }
             }
+        }
+    }
+}
+
+struct ReorderCardsView: View {
+    @ObservedObject var store: CardWalletStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            ForEach(store.cards) { card in
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(card.color.color)
+                        .frame(width: 32, height: 20)
+                    Text(card.displayTitle)
+                        .font(.body.weight(.medium))
+                    Spacer()
+                }
+            }
+            .onMove { from, to in
+                store.moveCard(fromOffsets: from, toOffset: to)
+            }
+        }
+        .navigationTitle("Order")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            EditButton()
         }
     }
 }

@@ -256,15 +256,9 @@ struct FaceImageEditorSheet: View {
                         Divider().background(Color.white.opacity(0.2))
                         
                         HStack {
-                            Button("Cancel", action: onCancel).foregroundStyle(.white)
+                            Button("Cancel", action: onCancel).foregroundStyle(.white.opacity(0.8))
                             Spacer()
                             Button("Reset") { reset() }.foregroundStyle(.gray)
-                            Spacer()
-                            Button { saveCroppedImage() } label: {
-                                Text("Done").bold().padding(.horizontal, 16).padding(.vertical, 8)
-                                    .background(Color.white, in: Capsule())
-                                    .foregroundStyle(.black)
-                            }
                         }
                         .padding()
                     }
@@ -273,13 +267,36 @@ struct FaceImageEditorSheet: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) { Text("Edit card face").foregroundStyle(.white).bold() }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { 
+                        withAnimation { 
+                            rotation = (rotation + 90).truncatingRemainder(dividingBy: 360) 
+                        } 
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "rotate.right")
+                            Text("Rotate")
+                        }
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(.white.opacity(0.15), in: Capsule())
+                    }
+                }
+                ToolbarItem(placement: .principal) { 
+                    Text("Edit card face").foregroundStyle(.white).bold() 
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { withAnimation { rotation = (rotation + 90).truncatingRemainder(dividingBy: 360) } } label: {
-                        Image(systemName: "rotate.right").foregroundStyle(.white)
+                    Button { saveCroppedImage() } label: {
+                        Text("Save").bold()
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(Color.accentColor, in: Capsule())
                     }
                 }
             }
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
     

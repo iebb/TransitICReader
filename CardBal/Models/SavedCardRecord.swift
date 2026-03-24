@@ -135,13 +135,26 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var cardTypeStr: String?
     var issueDateStr: String?
     var expiryDateStr: String?
-    var transactions: [TransitTransaction]
-    var transitHistory: [TransitTransaction]
+    var rawTransactions: [String] // Hex strings
+    var rawTransitHistory: [String] // Hex strings
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
     var design: SavedCardDesign
     var faceImageFileName: String?
+    var order: Int = 0
+
+    var transactions: [TransitTransaction] {
+        rawTransactions.enumerated().compactMap { idx, hex in
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx)
+        }
+    }
+
+    var transitHistory: [TransitTransaction] {
+        rawTransitHistory.enumerated().compactMap { idx, hex in
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx)
+        }
+    }
 
     var brand: String { cardFamily }
 
@@ -167,7 +180,10 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         return ""
     }
 
-    var cardNumber: String? { fieldValue("Card Number") ?? realSerialNumber }
+    var cardNumber: String? { 
+        // For FeliCa, prefer the linked physical SN over the technical IDm
+        realSerialNumber ?? fieldValue("Card Number") ?? identifierValue 
+    }
 
     var finalIsUsingImage: Bool { isUsingImage ?? (faceImageFileName != nil) }
     var finalHideTitle: Bool { hideTitleOnImage ?? false }
@@ -285,8 +301,8 @@ extension SavedCardRecord {
         self.cardTypeStr = snapshot.resultFields.first(where: {$0.title == "Card Type"})?.value
         self.issueDateStr = snapshot.resultFields.first(where: {$0.title == "Issue Date"})?.value
         self.expiryDateStr = snapshot.resultFields.first(where: {$0.title == "Expiry Date"})?.value
-        self.transactions = snapshot.transactions
-        self.transitHistory = snapshot.transitHistory
+        self.rawTransactions = snapshot.rawTransactions
+        self.rawTransitHistory = snapshot.rawTransitHistory
         self.resultFields = snapshot.resultFields.map(SavedCardField.init)
         self.scannedAt = snapshot.scannedAt
         self.color = Self.defaultColor(for: snapshot.cardFamily)

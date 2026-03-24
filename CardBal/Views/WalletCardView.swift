@@ -9,6 +9,7 @@ struct WalletCardView: View {
     let onVisibleTap: () -> Void
     let showDetails: () -> Void
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
+    @State private var copied = false
 
     private var faceImage: UIImage? {
         card.faceImageFileName.flatMap(loadCardFaceImage)
@@ -61,7 +62,7 @@ struct WalletCardView: View {
 
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: 2) {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 if card.markerSystemName != nil || card.markerText != nil {
                                     markerBadge
@@ -75,16 +76,32 @@ struct WalletCardView: View {
                             if shouldShowSerialNumber {
                                 let snText = card.privacyFormattedSerialNumber(mode: snDisplayMode)
                                 if !snText.isEmpty {
-                                    borderedCardText(
-                                        snText,
-                                        font: .caption.weight(.medium),
-                                        foregroundColor: titleTextColor,
-                                        lineLimit: 1,
-                                        minimumScaleFactor: 0.75
-                                    )
+                                    Button {
+                                        UIPasteboard.general.string = card.identifierValue
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { copied = true }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { withAnimation { copied = false } }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            borderedCardText(
+                                                snText,
+                                                font: .caption.weight(.medium),
+                                                foregroundColor: titleTextColor.opacity(0.8),
+                                                lineLimit: 1,
+                                                minimumScaleFactor: 0.75
+                                            )
+                                            if copied {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundStyle(.white)
+                                                    .transition(.scale.combined(with: .opacity))
+                                            }
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                             }
-                            
                         }
 
                         Spacer()
@@ -148,7 +165,6 @@ struct WalletCardView: View {
             }
         }
         .frame(height: cardHeight)
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
     }
 
     @ViewBuilder

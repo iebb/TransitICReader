@@ -88,10 +88,19 @@ class CardWalletStore: ObservableObject {
             cards[index].pmm = snapshot.pmm
             cards[index].systemCode = snapshot.systemCode
             cards[index].selectedAID = snapshot.selectedAID
-            cards[index].realSerialNumber = snapshot.realSerialNumber
+            // Preserve Physical S/N (17 chars) over Internal IDm (16 chars or nil)
+            let existingSN = cards[index].realSerialNumber ?? ""
+            let incomingSN = snapshot.realSerialNumber ?? ""
+            
+            if existingSN.count == 17 && incomingSN.count < 17 {
+                // Keep the high-quality physical S/N
+            } else if !incomingSN.isEmpty {
+                cards[index].realSerialNumber = incomingSN
+            }
+            // else: keep what we have (e.g. if incoming is nil/empty)
             cards[index].enhancedFeliCaDecoded = false
-            cards[index].transactions = snapshot.transactions
-            cards[index].transitHistory = snapshot.transitHistory
+            cards[index].rawTransactions = snapshot.rawTransactions
+            cards[index].rawTransitHistory = snapshot.rawTransitHistory
             cards[index].issuingCity = snapshot.resultFields.first(where: { $0.title == "Issuing City" })?.value
             cards[index].cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
             cards[index].issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
@@ -121,7 +130,7 @@ class CardWalletStore: ObservableObject {
         } 
         // Try SN prefix match
         else {
-            let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "PI": "PiTaPa", "TO": "TOICA"]
+            let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "TO": "TOICA"]
             for (prefix, brand) in jpPrefixes {
                 if sn.hasPrefix(prefix) {
                     if let match = allPresets.first(where: { $0.name == brand }) {
@@ -296,26 +305,21 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "TP", name: "Manaca", fileName: "manaca"),
             CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
             CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
-            CardPreset(id: "PiTaPa", name: "PiTaPa", fileName: "pitapa"),
             CardPreset(id: "TOICA", name: "TOICA", fileName: "toica")
         ]
     }
 
     func applyPreset(_ preset: CardPreset, to id: String) {
-        guard let index = cards.firstIndex(where: { $0.id == id }),
-              let image = UIImage(named: preset.fileName) else { return }
-              
-        // We actually want to copy it to the face directory so it behaves like a regular asset (for sync/iCloud)
-        if let jpegData = image.jpegData(compressionQuality: 0.9) {
-            let fileName = "\(preset.fileName).jpg"
-            let url = cardFaceFileURL(fileName: fileName)
-            try? jpegData.write(to: url)
-            
-            cards[index].faceImageFileName = fileName
-            cards[index].isUsingImage = true
+        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        
+        // Use the asset name directly instead of copying to a JPEG file
+        cards[index].faceImageFileName = preset.fileName
+        cards[index].isUsingImage = true
+        
+        if let image = UIImage(named: preset.fileName) {
             applyAutoImageTextColors(to: &cards[index], image: image)
-            save()
         }
+        save()
     }
 
     func isFaceAssetUsed(_ fileName: String) -> Bool {
@@ -326,35 +330,19 @@ class CardWalletStore: ObservableObject {
         cards.first(where: { $0.id == id })
     }
 
-    func moveCard(from sourceID: String, to destinationID: String) {
-        guard sourceID != destinationID,
-              let sourceIndex = cards.firstIndex(where: { $0.id == sourceID }),
-              let destinationIndex = cards.firstIndex(where: { $0.id == destinationID }) else { return }
-        let movedCard = cards.remove(at: sourceIndex)
-        cards.insert(movedCard, at: destinationIndex)
-        save()
-    }
-
-    func moveCard(from sourceID: String, toIndex destinationIndex: Int) {
-        guard let sourceIndex = cards.firstIndex(where: { $0.id == sourceID }) else { return }
-        let clampedIndex = min(max(destinationIndex, 0), cards.count - 1)
-        guard sourceIndex != clampedIndex else { return }
-        let movedCard = cards.remove(at: sourceIndex)
-        cards.insert(movedCard, at: clampedIndex)
-        save()
-    }
-
-    func bringToFront(_ id: String) {
-        guard let index = cards.firstIndex(where: { $0.id == id }), index != 0 else { return }
-        let movedCard = cards.remove(at: index)
-        cards.insert(movedCard, at: 0)
-        save()
-    }
-
     func loadFaceImage(fileName: String?) -> UIImage? {
-        guard let fileName else { return nil }
+        guard let fileName = fileName else { return nil }
         if let cached = imageCache[fileName] { return cached }
-        if let image = UIImage(contentsOfFile: cardFaceFileURL(fileName: fileName).path) {
+        
+        // Try loading from Assets first (for presets)
+        if let assetImage = UIImage(named: fileName) {
+            imageCache[fileName] = assetImage
+            return assetImage
+        }
+        
+        // Try loading from local file (for custom photos)
+        let fileURL = cardFaceFileURL(fileName: fileName)
+        if let image = UIImage(contentsOfFile: fileURL.path) {
             imageCache[fileName] = image
             return image
         }
@@ -543,7 +531,47 @@ class CardWalletStore: ObservableObject {
             }
         }
         sqlite3_finalize(stmt)
-        self.cards = loadedCards.sorted { $0.scannedAt > $1.scannedAt }
+        self.cards = loadedCards.sorted { 
+            if $0.order != $1.order { return $0.order < $1.order }
+            return $0.scannedAt > $1.scannedAt
+        }
+    }
+
+    func updateOrder() {
+        for i in 0..<cards.count {
+            cards[i].order = i
+        }
+        save()
+    }
+
+    func moveCard(from sourceID: String, to destinationID: String) {
+        guard sourceID != destinationID,
+              let sourceIndex = cards.firstIndex(where: { $0.id == sourceID }),
+              let destinationIndex = cards.firstIndex(where: { $0.id == destinationID }) else { return }
+        let movedCard = cards.remove(at: sourceIndex)
+        cards.insert(movedCard, at: destinationIndex)
+        updateOrder()
+    }
+
+    func moveCard(from sourceID: String, toIndex destinationIndex: Int) {
+        guard let sourceIndex = cards.firstIndex(where: { $0.id == sourceID }) else { return }
+        let clampedIndex = min(max(destinationIndex, 0), cards.count - 1)
+        guard sourceIndex != clampedIndex else { return }
+        let movedCard = cards.remove(at: sourceIndex)
+        cards.insert(movedCard, at: clampedIndex)
+        updateOrder()
+    }
+
+    func bringToFront(_ id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }), index != 0 else { return }
+        let movedCard = cards.remove(at: index)
+        cards.insert(movedCard, at: 0)
+        updateOrder()
+    }
+
+    func moveCard(fromOffsets: IndexSet, toOffset: Int) {
+        cards.move(fromOffsets: fromOffsets, toOffset: toOffset)
+        updateOrder()
     }
 
     private func ensureCardFaceDirectoryExists() throws {

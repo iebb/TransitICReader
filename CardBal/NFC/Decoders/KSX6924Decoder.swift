@@ -54,17 +54,16 @@ struct KSX6924Decoder: TransitCardDecoder {
         
         let parsedBalance = profile.parseBalance(balanceResponse.0)
         
-        var transactions: [TransitTransaction] = []
-        var transitHistory: [TransitTransaction] = []
+        var transactions: [String] = []
+        var transitHistory: [String] = []
         let isNAMANE = profile.displayName == "NAMANE"
         
         for sfi in profile.targetSFIs {
             logger.error("[KSX6924] Target SFI for \(profile.displayName): \(sfi)")
-            let parser = profile.sfiParsers[sfi] ?? KSX6924Decoder.parseSingleTransaction
             
             // Try standard P2 (SFI in P2) and alternate P2 (SFI in P1)
             for p2 in [(sfi << 3) | 4, UInt8(0x00)] {
-                var tempTx: [TransitTransaction] = []
+                var tempRaw: [String] = []
                 var foundViaRecord = false
                 
                 for i in 1...20 {
@@ -82,10 +81,8 @@ struct KSX6924Decoder: TransitCardDecoder {
                     }
                     
                     if res.1 == 0x90, res.2 == 0x00, res.0.count >= 16 {
-                        if let tx = parser(res.0, sfi, i, isNAMANE, logger) {
-                            tempTx.append(tx)
-                            foundViaRecord = true
-                        }
+                        tempRaw.append(res.0.hexString.uppercased())
+                        foundViaRecord = true
                     } else if res.1 == 0x6A {
                         break
                     }
@@ -97,31 +94,25 @@ struct KSX6924Decoder: TransitCardDecoder {
                     if let res = try? await iso.sendCommand(apdu: binApdu) {
                         logger.error("[KSX6924_APDU] RX Read Binary: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
                         if res.1 == 0x90, res.2 == 0x00, res.0.count >= 32 {
-                            for strideLen in [16, 23, 27, 32, 44, 46, 48] {
-                                var strideTx: [TransitTransaction] = []
-                                for i in 0..<(res.0.count / strideLen) {
-                                    let block = res.0.subdata(in: (i*strideLen)..<((i+1)*strideLen))
-                                    if let tx = parser(block, sfi, i + 1, isNAMANE, logger) { strideTx.append(tx) }
+                            let strideLen = (sfi == 3) ? 52 : (isNAMANE ? 14 : 40)
+                            for i in 0..<(res.0.count / strideLen) {
+                                let block = res.0.subdata(in: (i*strideLen)..<((i+1)*strideLen))
+                                if !block.allSatisfy({ $0 == 0x00 || $0 == 0xFF }) {
+                                    tempRaw.append(block.hexString.uppercased())
                                 }
-                                if !strideTx.isEmpty { tempTx = strideTx; break }
                             }
                         }
                     }
                 }
                 
-                if !tempTx.isEmpty {
+                if !tempRaw.isEmpty {
                     let isTransit = (sfi == 1 || sfi == 2 || sfi == 3)
                     if isTransit {
-                        // Invert record order so newest (first read) gets highest number
-                        let count = tempTx.count
-                        tempTx = tempTx.enumerated().map { idx, tx in
-                            TransitTransaction(date: tx.date, time: tx.time, amount: tx.amount, terminalID: tx.terminalID, type: tx.type, balanceAfter: tx.balanceAfter, location: tx.location, entryStation: tx.entryStation, exitStation: tx.exitStation, rawData: tx.rawData, recordNumber: count - idx, ntsam: tx.ntsam, distance: tx.distance)
-                        }
-                        transitHistory.append(contentsOf: tempTx)
+                        transitHistory.append(contentsOf: tempRaw)
                     } else {
-                        transactions.append(contentsOf: tempTx)
+                        transactions.append(contentsOf: tempRaw)
                     }
-                    logger.error("[KSX6924] SUCCESS: Found \(tempTx.count) logs in SFI \(sfi), categorized as \(isTransit ? "Transit" : "Balance") history")
+                    logger.error("[KSX6924] SUCCESS: Found \(tempRaw.count) raw blocks in SFI \(sfi)")
                     break
                 }
             }
@@ -143,23 +134,35 @@ struct KSX6924Decoder: TransitCardDecoder {
             rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseRaw))
         }
 
+        var familyName = profile.displayName // e.g. "T-money", "EZL / Cashbee"
+        var brandName = familyName
+        var balanceText = parsedBalance.formatted
+        var balanceDetail = parsedBalance.detail
+        
+        if let type = parsedCardInfo.purseInfo?.cardType, (type & 0xB0) == 0xB0 {
+            familyName = "T-money" 
+            brandName = "Climate Card"
+            balanceText = "N/A"
+            balanceDetail = "Climate Card (Unlimited Pass)"
+        }
+
         return TransitCardSnapshot(
             technology: "ISO7816",
-            cardFamily: profile.displayName,
+            cardFamily: familyName,
             identifierLabel: "UID",
             identifierValue: iso.identifier.hexString,
             rawIdentifierValue: iso.identifier.hexString,
             pmm: nil,
             systemCode: nil,
             selectedAID: applicationAID,
-            balanceText: parsedBalance.formatted,
-            balanceDetail: parsedBalance.detail,
+            balanceText: balanceText,
+            balanceDetail: balanceDetail,
             realSerialNumber: parsedCardInfo.cardNumber,
-            region: "South Korea",
+            region: brandName,
             resultFields: parsedCardInfo.resultFields,
             rawSections: rawSections,
-            transactions: transactions.sorted(by: { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }),
-            transitHistory: transitHistory.sorted(by: { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }),
+            rawTransactions: transactions,
+            rawTransitHistory: transitHistory,
             scannedAt: scannedAt
         )
     }
@@ -428,7 +431,9 @@ private struct KSX6924CardInfo {
     let issueDate: String?
     let purseInfoFields: [ResultField]?
     let purseInfoRawFields: [RawDataField]?
+    let purseInfo: KSX6924PurseInfo?
     init(payload: Data, purseInfo: KSX6924PurseInfo?, configInfo: KSX6924ConfigDFInfo?) {
+        self.purseInfo = purseInfo
         self.cardNumber = purseInfo?.serial ?? configInfo?.serial ?? (payload.count >= 16 ? formatKoreanCardNumber(payload.sliceHexString(start: 8, length: 8)) : nil)
         self.issueDate = purseInfo?.issueDate ?? (payload.count >= 25 ? Self.formatIssueDate(payload.subdata(in: 21..<25)) : nil)
         self.purseInfoFields = purseInfo?.resultFields

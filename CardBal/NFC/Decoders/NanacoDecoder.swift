@@ -112,8 +112,8 @@ struct NanacoDecoder: TransitCardDecoder {
             region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
-            transactions: [],
-            transitHistory: [],
+            rawTransactions: [],
+            rawTransitHistory: [],
             scannedAt: scannedAt
         )
     }

@@ -9,8 +9,10 @@ struct SavedCardDetailView: View {
 
     let cardID: String
     @ObservedObject var store: CardWalletStore
+    var initialSelection: CardDetailRoute.Selection = .settings
     @Environment(\.dismiss) private var dismiss
 
+    @State private var viewSelection: CardDetailRoute.Selection = .settings
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isShowingCamera = false
     @State private var pendingFaceImage: UIImage?
@@ -27,6 +29,7 @@ struct SavedCardDetailView: View {
     var body: some View {
         if let card = store.card(withID: cardID) {
             detailContent(card: card)
+                .onAppear { viewSelection = initialSelection }
         }
     }
 
@@ -58,39 +61,35 @@ struct SavedCardDetailView: View {
 
     private func cardDetailList(card: SavedCardRecord) -> some View {
         VStack(spacing: 0) {
-            cardPreviewSection(card: card)
-                .padding()
-                .background(Color(uiColor: .systemGroupedBackground))
+            if viewSelection == .settings {
+                cardPreviewSection(card: card)
+                    .padding()
+                    .background(Color(uiColor: .systemGroupedBackground))
+            }
 
             List {
-                Section("Settings") {
-                    titleSection(card: card)
-                }
-
-                Section("Card Information") {
-                    cardInfoSection(card: card)
-                }
-
-                if !card.transactions.isEmpty {
-                    Section("Recent Transactions") {
-                        transactionsSection(card: card)
+                if viewSelection == .settings {
+                    Section("Settings") {
+                        titleSection(card: card)
                     }
-                }
 
-                if !card.transitHistory.isEmpty {
-                    Section("Transit Activity") {
-                        transitHistorySection(card: card)
+                    Section("Card Information") {
+                        cardInfoSection(card: card)
                     }
-                }
 
-                Section("Appearance") {
-                    appearanceSection(card: card)
-                }
-
-                Section {
-                    Button("Delete Card", role: .destructive) {
-                        draftDeleteConfirmation = true
+                    Section("Appearance") {
+                        appearanceSection(card: card)
                     }
+
+                    Section {
+                        Button("Delete Card", role: .destructive) {
+                            draftDeleteConfirmation = true
+                        }
+                    }
+                } else if viewSelection == .transactions {
+                    transactionsSection(card: card)
+                } else if viewSelection == .transit {
+                    transitHistorySection(card: card)
                 }
             }
         }
@@ -174,29 +173,41 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func transactionsSection(card: SavedCardRecord) -> some View {
-        let sorted = card.transactions.sorted { t1, t2 in
-            if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
-                return r1 > r2
+        Section("Transactions") {
+            let sorted = card.transactions.sorted { t1, t2 in
+                if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
+                    return r1 > r2
+                }
+                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
             }
-            return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-        }
-        ForEach(sorted) { tx in
-            TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
-                .padding(.vertical, 4)
+            if sorted.isEmpty {
+                Text("No records found").foregroundStyle(.secondary).font(.subheadline)
+            } else {
+                ForEach(sorted) { tx in
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                        .padding(.vertical, 4)
+                }
+            }
         }
     }
 
     @ViewBuilder
     private func transitHistorySection(card: SavedCardRecord) -> some View {
-        let sorted = card.transitHistory.sorted { t1, t2 in
-            if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
-                return r1 > r2
+        Section("Transit Activity") {
+            let sorted = card.transitHistory.sorted { t1, t2 in
+                if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
+                    return r1 > r2
+                }
+                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
             }
-            return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-        }
-        ForEach(sorted) { tx in
-            TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
-                .padding(.vertical, 4)
+            if sorted.isEmpty {
+                Text("No records found").foregroundStyle(.secondary).font(.subheadline)
+            } else {
+                ForEach(sorted) { tx in
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                        .padding(.vertical, 4)
+                }
+            }
         }
     }
 
@@ -288,7 +299,7 @@ struct SavedCardDetailView: View {
 
     private func snScannerSheet(card: SavedCardRecord) -> some View {
         FeliCaSNScannerView { sn in
-            store.setCustomDisplaySerialNumber(sn, for: card.id)
+            store.setRealSerialNumber(sn, for: card.id)
         }
     }
 

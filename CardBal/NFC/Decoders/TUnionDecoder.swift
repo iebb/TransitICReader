@@ -175,14 +175,14 @@ struct TUnionDecoder: TransitCardDecoder {
             region: brandRegion,
             resultFields: resultFields,
             rawSections: rawSections + parsedBalance.rawSections,
-            transactions: transactions,
-            transitHistory: [],
+            rawTransactions: transactions,
+            rawTransitHistory: [],
             scannedAt: scannedAt
         )
     }
 
-    private static func readTUnionTransactions(iso: NFCISO7816Tag) async -> [TransitTransaction] {
-        var txs: [TransitTransaction] = []
+    private static func readTUnionTransactions(iso: NFCISO7816Tag) async -> [String] {
+        var txs: [String] = []
         let sfi: UInt8 = 0x18
         let p2 = (sfi << 3) | 0x04
         
@@ -191,32 +191,36 @@ struct TUnionDecoder: TransitCardDecoder {
             guard let resp = try? await iso.sendCommand(apdu: apdu), resp.1 == 0x90 else { break }
             let data = resp.0
             guard data.count >= 23 else { continue }
-            
-            // PBOC Transaction Record (standard 23 bytes)
-            // 0-1: Counter, 2-4: Overdraft, 5-8: Amount, 9: Type, 10-15: Terminal, 16-19: Date (BCD), 20-22: Time (BCD)
-            let amountVal = Int32(bigEndian: data.subdata(in: 5..<9).withUnsafeBytes { $0.load(as: Int32.self) })
-            let typeByte = data[9]
-            let dateBCD = data.subdata(in: 16..<20).hexString
-            let timeBCD = data.subdata(in: 20..<23).hexString
-            
-            let typeStr = (typeByte == 0x01 || typeByte == 0x05) ? "Top-up" : "Consumption"
-            let amount = Decimal(amountVal) / 100
-            
-            let dateStr = dateBCD + timeBCD
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyyMMddHHmmss"
-            let date = fmt.date(from: dateStr)
-            
-            txs.append(TransitTransaction(
-                date: date,
-                amount: amount,
-                terminalID: data.subdata(in: 10..<16).hexString.uppercased(),
-                type: typeStr,
-                balanceAfter: nil,
-                location: nil
-            ))
+            txs.append(data.hexString.uppercased())
         }
         return txs
+    }
+
+    static func decodePBOC(data: Data, index: Int) -> TransitTransaction? {
+        guard data.count >= 23 else { return nil }
+        // PBOC Transaction Record (standard 23 bytes)
+        // 0-1: Counter, 2-4: Overdraft, 5-8: Amount, 9: Type, 10-15: Terminal, 16-19: Date (BCD), 20-22: Time (BCD)
+        let amountVal = Int32(bigEndian: data.subdata(in: 5..<9).withUnsafeBytes { $0.load(as: Int32.self) })
+        let typeByte = data[9]
+        let dateBCD = data.subdata(in: 16..<20).hexString
+        let timeBCD = data.subdata(in: 20..<23).hexString
+        
+        let typeStr = (typeByte == 0x01 || typeByte == 0x05) ? "Top-up" : "Consumption"
+        let amount = Decimal(amountVal) / 100
+        
+        let dateStr = dateBCD + timeBCD
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyyMMddHHmmss"
+        let date = fmt.date(from: dateStr)
+        
+        return TransitTransaction(
+            date: date,
+            amount: amount,
+            terminalID: data.subdata(in: 10..<16).hexString.uppercased(),
+            type: typeStr,
+            balanceAfter: nil,
+            location: nil
+        )
     }
 
     private static func findTUnionTag(_ tag: [UInt8], in data: Data) -> Data? {
