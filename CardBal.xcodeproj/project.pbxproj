@@ -7,232 +7,235 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		04B43046C9499EAD7D289763 /* KSX6924Decoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44CDB9B8D6980CD49C213A90 /* KSX6924Decoder.swift */; };
-		05ABE688CFE3903424F42DC1 /* TUnionCardNames.json in Resources */ = {isa = PBXBuildFile; fileRef = F89A57856B014D8AF1626A12 /* TUnionCardNames.json */; };
-		09C24DA940E076238AC33328 /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = 942988FC7FF145AB203F5379 /* JPBusCodes.csv */; };
-		1BB4D701DE1059D3BA8EB92F /* SavedCardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECFA84926A1FF894E0809D7D /* SavedCardRecord.swift */; };
-		3B003469EB19F293DB7BC518 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 888476C3A505E3FC9CE14E51 /* libsqlite3.dylib */; };
-		3DACE14F4F353E882B8E49E6 /* TUnionCityCodes.json in Resources */ = {isa = PBXBuildFile; fileRef = 1169CCBA9169346E590CD4FC /* TUnionCityCodes.json */; };
-		4DA06E37EC6722B5DE7B73CD /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF9A2D187649578C7B5B06F /* NFCTransitReader.swift */; };
-		5592FB43BA20E634463F2D9F /* TUnionDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE56142F51588E0C380D8AA /* TUnionDecoder.swift */; };
-		55A29E4BAA997738B064CB73 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 501ED6AC33BF27A967B28096 /* Foundation.framework */; };
-		573BBD8EEC4457F7245B021A /* WAONDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D8827C8B54F464BDB6CE840 /* WAONDecoder.swift */; };
-		671A75EC1E73128EBF1845AA /* StationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 493BBAF74E6D0E91D4CC0C15 /* StationResolver.swift */; };
-		6F97C4A38B1DABD49B207F7B /* CardBalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A93128750E36F4B05A42970A /* CardBalApp.swift */; };
-		7BBCF72D8C873A3ADC38CB97 /* CardWalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5BFB970D09311A988C483A /* CardWalletStore.swift */; };
-		7CB3EF4479573A9AB905170A /* TransitCardDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED6378D056B746B36E1FA2A /* TransitCardDecoder.swift */; };
-		7D0D1CDBD6A75E7BDB841832 /* CoreNFC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 541DFE3987761B04C9A10BFE /* CoreNFC.framework */; };
-		7D97EE7857DC3FA9E40D2DE9 /* KSX6924Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB192140C5E42B0BCBE61BAE /* KSX6924Enums.swift */; };
-		7F301D1DD3FC357C6E0F2356 /* WalletCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F875531697AF1B734F4187 /* WalletCardView.swift */; };
-		84AA9B412AEB0E71F3AE5591 /* BusResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D992CB630E378AAD8CDBF920 /* BusResolver.swift */; };
-		8D6C98379C18B17AA99D2A01 /* CalypsoProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B59E36B9C9E887590858815 /* CalypsoProfiles.swift */; };
-		915EB36EB030B7524BA0141B /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D0F16DA65A3BE390CD9528 /* SecondaryViews.swift */; };
-		9DC5306EA12BA1E73B9BB534 /* FeliCaSNScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011A6065BA29A2B7B3BA905 /* FeliCaSNScannerView.swift */; };
-		A01F72962B2A319EFC1C8DAE /* NFCUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A31169FCC298E1BCEA3FA7 /* NFCUtils.swift */; };
-		B88B8D55C66A94A746D0ED0D /* NanacoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A21F0064D5CB7516266C48D /* NanacoDecoder.swift */; };
-		BFAE9D11FA05C5C58D1679C6 /* JPStationCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = 2BD98FEED79299DAEE0500D6 /* JPStationCodes.csv */; };
-		C3A42B5D94CB9E658B063917 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11F23C47B3C8B61061CCB827 /* Assets.xcassets */; };
-		C9BE11A85E15AEAB8C0886F8 /* CalypsoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C82338E30464D838560A200 /* CalypsoDecoder.swift */; };
-		CC95EB538CECC352FDE2795E /* SavedCardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E059050F22FA2420B32FBC89 /* SavedCardDetailView.swift */; };
-		D53CE8A68A65D0286D236352 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 473F49EEFE52D6F6CE3611BD /* Localizable.strings */; };
-		D5A1965182AF9B15C330005C /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7E167B18EAAEB2BA182345D /* DateFormatting.swift */; };
-		DF93007C4DCEBE33C19DBDBA /* EdyDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8B672CB3051EA646DCDFDBC /* EdyDecoder.swift */; };
-		E497AACDB4D191795905D042 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC405E3C6846389EF16ECBAE /* ContentView.swift */; };
-		EF0FC5A56F33739B7E938CE0 /* JapaneseICDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504E5ED08022E6E344F9DEE3 /* JapaneseICDecoder.swift */; };
-		F800C5A7BB0047D1AC461E2A /* Localizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3E871B5DB3B0D062781C895 /* Localizer.swift */; };
+		05E9B0C8F8C4F7AD30FF150E /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661B5D500390AEEC32BBFFC2 /* NFCTransitReader.swift */; };
+		0AD90CEDD7766916B4C8AAA1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8FD616F404A2B99D834488C /* ContentView.swift */; };
+		140054E632B764AE34D7D446 /* TransitCardDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD0AB5F2D29E71B9AA5B186 /* TransitCardDecoder.swift */; };
+		18888E7A5EE6667D6067ACBD /* CalypsoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5C7716BA3906817C9292BD /* CalypsoDecoder.swift */; };
+		1B1353956C518FD3B4532E95 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D66CE7385F3AF58A36308F4 /* DateFormatting.swift */; };
+		1DD0DE7FD54A9C95B0CD1BD5 /* WalletCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43FFA47619FC1CE1AD8B6A35 /* WalletCardView.swift */; };
+		319D8135F1FA7568143A5717 /* WAONDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96465D5BDCB23BE0C5C8A77 /* WAONDecoder.swift */; };
+		31FB15E725A381C5E97B2A8C /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DEC759A83B034D830D40315B /* libsqlite3.dylib */; };
+		368BC1CFA715C2D5E8E55DED /* KSX6924Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481CF2B8233A0272D1BA245B /* KSX6924Enums.swift */; };
+		3AD7728D3B818492F405DDFB /* FeliCaProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433DFDAF9D266DA31626A8C0 /* FeliCaProfiles.swift */; };
+		3BE2D3A5F4909DF733DBF7E2 /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF65165E6911D09E50F3616 /* SecondaryViews.swift */; };
+		3C40973786DA64AD377CCA6E /* CoreNFC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9310D8031BD366829E932394 /* CoreNFC.framework */; };
+		3D9E7581A008554F8FC4A282 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90080385D1786FF48D468478 /* Foundation.framework */; };
+		4C4B9F7373C9C9E292C2151D /* FeliCaSNScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AAED0A924B32DA5C3782389 /* FeliCaSNScannerView.swift */; };
+		5C67C3018704B8AFAF16DB90 /* TUnionCityCodes.json in Resources */ = {isa = PBXBuildFile; fileRef = 542E97B41E63EE930BDE02E8 /* TUnionCityCodes.json */; };
+		66AF0697918FE7B34A76EFFF /* CardWalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C75C8B697E1CB0B8769811 /* CardWalletStore.swift */; };
+		68B4F4D17B54E0DDB361812C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5FAF1AFB1DDF06D9CF892A46 /* Localizable.strings */; };
+		72E8F73EE31CA9E96DE016F9 /* CardBalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5E22605DD412DC226DB051 /* CardBalApp.swift */; };
+		73A5A450F7C4DFA87A5BF053 /* BusResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 775D0DF8FABB54E6BEC1017D /* BusResolver.swift */; };
+		77345C0865014A955F5F5F4B /* JPStationCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = F96D57FC7F225AC59A2B8D54 /* JPStationCodes.csv */; };
+		82CE80752F22A481C1255FA8 /* KSX6924Decoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51448CC0643E77D3AE347EF5 /* KSX6924Decoder.swift */; };
+		99CBC28CEB4F594205664763 /* StationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 966070726509B201157123EC /* StationResolver.swift */; };
+		A9BA103E82C3725CAD1D85FE /* SavedCardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE75DE08E1AFB037810B8F1 /* SavedCardRecord.swift */; };
+		AAFB498BBA87AFBE87A3600D /* SavedCardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC249991A01D6BECCFA18E9E /* SavedCardDetailView.swift */; };
+		C03D71428E5EC2F749C92FCD /* TUnionCardNames.json in Resources */ = {isa = PBXBuildFile; fileRef = 463D01AAD2149318CDEAE1C7 /* TUnionCardNames.json */; };
+		C85F88DEEFE924EC3C7B60E9 /* Localizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B32851B0DC36D9BE194D629 /* Localizer.swift */; };
+		CD126CEC61717B6A06974EEB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8DA4A5533C982E25FB90D042 /* Assets.xcassets */; };
+		CFCD147ED0F68C13DC98991C /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = D0CE923DC0F769713232C91E /* JPBusCodes.csv */; };
+		DB602B48C1F840C65DE85CFE /* NanacoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE36C37A0ADAE80184BAF82 /* NanacoDecoder.swift */; };
+		E599DF170E71A380A0C1A767 /* CalypsoProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 823903FC47D4A3D9CEC43CAD /* CalypsoProfiles.swift */; };
+		ED3B9FD4D81DAF90DD7E7379 /* NFCUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91EEBF35EA727F0CAD0AA8B1 /* NFCUtils.swift */; };
+		F09D0F7F0BF70DEC8EEB4DF5 /* JapaneseICDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B539D570F2355559C568D78 /* JapaneseICDecoder.swift */; };
+		F1066576F40D1E25D21AF92D /* TUnionDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F925289543E2EE0C12BDC072 /* TUnionDecoder.swift */; };
+		FE20630DC525F7E0C9722CD2 /* EdyDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00E22133B48C6F3BC0AEDB3F /* EdyDecoder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1169CCBA9169346E590CD4FC /* TUnionCityCodes.json */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; name = TUnionCityCodes.json; path = CardBal/Resources/TUnionCityCodes.json; sourceTree = "<group>"; };
-		11F23C47B3C8B61061CCB827 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = CardBal/Assets.xcassets; sourceTree = "<group>"; };
-		15F875531697AF1B734F4187 /* WalletCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WalletCardView.swift; path = CardBal/Views/WalletCardView.swift; sourceTree = "<group>"; };
-		2BD98FEED79299DAEE0500D6 /* JPStationCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = JPStationCodes.csv; path = CardBal/Resources/JPStationCodes.csv; sourceTree = "<group>"; };
-		325A440E0279AF4484221845 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/Localizable.strings; sourceTree = "<group>"; };
-		3A21F0064D5CB7516266C48D /* NanacoDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NanacoDecoder.swift; path = CardBal/NFC/Decoders/NanacoDecoder.swift; sourceTree = "<group>"; };
-		3EF9A2D187649578C7B5B06F /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NFCTransitReader.swift; path = CardBal/NFC/NFCTransitReader.swift; sourceTree = "<group>"; };
-		410F9CA95DAC44818060109C /* CardBal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CardBal.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		44CDB9B8D6980CD49C213A90 /* KSX6924Decoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KSX6924Decoder.swift; path = CardBal/NFC/Decoders/KSX6924Decoder.swift; sourceTree = "<group>"; };
-		493BBAF74E6D0E91D4CC0C15 /* StationResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StationResolver.swift; path = CardBal/Helpers/StationResolver.swift; sourceTree = "<group>"; };
-		501ED6AC33BF27A967B28096 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		504E5ED08022E6E344F9DEE3 /* JapaneseICDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = JapaneseICDecoder.swift; path = CardBal/NFC/Decoders/JapaneseICDecoder.swift; sourceTree = "<group>"; };
-		541DFE3987761B04C9A10BFE /* CoreNFC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreNFC.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/CoreNFC.framework; sourceTree = DEVELOPER_DIR; };
-		54D0F16DA65A3BE390CD9528 /* SecondaryViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SecondaryViews.swift; path = CardBal/Views/SecondaryViews.swift; sourceTree = "<group>"; };
-		5ED6378D056B746B36E1FA2A /* TransitCardDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TransitCardDecoder.swift; path = CardBal/NFC/Decoders/TransitCardDecoder.swift; sourceTree = "<group>"; };
-		7AE56142F51588E0C380D8AA /* TUnionDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TUnionDecoder.swift; path = CardBal/NFC/Decoders/TUnionDecoder.swift; sourceTree = "<group>"; };
-		7D8827C8B54F464BDB6CE840 /* WAONDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WAONDecoder.swift; path = CardBal/NFC/Decoders/WAONDecoder.swift; sourceTree = "<group>"; };
-		84A31169FCC298E1BCEA3FA7 /* NFCUtils.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NFCUtils.swift; path = CardBal/NFC/NFCUtils.swift; sourceTree = "<group>"; };
-		888476C3A505E3FC9CE14E51 /* libsqlite3.dylib */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
-		8B59E36B9C9E887590858815 /* CalypsoProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalypsoProfiles.swift; path = CardBal/NFC/Profiles/CalypsoProfiles.swift; sourceTree = "<group>"; };
-		8C82338E30464D838560A200 /* CalypsoDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalypsoDecoder.swift; path = CardBal/NFC/Decoders/CalypsoDecoder.swift; sourceTree = "<group>"; };
-		8D5BFB970D09311A988C483A /* CardWalletStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardWalletStore.swift; path = CardBal/Models/CardWalletStore.swift; sourceTree = "<group>"; };
-		942988FC7FF145AB203F5379 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = JPBusCodes.csv; path = CardBal/Resources/JPBusCodes.csv; sourceTree = "<group>"; };
-		A3E871B5DB3B0D062781C895 /* Localizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Localizer.swift; path = CardBal/Helpers/Localizer.swift; sourceTree = "<group>"; };
-		A93128750E36F4B05A42970A /* CardBalApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardBalApp.swift; path = CardBal/CardBalApp.swift; sourceTree = "<group>"; };
-		B011A6065BA29A2B7B3BA905 /* FeliCaSNScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FeliCaSNScannerView.swift; path = CardBal/Views/FeliCaSNScannerView.swift; sourceTree = "<group>"; };
-		BB192140C5E42B0BCBE61BAE /* KSX6924Enums.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KSX6924Enums.swift; path = CardBal/NFC/Profiles/KSX6924Enums.swift; sourceTree = "<group>"; };
-		BC405E3C6846389EF16ECBAE /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = CardBal/ContentView.swift; sourceTree = "<group>"; };
-		BFC41D8BABC7FF0DD5C34874 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = CardBal/Resources/en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		D7E167B18EAAEB2BA182345D /* DateFormatting.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DateFormatting.swift; path = CardBal/Utils/DateFormatting.swift; sourceTree = "<group>"; };
-		D8B672CB3051EA646DCDFDBC /* EdyDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EdyDecoder.swift; path = CardBal/NFC/Decoders/EdyDecoder.swift; sourceTree = "<group>"; };
-		D992CB630E378AAD8CDBF920 /* BusResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BusResolver.swift; path = CardBal/Helpers/BusResolver.swift; sourceTree = "<group>"; };
-		E059050F22FA2420B32FBC89 /* SavedCardDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SavedCardDetailView.swift; path = CardBal/Views/SavedCardDetailView.swift; sourceTree = "<group>"; };
-		ECFA84926A1FF894E0809D7D /* SavedCardRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SavedCardRecord.swift; path = CardBal/Models/SavedCardRecord.swift; sourceTree = "<group>"; };
-		F89A57856B014D8AF1626A12 /* TUnionCardNames.json */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; name = TUnionCardNames.json; path = CardBal/Resources/TUnionCardNames.json; sourceTree = "<group>"; };
-		F9B85CCAA6125A490F7CBC26 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		00E22133B48C6F3BC0AEDB3F /* EdyDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EdyDecoder.swift; path = CardBal/NFC/Decoders/EdyDecoder.swift; sourceTree = "<group>"; };
+		0AAED0A924B32DA5C3782389 /* FeliCaSNScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FeliCaSNScannerView.swift; path = CardBal/Views/FeliCaSNScannerView.swift; sourceTree = "<group>"; };
+		0BE75DE08E1AFB037810B8F1 /* SavedCardRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SavedCardRecord.swift; path = CardBal/Models/SavedCardRecord.swift; sourceTree = "<group>"; };
+		2B32851B0DC36D9BE194D629 /* Localizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Localizer.swift; path = CardBal/Helpers/Localizer.swift; sourceTree = "<group>"; };
+		2D66CE7385F3AF58A36308F4 /* DateFormatting.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DateFormatting.swift; path = CardBal/Utils/DateFormatting.swift; sourceTree = "<group>"; };
+		3F1C9C44C363A9790BA2B2FE /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		433DFDAF9D266DA31626A8C0 /* FeliCaProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FeliCaProfiles.swift; path = CardBal/NFC/Profiles/FeliCaProfiles.swift; sourceTree = "<group>"; };
+		43FFA47619FC1CE1AD8B6A35 /* WalletCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WalletCardView.swift; path = CardBal/Views/WalletCardView.swift; sourceTree = "<group>"; };
+		463D01AAD2149318CDEAE1C7 /* TUnionCardNames.json */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; name = TUnionCardNames.json; path = CardBal/Resources/TUnionCardNames.json; sourceTree = "<group>"; };
+		481CF2B8233A0272D1BA245B /* KSX6924Enums.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KSX6924Enums.swift; path = CardBal/NFC/Profiles/KSX6924Enums.swift; sourceTree = "<group>"; };
+		51448CC0643E77D3AE347EF5 /* KSX6924Decoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KSX6924Decoder.swift; path = CardBal/NFC/Decoders/KSX6924Decoder.swift; sourceTree = "<group>"; };
+		542E97B41E63EE930BDE02E8 /* TUnionCityCodes.json */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; name = TUnionCityCodes.json; path = CardBal/Resources/TUnionCityCodes.json; sourceTree = "<group>"; };
+		5B539D570F2355559C568D78 /* JapaneseICDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = JapaneseICDecoder.swift; path = CardBal/NFC/Decoders/JapaneseICDecoder.swift; sourceTree = "<group>"; };
+		661B5D500390AEEC32BBFFC2 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NFCTransitReader.swift; path = CardBal/NFC/NFCTransitReader.swift; sourceTree = "<group>"; };
+		775D0DF8FABB54E6BEC1017D /* BusResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BusResolver.swift; path = CardBal/Helpers/BusResolver.swift; sourceTree = "<group>"; };
+		823903FC47D4A3D9CEC43CAD /* CalypsoProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalypsoProfiles.swift; path = CardBal/NFC/Profiles/CalypsoProfiles.swift; sourceTree = "<group>"; };
+		8DA4A5533C982E25FB90D042 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = CardBal/Assets.xcassets; sourceTree = "<group>"; };
+		90080385D1786FF48D468478 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		91EEBF35EA727F0CAD0AA8B1 /* NFCUtils.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NFCUtils.swift; path = CardBal/NFC/NFCUtils.swift; sourceTree = "<group>"; };
+		9310D8031BD366829E932394 /* CoreNFC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreNFC.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/CoreNFC.framework; sourceTree = DEVELOPER_DIR; };
+		955FCF7EC94D54EE47763EF6 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = CardBal/Resources/en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		966070726509B201157123EC /* StationResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StationResolver.swift; path = CardBal/Helpers/StationResolver.swift; sourceTree = "<group>"; };
+		9CAEFF702E229B8432A3F65A /* CardBal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CardBal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A8FD616F404A2B99D834488C /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = CardBal/ContentView.swift; sourceTree = "<group>"; };
+		B7B3CB90FAF9DB7F35A0815D /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BC249991A01D6BECCFA18E9E /* SavedCardDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SavedCardDetailView.swift; path = CardBal/Views/SavedCardDetailView.swift; sourceTree = "<group>"; };
+		BE5C7716BA3906817C9292BD /* CalypsoDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalypsoDecoder.swift; path = CardBal/NFC/Decoders/CalypsoDecoder.swift; sourceTree = "<group>"; };
+		D0CE923DC0F769713232C91E /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = JPBusCodes.csv; path = CardBal/Resources/JPBusCodes.csv; sourceTree = "<group>"; };
+		D5C75C8B697E1CB0B8769811 /* CardWalletStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardWalletStore.swift; path = CardBal/Models/CardWalletStore.swift; sourceTree = "<group>"; };
+		DBD0AB5F2D29E71B9AA5B186 /* TransitCardDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TransitCardDecoder.swift; path = CardBal/NFC/Decoders/TransitCardDecoder.swift; sourceTree = "<group>"; };
+		DCE36C37A0ADAE80184BAF82 /* NanacoDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NanacoDecoder.swift; path = CardBal/NFC/Decoders/NanacoDecoder.swift; sourceTree = "<group>"; };
+		DEC759A83B034D830D40315B /* libsqlite3.dylib */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
+		EAF65165E6911D09E50F3616 /* SecondaryViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SecondaryViews.swift; path = CardBal/Views/SecondaryViews.swift; sourceTree = "<group>"; };
+		F925289543E2EE0C12BDC072 /* TUnionDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TUnionDecoder.swift; path = CardBal/NFC/Decoders/TUnionDecoder.swift; sourceTree = "<group>"; };
+		F96465D5BDCB23BE0C5C8A77 /* WAONDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WAONDecoder.swift; path = CardBal/NFC/Decoders/WAONDecoder.swift; sourceTree = "<group>"; };
+		F96D57FC7F225AC59A2B8D54 /* JPStationCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = JPStationCodes.csv; path = CardBal/Resources/JPStationCodes.csv; sourceTree = "<group>"; };
+		FB5E22605DD412DC226DB051 /* CardBalApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardBalApp.swift; path = CardBal/CardBalApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		822DDF53F4221D1C3EC75AA7 /* Frameworks */ = {
+		FD21AE43E04F378B346DD0E7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				55A29E4BAA997738B064CB73 /* Foundation.framework in Frameworks */,
-				7D0D1CDBD6A75E7BDB841832 /* CoreNFC.framework in Frameworks */,
-				3B003469EB19F293DB7BC518 /* libsqlite3.dylib in Frameworks */,
+				3D9E7581A008554F8FC4A282 /* Foundation.framework in Frameworks */,
+				3C40973786DA64AD377CCA6E /* CoreNFC.framework in Frameworks */,
+				31FB15E725A381C5E97B2A8C /* libsqlite3.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0FA3A86F0A80E2BB6EF170D6 /* Decoders */ = {
+		005FAB6BC3E01626A7ECAB27 = {
 			isa = PBXGroup;
 			children = (
+				91F8453FC97185491442A2E9 /* Products */,
+				B7975DB1C926BDE3E8C8A9A3 /* Frameworks */,
+				19C9249804C89CEAE27963F3 /* Helpers */,
+				B589836CAEAA6B107BC55C95 /* Models */,
+				0694DF2025C6A0606D034776 /* NFC */,
+				BED193CD76488FB8ED11C3E8 /* Views */,
+				E747964FCB10B9119EB87C21 /* Resources */,
+				95EA16786DF6C2CC6CEFD618 /* Utils */,
+				FB5E22605DD412DC226DB051 /* CardBalApp.swift */,
+				A8FD616F404A2B99D834488C /* ContentView.swift */,
+				2B32851B0DC36D9BE194D629 /* Localizer.swift */,
+				966070726509B201157123EC /* StationResolver.swift */,
+				775D0DF8FABB54E6BEC1017D /* BusResolver.swift */,
+				D5C75C8B697E1CB0B8769811 /* CardWalletStore.swift */,
+				0BE75DE08E1AFB037810B8F1 /* SavedCardRecord.swift */,
+				91EEBF35EA727F0CAD0AA8B1 /* NFCUtils.swift */,
+				661B5D500390AEEC32BBFFC2 /* NFCTransitReader.swift */,
+				481CF2B8233A0272D1BA245B /* KSX6924Enums.swift */,
+				823903FC47D4A3D9CEC43CAD /* CalypsoProfiles.swift */,
+				433DFDAF9D266DA31626A8C0 /* FeliCaProfiles.swift */,
+				DBD0AB5F2D29E71B9AA5B186 /* TransitCardDecoder.swift */,
+				F925289543E2EE0C12BDC072 /* TUnionDecoder.swift */,
+				51448CC0643E77D3AE347EF5 /* KSX6924Decoder.swift */,
+				5B539D570F2355559C568D78 /* JapaneseICDecoder.swift */,
+				00E22133B48C6F3BC0AEDB3F /* EdyDecoder.swift */,
+				F96465D5BDCB23BE0C5C8A77 /* WAONDecoder.swift */,
+				DCE36C37A0ADAE80184BAF82 /* NanacoDecoder.swift */,
+				BE5C7716BA3906817C9292BD /* CalypsoDecoder.swift */,
+				0AAED0A924B32DA5C3782389 /* FeliCaSNScannerView.swift */,
+				BC249991A01D6BECCFA18E9E /* SavedCardDetailView.swift */,
+				EAF65165E6911D09E50F3616 /* SecondaryViews.swift */,
+				43FFA47619FC1CE1AD8B6A35 /* WalletCardView.swift */,
+				2D66CE7385F3AF58A36308F4 /* DateFormatting.swift */,
+				8DA4A5533C982E25FB90D042 /* Assets.xcassets */,
+				463D01AAD2149318CDEAE1C7 /* TUnionCardNames.json */,
+				542E97B41E63EE930BDE02E8 /* TUnionCityCodes.json */,
+				F96D57FC7F225AC59A2B8D54 /* JPStationCodes.csv */,
+				D0CE923DC0F769713232C91E /* JPBusCodes.csv */,
 			);
-			name = Decoders;
 			sourceTree = "<group>";
 		};
-		16CEDE7261487AD9021424FF /* Products */ = {
+		0694DF2025C6A0606D034776 /* NFC */ = {
 			isa = PBXGroup;
 			children = (
-				410F9CA95DAC44818060109C /* CardBal.app */,
+				2F84E9A53C4174A270BDBE49 /* Profiles */,
+				3B180CE519E399EA64707653 /* Decoders */,
 			);
-			name = Products;
+			name = NFC;
 			sourceTree = "<group>";
 		};
-		46F3D16EDDB0CD0F1CC0B13D /* Profiles */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Profiles;
-			sourceTree = "<group>";
-		};
-		6299A35D8CB1B130786DCFBC /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Utils;
-			sourceTree = "<group>";
-		};
-		689CC8D4008DD15EED28B201 /* iOS */ = {
-			isa = PBXGroup;
-			children = (
-				501ED6AC33BF27A967B28096 /* Foundation.framework */,
-				541DFE3987761B04C9A10BFE /* CoreNFC.framework */,
-			);
-			name = iOS;
-			sourceTree = "<group>";
-		};
-		726FDA07C43C66DE78210218 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Views;
-			sourceTree = "<group>";
-		};
-		7E4A65DC3DDB6E5385DB1CCB /* Helpers */ = {
+		19C9249804C89CEAE27963F3 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			name = Helpers;
 			sourceTree = "<group>";
 		};
-		85C3CA5D8AB8648F10D46075 /* NFC */ = {
+		2F84E9A53C4174A270BDBE49 /* Profiles */ = {
 			isa = PBXGroup;
 			children = (
-				46F3D16EDDB0CD0F1CC0B13D /* Profiles */,
-				0FA3A86F0A80E2BB6EF170D6 /* Decoders */,
 			);
-			name = NFC;
+			name = Profiles;
 			sourceTree = "<group>";
 		};
-		95D590C40AE5553A223FF50D /* Frameworks */ = {
+		3B180CE519E399EA64707653 /* Decoders */ = {
 			isa = PBXGroup;
 			children = (
-				689CC8D4008DD15EED28B201 /* iOS */,
-				888476C3A505E3FC9CE14E51 /* libsqlite3.dylib */,
 			);
-			name = Frameworks;
+			name = Decoders;
 			sourceTree = "<group>";
 		};
-		C6115770D1F3C9F08A482375 /* Models */ = {
+		8B1F22DE24B5E0159B0BC2E6 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				90080385D1786FF48D468478 /* Foundation.framework */,
+				9310D8031BD366829E932394 /* CoreNFC.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		91F8453FC97185491442A2E9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9CAEFF702E229B8432A3F65A /* CardBal.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		95EA16786DF6C2CC6CEFD618 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Utils;
+			sourceTree = "<group>";
+		};
+		B589836CAEAA6B107BC55C95 /* Models */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			name = Models;
 			sourceTree = "<group>";
 		};
-		D5E6D53B712490DEAEB9B5BC /* Resources */ = {
+		B7975DB1C926BDE3E8C8A9A3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				473F49EEFE52D6F6CE3611BD /* Localizable.strings */,
+				8B1F22DE24B5E0159B0BC2E6 /* iOS */,
+				DEC759A83B034D830D40315B /* libsqlite3.dylib */,
 			);
-			name = Resources;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		E0002A6C0F96CDE5D7B94F5D = {
+		BED193CD76488FB8ED11C3E8 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				16CEDE7261487AD9021424FF /* Products */,
-				95D590C40AE5553A223FF50D /* Frameworks */,
-				7E4A65DC3DDB6E5385DB1CCB /* Helpers */,
-				C6115770D1F3C9F08A482375 /* Models */,
-				85C3CA5D8AB8648F10D46075 /* NFC */,
-				726FDA07C43C66DE78210218 /* Views */,
-				D5E6D53B712490DEAEB9B5BC /* Resources */,
-				6299A35D8CB1B130786DCFBC /* Utils */,
-				A93128750E36F4B05A42970A /* CardBalApp.swift */,
-				BC405E3C6846389EF16ECBAE /* ContentView.swift */,
-				A3E871B5DB3B0D062781C895 /* Localizer.swift */,
-				493BBAF74E6D0E91D4CC0C15 /* StationResolver.swift */,
-				D992CB630E378AAD8CDBF920 /* BusResolver.swift */,
-				8D5BFB970D09311A988C483A /* CardWalletStore.swift */,
-				ECFA84926A1FF894E0809D7D /* SavedCardRecord.swift */,
-				84A31169FCC298E1BCEA3FA7 /* NFCUtils.swift */,
-				3EF9A2D187649578C7B5B06F /* NFCTransitReader.swift */,
-				BB192140C5E42B0BCBE61BAE /* KSX6924Enums.swift */,
-				8B59E36B9C9E887590858815 /* CalypsoProfiles.swift */,
-				5ED6378D056B746B36E1FA2A /* TransitCardDecoder.swift */,
-				7AE56142F51588E0C380D8AA /* TUnionDecoder.swift */,
-				44CDB9B8D6980CD49C213A90 /* KSX6924Decoder.swift */,
-				504E5ED08022E6E344F9DEE3 /* JapaneseICDecoder.swift */,
-				D8B672CB3051EA646DCDFDBC /* EdyDecoder.swift */,
-				7D8827C8B54F464BDB6CE840 /* WAONDecoder.swift */,
-				3A21F0064D5CB7516266C48D /* NanacoDecoder.swift */,
-				8C82338E30464D838560A200 /* CalypsoDecoder.swift */,
-				B011A6065BA29A2B7B3BA905 /* FeliCaSNScannerView.swift */,
-				E059050F22FA2420B32FBC89 /* SavedCardDetailView.swift */,
-				54D0F16DA65A3BE390CD9528 /* SecondaryViews.swift */,
-				15F875531697AF1B734F4187 /* WalletCardView.swift */,
-				D7E167B18EAAEB2BA182345D /* DateFormatting.swift */,
-				11F23C47B3C8B61061CCB827 /* Assets.xcassets */,
-				F89A57856B014D8AF1626A12 /* TUnionCardNames.json */,
-				1169CCBA9169346E590CD4FC /* TUnionCityCodes.json */,
-				2BD98FEED79299DAEE0500D6 /* JPStationCodes.csv */,
-				942988FC7FF145AB203F5379 /* JPBusCodes.csv */,
 			);
+			name = Views;
+			sourceTree = "<group>";
+		};
+		E747964FCB10B9119EB87C21 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				5FAF1AFB1DDF06D9CF892A46 /* Localizable.strings */,
+			);
+			name = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		616726705CC08E8CE4C5C846 /* CardBal */ = {
+		674001F5C1041F8793334061 /* CardBal */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 56F6939C2135E2EEB81AC519 /* Build configuration list for PBXNativeTarget "CardBal" */;
+			buildConfigurationList = 4845D68DDED460BBD09F5A41 /* Build configuration list for PBXNativeTarget "CardBal" */;
 			buildPhases = (
-				E241AF06DF1A319F955E483B /* Sources */,
-				822DDF53F4221D1C3EC75AA7 /* Frameworks */,
-				17B66050A8DB1D1C8CAA4F48 /* Resources */,
+				379CA857EDB16E389FDAC253 /* Sources */,
+				FD21AE43E04F378B346DD0E7 /* Frameworks */,
+				EDB38CE2BB061C45A90293B8 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -240,24 +243,24 @@
 			);
 			name = CardBal;
 			productName = CardBal;
-			productReference = 410F9CA95DAC44818060109C /* CardBal.app */;
+			productReference = 9CAEFF702E229B8432A3F65A /* CardBal.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		0E6ED6127813CF701305827C /* Project object */ = {
+		3F05BD1D9338E09279849E3E /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					616726705CC08E8CE4C5C846 = {
+					674001F5C1041F8793334061 = {
 						DevelopmentTeam = 9733K94JUG;
 					};
 				};
 			};
-			buildConfigurationList = 28EFDEC84DCA37F920CE1927 /* Build configuration list for PBXProject "CardBal" */;
+			buildConfigurationList = 07EE02805EDC3B82C4CB2AD8 /* Build configuration list for PBXProject "CardBal" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -267,73 +270,74 @@
 				ja,
 				"zh-Hans",
 			);
-			mainGroup = E0002A6C0F96CDE5D7B94F5D;
-			productRefGroup = 16CEDE7261487AD9021424FF /* Products */;
+			mainGroup = 005FAB6BC3E01626A7ECAB27;
+			productRefGroup = 91F8453FC97185491442A2E9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				616726705CC08E8CE4C5C846 /* CardBal */,
+				674001F5C1041F8793334061 /* CardBal */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		17B66050A8DB1D1C8CAA4F48 /* Resources */ = {
+		EDB38CE2BB061C45A90293B8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A42B5D94CB9E658B063917 /* Assets.xcassets in Resources */,
-				05ABE688CFE3903424F42DC1 /* TUnionCardNames.json in Resources */,
-				3DACE14F4F353E882B8E49E6 /* TUnionCityCodes.json in Resources */,
-				BFAE9D11FA05C5C58D1679C6 /* JPStationCodes.csv in Resources */,
-				09C24DA940E076238AC33328 /* JPBusCodes.csv in Resources */,
-				D53CE8A68A65D0286D236352 /* Localizable.strings in Resources */,
+				CD126CEC61717B6A06974EEB /* Assets.xcassets in Resources */,
+				C03D71428E5EC2F749C92FCD /* TUnionCardNames.json in Resources */,
+				5C67C3018704B8AFAF16DB90 /* TUnionCityCodes.json in Resources */,
+				77345C0865014A955F5F5F4B /* JPStationCodes.csv in Resources */,
+				CFCD147ED0F68C13DC98991C /* JPBusCodes.csv in Resources */,
+				68B4F4D17B54E0DDB361812C /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		E241AF06DF1A319F955E483B /* Sources */ = {
+		379CA857EDB16E389FDAC253 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6F97C4A38B1DABD49B207F7B /* CardBalApp.swift in Sources */,
-				E497AACDB4D191795905D042 /* ContentView.swift in Sources */,
-				F800C5A7BB0047D1AC461E2A /* Localizer.swift in Sources */,
-				671A75EC1E73128EBF1845AA /* StationResolver.swift in Sources */,
-				84AA9B412AEB0E71F3AE5591 /* BusResolver.swift in Sources */,
-				7BBCF72D8C873A3ADC38CB97 /* CardWalletStore.swift in Sources */,
-				1BB4D701DE1059D3BA8EB92F /* SavedCardRecord.swift in Sources */,
-				A01F72962B2A319EFC1C8DAE /* NFCUtils.swift in Sources */,
-				4DA06E37EC6722B5DE7B73CD /* NFCTransitReader.swift in Sources */,
-				7D97EE7857DC3FA9E40D2DE9 /* KSX6924Enums.swift in Sources */,
-				8D6C98379C18B17AA99D2A01 /* CalypsoProfiles.swift in Sources */,
-				7CB3EF4479573A9AB905170A /* TransitCardDecoder.swift in Sources */,
-				5592FB43BA20E634463F2D9F /* TUnionDecoder.swift in Sources */,
-				04B43046C9499EAD7D289763 /* KSX6924Decoder.swift in Sources */,
-				EF0FC5A56F33739B7E938CE0 /* JapaneseICDecoder.swift in Sources */,
-				DF93007C4DCEBE33C19DBDBA /* EdyDecoder.swift in Sources */,
-				573BBD8EEC4457F7245B021A /* WAONDecoder.swift in Sources */,
-				B88B8D55C66A94A746D0ED0D /* NanacoDecoder.swift in Sources */,
-				C9BE11A85E15AEAB8C0886F8 /* CalypsoDecoder.swift in Sources */,
-				9DC5306EA12BA1E73B9BB534 /* FeliCaSNScannerView.swift in Sources */,
-				CC95EB538CECC352FDE2795E /* SavedCardDetailView.swift in Sources */,
-				915EB36EB030B7524BA0141B /* SecondaryViews.swift in Sources */,
-				7F301D1DD3FC357C6E0F2356 /* WalletCardView.swift in Sources */,
-				D5A1965182AF9B15C330005C /* DateFormatting.swift in Sources */,
+				72E8F73EE31CA9E96DE016F9 /* CardBalApp.swift in Sources */,
+				0AD90CEDD7766916B4C8AAA1 /* ContentView.swift in Sources */,
+				C85F88DEEFE924EC3C7B60E9 /* Localizer.swift in Sources */,
+				99CBC28CEB4F594205664763 /* StationResolver.swift in Sources */,
+				73A5A450F7C4DFA87A5BF053 /* BusResolver.swift in Sources */,
+				66AF0697918FE7B34A76EFFF /* CardWalletStore.swift in Sources */,
+				A9BA103E82C3725CAD1D85FE /* SavedCardRecord.swift in Sources */,
+				ED3B9FD4D81DAF90DD7E7379 /* NFCUtils.swift in Sources */,
+				05E9B0C8F8C4F7AD30FF150E /* NFCTransitReader.swift in Sources */,
+				368BC1CFA715C2D5E8E55DED /* KSX6924Enums.swift in Sources */,
+				E599DF170E71A380A0C1A767 /* CalypsoProfiles.swift in Sources */,
+				3AD7728D3B818492F405DDFB /* FeliCaProfiles.swift in Sources */,
+				140054E632B764AE34D7D446 /* TransitCardDecoder.swift in Sources */,
+				F1066576F40D1E25D21AF92D /* TUnionDecoder.swift in Sources */,
+				82CE80752F22A481C1255FA8 /* KSX6924Decoder.swift in Sources */,
+				F09D0F7F0BF70DEC8EEB4DF5 /* JapaneseICDecoder.swift in Sources */,
+				FE20630DC525F7E0C9722CD2 /* EdyDecoder.swift in Sources */,
+				319D8135F1FA7568143A5717 /* WAONDecoder.swift in Sources */,
+				DB602B48C1F840C65DE85CFE /* NanacoDecoder.swift in Sources */,
+				18888E7A5EE6667D6067ACBD /* CalypsoDecoder.swift in Sources */,
+				4C4B9F7373C9C9E292C2151D /* FeliCaSNScannerView.swift in Sources */,
+				AAFB498BBA87AFBE87A3600D /* SavedCardDetailView.swift in Sources */,
+				3BE2D3A5F4909DF733DBF7E2 /* SecondaryViews.swift in Sources */,
+				1DD0DE7FD54A9C95B0CD1BD5 /* WalletCardView.swift in Sources */,
+				1B1353956C518FD3B4532E95 /* DateFormatting.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		473F49EEFE52D6F6CE3611BD /* Localizable.strings */ = {
+		5FAF1AFB1DDF06D9CF892A46 /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
-				BFC41D8BABC7FF0DD5C34874 /* en */,
-				325A440E0279AF4484221845 /* ja */,
-				F9B85CCAA6125A490F7CBC26 /* zh-Hans */,
+				955FCF7EC94D54EE47763EF6 /* en */,
+				B7B3CB90FAF9DB7F35A0815D /* ja */,
+				3F1C9C44C363A9790BA2B2FE /* zh-Hans */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -341,7 +345,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		0F07B884EC8987EF4F66FB6A /* Release */ = {
+		4ED0A2AE11DD7B7DD7A2ADA0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -355,83 +359,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
-		36C353F115D554757E1FBC49 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
-				DEVELOPMENT_TEAM = 9733K94JUG;
-				INFOPLIST_FILE = CardBal/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		81B90F8727DC01A469F40FB8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		D11F65F50C2798350F0ED901 /* Debug */ = {
+		9C089C8B042E863E688A5B37 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -492,28 +425,99 @@
 			};
 			name = Debug;
 		};
+		D3B67ABD05EA1C633AF97E06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		FA225A90DB2FEF044A6DC0B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
+				DEVELOPMENT_TEAM = 9733K94JUG;
+				INFOPLIST_FILE = CardBal/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		28EFDEC84DCA37F920CE1927 /* Build configuration list for PBXProject "CardBal" */ = {
+		07EE02805EDC3B82C4CB2AD8 /* Build configuration list for PBXProject "CardBal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				D11F65F50C2798350F0ED901 /* Debug */,
-				81B90F8727DC01A469F40FB8 /* Release */,
+				9C089C8B042E863E688A5B37 /* Debug */,
+				D3B67ABD05EA1C633AF97E06 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		56F6939C2135E2EEB81AC519 /* Build configuration list for PBXNativeTarget "CardBal" */ = {
+		4845D68DDED460BBD09F5A41 /* Build configuration list for PBXNativeTarget "CardBal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0F07B884EC8987EF4F66FB6A /* Release */,
-				36C353F115D554757E1FBC49 /* Debug */,
+				4ED0A2AE11DD7B7DD7A2ADA0 /* Release */,
+				FA225A90DB2FEF044A6DC0B2 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 0E6ED6127813CF701305827C /* Project object */;
+	rootObject = 3F05BD1D9338E09279849E3E /* Project object */;
 }

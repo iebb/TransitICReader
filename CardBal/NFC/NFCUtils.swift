@@ -305,14 +305,17 @@ struct TransactionDetailView: View {
                     if let term = tx.terminalID, !isKorean {
                         LabeledContent("Terminal", value: term)
                     }
+                    let lowType = tx.type.lowercased()
+                    let isPurchase = tx.category == .purchase || lowType.contains("purchase") || lowType.contains("goods") || lowType.contains("物販")
                     let isRecordOnly = tx.time?.contains("Record #") ?? false
+                    
                     if let date = tx.date, !isNAMANE, !isRecordOnly {
                         LabeledContent {
                             Text(date.formatted(date: .numeric, time: .omitted))
                         } label: {
                             HStack {
                                 if isKorean { Circle().fill(.brown).frame(width: 8, height: 8) }
-                                if isJapan { Circle().fill(.green).frame(width: 8, height: 8) }
+                                if isJapan { Circle().fill(.orange).frame(width: 8, height: 8) }
                                 Text("Date")
                             }
                         }
@@ -323,6 +326,7 @@ struct TransactionDetailView: View {
                         } label: {
                             HStack {
                                 if isKorean { Circle().fill(.purple).frame(width: 8, height: 8) }
+                                if isJapan { Circle().fill(.cyan).frame(width: 8, height: 8) }
                                 Text("Time")
                             }
                         }
@@ -351,7 +355,7 @@ struct TransactionDetailView: View {
                         }
                     }
                     
-                    if let entry = tx.entryStation {
+                    if let entry = tx.entryStation, !isPurchase {
                          LabeledContent {
                              Text(entry)
                          } label: {
@@ -361,7 +365,7 @@ struct TransactionDetailView: View {
                              }
                          }
                     }
-                    if let exit = tx.exitStation {
+                    if let exit = tx.exitStation, !isPurchase {
                          LabeledContent {
                              Text(exit)
                          } label: {
@@ -929,17 +933,20 @@ struct CardRawDataHighlightView: View {
         let isJP = f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("kitaca") || 
                    f.contains("tobu") || f.contains("japan") || f.contains("feli") || f.contains("ic")
         if isJP && dataCount == 16 {
+            let lowType = tx?.type.lowercased() ?? ""
+            let isPurchase = tx?.category == .purchase || lowType.contains("purchase") || lowType.contains("goods") || lowType.contains("物販")
+            
             return [
-                Highlight(range: 0..<1, color: .red, label: "Console Type"),
-                Highlight(range: 1..<2, color: tx?.iconInfo.color ?? .orange, label: "Process Type"),
-                Highlight(range: 2..<3, color: .purple, label: "Payment Type"),
-                Highlight(range: 3..<4, color: .pink, label: "Entry/Exit Flag"),
-                Highlight(range: 4..<6, color: .green, label: "Date"),
-                Highlight(range: 6..<8, color: .cyan, label: "Entrance Station"),
-                Highlight(range: 8..<10, color: .teal, label: "Exit Station"),
+                Highlight(range: 0..<1, color: .red, label: "Console"),
+                Highlight(range: 1..<2, color: tx?.iconInfo.color ?? .blue, label: "Process"),
+                Highlight(range: 2..<3, color: .purple, label: "Payment"),
+                Highlight(range: 3..<4, color: .pink, label: "E/E Flag"),
+                Highlight(range: 4..<6, color: .orange, label: "Date"),
+                Highlight(range: 6..<8, color: .cyan, label: isPurchase ? "Time" : "Entry Stn"),
+                Highlight(range: 8..<10, color: .teal, label: isPurchase ? "Unk/Shop" : "Exit Stn"),
                 Highlight(range: 10..<12, color: .green, label: "Balance (LE)"),
-                Highlight(range: 12..<15, color: .blue, label: "Sequence"),
-                Highlight(range: 15..<16, color: .indigo, label: "Region")
+                Highlight(range: 12..<15, color: .gray, label: "Sequence"),
+                Highlight(range: 15..<16, color: .brown, label: "Region")
             ]
         }
         

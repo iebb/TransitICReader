@@ -178,10 +178,18 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                         if !alreadyDecoded {
                             await MainActor.run { self.updateStatus("Retrieving real serial number...", kind: .idle) }
                             if let sn = try? await performEnhancedFeliCaHandshake(tag: feliCa) {
+                                let systemCodes = (try? await feliCa.requestSystemCode().map { $0.hexString.uppercased() }) ?? [feliCaSnapshot.systemCode ?? "0003"]
+                                let detectedBrand = FeliCaProfile.all[0].detectedBrand(using: systemCodes, realSN: sn)
+                                
+                                var updatedFields = feliCaSnapshot.resultFields
+                                if let index = updatedFields.firstIndex(where: { $0.title == "Detected Type" }) {
+                                    updatedFields[index] = ResultField(title: "Detected Type", value: detectedBrand)
+                                }
+                                
                                 // Re-create snapshot with SN
                                 snapshot = TransitCardSnapshot(
                                     technology: feliCaSnapshot.technology,
-                                    cardFamily: feliCaSnapshot.cardFamily,
+                                    cardFamily: detectedBrand,
                                     identifierLabel: feliCaSnapshot.identifierLabel,
                                     identifierValue: feliCaSnapshot.identifierValue,
                                     rawIdentifierValue: feliCaSnapshot.rawIdentifierValue,
@@ -192,7 +200,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                                     balanceDetail: feliCaSnapshot.balanceDetail,
                                     realSerialNumber: sn,
                                     region: feliCaSnapshot.region,
-                                    resultFields: feliCaSnapshot.resultFields,
+                                    resultFields: updatedFields,
                                     rawSections: feliCaSnapshot.rawSections,
                                     transactions: feliCaSnapshot.transactions,
                                     transitHistory: feliCaSnapshot.transitHistory,

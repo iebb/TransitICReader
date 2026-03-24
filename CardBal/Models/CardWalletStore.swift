@@ -112,6 +112,7 @@ class CardWalletStore: ObservableObject {
         
         let family = card.cardFamily.lowercased()
         let sn = card.realSerialNumber?.uppercased() ?? ""
+        NSLog("[CardWalletStoreDebug] Auto-applying preset: family=%@, sn=%@", family, sn)
         
         let allPresets = presets()
         // Try family name match

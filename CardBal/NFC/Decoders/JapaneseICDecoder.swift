@@ -41,7 +41,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         let idm = feliCaTag.currentIDm.hexString.uppercased()
         let formattedIDm = formatFeliCaIDm(idm)
         
-        let systemCodes = (try? await feliCaTag.polling(systemCode: Data([0xFF, 0xFF]), requestCode: .systemCode, timeSlot: .max1).1.systemCodeCandidates) ?? [profile.systemCode]
+        let systemCodes = (try? await feliCaTag.requestSystemCode().map { $0.hexString.uppercased() }) ?? [profile.systemCode]
         let detectedBrand = profile.detectedBrand(using: systemCodes)
         
         var resultFields: [ResultField] = []
@@ -218,97 +218,5 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 }
 
-// MARK: - FeliCa Profiles (Extracted from NFCUtils)
-
-private struct FeliCaProfile {
-    let displayName: String
-    let systemCode: String
-    let serviceCode: String
-    let serviceCodeLittleEndian: Data
-    let brandOverrides: [String: String]
-    let parseBalance: (Data, Date) -> ParsedBalance?
-
-    static func matching(candidates: [String]) -> FeliCaProfile? {
-        let normalized = Set(candidates.map { $0.uppercased() })
-        return all.first(where: { normalized.contains($0.systemCode) })
-    }
-
-    func detectedBrand(using systemCodes: [String], realSN: String? = nil) -> String {
-        if let sn = realSN?.uppercased() {
-            if sn.hasPrefix("JE") { return "Suica" }
-            if sn.hasPrefix("PB") { return "PASMO" }
-            if sn.hasPrefix("JW") { return "ICOCA" }
-            if sn.hasPrefix("FC") { return "Hayakaken" }
-            if sn.hasPrefix("JK") { return "SUGOCA" }
-            if sn.hasPrefix("TP") { return "Manaca" }
-            if sn.hasPrefix("KI") { return "Kitaca" }
-            if sn.hasPrefix("NI") { return "Nimoca" }
-            if sn.hasPrefix("PI") { return "PiTaPa" }
-            if sn.hasPrefix("TO") { return "TOICA" }
-        }
-        for systemCode in systemCodes.map({ $0.uppercased() }) {
-            if let match = brandOverrides[systemCode] { return match }
-        }
-        return displayName
-    }
-
-    static let all: [FeliCaProfile] = [
-        FeliCaProfile(
-            displayName: "Japan Transit IC",
-            systemCode: "0003",
-            serviceCode: "008B",
-            serviceCodeLittleEndian: Data([0x8B, 0x00]),
-            brandOverrides: [
-                "86A7": "Suica", 
-                "927A": "Hayakaken",
-                "90A2": "PASMO",
-                "90B1": "ICOCA",
-                "86A1": "SUGOCA"
-            ],
-            parseBalance: { block, _ in
-                guard block.count >= 13 else { return nil }
-                let balance = Int(block[11]) | (Int(block[12]) << 8)
-                return ParsedBalance(
-                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY"),
-                    detail: "Parsed from bytes 11-12 in little-endian order.",
-                    rawFields: [RawDataField(title: "Value", value: "\(balance)")]
-                )
-            }
-        ),
-        FeliCaProfile(
-            displayName: "Octopus",
-            systemCode: "8008",
-            serviceCode: "0117",
-            serviceCodeLittleEndian: Data([0x17, 0x01]),
-            brandOverrides: [:],
-            parseBalance: { block, scannedAt in
-                guard block.count >= 4 else { return nil }
-                let rawStored = block.bigEndianInt(start: 0, length: 4)
-                let offset = octopusOffset(for: scannedAt)
-                let value = Decimal(rawStored - offset) / 10
-                return ParsedBalance(
-                    formatted: formatCurrency(amount: value, code: "HKD", fractionDigits: 1),
-                    detail: "Octopus stores a raw value with an offset. formula: (raw - \(offset)) / 10.",
-                    rawFields: [RawDataField(title: "Raw Stored", value: "\(rawStored)")]
-                )
-            }
-        ),
-        FeliCaProfile(
-            displayName: "IruCa",
-            systemCode: "DE80",
-            serviceCode: "008B",
-            serviceCodeLittleEndian: Data([0x8B, 0x00]),
-            brandOverrides: [:],
-            parseBalance: { block, _ in
-                guard block.count >= 13 else { return nil }
-                let balance = Int(block[11]) | (Int(block[12]) << 8)
-                return ParsedBalance(
-                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY"),
-                    detail: "Parsed from bytes 11-12.",
-                    rawFields: [RawDataField(title: "Value", value: "\(balance)")]
-                )
-            }
-        )
-    ]
-}
+// MARK: - Profiles handled by FeliCaProfiles.swift
 
