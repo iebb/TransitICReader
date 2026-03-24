@@ -49,7 +49,6 @@
 		B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11B0256184978348338611A /* FeliCaProfiles.swift */; };
 		C8B201E5325832FA793E6AC8 /* nimoca.png in Resources */ = {isa = PBXBuildFile; fileRef = 3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */; };
 		CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */; };
-		D26496086401238CF584497F /* TransitBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = A03DA00309F176623B68D593 /* TransitBrand.swift */; };
 		E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */; };
 /* End PBXBuildFile section */
 
@@ -94,7 +93,6 @@
 		A00000000000000000000008 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Assets.xcassets/AppIcon.icon; sourceTree = "<group>"; };
 		A0000000000000000000002A /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoProfiles.swift; sourceTree = "<group>"; };
-		A03DA00309F176623B68D593 /* TransitBrand.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransitBrand.swift; sourceTree = "<group>"; };
 		B11B0256184978348338611A /* FeliCaProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeliCaProfiles.swift; sourceTree = "<group>"; };
 		C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPBusCodes.csv; sourceTree = "<group>"; };
 		D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
@@ -147,7 +145,6 @@
 			children = (
 				8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */,
 				8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */,
-				A03DA00309F176623B68D593 /* TransitBrand.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -390,7 +387,6 @@
 				62A4280F4F3DFCBAB17B785D /* BusResolver.swift in Sources */,
 				E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */,
 				B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */,
-				D26496086401238CF584497F /* TransitBrand.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

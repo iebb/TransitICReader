@@ -640,13 +640,7 @@ struct ReorderCardsView: View {
                     }
                     
                     Text(card.displayTitle)
-                        .font(.body.weight(.medium))
-                    
-                    if card.finalIsUsingImage {
-                        Image(systemName: "photo")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                        .font(.body.weight(.medium))                                                   
                     
                     Spacer()
                     
