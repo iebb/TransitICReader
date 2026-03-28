@@ -157,8 +157,9 @@ struct TUnionDecoder: TransitCardDecoder {
             }
         }
         
-        // Transaction History: SFI 0x18 is the standard for T-Union/PBOC
+        // T-Union stores transaction records in SFI 0x18 and trip records in SFI 0x1E.
         let transactions = await readTUnionTransactions(iso: iso)
+        let travelHistory = await readTUnionTravelHistory(iso: iso)
         
         return TransitCardSnapshot(
             technology: "ISO7816",
@@ -176,51 +177,171 @@ struct TUnionDecoder: TransitCardDecoder {
             resultFields: resultFields,
             rawSections: rawSections + parsedBalance.rawSections,
             rawTransactions: transactions,
-            rawTransitHistory: [],
+            rawTransitHistory: travelHistory,
             scannedAt: scannedAt
         )
     }
 
     private static func readTUnionTransactions(iso: NFCISO7816Tag) async -> [String] {
         var txs: [String] = []
-        let sfi: UInt8 = 0x18
-        let p2 = (sfi << 3) | 0x04
-        
+        let p2 = (UInt8(0x18) << 3) | 0x04
         for recNo in UInt8(1)...UInt8(10) {
-            let apdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: recNo, p2Parameter: p2, data: Data(), expectedResponseLength: 0)
-            guard let resp = try? await iso.sendCommand(apdu: apdu), resp.1 == 0x90 else { break }
-            let data = resp.0
+            guard let data = await readRecord(iso: iso, recordNumber: recNo, p2: p2) else { break }
             guard data.count >= 23 else { continue }
             txs.append(data.hexString.uppercased())
         }
         return txs
     }
 
+    private static func readTUnionTravelHistory(iso: NFCISO7816Tag) async -> [String] {
+        var travels: [String] = []
+        let p2 = (UInt8(0x1E) << 3) | 0x04
+        for recNo in UInt8(1)...UInt8(30) {
+            guard let data = await readRecord(iso: iso, recordNumber: recNo, p2: p2) else { break }
+            guard data.count >= 48 else { continue }
+            travels.append(data.hexString.uppercased())
+        }
+        return travels
+    }
+
     static func decodePBOC(data: Data, index: Int) -> TransitTransaction? {
         guard data.count >= 23 else { return nil }
         // PBOC Transaction Record (standard 23 bytes)
         // 0-1: Counter, 2-4: Overdraft, 5-8: Amount, 9: Type, 10-15: Terminal, 16-19: Date (BCD), 20-22: Time (BCD)
-        let amountVal = Int32(bigEndian: data.subdata(in: 5..<9).withUnsafeBytes { $0.load(as: Int32.self) })
+        let amountVal = UInt32(bigEndian: data.subdata(in: 5..<9).withUnsafeBytes { $0.load(as: UInt32.self) })
         let typeByte = data[9]
         let dateBCD = data.subdata(in: 16..<20).hexString
         let timeBCD = data.subdata(in: 20..<23).hexString
+        let decodedType = decodePBOCType(typeByte)
         
-        let typeStr = (typeByte == 0x01 || typeByte == 0x05) ? "Top-up" : "Consumption"
-        let amount = Decimal(amountVal) / 100
+        let amount = Decimal(Int(amountVal)) / 100
+        let signedAmount = decodedType.isCredit ? amount : -amount
         
         let dateStr = dateBCD + timeBCD
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyyMMddHHmmss"
-        let date = fmt.date(from: dateStr)
+        let date = CardDateFormatting.parseCompactDateTime(dateStr, format: "yyyyMMddHHmmss", brand: .tUnion)
+        let timeString = formatBCDTime(timeBCD)
         
         return TransitTransaction(
             date: date,
-            amount: amount,
+            time: timeString,
+            amount: signedAmount,
             terminalID: data.subdata(in: 10..<16).hexString.uppercased(),
-            type: typeStr,
+            type: decodedType.label,
+            category: decodedType.category,
             balanceAfter: nil,
-            location: nil
+            location: nil,
+            rawData: data.hexString.uppercased(),
+            recordNumber: index + 1
         )
+    }
+
+    static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? {
+        guard data.count >= 48 else { return nil }
+
+        let typeByte = data[0]
+        let terminalID = data.subdata(in: 1..<9).hexString.uppercased()
+        let subType = data[9]
+        let stationID = data.subdata(in: 10..<17).hexString.uppercased()
+        let amountVal = UInt32(bigEndian: data.subdata(in: 17..<21).withUnsafeBytes { $0.load(as: UInt32.self) })
+        let balanceVal = UInt32(bigEndian: data.subdata(in: 21..<25).withUnsafeBytes { $0.load(as: UInt32.self) })
+        let dateBCD = data.subdata(in: 25..<32).hexString
+        let cityID = data.subdata(in: 32..<34).hexString.uppercased()
+
+        let date = CardDateFormatting.parseCompactDateTime(dateBCD, format: "yyyyMMddHHmmss", brand: .tUnion)
+
+        let locationPrefix = TUnionCityDatabase.lookupCityName(for: cityID) ?? "City \(cityID)"
+        let stationLabel = TUnionCityDatabase.lookupStationName(cityID: cityID, stationID: stationID) ?? "Station \(stationID)"
+        let location = "\(locationPrefix) • \(stationLabel)"
+        let amount = Decimal(Int(amountVal)) / 100
+        let balance = Decimal(Int(balanceVal)) / 100
+
+        let kind = decodeTravelType(typeByte: typeByte, subType: subType)
+
+        return TransitTransaction(
+            date: date,
+            time: formatBCDTime(String(dateBCD.suffix(6))),
+            amount: kind.isCredit ? amount : -amount,
+            terminalID: terminalID,
+            type: kind.label,
+            category: kind.category,
+            balanceAfter: balance,
+            location: location,
+            entryStation: kind.isEntry ? stationLabel : nil,
+            exitStation: kind.isExit ? stationLabel : nil,
+            entryStationCode: kind.isEntry ? stationID : nil,
+            exitStationCode: kind.isExit ? stationID : nil,
+            rawData: data.hexString.uppercased(),
+            recordNumber: index + 1
+        )
+    }
+
+    private static func readRecord(iso: NFCISO7816Tag, recordNumber: UInt8, p2: UInt8) async -> Data? {
+        let baseAPDU = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xB2,
+            p1Parameter: recordNumber,
+            p2Parameter: p2,
+            data: Data(),
+            expectedResponseLength: -1
+        )
+
+        guard let resp = try? await iso.sendCommand(apdu: baseAPDU) else { return nil }
+        if resp.1 == 0x90 { return resp.0 }
+
+        // Some cards reply with 6Cxx to request a specific Le for READ RECORD.
+        if resp.1 == 0x6C {
+            let retryAPDU = NFCISO7816APDU(
+                instructionClass: 0x00,
+                instructionCode: 0xB2,
+                p1Parameter: recordNumber,
+                p2Parameter: p2,
+                data: Data(),
+                expectedResponseLength: Int(resp.2)
+            )
+            if let retry = try? await iso.sendCommand(apdu: retryAPDU), retry.1 == 0x90 {
+                return retry.0
+            }
+        }
+
+        return nil
+    }
+
+    private static func decodePBOCType(_ type: UInt8) -> (label: String, category: TransactionCategory, isCredit: Bool) {
+        switch type {
+        case 0x02:
+            return ("Top-up", .topUp, true)
+        case 0x06:
+            return ("Single Purchase", .purchase, false)
+        case 0x09:
+            return ("Compound Purchase", .purchase, false)
+        case 0x04:
+            return ("Adjustment", .adjustment, false)
+        case 0x05:
+            return ("Cash Withdrawal", .refund, true)
+        default:
+            return ("Transaction \(String(format: "%02X", type))", .unknown, false)
+        }
+    }
+
+    private static func decodeTravelType(typeByte: UInt8, subType: UInt8) -> (label: String, category: TransactionCategory, isCredit: Bool, isEntry: Bool, isExit: Bool) {
+        switch typeByte {
+        case 0x03:
+            return (subType == 0x02 ? "Bus Boarding" : "Entry", subType == 0x02 ? .busOn : .trainOn, false, true, false)
+        case 0x04:
+            return (subType == 0x02 ? "Bus Exit" : "Exit", subType == 0x02 ? .busOff : .trainOff, false, false, true)
+        case 0x02, 0x06:
+            return (subType == 0x02 ? "Bus Trip" : "Transit Trip", subType == 0x02 ? .bus : .train, false, false, false)
+        default:
+            return ("Travel \(String(format: "%02X", typeByte))", .unknown, false, false, false)
+        }
+    }
+
+    private static func formatBCDTime(_ bcd: String) -> String? {
+        guard bcd.count == 6 else { return nil }
+        let hh = bcd.prefix(2)
+        let mm = bcd.dropFirst(2).prefix(2)
+        let ss = bcd.suffix(2)
+        return "\(hh):\(mm):\(ss)"
     }
 
     private static func findTUnionTag(_ tag: [UInt8], in data: Data) -> Data? {
@@ -310,19 +431,19 @@ struct TUnionDecoder: TransitCardDecoder {
         var registerFields: [RawDataField] = []
         
         // Extract Purse (P1=0x00, P2=0x02)
-        let purse: Int32 = payloads[0x02].flatMap { d in
+        let purse: UInt32 = payloads[0x02].flatMap { d in
              guard d.count >= 4 else { return nil }
-             return Int32(bigEndian: d.subdata(in: 0..<4).withUnsafeBytes { $0.load(as: Int32.self) })
+             return UInt32(bigEndian: d.subdata(in: 0..<4).withUnsafeBytes { $0.load(as: UInt32.self) })
         } ?? 0
         
         // Extract Debt (P1=0x01, P2=0x02) stored in virtual index 0x82
-        let debt: Int32 = payloads[0x82].flatMap { d in
+        let debt: UInt32 = payloads[0x82].flatMap { d in
              guard d.count >= 4 else { return nil }
-             return Int32(bigEndian: d.subdata(in: 0..<4).withUnsafeBytes { $0.load(as: Int32.self) })
+             return UInt32(bigEndian: d.subdata(in: 0..<4).withUnsafeBytes { $0.load(as: UInt32.self) })
         } ?? 0
 
         // Rule: Final = Purse - Debt
-        let selectedCents = purse - debt
+        let selectedCents = Int(purse) - Int(debt)
         
         registerFields.append(RawDataField(title: "Balance 0", value: "\(Double(purse)/100.0) CNY"))
         registerFields.append(RawDataField(title: "Balance 1", value: "\(Double(debt)/100.0) CNY"))
@@ -333,6 +454,8 @@ struct TUnionDecoder: TransitCardDecoder {
         formatter.numberStyle = .currency
         formatter.currencyCode = "CNY"
         formatter.locale = Locale(identifier: "zh_CN")
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
         let balanceText = formatter.string(from: NSNumber(value: amount)) ?? "\(amount)元"
         
         return (
@@ -381,9 +504,25 @@ struct TUnionCityDatabase {
         }
         return json
     }()
+
+    private static let lineStations: [String: String] = {
+        guard let url = Bundle.main.url(forResource: "TUnionLineStations", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            return [:]
+        }
+        return json
+    }()
     
     private static let sortedEntries: [(prefix: String, name: String)] = {
         cardNames.map { (prefix: $0.key, name: $0.value) }.sorted { $0.prefix.count > $1.prefix.count }
+    }()
+
+    private static let sortedStationEntries: [(key: String, name: String)] = {
+        lineStations.map { (key: $0.key.uppercased(), name: $0.value) }.sorted { lhs, rhs in
+            if lhs.key.count != rhs.key.count { return lhs.key.count > rhs.key.count }
+            return lhs.key < rhs.key
+        }
     }()
 
     static func lookupCardName(for value: String) -> String? {
@@ -395,5 +534,17 @@ struct TUnionCityDatabase {
     
     static func lookupCityName(for cityId: String) -> String? {
         return cityCodes[cityId]
+    }
+
+    static func lookupStationName(cityID: String, stationID: String) -> String? {
+        let normalizedCityID = cityID.uppercased()
+        let normalizedStationID = stationID.uppercased()
+        let combined = normalizedCityID + normalizedStationID
+
+        for entry in sortedStationEntries where combined.hasPrefix(entry.key) {
+            return entry.name
+        }
+
+        return nil
     }
 }

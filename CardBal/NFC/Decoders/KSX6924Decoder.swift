@@ -216,7 +216,15 @@ struct KSX6924Decoder: TransitCardDecoder {
                     if let yr = components.year, yr >= 2020, yr <= 2030,
                        let mo = components.month, mo >= 1, mo <= 12,
                        let dy = components.day, dy >= 1, dy <= 31 {
-                        foundDate = Calendar.current.date(from: components)
+                        foundDate = CardDateFormatting.date(
+                            year: components.year,
+                            month: components.month,
+                            day: components.day,
+                            hour: components.hour,
+                            minute: components.minute,
+                            second: components.second,
+                            brand: .tmoney
+                        )
                         displayTime = String(format: "%02d:%02d:%02d", components.hour ?? 0, components.minute ?? 0, components.second ?? 0)
                     }
                 }
@@ -298,7 +306,15 @@ struct KSX6924Decoder: TransitCardDecoder {
                     if let yr = components.year, yr >= 2020, yr <= 2030,
                        let mo = components.month, mo >= 1, mo <= 12,
                        let dy = components.day, dy >= 1, dy <= 31 {
-                        foundDate = Calendar.current.date(from: components)
+                        foundDate = CardDateFormatting.date(
+                            year: components.year,
+                            month: components.month,
+                            day: components.day,
+                            hour: components.hour,
+                            minute: components.minute,
+                            second: components.second,
+                            brand: .tmoney
+                        )
                         displayTime = String(format: "%02d:%02d:%02d", components.hour ?? 0, components.minute ?? 0, components.second ?? 0)
                     }
                 }
@@ -338,7 +354,15 @@ struct KSX6924Decoder: TransitCardDecoder {
         components.minute = minute
         components.second = second
         
-        let date = Calendar.current.date(from: components) ?? Date.distantPast
+        let date = CardDateFormatting.date(
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
+            brand: .tmoney
+        ) ?? Date.distantPast
         let timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
         return (date, timeStr)
     }

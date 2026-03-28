@@ -18,7 +18,6 @@ struct WalletCardView: View {
     }
 
     private var isPhotoFace: Bool { faceImage != nil && card.finalIsUsingImage }
-
     private var shouldShowTitle: Bool {
         !(isPhotoFace && card.finalHideTitle)
     }
@@ -132,16 +131,18 @@ struct WalletCardView: View {
 
                     Spacer()
 
-        let showHistoryButtons = isExpanded && (!card.rawTransactions.isEmpty || !card.rawTransitHistory.isEmpty)
+        let transactionCount = card.transactions.count
+        let transitCount = card.transitHistory.count
+        let showHistoryButtons = isExpanded && (transactionCount > 0 || transitCount > 0)
         
         HStack(alignment: .bottom) {
             if showHistoryButtons {
                 HStack(spacing: 8) {
-                    if !card.rawTransactions.isEmpty {
+                    if transactionCount > 0 {
                         Button(action: showTransactions) {
                             HStack(spacing: 4) {
                                 Image(systemName: "list.bullet")
-                                Text("\(card.rawTransactions.count) Tx")
+                                Text("\(transactionCount) Tx")
                             }
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .padding(.horizontal, 10).padding(.vertical, 8)
@@ -151,11 +152,11 @@ struct WalletCardView: View {
                         .buttonStyle(.plain)
                     }
                     
-                    if !card.rawTransitHistory.isEmpty {
+                    if transitCount > 0 {
                         Button(action: showTransit) {
                             HStack(spacing: 4) {
                                 Image(systemName: "map")
-                                Text("\(card.rawTransitHistory.count) Trips")
+                                Text("\(transitCount) Trips")
                             }
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .padding(.horizontal, 10).padding(.vertical, 8)

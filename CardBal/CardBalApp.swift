@@ -9,7 +9,8 @@ struct CardBalApp: App {
 
         UserDefaults.standard.register(defaults: [
             "scanOnLaunch": true,
-            "dateFormat": "yyyy-MM-dd"
+            "dateFormat": "yyyy-MM-dd",
+            "cardTimeZonePreference": CardTimeZonePreference.issuer.rawValue
         ])
     }
 

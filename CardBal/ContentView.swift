@@ -28,7 +28,7 @@ struct ContentView: View {
                 }
                 .tag(1)
             
-            SettingsView(store: cardStore)
+            SettingsView(store: cardStore, reader: reader)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
@@ -137,10 +137,7 @@ struct ScanHomeView: View {
 
                     if !snapshot.transactions.isEmpty {
                         Section("Recent Transactions") {
-                            let sorted = snapshot.transactions.sorted { t1, t2 in
-                                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
-                                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-                            }
+                            let sorted = sortTransactionsByRecency(snapshot.transactions)
                             ForEach(sorted) { tx in
                                 TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
                                     .padding(.vertical, 4)
@@ -150,10 +147,7 @@ struct ScanHomeView: View {
 
                     if !snapshot.transitHistory.isEmpty {
                         Section("Transit Activity") {
-                            let sorted = snapshot.transitHistory.sorted { t1, t2 in
-                                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
-                                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-                            }
+                            let sorted = sortTransactionsByRecency(snapshot.transitHistory)
                             ForEach(sorted) { tx in
                                 TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
                                     .padding(.vertical, 4)
@@ -369,8 +363,11 @@ struct CardsView: View {
 
 struct SettingsView: View {
     @ObservedObject var store: CardWalletStore
+    @ObservedObject var reader: NFCTransitReader
     @AppStorage("scanOnLaunch") private var scanOnLaunch = true
+    @AppStorage("fullFeliCaScan") private var fullFeliCaScan = false
     @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
+    @AppStorage("cardTimeZonePreference") private var cardTimeZonePreference = CardTimeZonePreference.issuer.rawValue
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
 
     var body: some View {
@@ -382,6 +379,13 @@ struct SettingsView: View {
                     } label: {
                         Label("Manage Card Faces", systemImage: "photo.stack")
                     }
+                }
+                Section("FeliCa Probing") {
+                    Toggle("Full FeliCa Scan", isOn: $fullFeliCaScan)
+                        .onChange(of: fullFeliCaScan) { newValue in
+                             reader.shouldFullFeliCaScan = newValue
+                        }
+                    Text("Probes every service code for hidden transaction logs. May slow down scanning.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Backup") {
                     if store.isSyncing {
@@ -403,12 +407,20 @@ struct SettingsView: View {
                 }
                 Section("App Settings") {
                     Toggle("Scan on Launch", isOn: $scanOnLaunch)
+                    Toggle("Full FeliCa Scan", isOn: $fullFeliCaScan)
                     Picker("Date Format", selection: $dateFormat) {
                         Text("YYYY-MM-DD").tag("yyyy-MM-dd")
                         Text("DD/MM/YYYY").tag("dd/MM/yyyy")
                         Text("MM/DD/YYYY").tag("MM/dd/yyyy")
                         Text("Abbreviated").tag("MMM d, yyyy")
                     }
+                    Picker("Card Time Zone", selection: $cardTimeZonePreference) {
+                        Text("Card Issuer's Time Zone").tag(CardTimeZonePreference.issuer.rawValue)
+                        Text("Current Time Zone").tag(CardTimeZonePreference.current.rawValue)
+                    }
+                    Text("China T-Union defaults to China Standard Time and Korean cards default to Korea Standard Time when issuer time is selected.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Section("Privacy") {
                     Picker("Serial Number Display", selection: $snDisplayMode) {
@@ -420,6 +432,19 @@ struct SettingsView: View {
                 Section("Information") {
                     HStack { Text("App Version"); Spacer(); Text("1.1.0").foregroundStyle(.secondary) }
                     Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("Credits") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("China T-Union station data is based on domosekai/tripreader-data, the original source used by downstream projects.")
+                            .font(.footnote)
+                        Text("Licensed under Creative Commons Attribution 4.0 International.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Link("Open tripreader-data on GitHub", destination: URL(string: "https://github.com/domosekai/tripreader-data")!)
+                            .font(.footnote)
+                        Link("Open CC BY 4.0 License", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                            .font(.footnote)
+                    }
                 }
             }
             .navigationTitle("Settings")

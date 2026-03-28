@@ -30,6 +30,7 @@
 		8C4692102F6F2ACB0071B6C4 /* KSX6924Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C46920F2F6F2ACB0071B6C4 /* KSX6924Enums.swift */; };
 		8C4692122F6F2ACB0071B6C4 /* TUnionCardNames.json in Resources */ = {isa = PBXBuildFile; fileRef = 8C4692112F6F2ACB0071B6C4 /* TUnionCardNames.json */; };
 		8C4692142F6F2ACB0071B6C4 /* TUnionCityCodes.json in Resources */ = {isa = PBXBuildFile; fileRef = 80112233445566778899AA01 /* TUnionCityCodes.json */; };
+		8C4692152F6F2ACB0071B6C4 /* TUnionLineStations.json in Resources */ = {isa = PBXBuildFile; fileRef = 8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */; };
 		8C4692262F6F2ACB0071B6C4 /* TransitCardDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692202F6F2ACB0071B6C4 /* TransitCardDecoder.swift */; };
 		8C4692272F6F2ACB0071B6C4 /* KSX6924Decoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692212F6F2ACB0071B6C4 /* KSX6924Decoder.swift */; };
 		8C4692282F6F2ACB0071B6C4 /* JapaneseICDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692222F6F2ACB0071B6C4 /* JapaneseICDecoder.swift */; };
@@ -77,6 +78,7 @@
 		8C46920D2F6F2ACB0071B6C4 /* TUnionDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TUnionDecoder.swift; sourceTree = "<group>"; };
 		8C46920F2F6F2ACB0071B6C4 /* KSX6924Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KSX6924Enums.swift; sourceTree = "<group>"; };
 		8C4692112F6F2ACB0071B6C4 /* TUnionCardNames.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TUnionCardNames.json; sourceTree = "<group>"; };
+		8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TUnionLineStations.json; sourceTree = "<group>"; };
 		8C4692202F6F2ACB0071B6C4 /* TransitCardDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitCardDecoder.swift; sourceTree = "<group>"; };
 		8C4692212F6F2ACB0071B6C4 /* KSX6924Decoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KSX6924Decoder.swift; sourceTree = "<group>"; };
 		8C4692222F6F2ACB0071B6C4 /* JapaneseICDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JapaneseICDecoder.swift; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 			children = (
 				8C4692112F6F2ACB0071B6C4 /* TUnionCardNames.json */,
 				80112233445566778899AA01 /* TUnionCityCodes.json */,
+				8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */,
 				EC38266AABB2DF946A942826 /* JPStationCodes.csv */,
 				FD27111B8E07C4D1E9C71213 /* JPStationCodes.json */,
 				C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */,
@@ -342,6 +345,7 @@
 				A00000000000000000000014 /* Assets.xcassets in Resources */,
 				8C4692122F6F2ACB0071B6C4 /* TUnionCardNames.json in Resources */,
 				8C4692142F6F2ACB0071B6C4 /* TUnionCityCodes.json in Resources */,
+				8C4692152F6F2ACB0071B6C4 /* TUnionLineStations.json in Resources */,
 				2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */,
 				984347E534E49A3231B42A2E /* JPStationCodes.json in Resources */,
 				CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */,
@@ -430,7 +434,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -461,7 +465,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

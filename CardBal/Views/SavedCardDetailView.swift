@@ -184,12 +184,7 @@ struct SavedCardDetailView: View {
     @ViewBuilder
     private func transactionsSection(card: SavedCardRecord) -> some View {
         Section("Transactions") {
-            let sorted = card.transactions.sorted { t1, t2 in
-                if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
-                    return r1 > r2
-                }
-                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-            }
+            let sorted = sortTransactionsByRecency(card.transactions)
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary).font(.subheadline)
             } else {
@@ -204,12 +199,7 @@ struct SavedCardDetailView: View {
     @ViewBuilder
     private func transitHistorySection(card: SavedCardRecord) -> some View {
         Section("Transit Activity") {
-            let sorted = card.transitHistory.sorted { t1, t2 in
-                if let r1 = t1.recordNumber, let r2 = t2.recordNumber {
-                    return r1 > r2
-                }
-                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-            }
+            let sorted = sortTransactionsByRecency(card.transitHistory)
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary).font(.subheadline)
             } else {

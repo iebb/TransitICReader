@@ -32,28 +32,54 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .other: return .other
         }
     }
+    
+    public enum DecoderType {
+        case japanIC, ksx6924, namane, octopus, tUnion, other
+    }
+
+    public var decoderType: DecoderType {
+        switch self {
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa: return .japanIC
+        case .tmoney, .ezl, .climateCard, .moiba, .kCash: return .ksx6924
+        case .namane: return .namane
+        case .octopus: return .octopus
+        case .tUnion: return .tUnion
+        default: return .other
+        }
+    }
+
     public var isKorean: Bool { region == .korea }
     public var isJapan: Bool { region == .japan }
     public static func from(family: String) -> ICCardBrand {
-        let f = family.lowercased()
-        if f.contains("suica") { return .suica }
-        if f.contains("pasmo") { return .pasmo }
-        if f.contains("icoca") { return .icoca }
-        if f.contains("manaca") { return .manaca }
-        if f.contains("sugoca") { return .sugoca }
-        if f.contains("hayakaken") { return .hayakaken }
-        if f.contains("kitaca") { return .kitaca }
-        if f.contains("nimoca") { return .nimoca }
-        if f.contains("toica") { return .toica }
-        if f.contains("pitapa") { return .pitapa }
-        if f.contains("t-money") || f.contains("tmoney") { return .tmoney }
-        if f.contains("ezl") || f.contains("cashbee") { return .ezl }
-        if f.contains("namane") { return .namane }
-        if f.contains("climate") { return .climateCard }
-        if f.contains("moiba") { return .moiba }
-        if f.contains("k-cash") || f.contains("kcash") { return .kCash }
-        if f.contains("octopus") { return .octopus }
-        if f.contains("t-union") || f.contains("china") { return .tUnion }
+        let f = family.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Exact mappings for sanitized names
+        let exactMap: [String: ICCardBrand] = [
+            "suica": .suica, "pasmo": .pasmo, "icoca": .icoca, "manaca": .manaca,
+            "sugoca": .sugoca, "hayakaken": .hayakaken, "kitaca": .kitaca, "nimoca": .nimoca,
+            "toica": .toica, "pitapa": .pitapa, "t-money": .tmoney, "tmoney": .tmoney,
+            "ezl": .ezl, "cashbee": .ezl, "namane": .namane, "climate card": .climateCard,
+            "moiba": .moiba, "k-cash": .kCash, "kcash": .kCash, "octopus": .octopus,
+            "t-union": .tUnion, "china t-union": .tUnion
+        ]
+        
+        if let directMatch = exactMap[f] { return directMatch }
+        
+        // Brand-specific prefixes/patterns if exact match fails
+        if f.hasPrefix("suica") { return .suica }
+        if f.hasPrefix("pasmo") { return .pasmo }
+        if f.hasPrefix("icoca") { return .icoca }
+        if f.hasPrefix("t-money") { return .tmoney }
+        if f.hasPrefix("ezl") { return .ezl }
+        if f.hasPrefix("cashbee") { return .ezl }
+        if f.hasPrefix("namane") { return .namane }
+        if f.hasPrefix("climate") { return .climateCard }
+        if f.hasPrefix("octopus") { return .octopus }
+        if f.hasPrefix("t-union") || f.hasPrefix("china") { return .tUnion }
+        
+        // Generic Fallbacks
+        if f.hasSuffix("transit ic") || f.hasSuffix("feli") || f.hasSuffix("japan") { return .suica }
+        
         return .other
     }
 }
@@ -165,6 +191,8 @@ struct TransactionDecoderRegistry {
             let brand = ICCardBrand.from(family: family)
             if data.count == 52 {
                 return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: brand == .namane, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+            } else if brand == .tUnion && data.count >= 48 {
+                return TUnionDecoder.decodeTravelRecord(data: data, index: index)
             } else if data.count == 23 {
                 return TUnionDecoder.decodePBOC(data: data, index: index)
             } else {
@@ -192,39 +220,8 @@ extension TransitTransaction {
         case .adjustment: return ("hammer.fill", .brown)
         case .refund: return ("arrow.uturn.left.circle.fill", .red)
         case .bus: return ("bus.fill", .cyan)
-        case .payment, .unknown:
-            let low = self.type.lowercased()
-            if low.contains("top-up") || low.contains("charge") || low.contains("入入") || low.contains("入金") || low.contains("チャージ") { 
-                return ("arrow.down.left.circle.fill", .green) 
-            }
-            if low.contains("tap on") || low.contains("tap-on") || low.contains("进站") || low.contains("入場") || low.contains("tapon") { 
-                return ("bus.fill", .blue) 
-            }
-            if low.contains("tap off") || low.contains("tap-off") || low.contains("出站") || low.contains("出場") || low.contains("tapoff") { 
-                return ("bus", .indigo) 
-            }
-            if low.contains("goods") || low.contains("物販") || low.contains("purchase") || low.contains("買い物") { 
-                return ("cart.fill", .orange) 
-            }
-            if low.contains("bus") || low.contains("バス") { 
-                return ("bus.fill", .cyan) 
-            }
-            if low.contains("fare") || low.contains("journey") || low.contains("gate") || low.contains("運賃") || low.contains("利用") || self.entryStation != nil { 
-                return ("tram.fill", .blue) 
-            }
-            if low.contains("ticket") || low.contains("purchase") || low.contains("券") { 
-                return ("ticket.fill", .purple) 
-            }
-            if low.contains("issuance") || low.contains("発行") { 
-                return ("plus.app.fill", .indigo) 
-            }
-            if low.contains("adjustment") || low.contains("清算") { 
-                return ("hammer.fill", .brown) 
-            }
-            if low.contains("refund") || low.contains("返金") { 
-                return ("arrow.uturn.left.circle.fill", .red) 
-            }
-            return ("creditcard.fill", .accentColor)
+        case .payment: return ("creditcard.fill", .accentColor)
+        case .unknown: return ("creditcard.fill", .accentColor)
         }
     }
 }
@@ -259,11 +256,33 @@ struct TransitCardSnapshot: Identifiable {
             TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx)
         }
     }
+
+    var unifiedRecentTransactions: [TransitTransaction] {
+        sortTransactionsByRecency(transactions)
+    }
     
     let scannedAt: Date
     
     var brand: ICCardBrand {
         ICCardBrand.from(family: cardFamily)
+    }
+}
+
+func sortTransactionsByRecency(_ transactions: [TransitTransaction]) -> [TransitTransaction] {
+    transactions.sorted { t1, t2 in
+        switch (t1.date, t2.date) {
+        case let (d1?, d2?) where d1 != d2:
+            return d1 > d2
+        case (_?, nil):
+            return true
+        case (nil, _?):
+            return false
+        default:
+            if let r1 = t1.recordNumber, let r2 = t2.recordNumber, r1 != r2 {
+                return r1 > r2
+            }
+            return t1.id.uuidString > t2.id.uuidString
+        }
     }
 }
 
@@ -308,6 +327,10 @@ struct TransitTransactionRow: View {
     let tx: TransitTransaction
     let cardFamily: String?
     @State private var showingDetails = false
+
+    private var brand: ICCardBrand {
+        ICCardBrand.from(family: cardFamily ?? "")
+    }
     
     var body: some View {
         Button {
@@ -325,23 +348,19 @@ struct TransitTransactionRow: View {
                     HStack(spacing: 4) {
                         let isRecordOnly = tx.time?.contains("Record #") ?? false
                         let isTimeMissing = tx.time == nil || isRecordOnly || tx.time?.lowercased() == "n/a"
-                        
+
                         if let date = tx.date, date.timeIntervalSince1970 > 86400 {
-                            Text(date.formatted(date: .numeric, time: isTimeMissing ? .omitted : .complete))
+                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: brand, includeTime: !isTimeMissing))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         } else if let time = tx.time, !isRecordOnly {
                             Text(time).font(.caption).foregroundStyle(.secondary)
                         }
-                        
-                        if let loc = tx.location {
-                            // Only show location if it's not just a duplicate of the time (common in Japanese IC purchase records)
-                            let isTimeDuplicate = tx.time != nil && loc.contains(":") && loc.count <= 8 && tx.time!.contains(loc)
-                            if !isTimeDuplicate {
-                                Text("•").font(.caption).foregroundStyle(.tertiary)
-                                Text(loc).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
+                    }
+                    if let locationLine = displayLocationLine {
+                        Text(locationLine)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     if let term = tx.terminalID, term != tx.type {
                         Text(term).font(.system(size: 11)).foregroundStyle(.tertiary)
@@ -352,11 +371,10 @@ struct TransitTransactionRow: View {
                 
                 VStack(alignment: .trailing, spacing: 2) {
                     if tx.amount != 0 {
-                        let lowType = tx.type.lowercased()
-                        let isTopUp = lowType.contains("top-up") || lowType.contains("charge") || lowType.contains("入金") || lowType.contains("チャージ")
+                        let isTopUp = tx.category == .topUp
                         
                         Text((isTopUp ? "+" : "-") + 
-                             formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                             formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: currencyFractionDigits))
                             .font(.headline.monospacedDigit().bold())
                             .foregroundStyle(isTopUp ? .green : .primary)
                     } else {
@@ -366,7 +384,7 @@ struct TransitTransactionRow: View {
                     }
                     
                     if let bal = tx.balanceAfter {
-                        Text(formatCurrency(amount: bal, code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                        Text(formatCurrency(amount: bal, code: currencyCode, fractionDigits: currencyFractionDigits))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -384,8 +402,25 @@ struct TransitTransactionRow: View {
         tx.iconInfo
     }
     
+    private var displayLocationLine: String? {
+        if brand == .tUnion {
+            return tx.location ?? tx.entryStation ?? tx.exitStation
+        }
+
+        if let loc = tx.location {
+            let isTimeDuplicate = tx.time != nil && loc.contains(":") && loc.count <= 8 && tx.time!.contains(loc)
+            return isTimeDuplicate ? nil : loc
+        }
+
+        return nil
+    }
+
     private var currencyCode: String {
-        ICCardBrand.from(family: cardFamily ?? "").region.currencyCode
+        brand.region.currencyCode
+    }
+
+    private var currencyFractionDigits: Int {
+        defaultFractionDigits(for: currencyCode)
     }
 }
 
@@ -393,12 +428,25 @@ struct TransactionDetailView: View {
     let tx: TransitTransaction
     let cardFamily: String?
     @Environment(\.dismiss) var dismiss
+    
+    private var brand: ICCardBrand {
+        ICCardBrand.from(family: cardFamily ?? "")
+    }
+    
+    private var tUnionDetails: TUnionTransactionRecordDetails? {
+        guard brand == .tUnion, let raw = tx.rawData else { return nil }
+        return TUnionTransactionRecordDetails(raw: raw)
+    }
+
+    private var tUnionTravelDetails: TUnionTravelRecordDetails? {
+        guard brand == .tUnion, let raw = tx.rawData else { return nil }
+        return TUnionTravelRecordDetails(raw: raw)
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 Section("Transaction Summary") {
-                    let brand = ICCardBrand.from(family: cardFamily ?? "")
                     let isKorean = brand.isKorean
                     let isJapan = brand.isJapan
                     let isNAMANE = brand == .namane
@@ -407,7 +455,7 @@ struct TransactionDetailView: View {
                         Text(tx.type)
                     } label: {
                         HStack {
-                            Circle().fill(tx.iconInfo.color).frame(width: 8, height: 8)
+                            Circle().fill(brand == .tUnion && tUnionTravelDetails != nil ? .red : tx.iconInfo.color).frame(width: 8, height: 8)
                             Text("TX Type")
                         }
                     }
@@ -417,45 +465,46 @@ struct TransactionDetailView: View {
                             Text(term)
                         } label: {
                             HStack {
-                                Circle().fill(.red).frame(width: 8, height: 8)
+                                Circle().fill(brand == .tUnion ? .cyan : .red).frame(width: 8, height: 8)
                                 Text("Terminal")
                             }
                         }
                     }
-                    let lowType = tx.type.lowercased()
-                    let isPurchase = tx.category == .purchase || lowType.contains("purchase") || lowType.contains("goods") || lowType.contains("物販")
                     let isRecordOnly = tx.time?.contains("Record #") ?? false
                     
                     if let date = tx.date, !isNAMANE, !isRecordOnly {
                         LabeledContent {
-                            Text(date.formatted(date: .numeric, time: .omitted))
+                            Text(CardDateFormatting.formatDisplayDate(date, brand: brand))
                         } label: {
                             HStack {
                                 if isKorean { Circle().fill(.brown).frame(width: 8, height: 8) }
                                 if isJapan { Circle().fill(.orange).frame(width: 8, height: 8) }
+                                if brand == .tUnion { Circle().fill(.green).frame(width: 8, height: 8) }
                                 Text("Date")
                             }
                         }
                     }
-                    if let time = tx.time, !isNAMANE, !isRecordOnly {
+                    if !isNAMANE, !isRecordOnly, let displayTime = tx.date.map({ CardDateFormatting.formatDisplayTime($0, brand: brand) }) ?? tx.time {
                         LabeledContent {
-                            Text(time)
+                            Text(displayTime)
                         } label: {
                             HStack {
                                 if isKorean { Circle().fill(.purple).frame(width: 8, height: 8) }
                                 if isJapan { Circle().fill(.cyan).frame(width: 8, height: 8) }
+                                if brand == .tUnion { Circle().fill(.brown).frame(width: 8, height: 8) }
                                 Text("Time")
                             }
                         }
                     }
                     if let amount = tx.amount != 0 ? tx.amount : nil {
                         LabeledContent {
-                            let signedAmount = (tx.type.lowercased().contains("top-up") || tx.type.lowercased().contains("charge") ? "+" : "-") + 
-                                               formatCurrency(amount: abs(amount), code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0)
+                            let isTopUp = tx.category == .topUp
+                            let signedAmount = (isTopUp ? "+" : "-") + 
+                                               formatCurrency(amount: abs(amount), code: currencyCode, fractionDigits: currencyFractionDigits)
                             Text(signedAmount)
                         } label: {
                             HStack {
-                                Circle().fill(.green).frame(width: 8, height: 8)
+                                Circle().fill(brand == .tUnion ? .orange : .green).frame(width: 8, height: 8)
                                 Text("Amount")
                             }
                         }
@@ -463,16 +512,33 @@ struct TransactionDetailView: View {
 
                     if let balance = tx.balanceAfter {
                         LabeledContent {
-                            Text(formatCurrency(amount: balance, code: currencyCode, fractionDigits: cardFamily == "Octopus" ? 1 : 0))
+                            Text(formatCurrency(amount: balance, code: currencyCode, fractionDigits: currencyFractionDigits))
                         } label: {
                             HStack {
-                                Circle().fill(.green).frame(width: 8, height: 8)
+                                Circle().fill(brand == .tUnion && tUnionTravelDetails != nil ? .mint : .green).frame(width: 8, height: 8)
                                 Text("Balance After")
                             }
                         }
                     }
-                    
-                    if let entry = tx.entryStation, !isPurchase {
+
+                    if let travelDetails = tUnionTravelDetails {
+                        LabeledContent {
+                            Text(travelDetails.cityDisplay)
+                        } label: {
+                            HStack {
+                                Circle().fill(.teal).frame(width: 8, height: 8)
+                                Text("City")
+                            }
+                        }
+                        LabeledContent {
+                            Text(travelDetails.stationDisplay)
+                        } label: {
+                            HStack {
+                                Circle().fill(.green).frame(width: 8, height: 8)
+                                Text("Station")
+                            }
+                        }
+                    } else if let entry = tx.entryStation, tx.category != .purchase {
                          LabeledContent {
                              HStack(spacing: 4) {
                                  Text(entry)
@@ -484,11 +550,11 @@ struct TransactionDetailView: View {
                              HStack(spacing: 6) {
                                  Circle().fill(regionColor(tx.regionCode)).frame(width: 8, height: 8)
                                  Circle().fill(.blue).frame(width: 8, height: 8)
-                                 Text(tx.type.lowercased().contains("bus") ? "Operator" : "Entry")
+                                 Text(tx.category == .bus ? "Operator" : "Entry")
                              }
                          }
                     }
-                    if let exit = tx.exitStation, !isPurchase {
+                    if tUnionTravelDetails == nil, let exit = tx.exitStation, tx.category != .purchase {
                          LabeledContent {
                              HStack(spacing: 4) {
                                  Text(exit)
@@ -500,16 +566,43 @@ struct TransactionDetailView: View {
                              HStack(spacing: 6) {
                                  Circle().fill(regionColor(tx.regionCode)).frame(width: 8, height: 8)
                                  Circle().fill(.teal).frame(width: 8, height: 8)
-                                 Text(tx.type.lowercased().contains("bus") ? "Station" : "Exit")
+                                 Text(tx.category == .bus ? "Station" : "Exit")
                              }
                          }
                     }
                     
-                    if let loc = tx.location, !isNAMANE {
-                         let isTimeOnly = loc.contains(":") && loc.count <= 8
+                    if tUnionTravelDetails == nil, let loc = tx.location, !isNAMANE {
+                         let isTimeOnly = loc.range(of: "^\\d{2}:\\d{2}:\\d{2}$", options: .regularExpression) != nil
                          if !isJapan || !isTimeOnly {
                              LabeledContent("Location", value: loc)
                          }
+                    }
+
+                    if let details = tUnionDetails {
+                        LabeledContent {
+                            Text("\(details.sequence)")
+                        } label: {
+                            HStack {
+                                Circle().fill(.blue).frame(width: 8, height: 8)
+                                Text("Sequence")
+                            }
+                        }
+                        LabeledContent {
+                            Text(details.overdraftLimitHex)
+                        } label: {
+                            HStack {
+                                Circle().fill(.purple).frame(width: 8, height: 8)
+                                Text("Overdraft Limit")
+                            }
+                        }
+                        LabeledContent {
+                            Text(details.cityDisplay)
+                        } label: {
+                            HStack {
+                                Circle().fill(.cyan).frame(width: 8, height: 8)
+                                Text("Terminal City")
+                            }
+                        }
                     }
 
                     if isKorean {
@@ -566,6 +659,8 @@ struct TransactionDetailView: View {
                         let f = (cardFamily ?? "").lowercased()
                         if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") {
                              SuicaRawBreakdownView(raw: raw, tx: tx)
+                        } else if brand == .tUnion {
+                             TUnionRawBreakdownView(raw: raw, tx: tx)
                         } else if f.contains("t-money") || f.contains("ezl") || f.contains("namane") || f.contains("ks x") || f.contains("climate") {
                              KoreanRawBreakdownView(raw: raw)
                         }
@@ -584,11 +679,11 @@ struct TransactionDetailView: View {
     }
     
     private var currencyCode: String {
-        if cardFamily == "Octopus" { return "HKD" }
-        if cardFamily?.contains("China") == true { return "CNY" }
-        let koreanFamilies = ["T-money", "NAMANE", "Climate Card", "EZL / Cashbee", "MOIBA", "K-Cash"]
-        if let family = cardFamily, koreanFamilies.contains(family) { return "KRW" }
-        return "JPY"
+        ICCardBrand.from(family: cardFamily ?? "").region.currencyCode
+    }
+
+    private var currencyFractionDigits: Int {
+        defaultFractionDigits(for: currencyCode)
     }
 
     private func regionColor(_ area: Int?) -> Color {
@@ -680,6 +775,44 @@ struct KoreanRawBreakdownView: View {
     private func formatBCDDate(_ bcd: String) -> String {
         guard bcd.count >= 12 else { return bcd }
         return "\(bcd.prefix(4))-\(bcd.dropFirst(4).prefix(2))-\(bcd.dropFirst(6).prefix(2)) \(bcd.dropFirst(8).prefix(2)):\(bcd.dropFirst(10).prefix(2)):\(bcd.suffix(2))"
+    }
+}
+
+struct TUnionRawBreakdownView: View {
+    let raw: String
+    let tx: TransitTransaction
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let details = TUnionTransactionRecordDetails(raw: raw) {
+                let data = Data(hexString: raw)
+                DetailRawRow(title: "Sequence", value: "\(details.sequence)", hex: data.subdata(in: 0..<2).hexString, color: .blue)
+                DetailRawRow(title: "Overdraft Limit", value: details.overdraftLimitHex, hex: data.subdata(in: 2..<5).hexString, color: .purple)
+                DetailRawRow(title: "Amount", value: details.signedAmountText, hex: data.subdata(in: 5..<9).hexString, color: .orange)
+                DetailRawRow(title: "Transaction Type", value: details.typeDescription, hex: String(format: "%02X", details.typeByte), color: tx.iconInfo.color)
+                DetailRawRow(title: "Terminal ID", value: details.terminalID, hex: data.subdata(in: 10..<16).hexString, color: .cyan)
+                DetailRawRow(title: "Terminal City", value: details.cityDisplay, hex: details.cityID, color: .cyan)
+                DetailRawRow(title: "Date", value: details.dateText, hex: data.subdata(in: 16..<20).hexString, color: .green)
+                DetailRawRow(title: "Time", value: details.timeText, hex: data.subdata(in: 20..<23).hexString, color: .brown)
+                Text("Transaction record file `SFI 0x18`, circular record, length `0x17`. The amount field stores the unsigned value in fen; the transaction type determines whether it is a debit or top-up. The first 2 terminal bytes identify the city.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if let details = TUnionTravelRecordDetails(raw: raw) {
+                let data = Data(hexString: raw)
+                DetailRawRow(title: "Transaction Type", value: details.typeDescription, hex: String(format: "%02X", details.typeByte), color: .red)
+                DetailRawRow(title: "Terminal ID", value: details.terminalID, hex: data.subdata(in: 1..<9).hexString, color: .cyan)
+                DetailRawRow(title: "Sub Type", value: String(format: "0x%02X", details.subType), hex: data.subdata(in: 9..<10).hexString, color: .purple)
+                DetailRawRow(title: "Station", value: details.stationDisplay, hex: data.subdata(in: 10..<17).hexString, color: .green)
+                DetailRawRow(title: "Amount", value: details.signedAmountText, hex: data.subdata(in: 17..<21).hexString, color: .orange)
+                DetailRawRow(title: "Balance After", value: details.balanceText, hex: data.subdata(in: 21..<25).hexString, color: .mint)
+                DetailRawRow(title: "Timestamp", value: details.dateTimeText, hex: data.subdata(in: 25..<32).hexString, color: .brown)
+                DetailRawRow(title: "City", value: details.cityDisplay, hex: data.subdata(in: 32..<34).hexString, color: .teal)
+                Text("Transit activity record file `SFI 0x1E`, circular record, length `0x30`. Transit type and amount use separate colors here to distinguish travel category from fare value.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 4)
     }
 }
 
@@ -790,6 +923,107 @@ struct DetailRawRow: View {
                 }
             }
         }
+    }
+}
+
+private struct TUnionTransactionRecordDetails {
+    let sequence: Int
+    let overdraftLimitHex: String
+    let amountCents: Int
+    let typeByte: UInt8
+    let terminalID: String
+    let dateText: String
+    let timeText: String
+    let cityID: String
+    let cityName: String?
+    
+    init?(raw: String) {
+        let data = Data(hexString: raw)
+        guard data.count == 23 else { return nil }
+        sequence = data.bigEndianInt(start: 0, length: 2)
+        overdraftLimitHex = data.subdata(in: 2..<5).hexString.uppercased()
+        amountCents = data.bigEndianInt(start: 5, length: 4)
+        typeByte = data[9]
+        terminalID = data.subdata(in: 10..<16).hexString.uppercased()
+        let dateBCD = data.subdata(in: 16..<20).hexString.uppercased()
+        let timeBCD = data.subdata(in: 20..<23).hexString.uppercased()
+        dateText = "\(dateBCD.prefix(4))-\(dateBCD.dropFirst(4).prefix(2))-\(dateBCD.suffix(2))"
+        timeText = "\(timeBCD.prefix(2)):\(timeBCD.dropFirst(2).prefix(2)):\(timeBCD.suffix(2))"
+        cityID = String(terminalID.prefix(4))
+        cityName = TUnionCityDatabase.lookupCityName(for: cityID)
+    }
+    
+    var cityDisplay: String {
+        cityName.map { "\($0) (\(cityID))" } ?? cityID
+    }
+    
+    var typeDescription: String {
+        switch typeByte {
+        case 0x06: return "Consumption"
+        case 0x09: return "Composite Consumption"
+        case 0x02: return "Top-up"
+        default: return String(format: "0x%02X", typeByte)
+        }
+    }
+
+    var signedAmountText: String {
+        let amount = Decimal(amountCents) / 100
+        let sign = typeByte == 0x02 ? "+" : "-"
+        return sign + formatCurrency(amount: amount, code: "CNY", fractionDigits: 2)
+    }
+}
+
+private struct TUnionTravelRecordDetails {
+    let typeByte: UInt8
+    let terminalID: String
+    let subType: UInt8
+    let stationID: String
+    let stationName: String?
+    let amountCents: Int
+    let balanceCents: Int
+    let dateTimeText: String
+    let cityID: String
+    let cityName: String?
+
+    init?(raw: String) {
+        let data = Data(hexString: raw)
+        guard data.count >= 48 else { return nil }
+        typeByte = data[0]
+        terminalID = data.subdata(in: 1..<9).hexString.uppercased()
+        subType = data[9]
+        stationID = data.subdata(in: 10..<17).hexString.uppercased()
+        amountCents = Int(UInt32(bigEndian: data.subdata(in: 17..<21).withUnsafeBytes { $0.load(as: UInt32.self) }))
+        balanceCents = Int(UInt32(bigEndian: data.subdata(in: 21..<25).withUnsafeBytes { $0.load(as: UInt32.self) }))
+        let dateBCD = data.subdata(in: 25..<32).hexString.uppercased()
+        dateTimeText = "\(dateBCD.prefix(4))-\(dateBCD.dropFirst(4).prefix(2))-\(dateBCD.dropFirst(6).prefix(2)) \(dateBCD.dropFirst(8).prefix(2)):\(dateBCD.dropFirst(10).prefix(2)):\(dateBCD.suffix(2))"
+        cityID = data.subdata(in: 32..<34).hexString.uppercased()
+        cityName = TUnionCityDatabase.lookupCityName(for: cityID)
+        stationName = TUnionCityDatabase.lookupStationName(cityID: cityID, stationID: stationID)
+    }
+
+    var typeDescription: String {
+        switch typeByte {
+        case 0x03: return subType == 0x02 ? "Bus Boarding" : "Entry"
+        case 0x04: return subType == 0x02 ? "Bus Exit" : "Exit"
+        case 0x02, 0x06: return subType == 0x02 ? "Bus Trip" : "Transit Trip"
+        default: return String(format: "0x%02X", typeByte)
+        }
+    }
+
+    var stationDisplay: String {
+        stationName.map { "\($0) (\(stationID))" } ?? stationID
+    }
+
+    var cityDisplay: String {
+        cityName.map { "\($0) (\(cityID))" } ?? cityID
+    }
+
+    var signedAmountText: String {
+        "-" + formatCurrency(amount: Decimal(amountCents) / 100, code: "CNY", fractionDigits: 2)
+    }
+
+    var balanceText: String {
+        formatCurrency(amount: Decimal(balanceCents) / 100, code: "CNY", fractionDigits: 2)
     }
 }
 
@@ -906,6 +1140,19 @@ func formatCurrency(amount: Decimal, code: String, fractionDigits: Int = 0) -> S
     formatter.minimumFractionDigits = fractionDigits
     formatter.maximumFractionDigits = fractionDigits
     return formatter.string(from: amount as NSDecimalNumber) ?? "\(code) \(amount)"
+}
+
+func defaultFractionDigits(for currencyCode: String) -> Int {
+    switch currencyCode {
+    case "JPY", "KRW":
+        return 0
+    case "HKD":
+        return 1
+    case "CNY":
+        return 2
+    default:
+        return 2
+    }
 }
 
 func octopusOffset(for date: Date) -> Int {
@@ -1029,8 +1276,9 @@ struct CardRawDataHighlightView: View {
     }
     
     private func getHighlights(for family: String, tx: TransitTransaction? = nil, dataCount: Int = 0) -> [Highlight] {
-        let f = family.lowercased()
-        if f.contains("namane") || f.contains("t-money") || f.contains("ks x") || f.contains("climate") || f.contains("ezl") {
+        let brand = ICCardBrand.from(family: family)
+        
+        if brand.isKorean {
             if dataCount >= 52 {
                 return [
                     Highlight(range: 2..<3, color: .red, label: "Trip State"),
@@ -1042,26 +1290,21 @@ struct CardRawDataHighlightView: View {
                     Highlight(range: 40..<42, color: .indigo, label: "Base Fare"),
                     Highlight(range: 44..<46, color: .cyan, label: "Location")
                 ]
-            } else {
+            } else if dataCount >= 14 {
                 return [
                     Highlight(range: 0..<1, color: .red, label: "Type"),
                     Highlight(range: 2..<6, color: .green, label: "Balance After"),
                     Highlight(range: 6..<10, color: .blue, label: "NTEP (Counter)"),
                     Highlight(range: 10..<14, color: .orange, label: "Fare / Cost"),
-                    Highlight(range: 14..<22, color: .cyan, label: "IDSAM (Terminal)"),
-                    Highlight(range: 22..<26, color: .indigo, label: "NTSAM (Terminal Counter)"),
-                    Highlight(range: 26..<33, color: .brown, label: "Timestamp (BCD)")
+                    Highlight(range: 14..<min(22, dataCount), color: .cyan, label: "IDSAM (Terminal)"),
+                    Highlight(range: 22..<min(26, dataCount), color: .indigo, label: "NTSAM (Terminal Counter)"),
+                    Highlight(range: 26..<min(33, dataCount), color: .brown, label: "Timestamp (BCD)")
                 ]
             }
         }
         
-        let isJP = f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || 
-                   f.contains("sugoca") || f.contains("nimoca") || f.contains("kitaca") || f.contains("toica") ||
-                   f.contains("tobu") || f.contains("japan") || f.contains("feli") || f.contains("ic")
-        if isJP && dataCount == 16 {
-            let lowType = tx?.type.lowercased() ?? ""
-            let isPurchase = tx?.category == .purchase || lowType.contains("purchase") || lowType.contains("goods") || lowType.contains("物販")
-            
+        if brand.isJapan && dataCount == 16 {
+            let isPurchase = tx?.category == .purchase
             return [
                 Highlight(range: 0..<1, color: .red, label: "Terminal"),
                 Highlight(range: 1..<2, color: tx?.iconInfo.color ?? .blue, label: "TX Type"),
@@ -1073,6 +1316,31 @@ struct CardRawDataHighlightView: View {
                 Highlight(range: 10..<12, color: .green, label: "Balance (LE)"),
                 Highlight(range: 12..<15, color: .gray, label: "Sequence"),
                 Highlight(range: 15..<16, color: .brown, label: "Region Code")
+            ]
+        }
+
+        if brand == .tUnion && dataCount == 23 {
+            return [
+                Highlight(range: 0..<2, color: .blue, label: "Sequence"),
+                Highlight(range: 2..<5, color: .purple, label: "Overdraft Limit"),
+                Highlight(range: 5..<9, color: .orange, label: "Amount"),
+                Highlight(range: 9..<10, color: tx?.iconInfo.color ?? .red, label: "Transaction Type"),
+                Highlight(range: 10..<16, color: .cyan, label: "Terminal ID"),
+                Highlight(range: 16..<20, color: .green, label: "Date"),
+                Highlight(range: 20..<23, color: .brown, label: "Time")
+            ]
+        }
+
+        if brand == .tUnion && dataCount >= 48 {
+            return [
+                Highlight(range: 0..<1, color: .red, label: "TX Type"),
+                Highlight(range: 1..<9, color: .cyan, label: "Terminal ID"),
+                Highlight(range: 9..<10, color: .purple, label: "Sub Type"),
+                Highlight(range: 10..<17, color: .green, label: "Station"),
+                Highlight(range: 17..<21, color: .orange, label: "Amount"),
+                Highlight(range: 21..<25, color: .mint, label: "Balance After"),
+                Highlight(range: 25..<32, color: .brown, label: "Timestamp"),
+                Highlight(range: 32..<34, color: .teal, label: "City")
             ]
         }
         

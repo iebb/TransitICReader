@@ -215,6 +215,10 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         }
     }
 
+    var unifiedRecentTransactions: [TransitTransaction] {
+        sortTransactionsByRecency(transactions)
+    }
+
     var brand: String { cardFamily }
 
     var markerSystemName: String? {

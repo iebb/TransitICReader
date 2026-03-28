@@ -601,10 +601,7 @@ struct QuickHistorySheet: View {
 
     private var transactionsSection: some View {
         Section {
-            let sorted = card.transactions.sorted { t1, t2 in
-                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
-                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-            }
+            let sorted = sortTransactionsByRecency(card.transactions)
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary)
             } else {
@@ -618,10 +615,7 @@ struct QuickHistorySheet: View {
 
     private var transitSection: some View {
         Section {
-            let sorted = card.transitHistory.sorted { t1, t2 in
-                if let r1 = t1.recordNumber, let r2 = t2.recordNumber { return r1 > r2 }
-                return (t1.date ?? Date.distantPast) > (t2.date ?? Date.distantPast)
-            }
+            let sorted = sortTransactionsByRecency(card.transitHistory)
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary)
             } else {
