@@ -136,7 +136,7 @@ class CardWalletStore: ObservableObject {
         }
         // Try SN prefix match
         else {
-            let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "TO": "TOICA"]
+            let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "JH": "Kitaca", "NR": "Nimoca", "JC": "TOICA"]
             for (prefix, brand) in jpPrefixes {
                 if sn.hasPrefix(prefix) {
                     if let match = allPresets.first(where: { $0.name == brand }) {
@@ -165,7 +165,7 @@ class CardWalletStore: ObservableObject {
         let snUpper = sn.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
         cards[index].realSerialNumber = snUpper
         
-        let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "TO": "TOICA"]
+        let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "KI": "Kitaca", "NI": "Nimoca", "NR": "Nimoca", "TO": "TOICA"]
         for (prefix, brand) in jpPrefixes {
             if snUpper.hasPrefix(prefix) {
                 cards[index].cardFamily = brand

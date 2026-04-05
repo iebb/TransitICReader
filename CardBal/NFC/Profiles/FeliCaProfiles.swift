@@ -24,9 +24,9 @@ public struct FeliCaProfile {
              if sn.hasPrefix("FC") { return "Hayakaken" }
              if sn.hasPrefix("JK") { return "SUGOCA" }
              if sn.hasPrefix("TP") { return "Manaca" }
-             if sn.hasPrefix("KI") { return "Kitaca" }
-             if sn.hasPrefix("NI") { return "Nimoca" }
-             if sn.hasPrefix("TO") { return "TOICA" }
+             if sn.hasPrefix("JH") { return "Kitaca" }
+             if sn.hasPrefix("NR") { return "Nimoca" }
+             if sn.hasPrefix("JC") { return "TOICA" }
         }
         
         let scMap: [String: String] = [
