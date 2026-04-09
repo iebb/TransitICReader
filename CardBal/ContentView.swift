@@ -27,12 +27,18 @@ struct ContentView: View {
                     Label("Cards", systemImage: "wallet.bifold.fill")
                 }
                 .tag(1)
+
+            RideMapTabView(store: cardStore)
+                .tabItem {
+                    Label("Map", systemImage: "map.fill")
+                }
+                .tag(2)
             
             SettingsView(store: cardStore, reader: reader)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
-                .tag(2)
+                .tag(3)
         }
         .tint(Color.accentColor)
         .onChange(of: reader.latestSnapshot?.id) { _ in
@@ -88,7 +94,7 @@ struct ScanHomeView: View {
                         .frame(height: (UIScreen.main.bounds.width - 40) / (27.0 / 17.0))
                         .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                         .sheet(item: $activeHistoryItem) { item in
-                            QuickHistorySheet(mode: item.mode, card: item.card)
+                            QuickHistorySheet(mode: item.mode, card: item.card, store: cardStore)
                         }
                     }
 
@@ -298,9 +304,9 @@ struct CardsView: View {
                                     .offset(y: cardOffset(for: index, cardHeight: cardHeight))
                                 }
                             }
-                            .sheet(item: $activeHistoryItem) { item in
-                                QuickHistorySheet(mode: item.mode, card: item.card)
-                            }
+                .sheet(item: $activeHistoryItem) { item in
+                    QuickHistorySheet(mode: item.mode, card: item.card, store: store)
+                }
                             .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
                             .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
                             .padding(.bottom, proxy.safeAreaInsets.bottom + 120)
@@ -325,7 +331,7 @@ struct CardsView: View {
             }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
-                    SavedCardDetailView(cardID: route.id, store: store)
+                    SavedCardDetailView(cardID: route.id, store: store, initialSelection: route.tab)
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailRoute = nil } } }
                 }
             }
@@ -361,11 +367,20 @@ struct CardsView: View {
     }
 }
 
+struct RideMapTabView: View {
+    @ObservedObject var store: CardWalletStore
+
+    var body: some View {
+        NavigationStack {
+            RideMapView(store: store, initialCardID: nil, showsCardPicker: true)
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var store: CardWalletStore
     @ObservedObject var reader: NFCTransitReader
     @AppStorage("scanOnLaunch") private var scanOnLaunch = true
-    @AppStorage("fullFeliCaScan") private var fullFeliCaScan = false
     @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
     @AppStorage("cardTimeZonePreference") private var cardTimeZonePreference = CardTimeZonePreference.issuer.rawValue
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
@@ -379,13 +394,6 @@ struct SettingsView: View {
                     } label: {
                         Label("Manage Card Faces", systemImage: "photo.stack")
                     }
-                }
-                Section("FeliCa Probing") {
-                    Toggle("Full FeliCa Scan", isOn: $fullFeliCaScan)
-                        .onChange(of: fullFeliCaScan) { newValue in
-                             reader.shouldFullFeliCaScan = newValue
-                        }
-                    Text("Probes every service code for hidden transaction logs. May slow down scanning.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Backup") {
                     if store.isSyncing {
@@ -407,7 +415,6 @@ struct SettingsView: View {
                 }
                 Section("App Settings") {
                     Toggle("Scan on Launch", isOn: $scanOnLaunch)
-                    Toggle("Full FeliCa Scan", isOn: $fullFeliCaScan)
                     Picker("Date Format", selection: $dateFormat) {
                         Text("YYYY-MM-DD").tag("yyyy-MM-dd")
                         Text("DD/MM/YYYY").tag("dd/MM/yyyy")
@@ -435,6 +442,12 @@ struct SettingsView: View {
                 }
                 Section("Credits") {
                     VStack(alignment: .leading, spacing: 6) {
+                        Text("Japan station data is based on Seo-4d696b75/station_database with supplemental matching against station20240426.csv.")
+                            .font(.footnote)
+                        Link("Open station_database on GitHub", destination: URL(string: "https://github.com/Seo-4d696b75/station_database")!)
+                            .font(.footnote)
+                        Text("Chinese T-Union station names are based on domosekai/tripreader-data.")
+                            .font(.footnote)
                         Text("China T-Union station data is based on domosekai/tripreader-data, the original source used by downstream projects.")
                             .font(.footnote)
                         Text("Licensed under Creative Commons Attribution 4.0 International.")
@@ -443,6 +456,11 @@ struct SettingsView: View {
                         Link("Open tripreader-data on GitHub", destination: URL(string: "https://github.com/domosekai/tripreader-data")!)
                             .font(.footnote)
                         Link("Open CC BY 4.0 License", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                            .font(.footnote)
+                        Text("OpenStreetMap geocoding and derived coordinates use OpenStreetMap data.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Link("Open OpenStreetMap Copyright Page", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
                             .font(.footnote)
                     }
                 }

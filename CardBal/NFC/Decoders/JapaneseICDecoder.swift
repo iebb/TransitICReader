@@ -8,17 +8,13 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
-        try await decodeExtended(tag: tag, scannedAt: scannedAt, shouldReadAll: false)
-    }
-
-    static func decodeExtended(tag: NFCTag, scannedAt: Date, shouldReadAll: Bool) async throws -> TransitCardSnapshot {
         guard case .feliCa(let feliCa) = tag else { throw NFCTestError.unsupportedCard }
-        
+
         var primarySnapshot: TransitCardSnapshot?
         for profile in FeliCaProfile.all {
             let scBytes = Data(hexString: profile.systemCode)
             _ = try? await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1)
-            
+
             if let readResult = try? await feliCa.readWithoutEncryption(
                 serviceCodeList: [profile.serviceCodeLittleEndian],
                 blockList: [Data([0x80, 0x00])]
@@ -29,43 +25,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 }
             }
         }
-        
-        if let snapshot = primarySnapshot {
-            if shouldReadAll {
-                let result = await deepProbeFeliCa(feliCa: feliCa)
-                
-                var updatedSections = snapshot.rawSections
-                if let analysis = result.analysisSection {
-                    updatedSections.append(analysis)
-                }
 
-                // Append only unique records to avoid duplicates with Suica/Octopus standard paths
-                let existing = Set(snapshot.rawTransactions)
-                let newUnique = result.allRecords.filter { !existing.contains($0) }
-                
-                return TransitCardSnapshot(
-                    technology: snapshot.technology,
-                    cardFamily: snapshot.cardFamily,
-                    identifierLabel: snapshot.identifierLabel,
-                    identifierValue: snapshot.identifierValue,
-                    rawIdentifierValue: snapshot.rawIdentifierValue,
-                    pmm: snapshot.pmm,
-                    systemCode: snapshot.systemCode,
-                    selectedAID: snapshot.selectedAID,
-                    balanceText: snapshot.balanceText,
-                    balanceDetail: snapshot.balanceDetail,
-                    realSerialNumber: snapshot.realSerialNumber,
-                    region: snapshot.region,
-                    resultFields: snapshot.resultFields,
-                    rawSections: updatedSections,
-                    rawTransactions: snapshot.rawTransactions + newUnique,
-                    rawTransitHistory: snapshot.rawTransitHistory,
-                    scannedAt: snapshot.scannedAt
-                )
-            }
+        if let snapshot = primarySnapshot {
             return snapshot
         }
-        
+
         throw NFCTestError.unsupportedCard
     }
     
@@ -95,12 +59,21 @@ struct JapaneseICDecoder: TransitCardDecoder {
         fields.append(contentsOf: parsedBalance.rawFields)
         rawSections.append(RawDataSection(title: "Decoded Balance", fields: fields))
 
+        // For Japanese 0003-compatible cards, read only the 4 standard services:
+        //   008B — balance (already read above via profile)
+        //   090F — transaction log
+        //   108F — transit gate activity
+        //   10CB — entry/exit event log
         let suicaStyleFamilies = ["Japan Transit IC", "IruCa", "PASPY", "SAPICA"]
-        var history: [String] = []
+        var transactions: [String] = []
+        var transitHistory: [String] = []
         if suicaStyleFamilies.contains(profile.displayName) {
-             history = await readSuicaRawTransactions(feliCa: feliCa)
+             transactions = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0F, 0x09]))   // 090F
+             let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x8F, 0x10])) // 108F
+             let entryExit = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0xCB, 0x10]))   // 10CB
+             transitHistory = gateHistory + entryExit
         } else if profile.displayName == "Octopus" {
-             history = await readOctopusRawTransactions(feliCa: feliCa)
+             transactions = await readOctopusRawTransactions(feliCa: feliCa)
         }
         
         return TransitCardSnapshot(
@@ -118,14 +91,14 @@ struct JapaneseICDecoder: TransitCardDecoder {
             region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
-            rawTransactions: history,
-            rawTransitHistory: [],
+            rawTransactions: transactions,
+            rawTransitHistory: transitHistory,
             scannedAt: scannedAt
         )
     }
 
-    private static func readSuicaRawTransactions(feliCa: NFCFeliCaTag) async -> [String] {
-        let serviceCode = Data([0x0F, 0x09]) // Service 090F (Little-Endian)
+    /// Generic reader for a FeliCa service — reads up to 20 blocks, stops at empty.
+    private static func readServiceRecords(feliCa: NFCFeliCaTag, serviceCode: Data) async -> [String] {
         var results: [String] = []
         for i in 0..<20 {
             let blockList = [Data([0x80, UInt8(i)])]
@@ -152,7 +125,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         return results
     }
 
-    static func decodeTransaction(block: Data, context: [Data], index: Int, family: String) -> TransitTransaction? {
+    static func decodeTransaction(block: Data, context: [Data], index: Int, family: String, kind: RawHistoryKind = .transactions, relatedContext: [Data] = []) -> TransitTransaction? {
         guard block.count >= 16 else { return nil }
         
         let brand = ICCardBrand.from(family: family)
@@ -184,6 +157,10 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 balanceAfter: balAfter,
                 rawData: block.hexString.uppercased()
             )
+        }
+
+        if kind == .transit {
+            return decodeTransitActivity(block: block, relatedContext: relatedContext)
         }
 
         // --- Existing Japanese IC Logic (Suica/PASMO) ---
@@ -293,113 +270,197 @@ struct JapaneseICDecoder: TransitCardDecoder {
         )
     }
 
-    struct DeepProbeResult {
-        let allRecords: [String]
-        let analysisSection: RawDataSection?
+    private static func decodeTransitActivity(block: Data, relatedContext: [Data]) -> TransitTransaction? {
+        guard block.count >= 16 else { return nil }
+
+        let activityCode = block[0]
+        let subtypeCode = block[1]
+        let stationCode = Int(block[2]) << 8 | Int(block[3])
+        let deviceNumber = Int(block[4]) << 8 | Int(block[5])
+        let rawDate = Int(block[6]) << 8 | Int(block[7])
+        let year = (rawDate >> 9) & 0x7F
+        let month = (rawDate >> 5) & 0x0F
+        let day = rawDate & 0x1F
+        let hour = bcdToInt(block[8])
+        let minute = bcdToInt(block[9])
+        let amount = Int(block[10]) | (Int(block[11]) << 8)
+        let passFare = Int(block[12]) | (Int(block[13]) << 8)
+        let passLineCode = Int(block[14])
+        let passStationCode = Int(block[15])
+
+        var components = DateComponents()
+        components.year = 2000 + year
+        components.month = month
+        components.day = day
+        if hour >= 0 && minute >= 0 {
+            components.hour = hour
+            components.minute = minute
+        }
+
+        let inferredStation = inferTransitStation(code: stationCode, date: Calendar.current.date(from: components), relatedContext: relatedContext)
+        let resolvedStationCode = inferredStation?.fullCode ?? stationCode
+        let stationName = inferredStation?.stationName ?? StationResolver.shared.resolve(stationCode) ?? "Station \(String(format: "%04X", stationCode))"
+        let timestamp = hour >= 0 && minute >= 0 ? String(format: "%02d:%02d", hour, minute) : nil
+        let subtype = transitSubtypeLabel(for: subtypeCode)
+        let terminalName = "Gate Device \(String(format: "%04d", deviceNumber))"
+
+        let passStationFullCode = (passLineCode << 8) | passStationCode
+        let inferredPassStation = passStationFullCode == 0 ? nil : inferTransitStation(code: passStationFullCode, date: Calendar.current.date(from: components), relatedContext: relatedContext)
+        let passStationName: String? = passStationFullCode == 0 ? nil : (inferredPassStation?.stationName ?? StationResolver.shared.resolve(passStationFullCode) ?? "Station \(String(format: "%04X", passStationFullCode))")
+
+        var locationParts = [stationName]
+        if let passStationName {
+            locationParts.append("Pass: \(passStationName)")
+        }
+        if passFare > 0 {
+            locationParts.append("Pass Fare \(passFare)")
+        }
+        let location = locationParts.joined(separator: " | ")
+
+        switch activityCode {
+        case 0xA0, 0xA2:
+            return TransitTransaction(
+                date: Calendar.current.date(from: components),
+                time: timestamp,
+                amount: Decimal(amount),
+                terminalID: terminalName,
+                type: activityCode == 0xA2 ? "Discount Entry" : "Entry",
+                category: .trainOn,
+                balanceAfter: nil,
+                location: location,
+                entryStation: stationName,
+                exitStation: nil,
+                entryStationCode: String(format: "0x%05X", resolvedStationCode),
+                exitStationCode: nil,
+                regionCode: inferredStation?.regionCode,
+                rawData: block.hexString.uppercased(),
+                recordNumber: deviceNumber
+            )
+        case 0x20:
+            return TransitTransaction(
+                date: Calendar.current.date(from: components),
+                time: timestamp,
+                amount: Decimal(amount),
+                terminalID: terminalName,
+                type: "Exit",
+                category: .trainOff,
+                balanceAfter: nil,
+                location: location,
+                entryStation: nil,
+                exitStation: stationName,
+                entryStationCode: nil,
+                exitStationCode: String(format: "0x%05X", resolvedStationCode),
+                regionCode: inferredStation?.regionCode,
+                rawData: block.hexString.uppercased(),
+                recordNumber: deviceNumber
+            )
+        default:
+            return TransitTransaction(
+                date: Calendar.current.date(from: components),
+                time: timestamp,
+                amount: Decimal(amount),
+                terminalID: terminalName,
+                type: subtype.isEmpty ? "Transit Activity" : "Transit Activity (\(subtype))",
+                category: .train,
+                balanceAfter: nil,
+                location: location,
+                entryStation: nil,
+                exitStation: nil,
+                entryStationCode: resolvedStationCode == 0 ? nil : String(format: "0x%05X", resolvedStationCode),
+                exitStationCode: nil,
+                regionCode: inferredStation?.regionCode,
+                rawData: block.hexString.uppercased(),
+                recordNumber: deviceNumber
+            )
+        }
     }
 
-    private static func deepProbeFeliCa(feliCa: NFCFeliCaTag) async -> DeepProbeResult {
-        var allRecords: [String] = []
-        var probedServices: [String] = []
-        
-        print("[DeepScan] Starting exhaustive FeliCa probe...")
-        guard let systemCodes = try? await feliCa.requestSystemCode() else { 
-            print("[DeepScan] Failed to request system codes.")
-            return DeepProbeResult(allRecords: [], analysisSection: nil)
+    private struct InferredTransitStation {
+        let fullCode: Int
+        let regionCode: Int
+        let stationName: String
+    }
+
+    private static func inferTransitStation(code: Int, date: Date?, relatedContext: [Data]) -> InferredTransitStation? {
+        let directName = StationResolver.shared.resolve(code)
+        if let directName {
+            return InferredTransitStation(fullCode: code, regionCode: code >> 16, stationName: directName)
         }
-        
-        print("[DeepScan] Found \(systemCodes.count) system codes: \(systemCodes.map { $0.hexString.uppercased() })")
-        
-        for sc in systemCodes {
-             print("[DeepScan] Polling system \(sc.hexString.uppercased())...")
-             _ = try? await feliCa.polling(systemCode: sc, requestCode: .systemCode, timeSlot: .max1)
-             
-             var services = (try? await feliCa.searchServiceCode()) ?? []
-             print("[DeepScan] SearchServiceCode (0x0A) found \(services.count) services.")
-             
-             for serviceData in services {
-                  let svcHex = serviceData.hexString.uppercased()
-                  print("[DeepScan] Probing service \(svcHex)...")
-                  
-                  var serviceRecords: [String] = []
-                  for i in 0..<20 {
-                       let bList = [Data([0x80, UInt8(i)])]
-                       guard let r = try? await feliCa.readWithoutEncryption(serviceCodeList: [serviceData], blockList: bList),
-                             let blk = r.2.first, blk.count >= 16 else { break }
-                             
-                       serviceRecords.append(blk.hexString.uppercased())
-                  }
-                  
-                  if serviceRecords.isEmpty {
-                      probedServices.append("\(svcHex): No Read Access")
-                  } else {
-                      let activeCount = serviceRecords.filter { !$0.allSatisfy { $0 == "0" } }.count
-                      probedServices.append("\(svcHex): \(serviceRecords.count) blocks (\(activeCount) non-zero)")
-                      // Tag for later extraction in analysis section
-                      allRecords.append(contentsOf: serviceRecords.map { "S_" + svcHex + "_" + $0 })
-                  }
-             }
-        }
-        
-        var section: RawDataSection?
-        if !probedServices.isEmpty {
-            var fields: [RawDataField] = []
-            for entry in probedServices {
-                // entries are formatted like "svcHex: status" or "svcHex: count blocks..."
-                let parts = entry.components(separatedBy: ": ")
-                let svcHex = parts[0]
-                let status = parts.count > 1 ? parts[1] : ""
-                
-                fields.append(RawDataField(title: "Service \(svcHex)", value: status))
-                
-                // Add first record hex if available for quick inspection
-                let found = allRecords.filter { $0.hasPrefix("S_" + svcHex) } // Tagged below
-                for (idx, rec) in found.prefix(2).enumerated() {
-                    let hex = rec.replacingOccurrences(of: "S_" + svcHex + "_", with: "")
-                    fields.append(RawDataField(title: "  Record \(idx)", value: hex))
-                }
+
+        var bestMatch: (distance: TimeInterval, fullCode: Int, stationName: String)?
+        for block in relatedContext {
+            guard let candidate = inferCandidateStation(from: block, targetLowCode: code, targetDate: date) else {
+                continue
             }
-            section = RawDataSection(title: "Deep Scan Analysis", fields: fields)
+            if let currentBest = bestMatch {
+                if candidate.distance < currentBest.distance {
+                    bestMatch = candidate
+                }
+            } else {
+                bestMatch = candidate
+            }
         }
-        
-        // Finalize allRecords without tags
-        let cleanRecords = allRecords.map { r in 
-            if r.contains("_") { return r.components(separatedBy: "_").last! }
-            return r
-        }
-        
-        print("[DeepScan] Finished. Found \(cleanRecords.count) total activity records.")
-        return DeepProbeResult(allRecords: cleanRecords, analysisSection: section)
-    }
-}
 
-extension NFCFeliCaTag {
-    func searchServiceCode() async throws -> [Data] {
-        var results: [Data] = []
-        let idm = self.currentIDm
-        
-        // Loop through service indices 0...255 (typical discovery range)
-        for i in 0..<256 {
-            let indexBytes = Data([UInt8(i & 0xFF), UInt8((i >> 8) & 0xFF)])
-            var cmd = Data([0x0A]) // Command 0x0A: Search Service Code
-            cmd.append(idm)
-            cmd.append(indexBytes)
-            
-            guard let response = try? await self.sendFeliCaCommand(commandPacket: cmd) else { break }
-            // FeliCa response packet: [Length, ResponseCode (0x0B), IDm(8), ServiceCode(2), ...]
-            guard response.count >= 12, response[1] == 0x0B else { break }
-            
-            // Service Code is at offset 10-11 (LE)
-            let sc = response.subdata(in: 10..<12)
-            if sc == Data([0xFF, 0xFF]) { break } // Search complete
-            
-            results.append(sc)
-            // Limit to avoid infinite loop or super long scan
-            if results.count > 100 { break }
-        }
-        return results
+        guard let bestMatch else { return nil }
+        return InferredTransitStation(fullCode: bestMatch.fullCode, regionCode: bestMatch.fullCode >> 16, stationName: bestMatch.stationName)
     }
+
+    private static func inferCandidateStation(from block: Data, targetLowCode: Int, targetDate: Date?) -> (distance: TimeInterval, fullCode: Int, stationName: String)? {
+        guard block.count >= 16 else { return nil }
+
+        let rawDate = Int(block[4]) << 8 | Int(block[5])
+        let year = (rawDate >> 9) & 0x7F
+        let month = (rawDate >> 5) & 0x0F
+        let day = rawDate & 0x1F
+
+        var components = DateComponents()
+        components.year = 2000 + year
+        components.month = month
+        components.day = day
+        let candidateDate = Calendar.current.date(from: components)
+
+        if let targetDate, let candidateDate {
+            let delta = abs(candidateDate.timeIntervalSince(targetDate))
+            if delta > 3 * 24 * 60 * 60 {
+                return nil
+            }
+        }
+
+        let regionFull = Int(block[15])
+        let area = (regionFull >> 6) & 0x03
+        let entryLow = Int(block[6]) << 8 | Int(block[7])
+        let exitLow = Int(block[8]) << 8 | Int(block[9])
+
+        let candidates = [entryLow, exitLow].filter { $0 == targetLowCode }
+        guard !candidates.isEmpty else { return nil }
+
+        let fullCode = (area << 16) | targetLowCode
+        guard let stationName = StationResolver.shared.resolve(fullCode) else { return nil }
+        let distance: TimeInterval
+        if let candidateDate, let targetDate {
+            distance = abs(candidateDate.timeIntervalSince(targetDate))
+        } else {
+            distance = 0
+        }
+        return (distance: distance, fullCode: fullCode, stationName: stationName)
+    }
+
+    private static func bcdToInt(_ value: UInt8) -> Int {
+        let high = Int((value >> 4) & 0x0F)
+        let low = Int(value & 0x0F)
+        guard high < 10, low < 10 else { return -1 }
+        return high * 10 + low
+    }
+
+    private static func transitSubtypeLabel(for code: UInt8) -> String {
+        switch code {
+        case 0x00: return "Standard"
+        case 0x04: return "Discount"
+        case 0x08: return "Transfer"
+        default: return String(format: "%02X", code)
+        }
+    }
+
 }
 
 // MARK: - Profiles handled by FeliCaProfiles.swift
-

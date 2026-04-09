@@ -99,8 +99,24 @@ class CardWalletStore: ObservableObject {
             }
             // else: keep what we have (e.g. if incoming is nil/empty)
             cards[index].enhancedFeliCaDecoded = false
-            cards[index].rawTransactions = snapshot.rawTransactions
-            cards[index].rawTransitHistory = snapshot.rawTransitHistory
+            cards[index].rawTransactions = mergeRawRecords(
+                existing: cards[index].rawTransactions,
+                incoming: snapshot.rawTransactions,
+                family: cardFamily,
+                technology: snapshot.technology,
+                kind: .transactions
+            )
+            cards[index].rawTransitHistory = mergeRawRecords(
+                existing: cards[index].rawTransitHistory,
+                incoming: snapshot.rawTransitHistory,
+                family: cardFamily,
+                technology: snapshot.technology,
+                kind: .transit
+            )
+            cards[index].region = snapshot.region
+                ?? snapshot.resultFields.first(where: { $0.title == "Brand" })?.value
+                ?? snapshot.resultFields.first(where: { $0.title == "Region" })?.value
+                ?? cards[index].region
             cards[index].issuingCity = snapshot.resultFields.first(where: { $0.title == "Issuing City" })?.value
             cards[index].cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
             cards[index].issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
@@ -112,6 +128,95 @@ class CardWalletStore: ObservableObject {
             autoApplyPresetIfMatching(id: id)
         }
         save()
+    }
+
+    private func mergeRawRecords(existing: [String], incoming: [String], family: String, technology: String, kind: RawHistoryKind) -> [String] {
+        guard !existing.isEmpty else { return incoming }
+        guard !incoming.isEmpty else { return existing }
+
+        struct IndexedRawRecord {
+            let raw: String
+            let transaction: TransitTransaction?
+            let sourcePriority: Int
+            let sourceIndex: Int
+
+            var dedupeKey: String {
+                if let recordNumber = transaction?.recordNumber {
+                    return "record:\(recordNumber)"
+                }
+                return "raw:\(raw)"
+            }
+        }
+
+        let mergedCandidates =
+            existing.enumerated().map {
+                IndexedRawRecord(
+                    raw: $0.element,
+                    transaction: TransactionDecoderRegistry.decode(raw: $0.element, family: family, technology: technology, context: existing, at: $0.offset, kind: kind),
+                    sourcePriority: 1,
+                    sourceIndex: $0.offset
+                )
+            } +
+            incoming.enumerated().map {
+                IndexedRawRecord(
+                    raw: $0.element,
+                    transaction: TransactionDecoderRegistry.decode(raw: $0.element, family: family, technology: technology, context: incoming, at: $0.offset, kind: kind),
+                    sourcePriority: 0,
+                    sourceIndex: $0.offset
+                )
+            }
+
+        var deduped: [String: IndexedRawRecord] = [:]
+        for candidate in mergedCandidates {
+            let key = candidate.dedupeKey
+            if let existingCandidate = deduped[key] {
+                if candidate.sourcePriority < existingCandidate.sourcePriority {
+                    deduped[key] = candidate
+                }
+            } else {
+                deduped[key] = candidate
+            }
+        }
+
+        return deduped.values.sorted { lhs, rhs in
+            switch (lhs.transaction?.date, rhs.transaction?.date) {
+            case let (leftDate?, rightDate?) where leftDate != rightDate:
+                return leftDate > rightDate
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            default:
+                let leftRecord = lhs.transaction?.recordNumber ?? Int.min
+                let rightRecord = rhs.transaction?.recordNumber ?? Int.min
+                if leftRecord != rightRecord {
+                    return leftRecord > rightRecord
+                }
+                if lhs.sourcePriority != rhs.sourcePriority {
+                    return lhs.sourcePriority < rhs.sourcePriority
+                }
+                return lhs.sourceIndex < rhs.sourceIndex
+            }
+        }.map(\.raw)
+    }
+
+    func deleteLocalRecord(cardID: String, kind: RawHistoryKind, rawData: String) {
+        // Defer the mutation to the next run loop tick so SwiftUI's swipe-to-delete
+        // animation can complete before the @Published change triggers a re-render.
+        DispatchQueue.main.async { [self] in
+            guard let index = cards.firstIndex(where: { $0.id == cardID }) else { return }
+            switch kind {
+            case .transactions:
+                if let i = cards[index].rawTransactions.firstIndex(of: rawData) {
+                    cards[index].rawTransactions.remove(at: i)
+                }
+            case .transit:
+                if let i = cards[index].rawTransitHistory.firstIndex(of: rawData) {
+                    cards[index].rawTransitHistory.remove(at: i)
+                }
+            }
+            save()
+        }
     }
 
     private func autoApplyPresetIfMatching(id: String) {
@@ -269,6 +374,7 @@ class CardWalletStore: ObservableObject {
             cards[index].faceImageFileName = fileName
             cards[index].isUsingImage = true // Set to true when adding image
             applyAutoImageTextColors(to: &cards[index], image: image)
+            applyAutoMarkerColor(to: &cards[index], image: image)
             save()
         } catch { return }
     }
@@ -279,6 +385,7 @@ class CardWalletStore: ObservableObject {
         cards[index].faceImageFileName = fileName
         cards[index].isUsingImage = true // Set to true when applying asset
         applyAutoImageTextColors(to: &cards[index], image: image)
+        applyAutoMarkerColor(to: &cards[index], image: image)
         save()
     }
 
@@ -324,13 +431,14 @@ class CardWalletStore: ObservableObject {
 
     func applyPreset(_ preset: CardPreset, to id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
-        
+
         // Use the asset name directly instead of copying to a JPEG file
         cards[index].faceImageFileName = preset.fileName
         cards[index].isUsingImage = true
-        
+
         if let image = UIImage(named: preset.fileName) {
             applyAutoImageTextColors(to: &cards[index], image: image)
+            applyAutoMarkerColor(to: &cards[index], image: image)
         }
         save()
     }
@@ -615,6 +723,50 @@ class CardWalletStore: ObservableObject {
     private func applyAutoImageTextColors(to card: inout SavedCardRecord, image: UIImage) {
         card.autoTitleTextColor = bestReadableTextColor(for: image, region: CGRect(x: 0.04, y: 0.04, width: 0.42, height: 0.28))
         card.autoBalanceTextColor = bestReadableTextColor(for: image, region: CGRect(x: 0.56, y: 0.04, width: 0.4, height: 0.28))
+    }
+
+    /// Extracts the most vivid "signature" color from the image — skipping whites, silvers, grays, and blacks.
+    private func applyAutoMarkerColor(to card: inout SavedCardRecord, image: UIImage) {
+        guard let sampled = sampledColors(in: image, region: CGRect(x: 0, y: 0, width: 1, height: 1)) else { return }
+
+        // Bucket colors by top 4 bits of each channel for clustering
+        var buckets: [[Int]: (count: Int, rSum: Double, gSum: Double, bSum: Double)] = [:]
+        for c in sampled {
+            let key = [Int(c.red * 15), Int(c.green * 15), Int(c.blue * 15)]
+            let existing = buckets[key] ?? (0, 0, 0, 0)
+            buckets[key] = (existing.count + 1, existing.rSum + c.red, existing.gSum + c.green, existing.bSum + c.blue)
+        }
+
+        struct ColorCandidate {
+            let r, g, b, saturation: Double
+            let count: Int
+            /// Score: prioritize vivid colors (high saturation) that also appear frequently
+            var score: Double { saturation * Double(count) }
+        }
+
+        var candidates: [ColorCandidate] = []
+        for bucket in buckets.values {
+            let r = bucket.rSum / Double(bucket.count)
+            let g = bucket.gSum / Double(bucket.count)
+            let b = bucket.bSum / Double(bucket.count)
+            let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            let maxC = max(r, g, b)
+            let minC = min(r, g, b)
+            let sat = maxC > 0 ? (maxC - minC) / maxC : 0
+
+            // Reject white → silver (bright and desaturated)
+            if lum > 0.65 && sat < 0.20 { continue }
+            // Reject dark grey → black (dim and desaturated)
+            if lum < 0.20 && sat < 0.25 { continue }
+            // Reject mid grays (desaturated neutrals)
+            if sat < 0.15 { continue }
+
+            candidates.append(ColorCandidate(r: r, g: g, b: b, saturation: sat, count: bucket.count))
+        }
+
+        // Pick the candidate with the highest score (saturation × frequency)
+        guard let best = candidates.max(by: { $0.score < $1.score }) else { return }
+        card.markerColor = SavedCardColor(red: best.r, green: best.g, blue: best.b)
     }
 
     private func bestReadableTextColor(for image: UIImage, region: CGRect) -> SavedCardColor {

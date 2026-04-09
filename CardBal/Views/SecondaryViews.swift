@@ -1,4 +1,207 @@
 import SwiftUI
+import Vision
+import CoreImage
+import CoreImage.CIFilterBuiltins
+
+/// Result of card photo processing — carries both the auto-corrected and original images.
+struct CardPhotoResult {
+    let original: UIImage
+    let autoCropped: UIImage?   // nil when no card rectangle was detected
+    let didDetectCard: Bool
+}
+
+/// Automatically detects a card rectangle in a photo and applies perspective correction + quality enhancement.
+enum CardPhotoProcessor {
+    private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    private static let cardAspectRatio: CGFloat = 27.0 / 17.0  // standard card W:H
+
+    /// Process a captured photo and return both versions for the user to choose.
+    static func process(_ image: UIImage) async -> CardPhotoResult {
+        guard let cgImage = image.cgImage else {
+            return CardPhotoResult(original: image, autoCropped: nil, didDetectCard: false)
+        }
+
+        // 1. Detect the card rectangle
+        let corners = await detectRectangle(in: cgImage)
+
+        guard let corners = corners else {
+            return CardPhotoResult(original: image, autoCropped: nil, didDetectCard: false)
+        }
+
+        var ciImage = CIImage(cgImage: cgImage)
+        let imageSize = ciImage.extent
+
+        // 2. Map normalized Vision coordinates → pixel coordinates
+        let tl = CGPoint(x: corners.topLeft.x * imageSize.width, y: corners.topLeft.y * imageSize.height)
+        let tr = CGPoint(x: corners.topRight.x * imageSize.width, y: corners.topRight.y * imageSize.height)
+        let bl = CGPoint(x: corners.bottomLeft.x * imageSize.width, y: corners.bottomLeft.y * imageSize.height)
+        let br = CGPoint(x: corners.bottomRight.x * imageSize.width, y: corners.bottomRight.y * imageSize.height)
+
+        // 3. Perspective correction from the 4 detected corners
+        let correction = CIFilter.perspectiveCorrection()
+        correction.inputImage = ciImage
+        correction.topLeft = tl
+        correction.topRight = tr
+        correction.bottomLeft = bl
+        correction.bottomRight = br
+        if let corrected = correction.outputImage {
+            ciImage = corrected
+        }
+
+        // 4. Detect orientation — if the corrected image is taller than wide, rotate 90° for landscape card
+        let correctedExtent = ciImage.extent
+        let detectedRatio = correctedExtent.width / correctedExtent.height
+        if detectedRatio < 1.0 {
+            // Portrait-oriented card detected → rotate to landscape
+            ciImage = ciImage.oriented(.right)
+        }
+
+        // 5. Crop to exact 27:17 card aspect ratio
+        ciImage = cropToCardAspect(ciImage)
+
+        // 6. Enhance: sharpen + auto-adjust
+        ciImage = enhance(ciImage)
+
+        // 7. Render
+        guard let outputCG = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+            return CardPhotoResult(original: image, autoCropped: nil, didDetectCard: false)
+        }
+        let autoImage = UIImage(cgImage: outputCG)
+        return CardPhotoResult(original: image, autoCropped: autoImage, didDetectCard: true)
+    }
+
+    private static func detectRectangle(in cgImage: CGImage) async -> VNRectangleObservation? {
+        await withCheckedContinuation { continuation in
+            let request = VNDetectRectanglesRequest { request, error in
+                let observation = (request.results as? [VNRectangleObservation])?
+                    .sorted(by: { $0.confidence > $1.confidence })
+                    .first(where: { $0.confidence > 0.5 })
+                continuation.resume(returning: observation)
+            }
+            request.minimumConfidence = 0.3
+            request.maximumObservations = 5
+            request.minimumAspectRatio = 1.2
+            request.maximumAspectRatio = 2.0
+            request.minimumSize = 0.15
+
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            do {
+                try handler.perform([request])
+            } catch {
+                continuation.resume(returning: nil)
+            }
+        }
+    }
+
+    /// Center-crop a CIImage to the standard card aspect ratio (27:17).
+    private static func cropToCardAspect(_ image: CIImage) -> CIImage {
+        let extent = image.extent
+        let currentRatio = extent.width / extent.height
+        let targetRatio = cardAspectRatio
+        let cropRect: CGRect
+        if currentRatio > targetRatio {
+            // Too wide — crop width
+            let newWidth = extent.height * targetRatio
+            let xOffset = (extent.width - newWidth) / 2 + extent.origin.x
+            cropRect = CGRect(x: xOffset, y: extent.origin.y, width: newWidth, height: extent.height)
+        } else {
+            // Too tall — crop height
+            let newHeight = extent.width / targetRatio
+            let yOffset = (extent.height - newHeight) / 2 + extent.origin.y
+            cropRect = CGRect(x: extent.origin.x, y: yOffset, width: extent.width, height: newHeight)
+        }
+        return image.cropped(to: cropRect)
+    }
+
+    private static func enhance(_ image: CIImage) -> CIImage {
+        var result = image
+
+        // Shadow reduction: lift shadows without blowing highlights
+        let toneCurve = CIFilter.toneCurve()
+        toneCurve.inputImage = result
+        toneCurve.point0 = CGPoint(x: 0.0, y: 0.04)  // Lift pure black
+        toneCurve.point1 = CGPoint(x: 0.15, y: 0.22)  // Brighten shadows
+        toneCurve.point2 = CGPoint(x: 0.5, y: 0.52)   // Slight midtone lift
+        toneCurve.point3 = CGPoint(x: 0.85, y: 0.84)  // Keep highlights stable
+        toneCurve.point4 = CGPoint(x: 1.0, y: 1.0)
+        if let lifted = toneCurve.outputImage {
+            result = lifted
+        }
+
+        // Edge-aware sharpening via unsharp mask
+        let sharpen = CIFilter.unsharpMask()
+        sharpen.inputImage = result
+        sharpen.radius = 1.5
+        sharpen.intensity = 0.6
+        if let sharpened = sharpen.outputImage {
+            result = sharpened
+        }
+
+        // Slight local contrast boost via color controls
+        let colorControls = CIFilter.colorControls()
+        colorControls.inputImage = result
+        colorControls.contrast = 1.05
+        colorControls.saturation = 1.05
+        colorControls.brightness = 0.0
+        if let adjusted = colorControls.outputImage {
+            result = adjusted
+        }
+
+        return result
+    }
+
+    /// Extracts the most vivid "signature" color from the image — ignoring whites, silvers, grays, and blacks.
+    static func dominantColor(of image: UIImage) -> Color? {
+        guard let cgImage = image.cgImage else { return nil }
+        let ciImage = CIImage(cgImage: cgImage)
+        let ctx = CIContext()
+        let sampleSize = 32
+        var bitmap = [UInt8](repeating: 0, count: sampleSize * sampleSize * 4)
+        ctx.render(ciImage, toBitmap: &bitmap, rowBytes: sampleSize * 4, bounds: CGRect(x: 0, y: 0, width: sampleSize, height: sampleSize), format: .RGBA8, colorSpace: nil)
+
+        // Bucket colors by top 4 bits of each channel
+        var buckets: [[Int]: (count: Int, rSum: Int, gSum: Int, bSum: Int)] = [:]
+        for i in stride(from: 0, to: bitmap.count, by: 4) {
+            let r = Int(bitmap[i])
+            let g = Int(bitmap[i+1])
+            let b = Int(bitmap[i+2])
+            let key = [r >> 4, g >> 4, b >> 4]
+            let existing = buckets[key] ?? (0, 0, 0, 0)
+            buckets[key] = (existing.count + 1, existing.rSum + r, existing.gSum + g, existing.bSum + b)
+        }
+
+        // Score each bucket: saturation × count — pick the most vivid signature color
+        var bestScore = 0.0
+        var bestColor: (r: Double, g: Double, b: Double)?
+
+        for bucket in buckets.values {
+            guard bucket.count > 0 else { continue }
+            let r = Double(bucket.rSum) / Double(bucket.count) / 255.0
+            let g = Double(bucket.gSum) / Double(bucket.count) / 255.0
+            let b = Double(bucket.bSum) / Double(bucket.count) / 255.0
+            let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            let maxC = max(r, g, b)
+            let minC = min(r, g, b)
+            let sat = maxC > 0 ? (maxC - minC) / maxC : 0
+
+            // Reject white → silver (bright and desaturated)
+            if lum > 0.65 && sat < 0.20 { continue }
+            // Reject dark grey → black (dim and desaturated)
+            if lum < 0.20 && sat < 0.25 { continue }
+            // Reject mid grays
+            if sat < 0.15 { continue }
+
+            let score = sat * Double(bucket.count)
+            if score > bestScore {
+                bestScore = score
+                bestColor = (r, g, b)
+            }
+        }
+
+        guard let c = bestColor else { return nil }
+        return Color(red: c.r, green: c.g, blue: c.b)
+    }
+}
 
 struct CardFaceLibraryView: View {
     @ObservedObject var store: CardWalletStore
@@ -163,9 +366,11 @@ struct EditableFaceImage: Identifiable {
 
 struct FaceImageEditorSheet: View {
     let image: UIImage
+    let autoCroppedImage: UIImage?   // nil = no card was detected
     let onCancel: () -> Void
     let onSave: (UIImage) -> Void
-    
+
+    @State private var isAutoMode: Bool = true
     @State private var offset: CGSize = .zero
     @State private var dragOffset: CGSize = .zero
     @State private var scale: CGFloat = 1.0
@@ -176,85 +381,102 @@ struct FaceImageEditorSheet: View {
     @State private var vPerspective: Double = 0.0
     @State private var hPerspective: Double = 0.0
     @State private var activeTab: Int = 0 // 0: Crop, 1: Adjust, 2: Perspective
-    
+    @State private var hasAppliedAutoZoom = false
+
     private let cardAspectRatio: CGFloat = 27.0 / 17.0
-    
+    private let cardWidth: CGFloat = 320
+    private var cardHeight: CGFloat { cardWidth / cardAspectRatio }
+
+    /// The image currently being edited — auto-cropped or original.
+    private var activeImage: UIImage {
+        (isAutoMode ? autoCroppedImage : nil) ?? image
+    }
+
+    /// Whether the user can toggle between auto/manual.
+    private var canToggleAuto: Bool { autoCroppedImage != nil }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     // Preview Area
                     ZStack {
-                        // Anchored base to prevent huge images from pushing layout width
-                        Color.clear.frame(width: 320, height: 320 / cardAspectRatio)
+                        Color.clear.frame(width: cardWidth, height: cardHeight)
                             .overlay(renderableView)
-                        
+
                         // Theatrical Mask
                         Color.black.opacity(0.5)
                             .mask(
                                 Rectangle()
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 20)
-                                            .frame(width: 320, height: 320 / cardAspectRatio)
+                                            .frame(width: cardWidth, height: cardHeight)
                                             .blendMode(.destinationOut)
                                     )
                             )
                             .compositingGroup()
-                        
+
                         // Card Guide Border
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(Color.white, lineWidth: 2)
-                            .frame(width: 320, height: 320 / cardAspectRatio)
+                            .frame(width: cardWidth, height: cardHeight)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
                     .contentShape(Rectangle())
                     .gesture(
                         DragGesture()
-                            .onChanged { val in
-                                dragOffset = val.translation
-                            }
+                            .onChanged { val in dragOffset = val.translation }
                             .onEnded { val in
-                                offset = CGSize(width: offset.width + val.translation.width, height: offset.height + val.translation.height)
+                                offset = CGSize(width: offset.width + val.translation.width,
+                                                height: offset.height + val.translation.height)
                                 dragOffset = .zero
                             }
                     )
                     .simultaneousGesture(
                         MagnificationGesture()
-                            .onChanged { val in
-                                scale = lastScale * val
-                            }
-                            .onEnded { val in
-                                lastScale = scale
-                            }
+                            .onChanged { val in scale = lastScale * val }
+                            .onEnded { _ in lastScale = scale }
                     )
-                    
+
                     // Controls Area
-                    VStack(spacing: 16) {
-                        Picker("Mode", selection: $activeTab) {
-                            Image(systemName: "crop").tag(0)
-                            Image(systemName: "slider.horizontal.3").tag(1)
-                            Image(systemName: "skew").tag(2)
+                    VStack(spacing: 12) {
+                        // Auto / Manual toggle (only when card was detected)
+                        if canToggleAuto {
+                            autoManualToggle
                         }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal)
-                        
-                        Group {
-                            if activeTab == 0 {
-                                cropControls
-                            } else if activeTab == 1 {
-                                adjustControls
-                            } else {
-                                perspectiveControls
+
+                        if !isAutoMode || !canToggleAuto {
+                            Picker("Mode", selection: $activeTab) {
+                                Image(systemName: "crop").tag(0)
+                                Image(systemName: "slider.horizontal.3").tag(1)
+                                Image(systemName: "skew").tag(2)
                             }
+                            .pickerStyle(.segmented)
+                            .padding(.horizontal)
+
+                            Group {
+                                if activeTab == 0 {
+                                    cropControls
+                                } else if activeTab == 1 {
+                                    adjustControls
+                                } else {
+                                    perspectiveControls
+                                }
+                            }
+                            .padding(.horizontal)
+                            .frame(height: 100)
+                        } else {
+                            // Auto mode: show only brightness/contrast fine-tune
+                            adjustControls
+                                .padding(.horizontal)
+                                .frame(height: 100)
                         }
-                        .padding(.horizontal)
-                        .frame(height: 100)
-                        
+
                         Divider().background(Color.white.opacity(0.2))
-                        
+
                         HStack {
                             Button("Cancel", action: onCancel).foregroundStyle(.white.opacity(0.8))
                             Spacer()
@@ -268,10 +490,10 @@ struct FaceImageEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { 
-                        withAnimation { 
-                            rotation = (rotation + 90).truncatingRemainder(dividingBy: 360) 
-                        } 
+                    Button {
+                        withAnimation {
+                            rotation = (rotation + 90).truncatingRemainder(dividingBy: 360)
+                        }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "rotate.right")
@@ -283,8 +505,8 @@ struct FaceImageEditorSheet: View {
                         .background(.white.opacity(0.15), in: Capsule())
                     }
                 }
-                ToolbarItem(placement: .principal) { 
-                    Text("Edit card face").foregroundStyle(.white).bold() 
+                ToolbarItem(placement: .principal) {
+                    Text("Edit card face").foregroundStyle(.white).bold()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { saveCroppedImage() } label: {
@@ -297,9 +519,47 @@ struct FaceImageEditorSheet: View {
             }
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .onAppear { applyAutoZoomIfNeeded() }
+            .onChange(of: isAutoMode) { _ in applyAutoZoomIfNeeded() }
         }
     }
-    
+
+    // MARK: - Auto / Manual Toggle
+
+    @ViewBuilder
+    private var autoManualToggle: some View {
+        HStack(spacing: 12) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) { isAutoMode = true; resetTransforms() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "wand.and.stars")
+                    Text("Auto")
+                }
+                .font(.subheadline.bold())
+                .foregroundStyle(isAutoMode ? .white : .gray)
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(isAutoMode ? Color.accentColor : Color.white.opacity(0.1), in: Capsule())
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) { isAutoMode = false; resetTransforms() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "hand.draw")
+                    Text("Manual")
+                }
+                .font(.subheadline.bold())
+                .foregroundStyle(!isAutoMode ? .white : .gray)
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(!isAutoMode ? Color.accentColor : Color.white.opacity(0.1), in: Capsule())
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    // MARK: - Controls
+
     @ViewBuilder
     private var cropControls: some View {
         VStack {
@@ -307,7 +567,7 @@ struct FaceImageEditorSheet: View {
             Slider(value: $scale, in: 0.5...8.0).tint(.white)
         }
     }
-    
+
     @ViewBuilder
     private var adjustControls: some View {
         VStack(spacing: 8) {
@@ -329,7 +589,7 @@ struct FaceImageEditorSheet: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var perspectiveControls: some View {
         VStack(spacing: 8) {
@@ -355,34 +615,79 @@ struct FaceImageEditorSheet: View {
             }
         }
     }
-    
-    private func reset() {
-        withAnimation {
-            offset = .zero
-            dragOffset = .zero
-            scale = 1.0
-            lastScale = 1.0
-            brightness = 0.0
-            contrast = 1.0
-            rotation = 0.0
-            vPerspective = 0.0
-            hPerspective = 0.0
+
+    // MARK: - Auto Zoom
+
+    /// Computes scale so `activeImage` fills the card guide frame, accounting for aspect ratio.
+    private func autoFitScale(for img: UIImage) -> CGFloat {
+        let imgW = img.size.width
+        let imgH = img.size.height
+        guard imgW > 0, imgH > 0 else { return 1.0 }
+        let imgAspect = imgW / imgH
+        // scaledToFill: the shorter dimension touches the frame edge
+        if imgAspect > cardAspectRatio {
+            // Image is wider → height is the limiting dimension
+            return cardHeight / (cardWidth / imgAspect)
+        } else {
+            // Image is taller → width is the limiting dimension
+            return cardWidth / (cardHeight * imgAspect)
         }
     }
-    
+
+    private func applyAutoZoomIfNeeded() {
+        let fitScale: CGFloat
+        if isAutoMode && canToggleAuto {
+            // Auto mode: image is already perspective-corrected and cropped to card — show full, no extra zoom
+            fitScale = 1.0
+        } else {
+            fitScale = autoFitScale(for: activeImage)
+        }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            scale = fitScale
+            lastScale = fitScale
+            offset = .zero
+            dragOffset = .zero
+        }
+    }
+
+    // MARK: - Reset
+
+    private func resetTransforms() {
+        offset = .zero
+        dragOffset = .zero
+        brightness = 0.0
+        contrast = 1.0
+        rotation = 0.0
+        vPerspective = 0.0
+        hPerspective = 0.0
+        hasAppliedAutoZoom = false
+        // Auto zoom will be triggered by onChange/onAppear
+    }
+
+    private func reset() {
+        withAnimation {
+            resetTransforms()
+            isAutoMode = canToggleAuto
+        }
+        applyAutoZoomIfNeeded()
+    }
+
+    // MARK: - Renderable View
+
     @ViewBuilder
     private var renderableView: some View {
-        Image(uiImage: image)
+        Image(uiImage: activeImage)
             .resizable()
-            .scaledToFill()
+            .aspectRatio(contentMode: isAutoMode && canToggleAuto ? .fit : .fill)
             .brightness(brightness)
             .contrast(contrast)
             .rotationEffect(.degrees(rotation))
             .projectionEffect(perspectiveTransform)
             .scaleEffect(scale)
-            .offset(CGSize(width: offset.width + dragOffset.width, height: offset.height + dragOffset.height))
+            .offset(CGSize(width: offset.width + dragOffset.width,
+                           height: offset.height + dragOffset.height))
     }
-    
+
     private var perspectiveTransform: ProjectionTransform {
         var transform = CATransform3DIdentity
         transform.m34 = -1.0 / 1000
@@ -390,18 +695,28 @@ struct FaceImageEditorSheet: View {
         transform = CATransform3DRotate(transform, hPerspective, 0, 1, 0)
         return ProjectionTransform(transform)
     }
-    
+
+    // MARK: - Save
+
     private func saveCroppedImage() {
-        let renderer = ImageRenderer(content: 
+        let renderer = ImageRenderer(content:
             renderableView
-                .frame(width: 320, height: 320 / cardAspectRatio)
+                .frame(width: cardWidth, height: cardHeight)
         )
         renderer.scale = 3.0
-        if let uiImage = renderer.uiImage {
-            onSave(uiImage)
-        } else {
-            onSave(image)
+        guard let uiImage = renderer.uiImage else { onSave(activeImage); return }
+
+        // Final sharpen pass for crisp output
+        guard let ciInput = CIImage(image: uiImage) else { onSave(uiImage); return }
+        let sharpen = CIFilter.unsharpMask()
+        sharpen.inputImage = ciInput
+        sharpen.radius = 1.0
+        sharpen.intensity = 0.4
+        guard let sharpened = sharpen.outputImage,
+              let cgOut = CIContext().createCGImage(sharpened, from: sharpened.extent) else {
+            onSave(uiImage); return
         }
+        onSave(UIImage(cgImage: cgOut, scale: uiImage.scale, orientation: uiImage.imageOrientation))
     }
 }
 
@@ -574,7 +889,9 @@ struct ImagePicker: UIViewControllerRepresentable {
 struct QuickHistorySheet: View {
     let mode: HistoryMode
     let card: SavedCardRecord
+    let store: CardWalletStore?
     @Environment(\.dismiss) private var dismiss
+    @State private var pendingDeletions: Set<String> = []
 
     enum HistoryMode {
         case transactions, transit
@@ -602,12 +919,23 @@ struct QuickHistorySheet: View {
     private var transactionsSection: some View {
         Section {
             let sorted = sortTransactionsByRecency(card.transactions)
+                .filter { tx in tx.rawData.map { !pendingDeletions.contains($0) } ?? true }
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary)
             } else {
-                ForEach(sorted) { tx in
+                ForEach(sorted, id: \.stableID) { tx in
                     TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
                         .padding(.vertical, 4)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if let rawData = tx.rawData, let store {
+                                Button(role: .destructive) {
+                                    pendingDeletions.insert(rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transactions, rawData: rawData)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
         }
@@ -616,12 +944,23 @@ struct QuickHistorySheet: View {
     private var transitSection: some View {
         Section {
             let sorted = sortTransactionsByRecency(card.transitHistory)
+                .filter { tx in tx.rawData.map { !pendingDeletions.contains($0) } ?? true }
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary)
             } else {
-                ForEach(sorted) { tx in
+                ForEach(sorted, id: \.stableID) { tx in
                     TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
                         .padding(.vertical, 4)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if let rawData = tx.rawData, let store {
+                                Button(role: .destructive) {
+                                    pendingDeletions.insert(rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transit, rawData: rawData)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
         }

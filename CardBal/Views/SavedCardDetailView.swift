@@ -16,6 +16,7 @@ struct SavedCardDetailView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isShowingCamera = false
     @State private var pendingFaceImage: UIImage?
+    @State private var pendingAutoCroppedImage: UIImage?
     @State private var appearanceMode: AppearanceMode = .colors
     @State private var isShowingMarkerSheet = false
     @State private var isShowingSNScanner = false
@@ -26,13 +27,14 @@ struct SavedCardDetailView: View {
     @State private var snTask: Task<Void, Never>?
     @State private var draftDeleteConfirmation = false
     @State private var activeHistoryItem: HistorySheetItem?
+    @State private var pendingDeletions: Set<String> = []
 
     var body: some View {
         if let card = store.card(withID: cardID) {
             detailContent(card: card)
                 .onAppear { viewSelection = initialSelection }
                 .sheet(item: $activeHistoryItem) { item in
-                    QuickHistorySheet(mode: item.mode, card: item.card)
+                    QuickHistorySheet(mode: item.mode, card: item.card, store: store)
                 }
         }
     }
@@ -55,7 +57,13 @@ struct SavedCardDetailView: View {
             }
             .fullScreenCover(isPresented: $isShowingCamera) {
                 ImagePicker { image in
-                    pendingFaceImage = image
+                    Task {
+                        let result = await CardPhotoProcessor.process(image)
+                        await MainActor.run {
+                            pendingFaceImage = result.original
+                            pendingAutoCroppedImage = result.autoCropped
+                        }
+                    }
                 }
             }
             .sheet(item: editableFaceImageBinding()) { editable in
@@ -76,8 +84,16 @@ struct SavedCardDetailView: View {
                         titleSection(card: card)
                     }
 
-                    Section("Card Information") {
-                        cardInfoSection(card: card)
+                Section("Card Information") {
+                    cardInfoSection(card: card)
+                }
+
+                    Section("Map") {
+                        NavigationLink {
+                            RideMapView(store: store, initialCardID: card.id, showsCardPicker: false)
+                        } label: {
+                            Label("View Ride Map", systemImage: "map")
+                        }
                     }
 
                     Section("Appearance") {
@@ -157,6 +173,10 @@ struct SavedCardDetailView: View {
     @ViewBuilder
     private func cardInfoSection(card: SavedCardRecord) -> some View {
         KeyValueRow(title: "Technology", value: card.technology)
+        if let brand = card.region ?? card.resultFields.first(where: { $0.title == "Brand" })?.value,
+           !brand.isEmpty {
+            KeyValueRow(title: "Brand", value: brand)
+        }
         if let city = card.issuingCity { KeyValueRow(title: "Issuing City", value: city) }
         if let type = card.cardTypeStr { KeyValueRow(title: "Card Type", value: type) }
         if let issue = card.issueDateStr { KeyValueRow(title: "Issue Date", value: issue) }
@@ -185,12 +205,23 @@ struct SavedCardDetailView: View {
     private func transactionsSection(card: SavedCardRecord) -> some View {
         Section("Transactions") {
             let sorted = sortTransactionsByRecency(card.transactions)
+                .filter { tx in tx.rawData.map { !pendingDeletions.contains($0) } ?? true }
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary).font(.subheadline)
             } else {
-                ForEach(sorted) { tx in
+                ForEach(sorted, id: \.stableID) { tx in
                     TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
                         .padding(.vertical, 4)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if let rawData = tx.rawData {
+                                Button(role: .destructive) {
+                                    pendingDeletions.insert(rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transactions, rawData: rawData)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
         }
@@ -200,12 +231,23 @@ struct SavedCardDetailView: View {
     private func transitHistorySection(card: SavedCardRecord) -> some View {
         Section("Transit Activity") {
             let sorted = sortTransactionsByRecency(card.transitHistory)
+                .filter { tx in tx.rawData.map { !pendingDeletions.contains($0) } ?? true }
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary).font(.subheadline)
             } else {
-                ForEach(sorted) { tx in
+                ForEach(sorted, id: \.stableID) { tx in
                     TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
                         .padding(.vertical, 4)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if let rawData = tx.rawData {
+                                Button(role: .destructive) {
+                                    pendingDeletions.insert(rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transit, rawData: rawData)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
         }
@@ -282,7 +324,11 @@ struct SavedCardDetailView: View {
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
-                await MainActor.run { pendingFaceImage = image }
+                let result = await CardPhotoProcessor.process(image)
+                await MainActor.run {
+                    pendingFaceImage = result.original
+                    pendingAutoCroppedImage = result.autoCropped
+                }
             }
             await MainActor.run { selectedPhotoItem = nil }
         }
@@ -293,14 +339,21 @@ struct SavedCardDetailView: View {
             get: { pendingFaceImage.map(EditableFaceImage.init) },
             set: { newValue in
                 pendingFaceImage = newValue?.image
+                if newValue == nil { pendingAutoCroppedImage = nil }
             }
         )
     }
 
     private func snScannerSheet(card: SavedCardRecord) -> some View {
-        FeliCaSNScannerView { sn in
-            store.setRealSerialNumber(sn, for: card.id)
-        }
+        FeliCaSNScannerView(
+            onRecognized: { sn in
+                store.setRealSerialNumber(sn, for: card.id)
+            },
+            onPhotoTaken: { image in
+                pendingFaceImage = image
+                pendingAutoCroppedImage = image  // Already processed by CardPhotoProcessor
+            }
+        )
     }
 
     private func markerEditorSheet(card: SavedCardRecord) -> some View {
@@ -310,10 +363,12 @@ struct SavedCardDetailView: View {
     private func faceImageEditorSheet(editable: EditableFaceImage, card: SavedCardRecord) -> some View {
         FaceImageEditorSheet(
             image: editable.image,
-            onCancel: { pendingFaceImage = nil },
+            autoCroppedImage: pendingAutoCroppedImage,
+            onCancel: { pendingFaceImage = nil; pendingAutoCroppedImage = nil },
             onSave: { image in
                 store.setFaceImage(image, for: card.id)
                 pendingFaceImage = nil
+                pendingAutoCroppedImage = nil
             }
         )
     }

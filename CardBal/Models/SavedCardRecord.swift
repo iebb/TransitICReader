@@ -205,13 +205,13 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
     var transactions: [TransitTransaction] {
         rawTransactions.enumerated().compactMap { idx, hex in
-            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx)
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx, kind: .transactions)
         }
     }
 
     var transitHistory: [TransitTransaction] {
         rawTransitHistory.enumerated().compactMap { idx, hex in
-            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx)
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx, kind: .transit, relatedContext: rawTransactions)
         }
     }
 
@@ -234,7 +234,44 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var displayTitle: String {
         let trimmed = customTitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !trimmed.isEmpty { return trimmed }
+
+        let brand = ICCardBrand.from(family: cardFamily)
+
+        // For T-Union cards, prefer the specific brand name (e.g. "羊城通") over generic family
+        if brand == .tUnion {
+            if let region, !region.isEmpty, region != "T-Union Cities" { return region }
+            // Check resultFields as fallback
+            if let brandField = resultFields.first(where: { $0.title == "Brand" })?.value,
+               !brandField.isEmpty, brandField != "T-Union Cities" {
+                return brandField
+            }
+            // "T-Union Cities" or region is still better than "China T-Union"
+            if let region, !region.isEmpty { return region }
+        }
+
+        // For Japanese IC cards, resolve brand from serial number if available
+        if brand.region == .japan || cardFamily == "Japan Transit IC" {
+            if let resolved = Self.resolveJapaneseICBrand(from: realSerialNumber ?? customDisplaySerialNumber),
+               resolved != "Japan Transit IC" {
+                return resolved
+            }
+        }
+
         return region ?? cardFamily
+    }
+
+    /// Resolve Japanese IC card brand from serial number prefix.
+    private static func resolveJapaneseICBrand(from serialNumber: String?) -> String? {
+        guard let sn = serialNumber?.uppercased(), !sn.isEmpty else { return nil }
+        let prefixMap: [(String, String)] = [
+            ("JE", "Suica"), ("PB", "PASMO"), ("JW", "ICOCA"),
+            ("FC", "Hayakaken"), ("JK", "SUGOCA"), ("TP", "Manaca"),
+            ("JH", "Kitaca"), ("NR", "Nimoca"), ("JC", "TOICA"),
+        ]
+        for (prefix, name) in prefixMap {
+            if sn.hasPrefix(prefix) { return name }
+        }
+        return nil
     }
 
     var visibleBalance: String {
@@ -358,7 +395,10 @@ extension SavedCardRecord {
         self.balanceText = snapshot.balanceText
         self.balanceDetail = snapshot.balanceDetail
         self.realSerialNumber = snapshot.realSerialNumber
-        self.region = snapshot.resultFields.first(where: { $0.title == "Region" })?.value
+        // Use snapshot.region directly (set by the decoder), with fallback to resultFields
+        self.region = snapshot.region
+            ?? snapshot.resultFields.first(where: { $0.title == "Brand" })?.value
+            ?? snapshot.resultFields.first(where: { $0.title == "Region" })?.value
         self.enhancedFeliCaDecoded = false
         self.issuingCity = snapshot.resultFields.first(where: {$0.title == "Issuing City"})?.value
         self.cardTypeStr = snapshot.resultFields.first(where: {$0.title == "Card Type"})?.value

@@ -12,7 +12,6 @@ final class NFCTransitReader: NSObject, ObservableObject {
     @Published private(set) var isScanning = false
 
     var isEnhancedFeliCaDecodingEnabled = false
-    var shouldFullFeliCaScan = UserDefaults.standard.bool(forKey: "fullFeliCaScan")
     var checkIfCardAlreadyEnhanced: ((String) -> Bool)?
 
     private var latestStatusKind: StatusKind = .idle
@@ -161,11 +160,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 // Try each decoder
                 for decoder in decoders {
                     if await decoder.canDecode(tag: tag) {
-                        if let jpDecoder = decoder as? JapaneseICDecoder.Type {
-                             snapshot = try? await jpDecoder.decodeExtended(tag: tag, scannedAt: scannedAt, shouldReadAll: shouldFullFeliCaScan)
-                        } else {
-                             snapshot = try? await decoder.decode(tag: tag, scannedAt: scannedAt)
-                        }
+                        snapshot = try? await decoder.decode(tag: tag, scannedAt: scannedAt)
                         if snapshot != nil { break }
                     }
                 }

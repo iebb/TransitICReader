@@ -150,6 +150,12 @@ struct TransitTransaction: Identifiable, Hashable, Codable {
     let regionCode: Int?
     let rawData: String?
     let distance: Double?
+
+    /// Stable identity derived from content, not the random UUID. Used by ForEach to avoid
+    /// UICollectionView crashes when the transactions array is recomputed after deletion.
+    var stableID: String {
+        rawData ?? "\(date?.timeIntervalSince1970 ?? 0)|\(amount)|\(type)|\(recordNumber ?? -1)"
+    }
     
     init(date: Date?, time: String? = nil, amount: Decimal, terminalID: String?, type: String, category: TransactionCategory = .unknown, balanceAfter: Decimal? = nil, location: String? = nil, entryStation: String? = nil, exitStation: String? = nil, entryStationCode: String? = nil, exitStationCode: String? = nil, regionCode: Int? = nil, rawData: String? = nil, recordNumber: Int? = nil, ntsam: Int? = nil, distance: Double? = nil) {
         self.id = UUID()
@@ -174,18 +180,23 @@ struct TransitTransaction: Identifiable, Hashable, Codable {
 }
 
 // MARK: - Decode on Demand Registry
+enum RawHistoryKind {
+    case transactions
+    case transit
+}
+
 struct TransactionDecoderRegistry {
-    static func decode(raw: String, family: String, technology: String, context: [String], at index: Int) -> TransitTransaction? {
+    static func decode(raw: String, family: String, technology: String, context: [String], at index: Int, kind: RawHistoryKind = .transactions, relatedContext: [String] = []) -> TransitTransaction? {
         let data = Data(hexString: raw)
         
         // Skip empty/all-zeros block check
         if data.allSatisfy({ $0 == 0x00 }) && !raw.isEmpty { return nil }
 
         let contextData = context.compactMap { Data(hexString: $0) }
+        let relatedContextData = relatedContext.compactMap { Data(hexString: $0) }
         
         if technology == "FeliCa" {
-            // Suica/Pasmo (Japanese Transit IC)
-            return JapaneseICDecoder.decodeTransaction(block: data, context: contextData, index: index, family: family)
+            return JapaneseICDecoder.decodeTransaction(block: data, context: contextData, index: index, family: family, kind: kind, relatedContext: relatedContextData)
         } else if technology == "ISO7816" {
             // KS X 6924 (Korean T-money/EZL/NAMANE)
             let brand = ICCardBrand.from(family: family)
@@ -247,13 +258,13 @@ struct TransitCardSnapshot: Identifiable {
     
     var transactions: [TransitTransaction] {
         rawTransactions.enumerated().compactMap { idx, hex in
-            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx)
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx, kind: .transactions)
         }
     }
     
     var transitHistory: [TransitTransaction] {
         rawTransitHistory.enumerated().compactMap { idx, hex in
-            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx)
+            TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx, kind: .transit, relatedContext: rawTransactions)
         }
     }
 
@@ -658,7 +669,11 @@ struct TransactionDetailView: View {
                         
                         let f = (cardFamily ?? "").lowercased()
                         if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") {
-                             SuicaRawBreakdownView(raw: raw, tx: tx)
+                             if tx.category == .trainOn || tx.category == .trainOff || tx.type.contains("Transit Activity") || tx.type == "Entry" || tx.type == "Exit" || tx.type == "Discount Entry" {
+                                 FeliCaTransitRawBreakdownView(raw: raw, tx: tx)
+                             } else {
+                                 SuicaRawBreakdownView(raw: raw, tx: tx)
+                             }
                         } else if brand == .tUnion {
                              TUnionRawBreakdownView(raw: raw, tx: tx)
                         } else if f.contains("t-money") || f.contains("ezl") || f.contains("namane") || f.contains("ks x") || f.contains("climate") {
@@ -727,7 +742,9 @@ struct KoreanRawBreakdownView: View {
                 let distM = data.bigEndianInt(start: 18, length: 3)
                 let amountMain = data.bigEndianInt(start: 22, length: 2)
                 let baseFare = data.bigEndianInt(start: 40, length: 2)
-                let locCode = data.bigEndianInt(start: 44, length: 2)
+                let locCode = data.subdata(in: 5..<11).hexString.uppercased()
+                let stationCode = String(locCode.prefix(8))
+                let operatorCode = String(locCode.suffix(4))
                 
                 Group {
                     DetailRawRow(title: "Record Type", value: recType, hex: "")
@@ -738,7 +755,9 @@ struct KoreanRawBreakdownView: View {
                     DetailRawRow(title: "Distance", value: "\(distM) m (\(Double(distM)/1000.0) km)", hex: data.subdata(in: 18..<21).hexString, color: .indigo)
                     DetailRawRow(title: "Main Fare", value: "₩\(amountMain)", hex: data.subdata(in: 22..<24).hexString, color: .orange)
                     DetailRawRow(title: "Base Fare", value: "₩\(baseFare)", hex: data.subdata(in: 40..<42).hexString, color: .indigo)
-                    DetailRawRow(title: "Location Code", value: String(format: "%04X", locCode), hex: data.subdata(in: 44..<46).hexString, color: .cyan)
+                    DetailRawRow(title: "Location Code", value: locCode, hex: data.subdata(in: 5..<11).hexString, color: .cyan)
+                    DetailRawRow(title: "Station Code", value: stationCode, hex: data.subdata(in: 5..<9).hexString, color: .cyan)
+                    DetailRawRow(title: "Operator Code", value: operatorCode, hex: data.subdata(in: 9..<11).hexString, color: .teal)
                 }
             } else if data.count >= 33 {
                 let type = data[0]
@@ -899,6 +918,76 @@ struct SuicaRawBreakdownView: View {
     }
     private func japaneseProcess(_ process: UInt8) -> String {
         Localizer.localize("suica_process_\(process)")
+    }
+}
+
+struct FeliCaTransitRawBreakdownView: View {
+    let raw: String
+    let tx: TransitTransaction?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            let data = Data(hexString: raw)
+            if data.count >= 16 {
+                let activity = data[0]
+                let subtype = data[1]
+                let stationCode = data.subdata(in: 2..<4).hexString.uppercased()
+                let deviceNumber = Int(data[4]) << 8 | Int(data[5])
+                let rawDate = Int(data[6]) << 8 | Int(data[7])
+                let year = 2000 + ((rawDate >> 9) & 0x7F)
+                let month = (rawDate >> 5) & 0x0F
+                let day = rawDate & 0x1F
+                let hour = bcdByteToInt(data[8])
+                let minute = bcdByteToInt(data[9])
+                let amount = Int(data[10]) | (Int(data[11]) << 8)
+                let passFare = Int(data[12]) | (Int(data[13]) << 8)
+                let passLineCode = Int(data[14])
+                let passStationCode = Int(data[15])
+                let dateText = String(format: "%04d-%02d-%02d", year, month, day)
+                let timeText = hour >= 0 && minute >= 0 ? String(format: "%02d:%02d", hour, minute) : "N/A"
+
+                Group {
+                    DetailRawRow(title: "Entry/Exit Type", value: transitActivityType(activity), hex: String(format: "0x%02X", activity), color: .red)
+                    DetailRawRow(title: "Intermediate Gate / Discount Type", value: transitSubtypeDescription(subtype), hex: String(format: "0x%02X", subtype), color: .purple)
+                    DetailRawRow(title: "Station Code", value: tx?.entryStation ?? tx?.exitStation ?? stationCode, hex: stationCode, color: .cyan)
+                    DetailRawRow(title: "Device Number", value: "\(deviceNumber)", hex: data.subdata(in: 4..<6).hexString.uppercased(), color: .teal)
+                    DetailRawRow(title: "Gate Date", value: dateText, hex: data.subdata(in: 6..<8).hexString.uppercased(), color: .orange)
+                    DetailRawRow(title: "Gate Time", value: timeText, hex: data.subdata(in: 8..<10).hexString.uppercased(), color: .brown)
+                    DetailRawRow(title: "Charge / Transfer / Receipt Amount", value: "¥\(amount)", hex: data.subdata(in: 10..<12).hexString.uppercased(), color: .green)
+                    DetailRawRow(title: "Fare To Pass Boundary", value: passFare == 0 ? "None" : "¥\(passFare)", hex: data.subdata(in: 12..<14).hexString.uppercased(), color: .indigo)
+                    DetailRawRow(title: "Pass Boundary Station", value: passLineCode == 0 && passStationCode == 0 ? "None" : String(format: "Line %02X / Station %02X", passLineCode, passStationCode), hex: data.subdata(in: 14..<16).hexString.uppercased(), color: .mint)
+                }
+
+                Text("FeliCa gate activity record layout for service `108F` (`8F10` little-endian on card I/O). Bytes `0-1` are activity/subtype, `2-3` station code, `4-5` device number, `6-7` packed date, `8-9` BCD time, `10-11` amount, `12-13` pass-boundary fare, and `14-15` pass-boundary station.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func transitActivityType(_ code: UInt8) -> String {
+        switch code {
+        case 0xA0: return "Entry"
+        case 0xA2: return "Discount Entry"
+        case 0x20: return "Exit"
+        default: return String(format: "0x%02X", code)
+        }
+    }
+
+    private func transitSubtypeDescription(_ code: UInt8) -> String {
+        switch code {
+        case 0x00: return "Standard"
+        case 0x04: return "Discount"
+        case 0x08: return "Transfer"
+        default: return String(format: "0x%02X", code)
+        }
+    }
+
+    private func bcdByteToInt(_ byte: UInt8) -> Int {
+        let high = Int((byte >> 4) & 0x0F)
+        let low = Int(byte & 0x0F)
+        guard high < 10, low < 10 else { return -1 }
+        return (high * 10) + low
     }
 }
 
@@ -1283,12 +1372,12 @@ struct CardRawDataHighlightView: View {
                 return [
                     Highlight(range: 2..<3, color: .red, label: "Trip State"),
                     Highlight(range: 6..<8, color: .blue, label: "Sequence"),
+                    Highlight(range: 5..<11, color: .cyan, label: "Location Code"),
                     Highlight(range: 11..<13, color: .brown, label: "Date Word"),
                     Highlight(range: 13..<15, color: .purple, label: "Time Word"),
                     Highlight(range: 18..<21, color: .indigo, label: "Distance"),
                     Highlight(range: 22..<24, color: .orange, label: "Main Fare"),
-                    Highlight(range: 40..<42, color: .indigo, label: "Base Fare"),
-                    Highlight(range: 44..<46, color: .cyan, label: "Location")
+                    Highlight(range: 40..<42, color: .indigo, label: "Base Fare")
                 ]
             } else if dataCount >= 14 {
                 return [

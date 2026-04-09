@@ -251,7 +251,9 @@ struct KSX6924Decoder: TransitCardDecoder {
             let distanceM = block.bigEndianInt(start: 18, length: 3)
             let amountMain = block.bigEndianInt(start: 22, length: 2)
             let extraExitCharge = block.bigEndianInt(start: 34, length: 2) * 10
-            let locationCode = block.bigEndianInt(start: 44, length: 2)
+            let locationCode = block.subdata(in: 5..<11).hexString.uppercased()
+            let stationCode = String(locationCode.prefix(8))
+            let operatorCode = String(locationCode.suffix(4))
             var typeStr = "unknown"
             var amountToDisplay = amountMain
             var cat: TransactionCategory = .unknown
@@ -274,10 +276,11 @@ struct KSX6924Decoder: TransitCardDecoder {
                 date: timestamp.date,
                 time: timestamp.timeStr,
                 amount: Decimal(-amountToDisplay),
-                terminalID: String(format: "%04X", locationCode),
+                terminalID: locationCode,
                 type: typeStr + details,
                 category: cat,
                 balanceAfter: nil,
+                location: "Station \(stationCode), Operator \(operatorCode)",
                 rawData: block.hexString,
                 recordNumber: recordIndex,
                 distance: distKm > 0 ? distKm : nil

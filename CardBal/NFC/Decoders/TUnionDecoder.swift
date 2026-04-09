@@ -251,6 +251,7 @@ struct TUnionDecoder: TransitCardDecoder {
 
         let locationPrefix = TUnionCityDatabase.lookupCityName(for: cityID) ?? "City \(cityID)"
         let stationLabel = TUnionCityDatabase.lookupStationName(cityID: cityID, stationID: stationID) ?? "Station \(stationID)"
+        let resolvedStationKey = TUnionCityDatabase.lookupStationKey(cityID: cityID, stationID: stationID) ?? (cityID + stationID)
         let location = "\(locationPrefix) • \(stationLabel)"
         let amount = Decimal(Int(amountVal)) / 100
         let balance = Decimal(Int(balanceVal)) / 100
@@ -268,8 +269,8 @@ struct TUnionDecoder: TransitCardDecoder {
             location: location,
             entryStation: kind.isEntry ? stationLabel : nil,
             exitStation: kind.isExit ? stationLabel : nil,
-            entryStationCode: kind.isEntry ? stationID : nil,
-            exitStationCode: kind.isExit ? stationID : nil,
+            entryStationCode: kind.isEntry ? resolvedStationKey : nil,
+            exitStationCode: kind.isExit ? resolvedStationKey : nil,
             rawData: data.hexString.uppercased(),
             recordNumber: index + 1
         )
@@ -537,12 +538,16 @@ struct TUnionCityDatabase {
     }
 
     static func lookupStationName(cityID: String, stationID: String) -> String? {
+        lookupStationKey(cityID: cityID, stationID: stationID).flatMap { lineStations[$0] }
+    }
+
+    static func lookupStationKey(cityID: String, stationID: String) -> String? {
         let normalizedCityID = cityID.uppercased()
         let normalizedStationID = stationID.uppercased()
         let combined = normalizedCityID + normalizedStationID
 
         for entry in sortedStationEntries where combined.hasPrefix(entry.key) {
-            return entry.name
+            return entry.key
         }
 
         return nil
