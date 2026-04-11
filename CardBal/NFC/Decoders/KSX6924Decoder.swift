@@ -244,16 +244,18 @@ struct KSX6924Decoder: TransitCardDecoder {
         if block.count >= 52 {
             let tripState = block[2]
             let subtype = block[8]
+            let fareLayout = KoreanTransitHistoryFareLayout.decode(block)
             
             let dtRaw = UInt32(block.bigEndianInt(start: 11, length: 4))
             let timestamp = decodeTMoneyPackedTime(dtRaw)
-            
+
             let distanceM = block.bigEndianInt(start: 18, length: 3)
-            let amountMain = block.bigEndianInt(start: 22, length: 2)
-            let extraExitCharge = block.bigEndianInt(start: 34, length: 2) * 10
-            let locationCode = block.subdata(in: 5..<11).hexString.uppercased()
-            let stationCode = String(locationCode.prefix(8))
-            let operatorCode = String(locationCode.suffix(4))
+            let legacyAmount = fareLayout?.legacyAmount ?? block.bigEndianInt(start: 22, length: 2)
+            let amountMain = fareLayout?.selectedAmount ?? legacyAmount
+            let secondaryAmount = block.bigEndianInt(start: 40, length: 2)
+            let stationCode = block.subdata(in: 5..<9).hexString.uppercased()
+            let operatorCode = block.subdata(in: 9..<11).hexString.uppercased()
+            let locationCode = stationCode + operatorCode
             var typeStr = "unknown"
             var amountToDisplay = amountMain
             var cat: TransactionCategory = .unknown
@@ -266,21 +268,32 @@ struct KSX6924Decoder: TransitCardDecoder {
             } else if tripState == 0x01 { 
                 typeStr = NSLocalizedString("tap_off", comment: "tap-off")
                 cat = isTrain ? .trainOff : .busOff
-                amountToDisplay = extraExitCharge
+            }
+
+            if amountToDisplay == 0 || amountToDisplay > 10_000 {
+                amountToDisplay = fareLayout?.selectedAmount ?? legacyAmount
+                if amountToDisplay == 0 {
+                    amountToDisplay = secondaryAmount
+                }
             }
             
             let distKm = Double(distanceM) / 1000.0
             let details = distKm > 0 ? String(format: " (%.1f km)", distKm) : ""
+            let layoutNote = (fareLayout?.variant == .regional) ? " [Regional]" : ""
             
             let tx = TransitTransaction(
                 date: timestamp.date,
                 time: timestamp.timeStr,
                 amount: Decimal(-amountToDisplay),
                 terminalID: locationCode,
-                type: typeStr + details,
+                type: typeStr + details + layoutNote,
                 category: cat,
                 balanceAfter: nil,
                 location: "Station \(stationCode), Operator \(operatorCode)",
+                entryStation: tripState == 0x00 ? "Station \(stationCode)" : nil,
+                exitStation: tripState == 0x01 ? "Station \(stationCode)" : nil,
+                entryStationCode: tripState == 0x00 ? locationCode : nil,
+                exitStationCode: tripState == 0x01 ? locationCode : nil,
                 rawData: block.hexString,
                 recordNumber: recordIndex,
                 distance: distKm > 0 ? distKm : nil
@@ -370,6 +383,54 @@ struct KSX6924Decoder: TransitCardDecoder {
         return (date, timeStr)
     }
 
+}
+
+struct KoreanTransitHistoryFareLayout {
+    enum Variant: Equatable {
+        case standard
+        case regional
+    }
+
+    let variant: Variant
+    let selectedAmount: Int
+    let selectedAmountHex: String
+    let legacyAmount: Int
+    let legacyAmountHex: String
+    let regionalAmount: Int
+    let regionalAmountHex: String
+    let baseFare: Int
+    let baseFareHex: String
+
+    static func decode(_ data: Data) -> KoreanTransitHistoryFareLayout? {
+        guard data.count >= 42 else { return nil }
+
+        let legacyAmount = data.bigEndianInt(start: 22, length: 2)
+        let regionalAmount = data.bigEndianInt(start: 36, length: 2)
+        let baseFare = data.bigEndianInt(start: 40, length: 2)
+
+        let useRegionalLayout = legacyAmount == 0 || legacyAmount > 10_000
+        let selectedAmount = useRegionalLayout ? regionalAmount : legacyAmount
+        let variant: Variant = useRegionalLayout ? .regional : .standard
+
+        return KoreanTransitHistoryFareLayout(
+            variant: variant,
+            selectedAmount: selectedAmount,
+            selectedAmountHex: (useRegionalLayout ? data.subdata(in: 36..<38) : data.subdata(in: 22..<24)).hexString.uppercased(),
+            legacyAmount: legacyAmount,
+            legacyAmountHex: data.subdata(in: 22..<24).hexString.uppercased(),
+            regionalAmount: regionalAmount,
+            regionalAmountHex: data.subdata(in: 36..<38).hexString.uppercased(),
+            baseFare: baseFare,
+            baseFareHex: data.subdata(in: 40..<42).hexString.uppercased()
+        )
+    }
+
+    var variantDisplayName: String {
+        switch variant {
+        case .standard: return "Standard layout"
+        case .regional: return "Regional layout"
+        }
+    }
 }
 
 private struct KSX6924CardProfile {

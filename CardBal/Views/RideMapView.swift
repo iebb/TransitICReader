@@ -38,7 +38,7 @@ struct RideMapView: View {
 
     private var filteredCards: [SavedCardRecord] {
         if selectedCardID == allCardsSelection {
-            return cachedMappableCards
+            return cachedMappableCards.isEmpty ? store.cards : cachedMappableCards
         }
         return store.cards.filter { $0.id == selectedCardID }
     }
@@ -68,8 +68,9 @@ struct RideMapView: View {
         .task(id: selectedCardID) {
             await reload()
         }
-        .task {
+        .task(id: store.mapDataRevision) {
             await cacheMappableCards()
+            await reload()
         }
         .sheet(item: $selectedTransaction) { selection in
             TransactionDetailView(tx: selection.transaction, cardFamily: selection.cardFamily)
@@ -948,7 +949,7 @@ private struct RideMapRoute: Identifiable {
     let transaction: TransitTransaction
 }
 
-private struct StationGraphStation {
+private struct StationGraphStation: Codable {
     let hexCode: String
     let stationCode: String
     let stationName: String
@@ -961,7 +962,7 @@ private struct StationGraphStation {
     }
 }
 
-private struct StationGraphEdge {
+private struct StationGraphEdge: Codable {
     let toStationCode: String
     let distanceKm: Double
 }
@@ -976,6 +977,7 @@ private struct RideRouteCandidate {
 
 private final class StationGraphDatabase {
     static let shared = StationGraphDatabase()
+    private static let cacheVersion = 1
 
     private(set) var isReady = false
     private var stationsByLookupCode: [String: StationGraphStation] = [:]
@@ -984,7 +986,11 @@ private final class StationGraphDatabase {
     private var pathCache: [String: [String]] = [:]
 
     private init() {
-        load()
+        if !loadCachedGraph() {
+            buildFromBundledDatabases()
+            saveCachedGraph()
+        }
+        isReady = !stationsByLookupCode.isEmpty
     }
 
     func station(forLookupCode rawCode: String?) -> StationGraphStation? {
@@ -1048,10 +1054,20 @@ private final class StationGraphDatabase {
         return stationCodes.compactMap { stationsByStationCode[$0] }
     }
 
-    private func load() {
+    private struct CachedGraphPayload: Codable {
+        let version: Int
+        let stationsByLookupCode: [String: StationGraphStation]
+        let stationsByStationCode: [String: StationGraphStation]
+        let adjacency: [String: [StationGraphEdge]]
+    }
+
+    private func buildFromBundledDatabases() {
+        stationsByLookupCode.removeAll(keepingCapacity: true)
+        stationsByStationCode.removeAll(keepingCapacity: true)
+        adjacency.removeAll(keepingCapacity: true)
+        pathCache.removeAll(keepingCapacity: true)
         loadJPDatabase()
         loadTUnionDatabase()
-        isReady = !stationsByLookupCode.isEmpty
     }
 
     private func loadJPDatabase() {
@@ -1113,6 +1129,43 @@ private final class StationGraphDatabase {
         }
         sqlite3_finalize(statement)
         loadEdges(db: db)
+    }
+
+    private func loadCachedGraph() -> Bool {
+        guard let url = cachedGraphURL(),
+              let data = try? Data(contentsOf: url) else {
+            return false
+        }
+        guard let payload = try? PropertyListDecoder().decode(CachedGraphPayload.self, from: data),
+              payload.version == Self.cacheVersion else {
+            return false
+        }
+        stationsByLookupCode = payload.stationsByLookupCode
+        stationsByStationCode = payload.stationsByStationCode
+        adjacency = payload.adjacency
+        return !stationsByLookupCode.isEmpty
+    }
+
+    private func saveCachedGraph() {
+        guard let url = cachedGraphURL() else { return }
+        let payload = CachedGraphPayload(
+            version: Self.cacheVersion,
+            stationsByLookupCode: stationsByLookupCode,
+            stationsByStationCode: stationsByStationCode,
+            adjacency: adjacency
+        )
+        guard let data = try? PropertyListEncoder().encode(payload) else { return }
+        try? data.write(to: url, options: [.atomic])
+    }
+
+    private func cachedGraphURL() -> URL? {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        guard let base else { return nil }
+        let dir = base.appendingPathComponent("CardBal", isDirectory: true)
+        let cacheDir = dir.appendingPathComponent("MapCache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        return cacheDir.appendingPathComponent("station-graph-v\(Self.cacheVersion).plist")
     }
 
     private func loadEdges(db: OpaquePointer?) {

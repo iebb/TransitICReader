@@ -18,6 +18,7 @@ class CardWalletStore: ObservableObject {
     @Published var isSyncing: Bool = false
     @Published var syncProgress: Double = 0
     @Published var syncMessage: String?
+    @Published private(set) var mapDataRevision: Int = 0
 
     private var db: OpaquePointer?
     private let dbPath: String = {
@@ -122,10 +123,12 @@ class CardWalletStore: ObservableObject {
             cards[index].issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
             cards[index].expiryDateStr = snapshot.resultFields.first(where: { $0.title == "Expiry Date" })?.value
             autoApplyPresetIfMatching(id: id)
+            markMapDataChanged()
         } else {
             let record = SavedCardRecord(snapshot: snapshot)
             cards.insert(record, at: 0)
             autoApplyPresetIfMatching(id: id)
+            markMapDataChanged()
         }
         save()
     }
@@ -215,6 +218,7 @@ class CardWalletStore: ObservableObject {
                     cards[index].rawTransitHistory.remove(at: i)
                 }
             }
+            markMapDataChanged()
             save()
         }
     }
@@ -282,7 +286,7 @@ class CardWalletStore: ObservableObject {
         if cards[index].faceImageFileName == nil {
             autoApplyPresetIfMatching(id: id)
         }
-        
+        markMapDataChanged()
         save()
     }
 
@@ -402,6 +406,7 @@ class CardWalletStore: ObservableObject {
     func deleteCard(_ id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
         cards.remove(at: index)
+        markMapDataChanged()
         save()
     }
 
@@ -656,6 +661,11 @@ class CardWalletStore: ObservableObject {
             if $0.order != $1.order { return $0.order < $1.order }
             return $0.scannedAt > $1.scannedAt
         }
+        markMapDataChanged()
+    }
+
+    private func markMapDataChanged() {
+        mapDataRevision &+= 1
     }
 
     func updateOrder() {

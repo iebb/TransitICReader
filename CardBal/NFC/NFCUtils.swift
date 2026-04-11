@@ -721,6 +721,7 @@ struct KoreanRawBreakdownView: View {
             let data = Data(hexString: raw)
             if data.count >= 52 {
                 // T-Money Transit Record (52 bytes)
+                let fareLayout = KoreanTransitHistoryFareLayout.decode(data)
                 let recType = data.subdata(in: 0..<2).hexString
                 let tripState = data[2]
                 let seq = data.bigEndianInt(start: 6, length: 2)
@@ -740,24 +741,29 @@ struct KoreanRawBreakdownView: View {
                 let ts = String(format: "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
                 
                 let distM = data.bigEndianInt(start: 18, length: 3)
-                let amountMain = data.bigEndianInt(start: 22, length: 2)
+                let legacyAmount = data.bigEndianInt(start: 22, length: 2)
+                let regionalAmount = data.bigEndianInt(start: 36, length: 2)
+                let selectedAmount = fareLayout?.selectedAmount ?? (legacyAmount > 0 ? legacyAmount : regionalAmount)
                 let baseFare = data.bigEndianInt(start: 40, length: 2)
-                let locCode = data.subdata(in: 5..<11).hexString.uppercased()
-                let stationCode = String(locCode.prefix(8))
-                let operatorCode = String(locCode.suffix(4))
+                let stationCode = data.subdata(in: 5..<9).hexString.uppercased()
+                let operatorCode = data.subdata(in: 9..<11).hexString.uppercased()
+                let locationCode = stationCode + operatorCode
                 
                 Group {
                     DetailRawRow(title: "Record Type", value: recType, hex: "")
                     DetailRawRow(title: "Trip State", value: tripState == 0x01 ? "Exit / Closed" : "Entry / Open", hex: String(format: "0x%02X", tripState), color: .red)
+                    DetailRawRow(title: "Layout Variant", value: fareLayout?.variantDisplayName ?? "Unknown", hex: "", color: .gray)
                     DetailRawRow(title: "Unknown Header (Seq)", value: "\(seq)", hex: data.subdata(in: 6..<8).hexString, color: .blue)
                     DetailRawRow(title: "Trip Subtype", value: String(format: "0x%02X", subtype), hex: "")
                     DetailRawRow(title: "Packed Timestamp", value: ts, hex: data.subdata(in: 11..<15).hexString, color: .brown)
                     DetailRawRow(title: "Distance", value: "\(distM) m (\(Double(distM)/1000.0) km)", hex: data.subdata(in: 18..<21).hexString, color: .indigo)
-                    DetailRawRow(title: "Main Fare", value: "₩\(amountMain)", hex: data.subdata(in: 22..<24).hexString, color: .orange)
+                    DetailRawRow(title: "Detected Charge", value: "₩\(selectedAmount)", hex: fareLayout?.selectedAmountHex ?? data.subdata(in: 22..<24).hexString, color: .orange)
+                    DetailRawRow(title: "Legacy Amount", value: "₩\(legacyAmount)", hex: data.subdata(in: 22..<24).hexString, color: .secondary)
+                    DetailRawRow(title: "Regional Amount", value: "₩\(regionalAmount)", hex: data.subdata(in: 36..<38).hexString, color: .green)
                     DetailRawRow(title: "Base Fare", value: "₩\(baseFare)", hex: data.subdata(in: 40..<42).hexString, color: .indigo)
-                    DetailRawRow(title: "Location Code", value: locCode, hex: data.subdata(in: 5..<11).hexString, color: .cyan)
                     DetailRawRow(title: "Station Code", value: stationCode, hex: data.subdata(in: 5..<9).hexString, color: .cyan)
                     DetailRawRow(title: "Operator Code", value: operatorCode, hex: data.subdata(in: 9..<11).hexString, color: .teal)
+                    DetailRawRow(title: "Location Code", value: locationCode, hex: data.subdata(in: 5..<11).hexString, color: .blue)
                 }
             } else if data.count >= 33 {
                 let type = data[0]
@@ -1371,12 +1377,13 @@ struct CardRawDataHighlightView: View {
             if dataCount >= 52 {
                 return [
                     Highlight(range: 2..<3, color: .red, label: "Trip State"),
-                    Highlight(range: 6..<8, color: .blue, label: "Sequence"),
-                    Highlight(range: 5..<11, color: .cyan, label: "Location Code"),
+                    Highlight(range: 5..<9, color: .cyan, label: "Station Code"),
+                    Highlight(range: 9..<11, color: .teal, label: "Operator Code"),
                     Highlight(range: 11..<13, color: .brown, label: "Date Word"),
                     Highlight(range: 13..<15, color: .purple, label: "Time Word"),
                     Highlight(range: 18..<21, color: .indigo, label: "Distance"),
-                    Highlight(range: 22..<24, color: .orange, label: "Main Fare"),
+                    Highlight(range: 22..<24, color: .orange, label: "Legacy Amount"),
+                    Highlight(range: 36..<38, color: .green, label: "Regional Amount"),
                     Highlight(range: 40..<42, color: .indigo, label: "Base Fare")
                 ]
             } else if dataCount >= 14 {
