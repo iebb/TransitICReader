@@ -1,0 +1,14 @@
+name = "cardbal-korean-trip-crowdsourcing"
+main = "src/index.ts"
+compatibility_date = "2026-04-13"
+routes = [
+  { pattern = "korean-trip-crowdsourcing.ieb.app", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cardbal-korean-trip-crowdsourcing"
+database_id = "67fc27d9-d137-41ce-8b97-193370bedb05"
+
+[observability]
+enabled = true

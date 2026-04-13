@@ -1,0 +1,9 @@
+{
+  "name": "cardbal-korean-trip-crowdsourcing",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply cardbal-korean-trip-crowdsourcing --remote"
+  }
+}

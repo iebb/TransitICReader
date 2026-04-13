@@ -8,11 +8,143 @@ import CryptoKit
 import Vision
 import AVFoundation
 
+enum KoreanTripCrowdsourcingPreferences {
+    static let enabledKey = "koreanTripCrowdsourcingEnabled"
+    static let promptedKey = "koreanTripCrowdsourcingPrompted"
+    static let endpointKey = "koreanTripCrowdsourcingEndpoint"
+    static let uploadedHashesKey = "koreanTripCrowdsourcingUploadedHashes"
+}
+
+struct KoreanTripCrowdsourcingRecord: Codable {
+    let dedupHash: String
+    let hashedCardID: String
+    let cardIDLast4: String
+    let bytes0508: String
+    let bytes090A: String
+    let allBytes: String
+    let cardFamily: String
+}
+
+private struct KoreanTripCrowdsourcingEnvelope: Codable {
+    let records: [KoreanTripCrowdsourcingRecord]
+    let source: String
+    let appVersion: String
+}
+
+private struct KoreanTripCrowdsourcingResponse: Decodable {
+    let accepted: Int?
+    let duplicates: Int?
+}
+
+enum KoreanTripCrowdsourcing {
+    static func isEligible(snapshot: TransitCardSnapshot) -> Bool {
+        guard snapshot.technology == "ISO7816" else { return false }
+        guard snapshot.brand == .tmoney || snapshot.brand == .ezl else { return false }
+        guard !snapshot.rawTransitHistory.isEmpty else { return false }
+        return stableCardID(for: snapshot) != nil
+    }
+
+    static func stableCardID(for snapshot: TransitCardSnapshot) -> String? {
+        let raw = (snapshot.realSerialNumber?.isEmpty == false ? snapshot.realSerialNumber : snapshot.identifierValue) ?? snapshot.rawIdentifierValue
+        let normalized = normalizeCardID(raw)
+        return normalized.isEmpty ? nil : normalized
+    }
+
+    static func makeRecords(from snapshot: TransitCardSnapshot) -> [KoreanTripCrowdsourcingRecord] {
+        guard let stableCardID = stableCardID(for: snapshot) else { return [] }
+        let hashedCardID = sha256Hex(stableCardID)
+        let last4 = String(stableCardID.suffix(4))
+
+        return snapshot.rawTransitHistory.compactMap { hex in
+            let normalizedHex = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            let data = Data(hexString: normalizedHex)
+            guard !data.isEmpty else { return nil }
+
+            let bytes0508 = data.count >= 9 ? data.subdata(in: 5..<9).hexString.uppercased() : ""
+            let bytes090A = data.count >= 11 ? data.subdata(in: 9..<11).hexString.uppercased() : ""
+            let dedupHash = sha256Hex(stableCardID + normalizedHex)
+
+            return KoreanTripCrowdsourcingRecord(
+                dedupHash: dedupHash,
+                hashedCardID: hashedCardID,
+                cardIDLast4: last4,
+                bytes0508: bytes0508,
+                bytes090A: bytes090A,
+                allBytes: normalizedHex,
+                cardFamily: snapshot.cardFamily
+            )
+        }
+    }
+
+    private static func normalizeCardID(_ value: String?) -> String {
+        (value ?? "")
+            .uppercased()
+            .filter { $0.isLetter || $0.isNumber }
+    }
+
+    private static func sha256Hex(_ value: String) -> String {
+        let digest = SHA256.hash(data: Data(value.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+actor KoreanTripCrowdsourcingUploader {
+    static let shared = KoreanTripCrowdsourcingUploader()
+
+    private let session: URLSession = .shared
+    private var uploadedHashes: Set<String>
+
+    private init() {
+        uploadedHashes = Set(UserDefaults.standard.stringArray(forKey: KoreanTripCrowdsourcingPreferences.uploadedHashesKey) ?? [])
+    }
+
+    func uploadEligibleRecords(from snapshot: TransitCardSnapshot) async {
+        guard UserDefaults.standard.bool(forKey: KoreanTripCrowdsourcingPreferences.enabledKey) else { return }
+        guard KoreanTripCrowdsourcing.isEligible(snapshot: snapshot) else { return }
+        guard let endpointString = UserDefaults.standard.string(forKey: KoreanTripCrowdsourcingPreferences.endpointKey),
+              let url = URL(string: endpointString) else { return }
+
+        let freshRecords = KoreanTripCrowdsourcing.makeRecords(from: snapshot).filter { !uploadedHashes.contains($0.dedupHash) }
+        guard !freshRecords.isEmpty else { return }
+
+        let envelope = KoreanTripCrowdsourcingEnvelope(
+            records: freshRecords,
+            source: "cardbal-ios",
+            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        )
+
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(envelope)
+
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                return
+            }
+
+            _ = try? JSONDecoder().decode(KoreanTripCrowdsourcingResponse.self, from: data)
+            for record in freshRecords {
+                uploadedHashes.insert(record.dedupHash)
+            }
+            UserDefaults.standard.set(Array(uploadedHashes.prefix(5000)), forKey: KoreanTripCrowdsourcingPreferences.uploadedHashesKey)
+        } catch {
+            return
+        }
+    }
+}
+
 struct ContentView: View {
     @StateObject private var reader = NFCTransitReader()
     @StateObject private var cardStore = CardWalletStore()
 
     @State private var selectedTab = 0
+    @State private var showKoreanCrowdsourcingPrompt = false
+    @State private var pendingKoreanCrowdsourcingSnapshot: TransitCardSnapshot?
+    @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
+    @AppStorage(KoreanTripCrowdsourcingPreferences.promptedKey) private var koreanTripCrowdsourcingPrompted = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -44,7 +176,38 @@ struct ContentView: View {
         .onChange(of: reader.latestSnapshot?.id) { _ in
             if let snapshot = reader.latestSnapshot {
                 cardStore.upsert(snapshot: snapshot)
+                handleKoreanCrowdsourcing(for: snapshot)
             }
+        }
+        .alert("Join Korean Card Crowdsourcing?", isPresented: $showKoreanCrowdsourcingPrompt, presenting: pendingKoreanCrowdsourcingSnapshot) { snapshot in
+            Button("Not Now", role: .cancel) {
+                koreanTripCrowdsourcingPrompted = true
+                koreanTripCrowdsourcingEnabled = false
+                pendingKoreanCrowdsourcingSnapshot = nil
+            }
+            Button("Opt In") {
+                koreanTripCrowdsourcingPrompted = true
+                koreanTripCrowdsourcingEnabled = true
+                Task {
+                    await KoreanTripCrowdsourcingUploader.shared.uploadEligibleRecords(from: snapshot)
+                }
+                pendingKoreanCrowdsourcingSnapshot = nil
+            }
+        } message: { _ in
+            Text("Upload anonymized raw trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings.")
+        }
+    }
+
+    private func handleKoreanCrowdsourcing(for snapshot: TransitCardSnapshot) {
+        guard KoreanTripCrowdsourcing.isEligible(snapshot: snapshot) else { return }
+        if !koreanTripCrowdsourcingPrompted {
+            pendingKoreanCrowdsourcingSnapshot = snapshot
+            showKoreanCrowdsourcingPrompt = true
+            return
+        }
+        guard koreanTripCrowdsourcingEnabled else { return }
+        Task {
+            await KoreanTripCrowdsourcingUploader.shared.uploadEligibleRecords(from: snapshot)
         }
     }
 }
@@ -123,7 +286,7 @@ struct ScanHomeView: View {
                                 Spacer()
                                 if let sn = sn {
                                     HStack(spacing: 8) {
-                                        TextField("XX123 A456...", text: Binding(get: { sn  ?? "" }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
+                                        TextField("XX123 A456...", text: Binding(get: { sn }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
                                             .multilineTextAlignment(.trailing)
                                             .textFieldStyle(.plain)
                                             .font(.system(.body, design: .monospaced))
@@ -384,6 +547,8 @@ struct SettingsView: View {
     @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
     @AppStorage("cardTimeZonePreference") private var cardTimeZonePreference = CardTimeZonePreference.issuer.rawValue
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
+    @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
+    @AppStorage(KoreanTripCrowdsourcingPreferences.promptedKey) private var koreanTripCrowdsourcingPrompted = false
 
     var body: some View {
         NavigationStack {
@@ -435,6 +600,21 @@ struct SettingsView: View {
                         Text("Masked (Last Digits)").tag(1)
                         Text("Hidden").tag(2)
                     }
+                    Text("CardBal keeps scans on-device unless you explicitly enable optional research uploads. Korean card crowdsourcing sends anonymized trip-record data over HTTPS to a Cloudflare endpoint for format analysis.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Research") {
+                    Toggle("Korean Card Crowdsourcing", isOn: Binding(
+                        get: { koreanTripCrowdsourcingEnabled },
+                        set: { newValue in
+                            koreanTripCrowdsourcingPrompted = true
+                            koreanTripCrowdsourcingEnabled = newValue
+                        }
+                    ))
+                    Text("When enabled, eligible T-money and EZL/Cashbee scans upload anonymized raw trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Section("Information") {
                     HStack { Text("App Version"); Spacer(); Text("1.2.0").foregroundStyle(.secondary) }
