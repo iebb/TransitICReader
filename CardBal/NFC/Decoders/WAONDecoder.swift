@@ -55,6 +55,8 @@ struct WAONDecoder: TransitCardDecoder {
         if pointsVal != nil {
             resultFields.insert(ResultField(title: "Points", value: pointsText), at: 1)
         }
+
+        let transactions = await readHistoryRecords(feliCa: feliCa)
         
         var rawSections = [
             RawDataSection(title: "Tag", fields: [
@@ -69,6 +71,10 @@ struct WAONDecoder: TransitCardDecoder {
             RawDataSection(title: "WAON Number (684F)", fields: [
                 RawDataField(title: "Block 0", value: numberBlock.hexString),
                 RawDataField(title: "BCD Parsed", value: waonNumber)
+            ]),
+            RawDataSection(title: "History (680B)", fields: [
+                RawDataField(title: "Records", value: "\(transactions.count)"),
+                RawDataField(title: "Format", value: "3 x 32-byte records")
             ])
         ]
         if let pVal = pointsVal, blocks.count >= 3 {
@@ -93,9 +99,37 @@ struct WAONDecoder: TransitCardDecoder {
             region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
-            rawTransactions: [],
+            rawTransactions: transactions,
             rawTransitHistory: [],
             scannedAt: scannedAt
         )
+    }
+
+    private static func readHistoryRecords(feliCa: NFCFeliCaTag) async -> [String] {
+        let serviceCode = Data([0x0B, 0x68])
+        var blocks: [Data] = []
+
+        for blockIndex in 0..<6 {
+            let blockList = [Data([0x80, UInt8(blockIndex)])]
+            guard let readResult = try? await feliCa.readWithoutEncryption(
+                serviceCodeList: [serviceCode],
+                blockList: blockList
+            ), let block = readResult.2.first, block.count >= 16 else {
+                break
+            }
+            blocks.append(block)
+        }
+
+        var records: [String] = []
+        for start in stride(from: 0, to: blocks.count, by: 2) {
+            guard start + 1 < blocks.count else { break }
+            let record = blocks[start] + blocks[start + 1]
+            if record.allSatisfy({ $0 == 0 }) {
+                continue
+            }
+            records.append(record.hexString.uppercased())
+        }
+
+        return records
     }
 }

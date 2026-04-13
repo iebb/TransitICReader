@@ -123,7 +123,7 @@ struct ScanHomeView: View {
                                 Spacer()
                                 if let sn = sn {
                                     HStack(spacing: 8) {
-                                        TextField("XX123 A456...", text: Binding(get: { sn ?? "" }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
+                                        TextField("XX123 A456...", text: Binding(get: { sn  ?? "" }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
                                             .multilineTextAlignment(.trailing)
                                             .textFieldStyle(.plain)
                                             .font(.system(.body, design: .monospaced))

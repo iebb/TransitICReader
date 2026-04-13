@@ -131,21 +131,21 @@ struct WalletCardView: View {
 
                     Spacer()
 
-        let transactionCount = card.transactions.count
-        let transitCount = card.transitHistory.count
-        let showHistoryButtons = isExpanded && (transactionCount > 0 || transitCount > 0)
+        let transactionCount = max(card.transactions.count, card.rawTransactions.count)
+        let transitCount = max(card.transitHistory.count, card.rawTransitHistory.count)
+        let hasHistory = transactionCount > 0 || transitCount > 0
         
         HStack(alignment: .bottom) {
-            if showHistoryButtons {
+            if hasHistory {
                 HStack(spacing: 8) {
                     if transactionCount > 0 {
                         Button(action: showTransactions) {
                             HStack(spacing: 4) {
                                 Image(systemName: "list.bullet")
-                                Text("\(transactionCount) Tx")
+                                Text(isExpanded ? "\(transactionCount) Tx" : "\(transactionCount)")
                             }
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .font(.system(size: isExpanded ? 11 : 10, weight: .bold, design: .rounded))
+                            .padding(.horizontal, isExpanded ? 10 : 8).padding(.vertical, isExpanded ? 8 : 6)
                             .foregroundStyle(isPhotoFace ? .white : .primary)
                             .background((isPhotoFace ? Color.black.opacity(0.3) : Color.white.opacity(0.18)), in: Capsule())
                         }
@@ -156,10 +156,10 @@ struct WalletCardView: View {
                         Button(action: showTransit) {
                             HStack(spacing: 4) {
                                 Image(systemName: "map")
-                                Text("\(transitCount) Trips")
+                                Text(isExpanded ? "\(transitCount) Trips" : "\(transitCount)")
                             }
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .font(.system(size: isExpanded ? 11 : 10, weight: .bold, design: .rounded))
+                            .padding(.horizontal, isExpanded ? 10 : 8).padding(.vertical, isExpanded ? 8 : 6)
                             .foregroundStyle(isPhotoFace ? .white : .primary)
                             .background((isPhotoFace ? Color.black.opacity(0.3) : Color.white.opacity(0.18)), in: Capsule())
                         }

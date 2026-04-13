@@ -980,6 +980,7 @@ private final class StationGraphDatabase {
     private static let cacheVersion = 1
 
     private(set) var isReady = false
+    private let pathCacheLock = NSLock()
     private var stationsByLookupCode: [String: StationGraphStation] = [:]
     private var stationsByStationCode: [String: StationGraphStation] = [:]
     private var adjacency: [String: [StationGraphEdge]] = [:]
@@ -1000,13 +1001,19 @@ private final class StationGraphDatabase {
 
     func shortestPath(from sourceCode: String, to targetCode: String) -> [StationGraphStation] {
         guard sourceCode != "0", targetCode != "0" else { return [] }
+        let stationsByStationCode = self.stationsByStationCode
+        let adjacency = self.adjacency
+
         guard stationsByStationCode[sourceCode] != nil, stationsByStationCode[targetCode] != nil else { return [] }
         if sourceCode == targetCode, let station = stationsByStationCode[sourceCode] {
             return [station]
         }
 
         let cacheKey = sourceCode < targetCode ? "\(sourceCode)|\(targetCode)" : "\(targetCode)|\(sourceCode)"
-        if let cached = pathCache[cacheKey] {
+        pathCacheLock.lock()
+        let cachedPath = pathCache[cacheKey]
+        pathCacheLock.unlock()
+        if let cached = cachedPath {
             let ordered = sourceCode < targetCode ? cached : cached.reversed()
             return ordered.compactMap { stationsByStationCode[$0] }
         }
@@ -1050,7 +1057,9 @@ private final class StationGraphDatabase {
             }
         }
         stationCodes.reverse()
+        pathCacheLock.lock()
         pathCache[cacheKey] = sourceCode < targetCode ? stationCodes : stationCodes.reversed()
+        pathCacheLock.unlock()
         return stationCodes.compactMap { stationsByStationCode[$0] }
     }
 

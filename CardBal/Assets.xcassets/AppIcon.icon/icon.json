@@ -7,43 +7,14 @@
       "blur-material" : null,
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "fill" : {
-            "linear-gradient" : [
-              "srgb:0.42517,0.73174,1.00000,1.00000",
-              "display-p3:0.89081,0.93767,1.00000,1.00000"
-            ],
-            "orientation" : {
-              "start" : {
-                "x" : 0.5,
-                "y" : 1
-              },
-              "stop" : {
-                "x" : 0.5,
-                "y" : 0.3
-              }
-            }
-          },
-          "glass" : true,
-          "image-name" : "card-transfer.png",
-          "name" : "card-transfer",
+          "glass" : false,
+          "image-name" : "card.png",
+          "name" : "card",
           "position" : {
-            "scale" : 1.66,
+            "scale" : 0.9,
             "translation-in-points" : [
               0,
               0
-            ]
-          }
-        },
-        {
-          "hidden" : false,
-          "image-name" : "spark.png",
-          "name" : "spark",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              0,
-              -38.75
             ]
           }
         }

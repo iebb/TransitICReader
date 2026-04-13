@@ -19,13 +19,14 @@ public enum ICCardRegion: String, Codable, CaseIterable {
 public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     public var id: String { rawValue }
     case suica, pasmo, icoca, manaca, sugoca, hayakaken, kitaca, nimoca, toica, pitapa
+    case edy, waon, nanaco
     case tmoney, ezl, namane, climateCard, moiba, kCash
     case octopus
     case tUnion
     case other
     public var region: ICCardRegion {
         switch self {
-        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa: return .japan
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .edy, .waon, .nanaco: return .japan
         case .tmoney, .ezl, .namane, .climateCard, .moiba, .kCash: return .korea
         case .octopus: return .hongkong
         case .tUnion: return .china
@@ -39,7 +40,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
 
     public var decoderType: DecoderType {
         switch self {
-        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa: return .japanIC
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .edy, .waon, .nanaco: return .japanIC
         case .tmoney, .ezl, .climateCard, .moiba, .kCash: return .ksx6924
         case .namane: return .namane
         case .octopus: return .octopus
@@ -60,6 +61,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "toica": .toica, "pitapa": .pitapa, "t-money": .tmoney, "tmoney": .tmoney,
             "ezl": .ezl, "cashbee": .ezl, "namane": .namane, "climate card": .climateCard,
             "moiba": .moiba, "k-cash": .kCash, "kcash": .kCash, "octopus": .octopus,
+            "rakuten edy": .edy, "edy": .edy, "waon": .waon, "nanaco": .nanaco,
             "t-union": .tUnion, "china t-union": .tUnion
         ]
         
@@ -75,6 +77,9 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         if f.hasPrefix("namane") { return .namane }
         if f.hasPrefix("climate") { return .climateCard }
         if f.hasPrefix("octopus") { return .octopus }
+        if f.hasPrefix("rakuten edy") || f == "edy" { return .edy }
+        if f.hasPrefix("waon") { return .waon }
+        if f.hasPrefix("nanaco") { return .nanaco }
         if f.hasPrefix("t-union") || f.hasPrefix("china") { return .tUnion }
         
         // Generic Fallbacks
@@ -668,7 +673,11 @@ struct TransactionDetailView: View {
                         CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: cardFamily ?? "")
                         
                         let f = (cardFamily ?? "").lowercased()
-                        if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") {
+                        if brand == .nanaco {
+                             NanacoRawBreakdownView(raw: raw, tx: tx)
+                        } else if brand == .edy {
+                             EdyRawBreakdownView(raw: raw, tx: tx)
+                        } else if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") {
                              if tx.category == .trainOn || tx.category == .trainOff || tx.type.contains("Transit Activity") || tx.type == "Entry" || tx.type == "Exit" || tx.type == "Discount Entry" {
                                  FeliCaTransitRawBreakdownView(raw: raw, tx: tx)
                              } else {
@@ -994,6 +1003,119 @@ struct FeliCaTransitRawBreakdownView: View {
         let low = Int(byte & 0x0F)
         guard high < 10, low < 10 else { return -1 }
         return (high * 10) + low
+    }
+}
+
+struct NanacoRawBreakdownView: View {
+    let raw: String
+    let tx: TransitTransaction?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            let data = Data(hexString: raw)
+            if data.count >= 16 {
+                let type = data[0]
+                let amount = data.bigEndianInt(start: 1, length: 4)
+                let balance = data.bigEndianInt(start: 5, length: 4)
+                let dateBits = UInt32(data.bigEndianInt(start: 9, length: 4))
+                let sequence = data.bigEndianInt(start: 13, length: 2)
+
+                let year = 2000 + Int((dateBits >> 21) & 0x7FF)
+                let month = Int((dateBits >> 17) & 0x0F)
+                let day = Int((dateBits >> 12) & 0x1F)
+                let hour = Int((dateBits >> 6) & 0x3F)
+                let minute = Int(dateBits & 0x3F)
+                let timeText = String(format: "%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute)
+
+                Group {
+                    DetailRawRow(title: "Transaction Type", value: nanacoTransactionTypeName(type), hex: String(format: "0x%02X", type), color: tx?.iconInfo.color ?? .red)
+                    DetailRawRow(title: "Amount", value: formatCurrency(amount: Decimal(amount), code: "JPY"), hex: data.subdata(in: 1..<5).hexString.uppercased(), color: .orange)
+                    DetailRawRow(title: "Balance After", value: formatCurrency(amount: Decimal(balance), code: "JPY"), hex: data.subdata(in: 5..<9).hexString.uppercased(), color: .green)
+                    DetailRawRow(title: "Packed DateTime", value: timeText, hex: data.subdata(in: 9..<13).hexString.uppercased(), color: .brown)
+                    DetailRawRow(title: "Sequence", value: "\(sequence)", hex: data.subdata(in: 13..<15).hexString.uppercased(), color: .blue)
+                }
+
+                Text("nanaco history record layout for service `564F` (`4F56` little-endian on card I/O). Byte `0` is the transaction type, bytes `1-4` the amount (BE), `5-8` the balance after (BE), `9-12` the packed date/time (BE), `13-14` the transaction number (BE), and `15` is reserved.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func nanacoTransactionTypeName(_ type: UInt8) -> String {
+        switch type {
+        case 0x47: return "Payment"
+        case 0x6F, 0x70: return "Top-up"
+        case 0x83: return "Points Redemption"
+        case 0x35: return "Transfer"
+        default: return String(format: "0x%02X", type)
+        }
+    }
+}
+
+struct EdyRawBreakdownView: View {
+    let raw: String
+    let tx: TransitTransaction?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            let data = Data(hexString: raw)
+            if data.count >= 16 {
+                let type = data[0]
+                let unknown = data[1]
+                let sequence = data.bigEndianInt(start: 2, length: 2)
+                let dateBits = UInt32(data.bigEndianInt(start: 4, length: 4))
+                let amount = UInt32(data.bigEndianInt(start: 8, length: 4))
+                let balance = UInt32(data.bigEndianInt(start: 12, length: 4))
+
+                let elapsedDays = Int(dateBits >> 17)
+                let elapsedSeconds = Int(dateBits & 0x1FFFF)
+                let hour = elapsedSeconds / 3600
+                let minute = (elapsedSeconds % 3600) / 60
+                let second = elapsedSeconds % 60
+
+                let calendar = Calendar(identifier: .gregorian)
+                let dateText: String = {
+                    var base = DateComponents()
+                    base.year = 2000
+                    base.month = 1
+                    base.day = 1
+                    base.timeZone = TimeZone(identifier: "Asia/Tokyo")
+
+                    if let start = calendar.date(from: base),
+                       let dayDate = calendar.date(byAdding: .day, value: elapsedDays, to: start) {
+                        let c = calendar.dateComponents([.year, .month, .day], from: dayDate)
+                        return String(format: "%04d-%02d-%02d %02d:%02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, hour, minute, second)
+                    }
+
+                    return "day+\(elapsedDays) \(String(format: "%02d:%02d:%02d", hour, minute, second))"
+                }()
+
+                Group {
+                    DetailRawRow(title: "Transaction Type", value: edyTransactionTypeName(type), hex: String(format: "0x%02X", type), color: tx?.iconInfo.color ?? .red)
+                    DetailRawRow(title: "Unknown", value: String(format: "0x%02X", unknown), hex: data.subdata(in: 1..<2).hexString.uppercased(), color: .gray)
+                    DetailRawRow(title: "Sequence", value: "\(sequence)", hex: data.subdata(in: 2..<4).hexString.uppercased(), color: .blue)
+                    DetailRawRow(title: "Packed DateTime", value: dateText, hex: data.subdata(in: 4..<8).hexString.uppercased(), color: .brown)
+                    DetailRawRow(title: "Amount", value: formatCurrency(amount: Decimal(amount), code: "JPY"), hex: data.subdata(in: 8..<12).hexString.uppercased(), color: .orange)
+                    DetailRawRow(title: "Balance After", value: formatCurrency(amount: Decimal(balance), code: "JPY"), hex: data.subdata(in: 12..<16).hexString.uppercased(), color: .green)
+                }
+
+                Text("Edy history record layout for service `170F` (sent to the tag as bytes `17 0F`). Byte `0` is transaction type, byte `1` unknown, `2-3` transaction number (BE), `4-7` packed date/time (BE: 15-bit elapsed days since 2000-01-01 plus 17-bit seconds since midnight), `8-11` amount (BE), and `12-15` balance after (BE).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func edyTransactionTypeName(_ type: UInt8) -> String {
+        switch type {
+        case 0x20: return "Payment"
+        case 0x02: return "Top-up"
+        case 0x04: return "Edy Gift"
+        default: return String(format: "0x%02X", type)
+        }
     }
 }
 
@@ -1400,6 +1522,26 @@ struct CardRawDataHighlightView: View {
         }
         
         if brand.isJapan && dataCount == 16 {
+            if brand == .edy {
+                return [
+                    Highlight(range: 0..<1, color: tx?.iconInfo.color ?? .red, label: "Transaction Type"),
+                    Highlight(range: 1..<2, color: .gray, label: "Unknown"),
+                    Highlight(range: 2..<4, color: .blue, label: "Sequence"),
+                    Highlight(range: 4..<8, color: .brown, label: "Packed DateTime"),
+                    Highlight(range: 8..<12, color: .orange, label: "Amount"),
+                    Highlight(range: 12..<16, color: .green, label: "Balance After")
+                ]
+            }
+            if brand == .nanaco {
+                return [
+                    Highlight(range: 0..<1, color: tx?.iconInfo.color ?? .red, label: "Transaction Type"),
+                    Highlight(range: 1..<5, color: .orange, label: "Amount"),
+                    Highlight(range: 5..<9, color: .green, label: "Balance After"),
+                    Highlight(range: 9..<13, color: .brown, label: "Packed DateTime"),
+                    Highlight(range: 13..<15, color: .blue, label: "Sequence"),
+                    Highlight(range: 15..<16, color: .gray, label: "Reserved")
+                ]
+            }
             let isPurchase = tx?.category == .purchase
             return [
                 Highlight(range: 0..<1, color: .red, label: "Terminal"),

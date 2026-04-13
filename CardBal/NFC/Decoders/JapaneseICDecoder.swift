@@ -126,9 +126,20 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     static func decodeTransaction(block: Data, context: [Data], index: Int, family: String, kind: RawHistoryKind = .transactions, relatedContext: [Data] = []) -> TransitTransaction? {
-        guard block.count >= 16 else { return nil }
-        
         let brand = ICCardBrand.from(family: family)
+        switch brand {
+        case .edy:
+            return decodeEdyHistory(block: block)
+        case .waon:
+            return decodeWAONHistory(block: block)
+        case .nanaco:
+            return decodeNanacoHistory(block: block)
+        default:
+            break
+        }
+
+        guard block.count >= 16 else { return nil }
+
         if brand == .octopus {
             // Octopus Transaction Record (16-byte block from 0x0117)
             // Balance After is at offset 10-13 (Big Endian)
@@ -237,11 +248,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 }
             }
         }
-        
+
         let date = Calendar.current.date(from: components)
-        let entryCodeHex = (entryStation != nil) ? String(format: "0x%05X", (area << 16) | (Int(block[6]) << 8 | Int(block[7]))) : nil
-        let exitCodeHex = (exitStation != nil) ? String(format: "0x%05X", (area << 16) | (Int(block[8]) << 8 | Int(block[9]))) : nil
-        
+        let entryCodeHex = entryStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[6]) << 8 | Int(block[7]))) : nil
+        let exitCodeHex = exitStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[8]) << 8 | Int(block[9]))) : nil
+
         var cat: TransactionCategory = .unknown
         if consoleType == 199 || consoleType == 200 || processType == 70 || processType == 198 || processType == 203 {
             cat = .purchase
@@ -268,6 +279,173 @@ struct JapaneseICDecoder: TransitCardDecoder {
             rawData: block.hexString.uppercased(),
             recordNumber: Int(block[13]) << 8 | Int(block[14])
         )
+    }
+
+    private static func decodeEdyHistory(block: Data) -> TransitTransaction? {
+        guard block.count >= 16 else { return nil }
+
+        let typeByte = block[0]
+        let sequentialNumber = block.bigEndianInt(start: 2, length: 2)
+        let timestampRaw = UInt32(block.bigEndianInt(start: 4, length: 4))
+        let amount = UInt32(block.bigEndianInt(start: 8, length: 4))
+        let balance = UInt32(block.bigEndianInt(start: 12, length: 4))
+
+        let elapsedDays = Int(timestampRaw >> 17)
+        let elapsedSeconds = Int(timestampRaw & 0x1FFFF)
+        guard let date = dateFromElapsedDays(sinceYear: 2000, elapsedDays: elapsedDays, elapsedSeconds: elapsedSeconds) else {
+            return nil
+        }
+
+        let (type, category) = edyTransactionType(typeByte)
+        return TransitTransaction(
+            date: date,
+            amount: Decimal(amount),
+            terminalID: nil,
+            type: type,
+            category: category,
+            balanceAfter: Decimal(balance),
+            rawData: block.hexString.uppercased(),
+            recordNumber: sequentialNumber
+        )
+    }
+
+    private static func decodeWAONHistory(block: Data) -> TransitTransaction? {
+        guard block.count >= 28 else { return nil }
+
+        let sequentialNumber = Int(block[13]) | (Int(block[14]) << 8)
+        let typeByte = block[17]
+
+        let year = 2005 + Int((block[18] >> 3) & 0x1F)
+        let month = Int(((UInt16(block[18]) | (UInt16(block[19]) << 8)) >> 7) & 0x0F)
+        let day = Int((block[19] >> 2) & 0x1F)
+        let hour = Int(((UInt16(block[19]) | (UInt16(block[20]) << 8)) >> 5) & 0x1F)
+        let minute = Int(((UInt16(block[20]) | (UInt16(block[21]) << 8)) >> 7) & 0x3F)
+
+        let balance = (UInt32(block[21]) | (UInt32(block[22]) << 8) | (UInt32(block[23]) << 16)) >> 5
+        let withdrawal = (UInt32(block[23]) | (UInt32(block[24]) << 8) | (UInt32(block[25]) << 16)) >> 3 & 0x3FFFF
+        let storedValue = (UInt32(block[25]) | (UInt32(block[26]) << 8) | (UInt32(block[27]) << 16)) >> 2 & 0x1FFFF
+
+        guard let date = makeJSTDate(year: year, month: month, day: day, hour: hour, minute: minute) else {
+            return nil
+        }
+
+        let (type, category, amountValue) = waonTransactionType(typeByte, withdrawal: withdrawal, storedValue: storedValue)
+        let deviceNumber = block.subdata(in: 0..<13).hexString.uppercased()
+
+        return TransitTransaction(
+            date: date,
+            amount: Decimal(amountValue),
+            terminalID: deviceNumber,
+            type: type,
+            category: category,
+            balanceAfter: Decimal(balance),
+            rawData: block.hexString.uppercased(),
+            recordNumber: sequentialNumber
+        )
+    }
+
+    private static func decodeNanacoHistory(block: Data) -> TransitTransaction? {
+        guard block.count >= 16 else { return nil }
+
+        let typeByte = block[0]
+        let amount = UInt32(block.bigEndianInt(start: 1, length: 4))
+        let balance = UInt32(block.bigEndianInt(start: 5, length: 4))
+        let dateBits = UInt32(block.bigEndianInt(start: 9, length: 4))
+        let sequentialNumber = block.bigEndianInt(start: 13, length: 2)
+
+        let year = 2000 + Int((dateBits >> 21) & 0x7FF)
+        let month = Int((dateBits >> 17) & 0x0F)
+        let day = Int((dateBits >> 12) & 0x1F)
+        let hour = Int((dateBits >> 6) & 0x3F)
+        let minute = Int(dateBits & 0x3F)
+
+        let date = makeJSTDate(year: year, month: month, day: day, hour: hour, minute: minute)
+        let fallbackTimeText = String(format: "%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute)
+
+        let (type, category) = nanacoTransactionType(typeByte)
+        return TransitTransaction(
+            date: date,
+            time: date == nil ? fallbackTimeText : nil,
+            amount: Decimal(amount),
+            terminalID: nil,
+            type: type,
+            category: category,
+            balanceAfter: Decimal(balance),
+            rawData: block.hexString.uppercased(),
+            recordNumber: sequentialNumber
+        )
+    }
+
+    private static func edyTransactionType(_ typeByte: UInt8) -> (String, TransactionCategory) {
+        switch typeByte {
+        case 0x20:
+            return ("Payment", .payment)
+        case 0x02:
+            return ("Top-up", .topUp)
+        case 0x04:
+            return ("Edy Gift", .topUp)
+        default:
+            return (String(format: "Transaction %02X", typeByte), .unknown)
+        }
+    }
+
+    private static func waonTransactionType(_ typeByte: UInt8, withdrawal: UInt32, storedValue: UInt32) -> (String, TransactionCategory, UInt32) {
+        switch typeByte {
+        case 0x04:
+            return ("Payment", .payment, withdrawal)
+        case 0x0C, 0x10:
+            return ("Top-up", .topUp, storedValue)
+        default:
+            return (String(format: "Transaction %02X", typeByte), .unknown, max(withdrawal, storedValue))
+        }
+    }
+
+    private static func nanacoTransactionType(_ typeByte: UInt8) -> (String, TransactionCategory) {
+        switch typeByte {
+        case 0x47:
+            return ("Payment", .payment)
+        case 0x6F, 0x70:
+            return ("Top-up", .topUp)
+        case 0x83:
+            return ("Points Redemption", .topUp)
+        case 0x35:
+            return ("Transfer", .adjustment)
+        default:
+            return (String(format: "Transaction %02X", typeByte), .unknown)
+        }
+    }
+
+    private static func dateFromElapsedDays(sinceYear year: Int, elapsedDays: Int, elapsedSeconds: Int) -> Date? {
+        var components = DateComponents()
+        components.year = year
+        components.month = 1
+        components.day = 1
+        components.timeZone = TimeZone(identifier: "Asia/Tokyo")
+
+        let calendar = Calendar(identifier: .gregorian)
+        guard let baseDate = calendar.date(from: components),
+              let dayDate = calendar.date(byAdding: .day, value: elapsedDays, to: baseDate),
+              let finalDate = calendar.date(byAdding: .second, value: elapsedSeconds, to: dayDate) else {
+            return nil
+        }
+
+        return finalDate
+    }
+
+    private static func makeJSTDate(year: Int, month: Int, day: Int, hour: Int, minute: Int) -> Date? {
+        guard (1...12).contains(month), (1...31).contains(day), (0...23).contains(hour), (0...59).contains(minute) else {
+            return nil
+        }
+
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        components.hour = hour
+        components.minute = minute
+        components.timeZone = TimeZone(identifier: "Asia/Tokyo")
+
+        return Calendar(identifier: .gregorian).date(from: components)
     }
 
     private static func decodeTransitActivity(block: Data, relatedContext: [Data]) -> TransitTransaction? {

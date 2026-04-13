@@ -72,6 +72,8 @@ struct EdyDecoder: TransitCardDecoder {
             finalResultFields.insert(ResultField(title: "Issue Date", value: issuedDateText), at: 1)
         }
 
+        let transactions = await readHistoryRecords(feliCa: feliCa)
+
         let rawSections = [
             RawDataSection(title: "Tag", fields: [
                 RawDataField(title: "Technology", value: "FeliCa"),
@@ -87,6 +89,10 @@ struct EdyDecoder: TransitCardDecoder {
                 RawDataField(title: "BCD Parsed (2-9)", value: edyId),
                 RawDataField(title: "Issue Date Raw", value: String(format: "0x%08X", totalVal)),
                 RawDataField(title: "Decoded", value: issuedDateText)
+            ]),
+            RawDataSection(title: "History (170F)", fields: [
+                RawDataField(title: "Records", value: "\(transactions.count)"),
+                RawDataField(title: "Format", value: "6 x 16-byte records")
             ])
         ]
 
@@ -105,9 +111,32 @@ struct EdyDecoder: TransitCardDecoder {
             region: nil,
             resultFields: finalResultFields,
             rawSections: rawSections,
-            rawTransactions: [],
+            rawTransactions: transactions,
             rawTransitHistory: [],
             scannedAt: scannedAt
         )
+    }
+
+    private static func readHistoryRecords(feliCa: NFCFeliCaTag) async -> [String] {
+        let serviceCode = Data([0x0F, 0x17])
+        var records: [String] = []
+
+        for blockIndex in 0..<6 {
+            let blockList = [Data([0x80, UInt8(blockIndex)])]
+            guard let readResult = try? await feliCa.readWithoutEncryption(
+                serviceCodeList: [serviceCode],
+                blockList: blockList
+            ), let block = readResult.2.first, block.count >= 16 else {
+                break
+            }
+
+            if block.allSatisfy({ $0 == 0 }) {
+                continue
+            }
+
+            records.append(block.hexString.uppercased())
+        }
+
+        return records
     }
 }

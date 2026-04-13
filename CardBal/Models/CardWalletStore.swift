@@ -237,9 +237,9 @@ class CardWalletStore: ObservableObject {
         if let match = allPresets.first(where: { family.contains($0.name.lowercased()) }) {
             applyPreset(match, to: id)
         } 
-        // Fallback for Climate Card to T-money preset
+        // Fallback for Climate Card to its dedicated preset
         else if family.contains("climate") {
-            if let match = allPresets.first(where: { $0.id == "TM" }) {
+            if let match = allPresets.first(where: { $0.id == "CLIMATE" }) {
                 applyPreset(match, to: id)
             }
         }
@@ -429,7 +429,11 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
             CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
             CardPreset(id: "TOICA", name: "TOICA", fileName: "toica"),
+            CardPreset(id: "EDY", name: "Edy", fileName: "edy"),
+            CardPreset(id: "WAON", name: "WAON", fileName: "waon"),
+            CardPreset(id: "NANACO", name: "nanaco", fileName: "nanaco"),
             CardPreset(id: "EZL", name: "EZL / Cashbee", fileName: "ezl"),
+            CardPreset(id: "CLIMATE", name: "Climate Card", fileName: "climate-card"),
             CardPreset(id: "TM", name: "T-money", fileName: "tmoney")
         ]
     }

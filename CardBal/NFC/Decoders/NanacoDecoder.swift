@@ -71,8 +71,10 @@ struct NanacoDecoder: TransitCardDecoder {
             ResultField(title: "Issue Date", value: issueDate),
             ResultField(title: "Card Number (IDm)", value: formattedIDm)
         ]
+
+        let transactions = await readHistoryRecords(feliCa: feliCa)
         
-        var rawSections = [
+        let rawSections = [
             RawDataSection(title: "Tag", fields: [
                 RawDataField(title: "Technology", value: "FeliCa"),
                 RawDataField(title: "IDm", value: formattedIDm),
@@ -94,6 +96,10 @@ struct NanacoDecoder: TransitCardDecoder {
             RawDataSection(title: "Points (560B)", fields: [
                 RawDataField(title: "Block 1", value: pointsBlock.hexString),
                 RawDataField(title: "Parsed", value: "\(pointsVal)")
+            ]),
+            RawDataSection(title: "History (564F)", fields: [
+                RawDataField(title: "Records", value: "\(transactions.count)"),
+                RawDataField(title: "Format", value: "5 x 16-byte records")
             ])
         ]
 
@@ -112,9 +118,32 @@ struct NanacoDecoder: TransitCardDecoder {
             region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
-            rawTransactions: [],
+            rawTransactions: transactions,
             rawTransitHistory: [],
             scannedAt: scannedAt
         )
+    }
+
+    private static func readHistoryRecords(feliCa: NFCFeliCaTag) async -> [String] {
+        let serviceCode = Data([0x4F, 0x56])
+        var records: [String] = []
+
+        for blockIndex in 0..<5 {
+            let blockList = [Data([0x80, UInt8(blockIndex)])]
+            guard let readResult = try? await feliCa.readWithoutEncryption(
+                serviceCodeList: [serviceCode],
+                blockList: blockList
+            ), let block = readResult.2.first, block.count >= 16 else {
+                break
+            }
+
+            if block.allSatisfy({ $0 == 0 }) {
+                continue
+            }
+
+            records.append(block.hexString.uppercased())
+        }
+
+        return records
     }
 }
