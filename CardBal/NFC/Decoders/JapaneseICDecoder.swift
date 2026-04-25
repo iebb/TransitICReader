@@ -331,7 +331,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         }
 
         let (type, category, amountValue) = waonTransactionType(typeByte, usageAmount: usageAmount, chargeAmount: chargeAmount)
-        let deviceNumber = block.subdata(in: 0..<13).hexString.uppercased()
+        let deviceNumber = formatUTF8OrHex(block.subdata(in: 0..<13))
 
         return TransitTransaction(
             date: date,

@@ -1064,7 +1064,8 @@ struct WAONRawBreakdownView: View {
         VStack(alignment: .leading, spacing: 10) {
             let data = Data(hexString: raw)
             if data.count >= 29 {
-                let terminal = data.subdata(in: 0..<13).hexString.uppercased()
+                let terminalData = data.subdata(in: 0..<13)
+                let terminal = formatUTF8OrHex(terminalData)
                 let sequence = Int(data[13]) | (Int(data[14]) << 8)
                 let type = data[17]
                 let packed = data.subdata(in: 18..<29)
@@ -1080,7 +1081,7 @@ struct WAONRawBreakdownView: View {
                 let timeText = String(format: "%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute)
 
                 Group {
-                    DetailRawRow(title: "Terminal", value: terminal, hex: data.subdata(in: 0..<13).hexString.uppercased(), color: .cyan)
+                    DetailRawRow(title: "Terminal", value: terminal, hex: terminalData.hexString.uppercased(), color: .cyan)
                     DetailRawRow(title: "Sequence", value: "\(sequence)", hex: data.subdata(in: 13..<15).hexString.uppercased(), color: .blue)
                     DetailRawRow(title: "Transaction Type", value: waonTransactionTypeName(type), hex: String(format: "0x%02X", type), color: tx?.iconInfo.color ?? .red)
                     DetailRawRow(title: "Packed DateTime", value: timeText, hex: packed.hexString.uppercased(), color: .brown)
@@ -1419,6 +1420,13 @@ func formatCurrency(amount: Decimal, code: String, fractionDigits: Int = 0) -> S
     formatter.minimumFractionDigits = fractionDigits
     formatter.maximumFractionDigits = fractionDigits
     return formatter.string(from: amount as NSDecimalNumber) ?? "\(code) \(amount)"
+}
+
+func formatUTF8OrHex(_ data: Data) -> String {
+    if let text = String(data: data, encoding: .utf8), !text.isEmpty {
+        return text
+    }
+    return data.hexString.uppercased()
 }
 
 func defaultFractionDigits(for currencyCode: String) -> Int {
