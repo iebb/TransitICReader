@@ -617,7 +617,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Information") {
-                    HStack { Text("App Version"); Spacer(); Text("1.2.0").foregroundStyle(.secondary) }
+                    HStack { Text("App Version"); Spacer(); Text("1.3.0").foregroundStyle(.secondary) }
                     Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Credits") {
