@@ -673,7 +673,9 @@ struct TransactionDetailView: View {
                         CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: cardFamily ?? "")
                         
                         let f = (cardFamily ?? "").lowercased()
-                        if brand == .nanaco {
+                        if brand == .waon {
+                             WAONRawBreakdownView(raw: raw, tx: tx)
+                        } else if brand == .nanaco {
                              NanacoRawBreakdownView(raw: raw, tx: tx)
                         } else if brand == .edy {
                              EdyRawBreakdownView(raw: raw, tx: tx)
@@ -1049,6 +1051,66 @@ struct NanacoRawBreakdownView: View {
         case 0x6F, 0x70: return "Top-up"
         case 0x83: return "Points Redemption"
         case 0x35: return "Transfer"
+        default: return String(format: "0x%02X", type)
+        }
+    }
+}
+
+struct WAONRawBreakdownView: View {
+    let raw: String
+    let tx: TransitTransaction?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            let data = Data(hexString: raw)
+            if data.count >= 29 {
+                let terminal = data.subdata(in: 0..<13).hexString.uppercased()
+                let sequence = Int(data[13]) | (Int(data[14]) << 8)
+                let type = data[17]
+                let packed = data.subdata(in: 18..<29)
+
+                let year = 2005 + Int(readMSBPackedBits(packed, offset: 0, length: 5))
+                let month = Int(readMSBPackedBits(packed, offset: 5, length: 4))
+                let day = Int(readMSBPackedBits(packed, offset: 9, length: 5))
+                let hour = Int(readMSBPackedBits(packed, offset: 14, length: 5))
+                let minute = Int(readMSBPackedBits(packed, offset: 19, length: 6))
+                let balance = readMSBPackedBits(packed, offset: 25, length: 18)
+                let usageAmount = readMSBPackedBits(packed, offset: 43, length: 18)
+                let chargeAmount = readMSBPackedBits(packed, offset: 61, length: 17)
+                let timeText = String(format: "%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute)
+
+                Group {
+                    DetailRawRow(title: "Terminal", value: terminal, hex: data.subdata(in: 0..<13).hexString.uppercased(), color: .cyan)
+                    DetailRawRow(title: "Sequence", value: "\(sequence)", hex: data.subdata(in: 13..<15).hexString.uppercased(), color: .blue)
+                    DetailRawRow(title: "Transaction Type", value: waonTransactionTypeName(type), hex: String(format: "0x%02X", type), color: tx?.iconInfo.color ?? .red)
+                    DetailRawRow(title: "Packed DateTime", value: timeText, hex: packed.hexString.uppercased(), color: .brown)
+                    DetailRawRow(title: "Balance After", value: formatCurrency(amount: Decimal(balance), code: "JPY"), hex: "bits 25-42", color: .green)
+                    DetailRawRow(title: "Usage Amount", value: formatCurrency(amount: Decimal(usageAmount), code: "JPY"), hex: "bits 43-60", color: .orange)
+                    DetailRawRow(title: "Charge Amount", value: formatCurrency(amount: Decimal(chargeAmount), code: "JPY"), hex: "bits 61-77", color: .mint)
+                }
+
+                Text("WAON history record layout for service `680B` (`0B68` little-endian on card I/O). Bytes `0-12` are the terminal number, `13-14` are the record number, byte `17` is the transaction type, and bytes `18-28` contain MSB-first packed date, balance, usage amount, and charge amount fields.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func readMSBPackedBits(_ data: Data, offset: Int, length: Int) -> UInt32 {
+        var value: UInt32 = 0
+        for bitIndex in offset..<(offset + length) {
+            let byte = data[bitIndex / 8]
+            let bit = (byte >> UInt8(7 - (bitIndex % 8))) & 0x01
+            value = (value << 1) | UInt32(bit)
+        }
+        return value
+    }
+
+    private func waonTransactionTypeName(_ type: UInt8) -> String {
+        switch type {
+        case 0x04: return "Payment"
+        case 0x0C, 0x10: return "Top-up"
         default: return String(format: "0x%02X", type)
         }
     }
@@ -1521,6 +1583,19 @@ struct CardRawDataHighlightView: View {
             }
         }
         
+        if brand == .waon && dataCount >= 29 {
+            return [
+                Highlight(range: 0..<13, color: .cyan, label: "Terminal"),
+                Highlight(range: 13..<15, color: .blue, label: "Sequence"),
+                Highlight(range: 15..<17, color: .gray, label: "Unknown"),
+                Highlight(range: 17..<18, color: tx?.iconInfo.color ?? .red, label: "Transaction Type"),
+                Highlight(range: 18..<21, color: .brown, label: "Packed DateTime"),
+                Highlight(range: 21..<24, color: .green, label: "Balance After"),
+                Highlight(range: 24..<26, color: .orange, label: "Usage Amount"),
+                Highlight(range: 26..<29, color: .mint, label: "Charge Amount")
+            ]
+        }
+
         if brand.isJapan && dataCount == 16 {
             if brand == .edy {
                 return [

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */; };
 		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
 		0EFAFB50E232381B6246D786 /* icoca.png in Resources */ = {isa = PBXBuildFile; fileRef = DD02F5701AE4C47C4D43B861 /* icoca.png */; };
 		1B6A2C8BF37E5CB823EB883C /* Localizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118B2F4C7E32F920855B0DF5 /* Localizer.swift */; };
@@ -58,6 +59,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0A9B9E8A6B5A4A8E9F001003 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
+		0A9B9E8A6B5A4A8E9F001004 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
 		0BA3AB59E280822BC0508F6C /* toica.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = toica.png; path = Presets/toica.png; sourceTree = "<group>"; };
 		118B2F4C7E32F920855B0DF5 /* Localizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Localizer.swift; path = Helpers/Localizer.swift; sourceTree = "<group>"; };
 		1549B4485C7F51C95EF084A7 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = CardBal/Resources/en.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
@@ -205,6 +208,7 @@
 				F17A22002F6F2ACB0071B6C4 /* jp_stations.sqlite */,
 				C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */,
 				4C875E6334212CEA9F4A99A9 /* Presets */,
+				0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */,
 				B92C7A81DE3948B73C63013F /* Localizable.strings */,
 			);
 			path = Resources;
@@ -354,6 +358,7 @@
 			files = (
 				A00000000000000000000015 /* Assets.xcassets/AppIcon.icon in Resources */,
 				A00000000000000000000014 /* Assets.xcassets in Resources */,
+				0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */,
 				8C4692122F6F2ACB0071B6C4 /* TUnionCardNames.json in Resources */,
 				8C4692142F6F2ACB0071B6C4 /* TUnionCityCodes.json in Resources */,
 				8C4692152F6F2ACB0071B6C4 /* TUnionLineStations.json in Resources */,
@@ -415,6 +420,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				0A9B9E8A6B5A4A8E9F001003 /* ja */,
+				0A9B9E8A6B5A4A8E9F001004 /* zh-Hans */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
 		B92C7A81DE3948B73C63013F /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (

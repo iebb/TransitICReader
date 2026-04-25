@@ -310,26 +310,27 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     private static func decodeWAONHistory(block: Data) -> TransitTransaction? {
-        guard block.count >= 28 else { return nil }
+        guard block.count >= 29 else { return nil }
 
         let sequentialNumber = Int(block[13]) | (Int(block[14]) << 8)
         let typeByte = block[17]
 
-        let year = 2005 + Int((block[18] >> 3) & 0x1F)
-        let month = Int(((UInt16(block[18]) | (UInt16(block[19]) << 8)) >> 7) & 0x0F)
-        let day = Int((block[19] >> 2) & 0x1F)
-        let hour = Int(((UInt16(block[19]) | (UInt16(block[20]) << 8)) >> 5) & 0x1F)
-        let minute = Int(((UInt16(block[20]) | (UInt16(block[21]) << 8)) >> 7) & 0x3F)
+        let packed = block.subdata(in: 18..<29)
+        let year = 2005 + Int(readMSBPackedBits(packed, offset: 0, length: 5))
+        let month = Int(readMSBPackedBits(packed, offset: 5, length: 4))
+        let day = Int(readMSBPackedBits(packed, offset: 9, length: 5))
+        let hour = Int(readMSBPackedBits(packed, offset: 14, length: 5))
+        let minute = Int(readMSBPackedBits(packed, offset: 19, length: 6))
 
-        let balance = (UInt32(block[21]) | (UInt32(block[22]) << 8) | (UInt32(block[23]) << 16)) >> 5
-        let withdrawal = (UInt32(block[23]) | (UInt32(block[24]) << 8) | (UInt32(block[25]) << 16)) >> 3 & 0x3FFFF
-        let storedValue = (UInt32(block[25]) | (UInt32(block[26]) << 8) | (UInt32(block[27]) << 16)) >> 2 & 0x1FFFF
+        let balance = readMSBPackedBits(packed, offset: 25, length: 18)
+        let usageAmount = readMSBPackedBits(packed, offset: 43, length: 18)
+        let chargeAmount = readMSBPackedBits(packed, offset: 61, length: 17)
 
         guard let date = makeJSTDate(year: year, month: month, day: day, hour: hour, minute: minute) else {
             return nil
         }
 
-        let (type, category, amountValue) = waonTransactionType(typeByte, withdrawal: withdrawal, storedValue: storedValue)
+        let (type, category, amountValue) = waonTransactionType(typeByte, usageAmount: usageAmount, chargeAmount: chargeAmount)
         let deviceNumber = block.subdata(in: 0..<13).hexString.uppercased()
 
         return TransitTransaction(
@@ -389,14 +390,24 @@ struct JapaneseICDecoder: TransitCardDecoder {
         }
     }
 
-    private static func waonTransactionType(_ typeByte: UInt8, withdrawal: UInt32, storedValue: UInt32) -> (String, TransactionCategory, UInt32) {
+    private static func readMSBPackedBits(_ data: Data, offset: Int, length: Int) -> UInt32 {
+        var value: UInt32 = 0
+        for bitIndex in offset..<(offset + length) {
+            let byte = data[bitIndex / 8]
+            let bit = (byte >> UInt8(7 - (bitIndex % 8))) & 0x01
+            value = (value << 1) | UInt32(bit)
+        }
+        return value
+    }
+
+    private static func waonTransactionType(_ typeByte: UInt8, usageAmount: UInt32, chargeAmount: UInt32) -> (String, TransactionCategory, UInt32) {
         switch typeByte {
         case 0x04:
-            return ("Payment", .payment, withdrawal)
+            return ("Payment", .payment, usageAmount)
         case 0x0C, 0x10:
-            return ("Top-up", .topUp, storedValue)
+            return ("Top-up", .topUp, chargeAmount)
         default:
-            return (String(format: "Transaction %02X", typeByte), .unknown, max(withdrawal, storedValue))
+            return (String(format: "Transaction %02X", typeByte), .unknown, max(usageAmount, chargeAmount))
         }
     }
 
