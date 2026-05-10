@@ -363,10 +363,10 @@ struct TransitTransactionRow: View {
                         .font(.headline)
                     HStack(spacing: 4) {
                         let isRecordOnly = tx.time?.contains("Record #") ?? false
-                        let isTimeMissing = tx.time == nil || isRecordOnly || tx.time?.lowercased() == "n/a"
+                        let resolution = CardDateFormatting.resolution(forTimeText: tx.time)
 
                         if let date = tx.date, date.timeIntervalSince1970 > 86400 {
-                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: brand, includeTime: !isTimeMissing))
+                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: brand, resolution: resolution))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         } else if let time = tx.time, !isRecordOnly {
@@ -500,7 +500,12 @@ struct TransactionDetailView: View {
                             }
                         }
                     }
-                    if !isNAMANE, !isRecordOnly, let displayTime = tx.date.map({ CardDateFormatting.formatDisplayTime($0, brand: brand) }) ?? tx.time {
+                    let resolution = CardDateFormatting.resolution(forTimeText: tx.time)
+                    let displayTime = tx.date.flatMap { date -> String? in
+                        resolution == .date ? nil : CardDateFormatting.formatDisplayTime(date, brand: brand, resolution: resolution)
+                    } ?? tx.time
+                    let hasDisplayTime = displayTime?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "n/a"
+                    if !isNAMANE, !isRecordOnly, hasDisplayTime, let displayTime {
                         LabeledContent {
                             Text(displayTime)
                         } label: {

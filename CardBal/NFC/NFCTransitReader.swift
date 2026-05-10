@@ -19,12 +19,12 @@ final class NFCTransitReader: NSObject, ObservableObject {
 
     private let decoders: [TransitCardDecoder.Type] = [
         TUnionDecoder.self,
+        CalypsoDecoder.self,
         KSX6924Decoder.self,
         EdyDecoder.self,
         WAONDecoder.self,
         NanacoDecoder.self,
-        JapaneseICDecoder.self,
-        CalypsoDecoder.self
+        JapaneseICDecoder.self
     ]
 
     var isNFCAvailable: Bool {
@@ -141,83 +141,96 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
         let msgDet = "[READER] Detected \(tags.count) tag(s)"
         os_log("%{public}@", msgDet)
-        if tags.count > 1 {
-            session.alertMessage = "More than 1 card detected. Please keep only 1."
-            session.restartPolling()
-            return
-        }
-        
-        guard let tag = tags.first else { return }
-        NSLog("[READER] Processing tag: \(tag)")
+        guard !tags.isEmpty else { return }
 
         Task {
-            do {
-                try await session.connect(to: tag)
-                
-                let scannedAt = Date()
-                var snapshot: TransitCardSnapshot?
-                
-                // Try each decoder
-                for decoder in decoders {
-                    if await decoder.canDecode(tag: tag) {
-                        snapshot = try? await decoder.decode(tag: tag, scannedAt: scannedAt)
-                        if snapshot != nil { break }
+            var feliCaSnapshot: TransitCardSnapshot?
+            var iso7816Snapshot: TransitCardSnapshot?
+
+            for (index, tag) in tags.enumerated() {
+                NSLog("[READER] Processing tag [\(index)]: \(tag)")
+                do {
+                    try await session.connect(to: tag)
+
+                    let scannedAt = Date()
+                    var snapshot: TransitCardSnapshot?
+
+                    for decoder in decoders {
+                        if await decoder.canDecode(tag: tag) {
+                            snapshot = try? await decoder.decode(tag: tag, scannedAt: scannedAt)
+                            if snapshot != nil { break }
+                        }
                     }
-                }
-                
-                // Enhanced Handshake for FeliCa (Japan Transit IC)
-                if let feliCaSnapshot = snapshot, 
-                   feliCaSnapshot.technology == "FeliCa", 
-                   feliCaSnapshot.systemCode == "0003",
-                   case .feliCa(let feliCa) = tag {
-                    
-                    let isEnhanced = await MainActor.run { isEnhancedFeliCaDecodingEnabled }
-                    if isEnhanced {
-                        let storageIdentifier = "FeliCa|\(feliCaSnapshot.rawIdentifierValue)"
-                        let alreadyDecoded = await MainActor.run { checkIfCardAlreadyEnhanced?(storageIdentifier) ?? false }
-                        if !alreadyDecoded {
-                            await MainActor.run { self.updateStatus("Retrieving real serial number...", kind: .idle) }
-                            if let sn = try? await performEnhancedFeliCaHandshake(tag: feliCa) {
-                                let systemCodes = (try? await feliCa.requestSystemCode().map { $0.hexString.uppercased() }) ?? [feliCaSnapshot.systemCode ?? "0003"]
-                                let detectedBrand = FeliCaProfile.all[0].detectedBrand(using: systemCodes, realSN: sn)
-                                
-                                var updatedFields = feliCaSnapshot.resultFields
-                                if let index = updatedFields.firstIndex(where: { $0.title == "Detected Type" }) {
-                                    updatedFields[index] = ResultField(title: "Detected Type", value: detectedBrand)
+
+                    if let detectedSnapshot = snapshot,
+                       detectedSnapshot.technology == "FeliCa",
+                       detectedSnapshot.systemCode == "0003",
+                       case .feliCa(let feliCa) = tag {
+
+                        let isEnhanced = await MainActor.run { isEnhancedFeliCaDecodingEnabled }
+                        if isEnhanced {
+                            let storageIdentifier = "FeliCa|\(detectedSnapshot.rawIdentifierValue)"
+                            let alreadyDecoded = await MainActor.run { checkIfCardAlreadyEnhanced?(storageIdentifier) ?? false }
+                            if !alreadyDecoded {
+                                await MainActor.run { self.updateStatus("Retrieving real serial number...", kind: .idle) }
+                                if let sn = try? await performEnhancedFeliCaHandshake(tag: feliCa) {
+                                    let systemCodes = (try? await feliCa.requestSystemCode().map { $0.hexString.uppercased() }) ?? [detectedSnapshot.systemCode ?? "0003"]
+                                    let detectedBrand = FeliCaProfile.all[0].detectedBrand(using: systemCodes, realSN: sn)
+
+                                    var updatedFields = detectedSnapshot.resultFields
+                                    if let index = updatedFields.firstIndex(where: { $0.title == "Detected Type" }) {
+                                        updatedFields[index] = ResultField(title: "Detected Type", value: detectedBrand)
+                                    }
+
+                                    snapshot = TransitCardSnapshot(
+                                        technology: detectedSnapshot.technology,
+                                        cardFamily: detectedBrand,
+                                        identifierLabel: detectedSnapshot.identifierLabel,
+                                        identifierValue: detectedSnapshot.identifierValue,
+                                        rawIdentifierValue: detectedSnapshot.rawIdentifierValue,
+                                        pmm: detectedSnapshot.pmm,
+                                        systemCode: detectedSnapshot.systemCode,
+                                        selectedAID: detectedSnapshot.selectedAID,
+                                        balanceText: detectedSnapshot.balanceText,
+                                        balanceDetail: detectedSnapshot.balanceDetail,
+                                        realSerialNumber: sn,
+                                        region: detectedSnapshot.region,
+                                        resultFields: updatedFields,
+                                        rawSections: detectedSnapshot.rawSections,
+                                        rawTransactions: detectedSnapshot.rawTransactions,
+                                        rawTransitHistory: detectedSnapshot.rawTransitHistory,
+                                        scannedAt: detectedSnapshot.scannedAt
+                                    )
                                 }
-                                
-                                // Re-create snapshot with SN
-                                snapshot = TransitCardSnapshot(
-                                    technology: feliCaSnapshot.technology,
-                                    cardFamily: detectedBrand,
-                                    identifierLabel: feliCaSnapshot.identifierLabel,
-                                    identifierValue: feliCaSnapshot.identifierValue,
-                                    rawIdentifierValue: feliCaSnapshot.rawIdentifierValue,
-                                    pmm: feliCaSnapshot.pmm,
-                                    systemCode: feliCaSnapshot.systemCode,
-                                    selectedAID: feliCaSnapshot.selectedAID,
-                                    balanceText: feliCaSnapshot.balanceText,
-                                    balanceDetail: feliCaSnapshot.balanceDetail,
-                                    realSerialNumber: sn,
-                                    region: feliCaSnapshot.region,
-                                    resultFields: updatedFields,
-                                    rawSections: feliCaSnapshot.rawSections,
-                                    rawTransactions: feliCaSnapshot.rawTransactions,
-                                    rawTransitHistory: feliCaSnapshot.rawTransitHistory,
-                                    scannedAt: feliCaSnapshot.scannedAt
-                                )
                             }
                         }
                     }
-                }
 
-                if let snapshot = snapshot {
-                    await MainActor.run { self.finish(with: snapshot, session: session) }
-                } else {
-                    await MainActor.run { self.fail("Unsupported card type.", session: session) }
+                    if let snapshot {
+                        if snapshot.technology == "FeliCa" {
+                            feliCaSnapshot = snapshot
+                        } else if snapshot.technology == "ISO7816" {
+                            iso7816Snapshot = snapshot
+                        }
+                    }
+                } catch {
+                    os_log("[READER] Failed to connect/decode tag [%{public}d]: %{public}@", index, error.localizedDescription)
                 }
-            } catch {
-                await MainActor.run { self.fail("Failed to connect to card.", session: session) }
+            }
+
+            let finalSnapshot: TransitCardSnapshot?
+            if let feliCaSnapshot, let iso7816Snapshot {
+                finalSnapshot = await MainActor.run {
+                    self.mergeDualModeSnapshots(feliCa: feliCaSnapshot, iso7816: iso7816Snapshot)
+                }
+            } else {
+                finalSnapshot = feliCaSnapshot ?? iso7816Snapshot
+            }
+
+            if let finalSnapshot {
+                await MainActor.run { self.finish(with: finalSnapshot, session: session) }
+            } else {
+                await MainActor.run { self.fail("Could not read any supported transit card data.", session: session) }
             }
         }
     }

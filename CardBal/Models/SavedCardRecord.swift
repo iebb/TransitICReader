@@ -296,7 +296,6 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
     var calypsoOnlineSerialNumber: String? {
         let candidates = [
-            fieldValue("Media Serial Number"),
             realSerialNumber,
             fieldValue("Card Number"),
             customDisplaySerialNumber,
@@ -311,6 +310,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     }
 
     var calypsoMediaUnicity: Int {
+        if isCalypsoCard { return 2 }
         guard let value = fieldValue("Media Unicity"),
               let parsed = Int(value.filter(\.isNumber)) else {
             return 2

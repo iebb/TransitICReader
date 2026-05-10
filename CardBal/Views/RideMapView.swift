@@ -373,7 +373,7 @@ struct RideMapView: View {
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(.secondary)
                         if let date = route.transaction.date {
-                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: ICCardBrand.from(family: route.cardFamily), includeTime: true))
+                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: ICCardBrand.from(family: route.cardFamily), resolution: CardDateFormatting.resolution(forTimeText: route.transaction.time)))
                                 .font(.caption2.monospacedDigit())
                                 .foregroundStyle(.tertiary)
                         }
@@ -465,7 +465,7 @@ struct RideMapView: View {
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.primary)
                             if let date = hit.transaction.date {
-                                Text(CardDateFormatting.formatDisplayDateTime(date, brand: ICCardBrand.from(family: hit.cardFamily), includeTime: true))
+                                Text(CardDateFormatting.formatDisplayDateTime(date, brand: ICCardBrand.from(family: hit.cardFamily), resolution: CardDateFormatting.resolution(forTimeText: hit.transaction.time)))
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }
@@ -515,7 +515,7 @@ struct RideMapView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                         if let date = hit.transaction.date {
-                                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: ICCardBrand.from(family: hit.cardFamily), includeTime: true))
+                                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: ICCardBrand.from(family: hit.cardFamily), resolution: CardDateFormatting.resolution(forTimeText: hit.transaction.time)))
                                                 .font(.caption.monospacedDigit())
                                                 .foregroundStyle(.secondary)
                                         }

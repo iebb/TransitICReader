@@ -243,6 +243,12 @@ class CardWalletStore: ObservableObject {
                 applyPreset(match, to: id)
             }
         }
+        // Nice / Lignes d'Azur cards use La Carte as their default face.
+        else if family.contains("lignes d'azur") || family.contains("nice") {
+            if let match = allPresets.first(where: { $0.id == "LA_CARTE" }) {
+                applyPreset(match, to: id)
+            }
+        }
         // Try SN prefix match
         else {
             let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "JH": "Kitaca", "NR": "Nimoca", "JC": "TOICA"]
@@ -434,6 +440,8 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "NANACO", name: "nanaco", fileName: "nanaco"),
             CardPreset(id: "EZL", name: "EZL / Cashbee", fileName: "ezl"),
             CardPreset(id: "CLIMATE", name: "Climate Card", fileName: "climate-card"),
+            CardPreset(id: "LA_CARTE", name: "La Carte", fileName: "la-carte"),
+            CardPreset(id: "LA_CARTE_BLUE", name: "La Carte Blue", fileName: "la-carte-blue"),
             CardPreset(id: "TM", name: "T-money", fileName: "tmoney")
         ]
     }

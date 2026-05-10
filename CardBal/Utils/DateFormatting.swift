@@ -1,5 +1,11 @@
 import Foundation
 
+enum DateDisplayResolution {
+    case date
+    case minute
+    case second
+}
+
 enum CardTimeZonePreference: String {
     case current
     case issuer
@@ -73,23 +79,53 @@ struct CardDateFormatting {
     }
 
     static func formatDisplayDateTime(_ date: Date, brand: ICCardBrand, includeTime: Bool) -> String {
+        formatDisplayDateTime(date, brand: brand, resolution: includeTime ? .second : .date)
+    }
+
+    static func formatDisplayDateTime(_ date: Date, brand: ICCardBrand, resolution: DateDisplayResolution) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale.autoupdatingCurrent
         formatter.timeZone = displayTimeZone(for: brand)
         formatter.dateStyle = .short
-        formatter.timeStyle = includeTime ? .medium : .none
+        switch resolution {
+        case .date:
+            formatter.timeStyle = .none
+        case .minute:
+            formatter.timeStyle = .short
+        case .second:
+            formatter.timeStyle = .medium
+        }
         return formatter.string(from: date)
     }
 
     static func formatDisplayTime(_ date: Date, brand: ICCardBrand) -> String {
+        formatDisplayTime(date, brand: brand, resolution: .second)
+    }
+
+    static func formatDisplayTime(_ date: Date, brand: ICCardBrand, resolution: DateDisplayResolution) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale.autoupdatingCurrent
         formatter.timeZone = displayTimeZone(for: brand)
         formatter.dateStyle = .none
-        formatter.timeStyle = .medium
+        formatter.timeStyle = resolution == .second ? .medium : .short
         return formatter.string(from: date)
+    }
+
+    static func resolution(forTimeText time: String?) -> DateDisplayResolution {
+        guard let time else { return .date }
+        let normalized = time.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.isEmpty || normalized == "n/a" || normalized.contains("record #") {
+            return .date
+        }
+        if time.range(of: #"(^|\D)\d{1,2}:\d{2}:\d{2}($|\D)"#, options: .regularExpression) != nil {
+            return .second
+        }
+        if time.range(of: #"(^|\D)\d{1,2}:\d{2}($|\D)"#, options: .regularExpression) != nil {
+            return .minute
+        }
+        return .date
     }
 }
 

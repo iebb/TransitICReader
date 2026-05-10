@@ -297,8 +297,10 @@ struct JapaneseICDecoder: TransitCardDecoder {
         }
 
         let (type, category) = edyTransactionType(typeByte)
+        let timeText = String(format: "%02d:%02d:%02d", elapsedSeconds / 3600, (elapsedSeconds % 3600) / 60, elapsedSeconds % 60)
         return TransitTransaction(
             date: date,
+            time: timeText,
             amount: Decimal(amount),
             terminalID: nil,
             type: type,
@@ -332,9 +334,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
 
         let (type, category, amountValue) = waonTransactionType(typeByte, usageAmount: usageAmount, chargeAmount: chargeAmount)
         let deviceNumber = formatUTF8OrHex(block.subdata(in: 0..<13))
+        let timeText = String(format: "%02d:%02d", hour, minute)
 
         return TransitTransaction(
             date: date,
+            time: timeText,
             amount: Decimal(amountValue),
             terminalID: deviceNumber,
             type: type,
@@ -362,11 +366,12 @@ struct JapaneseICDecoder: TransitCardDecoder {
 
         let date = makeJSTDate(year: year, month: month, day: day, hour: hour, minute: minute)
         let fallbackTimeText = String(format: "%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute)
+        let timeText = String(format: "%02d:%02d", hour, minute)
 
         let (type, category) = nanacoTransactionType(typeByte)
         return TransitTransaction(
             date: date,
-            time: date == nil ? fallbackTimeText : nil,
+            time: date == nil ? fallbackTimeText : timeText,
             amount: Decimal(amount),
             terminalID: nil,
             type: type,

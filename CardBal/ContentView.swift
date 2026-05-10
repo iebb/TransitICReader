@@ -219,6 +219,7 @@ struct ScanHomeView: View {
     @State private var isShowingSNScanner = false
     @State private var didAutoStartScan = false
     @State private var detailRoute: CardDetailRoute?
+    @State private var calypsoOnlineLookup: CalypsoOnlineLookupState = .idle
     @AppStorage("hideWelcomeMessage") private var hideWelcomeMessage = false
 
     var body: some View {
@@ -339,6 +340,10 @@ struct ScanHomeView: View {
                             }
                         }
                     }
+
+                    if cardToDisplay.isCalypsoCard {
+                        calypsoOnlineSection(card: cardToDisplay)
+                    }
                 } else if !reader.isScanning {
                     Section("Result") {
                         Text("No card scanned yet.").foregroundStyle(.secondary)
@@ -406,6 +411,62 @@ struct ScanHomeView: View {
             return updated
         }
         return snapshot.toCard()
+    }
+
+    @ViewBuilder
+    private func calypsoOnlineSection(card: SavedCardRecord) -> some View {
+        Section("Internet Query") {
+            let serial = card.calypsoOnlineSerialNumber
+            Button {
+                checkCalypsoOnline(card: card)
+            } label: {
+                Label("Check Online", systemImage: "network")
+            }
+            .disabled(serial == nil || calypsoOnlineLookup.isLoading)
+
+            if serial == nil {
+                Text("No Nice card serial number decoded.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            switch calypsoOnlineLookup {
+            case .idle:
+                EmptyView()
+            case .loading:
+                HStack {
+                    ProgressView()
+                    Text("Checking...")
+                        .foregroundStyle(.secondary)
+                }
+            case .failed(let message):
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            case .loaded(let details):
+                CalypsoOnlineSummaryView(details: details)
+            }
+        }
+    }
+
+    private func checkCalypsoOnline(card: SavedCardRecord) {
+        guard let serial = card.calypsoOnlineSerialNumber else { return }
+        calypsoOnlineLookup = .loading
+        Task {
+            do {
+                let details = try await CalypsoOnlineClient.lookup(
+                    mediaSerialNumber: serial,
+                    mediaUnicity: card.calypsoMediaUnicity
+                )
+                await MainActor.run {
+                    calypsoOnlineLookup = .loaded(details)
+                }
+            } catch {
+                await MainActor.run {
+                    calypsoOnlineLookup = .failed(error.localizedDescription)
+                }
+            }
+        }
     }
 }
 
@@ -706,7 +767,9 @@ extension TransitCardSnapshot {
 private func primaryResultFields(for snapshot: TransitCardSnapshot) -> [ResultField] {
     guard snapshot.cardFamily == "Lignes d'Azur card" else { return snapshot.resultFields }
     let ticketTitles = Set(niceTicketFieldTitles)
-    return snapshot.resultFields.filter { !ticketTitles.contains($0.title) }
+    return snapshot.resultFields.filter { field in
+        !ticketTitles.contains(field.title) && !niceSuppressedFieldTitles.contains(field.title)
+    }
 }
 
 private func niceTicketFields(from snapshot: TransitCardSnapshot) -> [ResultField] {
@@ -727,6 +790,11 @@ private let niceTicketFieldTitles = [
     "Last Ticket Event",
     "Route",
     "Ticket Status"
+]
+
+let niceSuppressedFieldTitles = [
+    "Media Serial Number",
+    "Media Unicity"
 ]
 
 private struct NiceTicketSummaryCard: View {

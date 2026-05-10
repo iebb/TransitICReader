@@ -202,10 +202,11 @@ struct SavedCardDetailView: View {
             KeyValueRow(title: "System Code", value: sc)
         }
         
-        if !card.resultFields.isEmpty {
+        let metadataFields = card.resultFields.filter { !card.isCalypsoCard || !niceSuppressedFieldTitles.contains($0.title) }
+        if !metadataFields.isEmpty {
              DisclosureGroup("All Decoded Metadata") {
                  VStack(alignment: .leading, spacing: 10) {
-                     ForEach(card.resultFields) { field in
+                     ForEach(metadataFields) { field in
                          HStack {
                              Text(field.title).font(.caption).foregroundStyle(.secondary)
                              Spacer()
@@ -219,7 +220,7 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func calypsoOnlineSection(card: SavedCardRecord) -> some View {
-        Section("Online") {
+        Section("Internet Query") {
             let serial = card.calypsoOnlineSerialNumber
             Button {
                 checkCalypsoOnline(card: card)
@@ -229,9 +230,10 @@ struct SavedCardDetailView: View {
             .disabled(serial == nil || calypsoOnlineLookup.isLoading)
 
             if let serial {
-                KeyValueRow(title: "Media Serial", value: serial)
+                KeyValueRow(title: "Media Serial Number", value: serial)
+                KeyValueRow(title: "Media Unicity", value: "\(card.calypsoMediaUnicity)")
             } else {
-                Text("No Calypso media serial number decoded.")
+                Text("No Nice card serial number decoded.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -463,7 +465,7 @@ struct SavedCardDetailView: View {
     }
 }
 
-private enum CalypsoOnlineLookupState {
+enum CalypsoOnlineLookupState {
     case idle
     case loading
     case loaded(CalypsoOnlineMediaDetails)
@@ -475,7 +477,7 @@ private enum CalypsoOnlineLookupState {
     }
 }
 
-private struct CalypsoOnlineSummaryView: View {
+struct CalypsoOnlineSummaryView: View {
     let details: CalypsoOnlineMediaDetails
 
     var body: some View {
@@ -508,7 +510,7 @@ private struct CalypsoOnlineSummaryView: View {
     }
 }
 
-private enum CalypsoOnlineClient {
+enum CalypsoOnlineClient {
     static func lookup(mediaSerialNumber: String, mediaUnicity: Int) async throws -> CalypsoOnlineMediaDetails {
         var request = URLRequest(url: URL(string: "https://rce.rla.mobeepass.net/v1/rla/sales/managermediasdetails")!)
         request.httpMethod = "POST"
@@ -541,7 +543,7 @@ private enum CalypsoOnlineClient {
     }
 }
 
-private enum CalypsoOnlineError: LocalizedError {
+enum CalypsoOnlineError: LocalizedError {
     case requestFailed(String)
 
     var errorDescription: String? {
@@ -551,14 +553,14 @@ private enum CalypsoOnlineError: LocalizedError {
     }
 }
 
-private struct CalypsoOnlineRequest: Encodable {
+struct CalypsoOnlineRequest: Encodable {
     let mediaType: String
     let mediaUnicity: Int
     let mediaSerialNumber: String
     let ContextWebApi: CalypsoOnlineContext
 }
 
-private struct CalypsoOnlineContext: Encodable {
+struct CalypsoOnlineContext: Encodable {
     let AccessType: String
     let CultureName: String
     let AccessMode: String
@@ -566,11 +568,11 @@ private struct CalypsoOnlineContext: Encodable {
     let SalesMode: String
 }
 
-private struct CalypsoOnlineResponse: Decodable {
+struct CalypsoOnlineResponse: Decodable {
     let mediaInfoWebApiDetails: CalypsoOnlineMediaDetails
 }
 
-private struct CalypsoOnlineMediaDetails: Decodable {
+struct CalypsoOnlineMediaDetails: Decodable {
     let mediaSerialNumber: String
     let isBlacklisted: Bool
     let isLocked: Bool
@@ -596,7 +598,7 @@ private struct CalypsoOnlineMediaDetails: Decodable {
     }
 }
 
-private struct CalypsoOnlineContract: Decodable {
+struct CalypsoOnlineContract: Decodable {
     let titleProduct: String?
     let saleDate: String?
     let statusValidity: String?
