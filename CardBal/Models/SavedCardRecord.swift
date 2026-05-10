@@ -280,6 +280,44 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         return ""
     }
 
+    var isCalypsoCard: Bool {
+        let family = cardFamily.lowercased()
+        let aid = selectedAID?.uppercased() ?? ""
+        return family.contains("calypso")
+            || family.contains("lignes d'azur")
+            || aid.hasPrefix("A000000291")
+            || aid.hasPrefix("A000000404")
+            || aid == "315449432E494341"
+    }
+
+    var supportsRideMap: Bool {
+        !isCalypsoCard
+    }
+
+    var calypsoOnlineSerialNumber: String? {
+        let candidates = [
+            fieldValue("Media Serial Number"),
+            realSerialNumber,
+            fieldValue("Card Number"),
+            customDisplaySerialNumber,
+            identifierValue
+        ]
+        for candidate in candidates {
+            let digits = candidate?.filter(\.isNumber) ?? ""
+            let trimmed = digits.trimmingLeadingZeros(defaultValue: "")
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return nil
+    }
+
+    var calypsoMediaUnicity: Int {
+        guard let value = fieldValue("Media Unicity"),
+              let parsed = Int(value.filter(\.isNumber)) else {
+            return 2
+        }
+        return parsed
+    }
+
     var fullHexExportText: String {
         var lines: [String] = [
             "# CardBal Hex Export",
@@ -493,5 +531,12 @@ extension SavedCardRecord {
         if f.contains("octopus") { return SavedCardColor(red: 0.92, green: 0.48, blue: 0.1) } // Octopus Amber
         if f.contains("china") || f.contains("union") { return SavedCardColor(red: 0.75, green: 0.1, blue: 0.12) } // T-Union Red
         return SavedCardColor(red: 0.19, green: 0.38, blue: 0.73) // Default brand color
+    }
+}
+
+private extension String {
+    func trimmingLeadingZeros(defaultValue: String) -> String {
+        let trimmed = drop { $0 == "0" }
+        return trimmed.isEmpty ? defaultValue : String(trimmed)
     }
 }

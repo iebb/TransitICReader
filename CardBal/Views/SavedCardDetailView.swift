@@ -28,6 +28,7 @@ struct SavedCardDetailView: View {
     @State private var draftDeleteConfirmation = false
     @State private var activeHistoryItem: HistorySheetItem?
     @State private var pendingDeletions: Set<String> = []
+    @State private var calypsoOnlineLookup: CalypsoOnlineLookupState = .idle
 
     var body: some View {
         if let card = store.card(withID: cardID) {
@@ -97,6 +98,11 @@ struct SavedCardDetailView: View {
                     }
                 }
 
+                if card.isCalypsoCard {
+                    calypsoOnlineSection(card: card)
+                }
+
+                if card.supportsRideMap {
                     Section("Map") {
                         NavigationLink {
                             RideMapView(store: store, initialCardID: card.id, showsCardPicker: false)
@@ -104,6 +110,7 @@ struct SavedCardDetailView: View {
                             Label("View Ride Map", systemImage: "map")
                         }
                     }
+                }
 
                     Section("Appearance") {
                         appearanceSection(card: card)
@@ -207,6 +214,44 @@ struct SavedCardDetailView: View {
                      }
                  }.padding(.vertical, 4)
              }
+        }
+    }
+
+    @ViewBuilder
+    private func calypsoOnlineSection(card: SavedCardRecord) -> some View {
+        Section("Online") {
+            let serial = card.calypsoOnlineSerialNumber
+            Button {
+                checkCalypsoOnline(card: card)
+            } label: {
+                Label("Check Online", systemImage: "network")
+            }
+            .disabled(serial == nil || calypsoOnlineLookup.isLoading)
+
+            if let serial {
+                KeyValueRow(title: "Media Serial", value: serial)
+            } else {
+                Text("No Calypso media serial number decoded.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            switch calypsoOnlineLookup {
+            case .idle:
+                EmptyView()
+            case .loading:
+                HStack {
+                    ProgressView()
+                    Text("Checking...")
+                        .foregroundStyle(.secondary)
+                }
+            case .failed(let message):
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            case .loaded(let details):
+                CalypsoOnlineSummaryView(details: details)
+            }
         }
     }
 
@@ -343,6 +388,26 @@ struct SavedCardDetailView: View {
         }
     }
 
+    private func checkCalypsoOnline(card: SavedCardRecord) {
+        guard let serial = card.calypsoOnlineSerialNumber else { return }
+        calypsoOnlineLookup = .loading
+        Task {
+            do {
+                let details = try await CalypsoOnlineClient.lookup(
+                    mediaSerialNumber: serial,
+                    mediaUnicity: card.calypsoMediaUnicity
+                )
+                await MainActor.run {
+                    calypsoOnlineLookup = .loaded(details)
+                }
+            } catch {
+                await MainActor.run {
+                    calypsoOnlineLookup = .failed(error.localizedDescription)
+                }
+            }
+        }
+    }
+
     private func editableFaceImageBinding() -> Binding<EditableFaceImage?> {
         Binding(
             get: { pendingFaceImage.map(EditableFaceImage.init) },
@@ -395,5 +460,167 @@ struct SavedCardDetailView: View {
                 isShowingSavedFacePicker = false
             }
         )
+    }
+}
+
+private enum CalypsoOnlineLookupState {
+    case idle
+    case loading
+    case loaded(CalypsoOnlineMediaDetails)
+    case failed(String)
+
+    var isLoading: Bool {
+        if case .loading = self { return true }
+        return false
+    }
+}
+
+private struct CalypsoOnlineSummaryView: View {
+    let details: CalypsoOnlineMediaDetails
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            KeyValueRow(title: "Status", value: details.statusText)
+            if let expirationDate = details.expirationDateDisplay {
+                KeyValueRow(title: "Expires", value: expirationDate)
+            }
+            if let contractNumber = details.contractNumber {
+                KeyValueRow(title: "Contracts", value: "\(contractNumber)")
+            }
+
+            ForEach(Array(details.contracts.enumerated()), id: \.offset) { _, contract in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(contract.titleProduct?.nonEmpty ?? "Contract")
+                        .font(.subheadline.weight(.semibold))
+                    if let remaining = contract.remainingTripsText {
+                        KeyValueRow(title: "Remaining Trips", value: remaining)
+                    }
+                    if let status = contract.statusValidity?.nonEmpty {
+                        KeyValueRow(title: "Validity", value: status)
+                    }
+                    if let saleDate = contract.saleDateDisplay {
+                        KeyValueRow(title: "Sale Date", value: saleDate)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+}
+
+private enum CalypsoOnlineClient {
+    static func lookup(mediaSerialNumber: String, mediaUnicity: Int) async throws -> CalypsoOnlineMediaDetails {
+        var request = URLRequest(url: URL(string: "https://rce.rla.mobeepass.net/v1/rla/sales/managermediasdetails")!)
+        request.httpMethod = "POST"
+        request.setValue("*/*", forHTTPHeaderField: "accept")
+        request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "accept-language")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue("6abd9289-b305-4646-ba8e-e67ab081594e", forHTTPHeaderField: "x-api-key")
+        request.setValue("1.4.5", forHTTPHeaderField: "x-application-version")
+        request.httpBody = try JSONEncoder().encode(CalypsoOnlineRequest(
+            mediaType: "Csc",
+            mediaUnicity: mediaUnicity,
+            mediaSerialNumber: mediaSerialNumber,
+            ContextWebApi: CalypsoOnlineContext(
+                AccessType: "Mobile",
+                CultureName: "en",
+                AccessMode: "ConnectedMedia",
+                SessionId: "ticketingnfcsdk.NO_SESSION_ID",
+                SalesMode: "CAD"
+            )
+        ))
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let message = String(data: data, encoding: .utf8)?.nonEmpty ?? "Online check failed."
+            throw CalypsoOnlineError.requestFailed(message)
+        }
+
+        let decoded = try JSONDecoder().decode(CalypsoOnlineResponse.self, from: data)
+        return decoded.mediaInfoWebApiDetails
+    }
+}
+
+private enum CalypsoOnlineError: LocalizedError {
+    case requestFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .requestFailed(let message): return message
+        }
+    }
+}
+
+private struct CalypsoOnlineRequest: Encodable {
+    let mediaType: String
+    let mediaUnicity: Int
+    let mediaSerialNumber: String
+    let ContextWebApi: CalypsoOnlineContext
+}
+
+private struct CalypsoOnlineContext: Encodable {
+    let AccessType: String
+    let CultureName: String
+    let AccessMode: String
+    let SessionId: String
+    let SalesMode: String
+}
+
+private struct CalypsoOnlineResponse: Decodable {
+    let mediaInfoWebApiDetails: CalypsoOnlineMediaDetails
+}
+
+private struct CalypsoOnlineMediaDetails: Decodable {
+    let mediaSerialNumber: String
+    let isBlacklisted: Bool
+    let isLocked: Bool
+    let isInvalid: Bool
+    let expirationDate: String?
+    let contractNumber: Int?
+    let endPeriodState: String?
+    let contractInfo: [CalypsoOnlineContract]?
+
+    var contracts: [CalypsoOnlineContract] {
+        contractInfo ?? []
+    }
+
+    var statusText: String {
+        if isInvalid { return "Invalid" }
+        if isLocked { return "Locked" }
+        if isBlacklisted { return "Blacklisted" }
+        return endPeriodState?.nonEmpty ?? "Valid"
+    }
+
+    var expirationDateDisplay: String? {
+        expirationDate?.datePrefix
+    }
+}
+
+private struct CalypsoOnlineContract: Decodable {
+    let titleProduct: String?
+    let saleDate: String?
+    let statusValidity: String?
+    let sold: Int?
+    let soldType: String?
+
+    var remainingTripsText: String? {
+        guard soldType?.lowercased() == "travels", let sold else { return nil }
+        return "\(sold)"
+    }
+
+    var saleDateDisplay: String? {
+        saleDate?.datePrefix
+    }
+}
+
+private extension String {
+    var nonEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    var datePrefix: String? {
+        guard let nonEmpty else { return nil }
+        return String(nonEmpty.prefix(10))
     }
 }
