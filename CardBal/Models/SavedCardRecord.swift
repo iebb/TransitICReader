@@ -280,6 +280,55 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         return ""
     }
 
+    var fullHexExportText: String {
+        var lines: [String] = [
+            "# CardBal Hex Export",
+            "card_family=\(cardFamily)",
+            "technology=\(technology)",
+            "scanned_at=\(scannedAt.ISO8601Format())",
+            ""
+        ]
+
+        appendHexLine("raw_identifier", rawIdentifierValue, to: &lines)
+        appendHexLine("pmm", pmm, to: &lines)
+        appendHexLine("system_code", systemCode, to: &lines)
+        appendHexLine("selected_aid", selectedAID, to: &lines)
+        appendHexLine("real_serial_number", realSerialNumber, to: &lines)
+
+        let hexFields = resultFields.filter { Self.normalizedHex($0.value) != nil }
+        if !hexFields.isEmpty {
+            lines.append("")
+            lines.append("[decoded_hex_fields]")
+            for field in hexFields {
+                if let hex = Self.normalizedHex(field.value) {
+                    lines.append("\(Self.exportKey(from: field.title))=\(hex)")
+                }
+            }
+        }
+
+        lines.append("")
+        lines.append("[transactions]")
+        if rawTransactions.isEmpty {
+            lines.append("# none")
+        } else {
+            for (index, hex) in rawTransactions.enumerated() {
+                lines.append(String(format: "%03d=%@", index, Self.normalizedHex(hex) ?? hex.uppercased()))
+            }
+        }
+
+        lines.append("")
+        lines.append("[transit_history]")
+        if rawTransitHistory.isEmpty {
+            lines.append("# none")
+        } else {
+            for (index, hex) in rawTransitHistory.enumerated() {
+                lines.append(String(format: "%03d=%@", index, Self.normalizedHex(hex) ?? hex.uppercased()))
+            }
+        }
+
+        return lines.joined(separator: "\n") + "\n"
+    }
+
     var cardNumber: String? { 
         // For FeliCa, prefer the linked physical SN over the technical IDm
         realSerialNumber ?? fieldValue("Card Number") ?? identifierValue 
@@ -327,6 +376,23 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
     func fieldValue(_ title: String) -> String? {
         resultFields.first(where: { $0.title == title })?.value
+    }
+
+    private static func normalizedHex(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let hex = value.replacingOccurrences(of: "[^0-9A-Fa-f]", with: "", options: .regularExpression).uppercased()
+        guard !hex.isEmpty, hex.count.isMultiple(of: 2) else { return nil }
+        return hex
+    }
+
+    private static func exportKey(from title: String) -> String {
+        let cleaned = title.lowercased().replacingOccurrences(of: "[^a-z0-9]+", with: "_", options: .regularExpression)
+        return cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+    }
+
+    private func appendHexLine(_ key: String, _ value: String?, to lines: inout [String]) {
+        guard let hex = Self.normalizedHex(value) else { return }
+        lines.append("\(key)=\(hex)")
     }
 
     static func formattedFeliCaSerial(_ raw: String, cardFamily: String) -> String {

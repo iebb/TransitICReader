@@ -88,6 +88,15 @@ struct SavedCardDetailView: View {
                     cardInfoSection(card: card)
                 }
 
+                Section("Export") {
+                    ShareLink(
+                        item: card.fullHexExportText,
+                        preview: SharePreview("\(card.displayTitle) Hex Export")
+                    ) {
+                        Label("Export Full Hex Data", systemImage: "square.and.arrow.up")
+                    }
+                }
+
                     Section("Map") {
                         NavigationLink {
                             RideMapView(store: store, initialCardID: card.id, showsCardPicker: false)

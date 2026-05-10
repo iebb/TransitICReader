@@ -1443,14 +1443,7 @@ func defaultFractionDigits(for currencyCode: String) -> Int {
 }
 
 func octopusOffset(for date: Date) -> Int {
-    let calendar = Calendar.current
-    let components = calendar.dateComponents([.year, .month, .day], from: date)
-    if let year = components.year, let month = components.month, let day = components.day {
-        if year > 2010 || (year == 2010 && month > 12) || (year == 2010 && month == 12 && day >= 1) {
-            return 350
-        }
-    }
-    return 35
+    500
 }
 
 func formatFeliCaIDm(_ idm: String) -> String {
