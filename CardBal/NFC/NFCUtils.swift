@@ -205,10 +205,10 @@ struct TransactionDecoderRegistry {
         } else if technology == "ISO7816" {
             // KS X 6924 (Korean T-money/EZL/NAMANE)
             let brand = ICCardBrand.from(family: family)
-            if data.count == 52 {
-                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: brand == .namane, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
-            } else if brand == .tUnion && data.count >= 48 {
+            if brand == .tUnion && data.count >= 48 {
                 return TUnionDecoder.decodeTravelRecord(data: data, index: index)
+            } else if data.count == 52 {
+                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: brand == .namane, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
             } else if data.count == 23 {
                 return TUnionDecoder.decodePBOC(data: data, index: index)
             } else {

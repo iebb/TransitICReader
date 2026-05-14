@@ -134,6 +134,8 @@ class CardWalletStore: ObservableObject {
     }
 
     private func mergeRawRecords(existing: [String], incoming: [String], family: String, technology: String, kind: RawHistoryKind) -> [String] {
+        let existing = existing.filter(SavedCardRecord.rawRecordHasContent)
+        let incoming = incoming.filter(SavedCardRecord.rawRecordHasContent)
         guard !existing.isEmpty else { return incoming }
         guard !incoming.isEmpty else { return existing }
 

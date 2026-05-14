@@ -188,6 +188,7 @@ struct TUnionDecoder: TransitCardDecoder {
         for recNo in UInt8(1)...UInt8(10) {
             guard let data = await readRecord(iso: iso, recordNumber: recNo, p2: p2) else { break }
             guard data.count >= 23 else { continue }
+            guard data.contains(where: { $0 != 0x00 }) else { continue }
             txs.append(data.hexString.uppercased())
         }
         return txs
@@ -199,6 +200,7 @@ struct TUnionDecoder: TransitCardDecoder {
         for recNo in UInt8(1)...UInt8(30) {
             guard let data = await readRecord(iso: iso, recordNumber: recNo, p2: p2) else { break }
             guard data.count >= 48 else { continue }
+            guard data.contains(where: { $0 != 0x00 }) else { continue }
             travels.append(data.hexString.uppercased())
         }
         return travels

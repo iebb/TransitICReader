@@ -131,8 +131,8 @@ struct WalletCardView: View {
 
                     Spacer()
 
-        let transactionCount = max(card.transactions.count, card.rawTransactions.count)
-        let transitCount = max(card.transitHistory.count, card.rawTransitHistory.count)
+        let transactionCount = card.transactions.count
+        let transitCount = card.transitHistory.count
         let hasHistory = transactionCount > 0 || transitCount > 0
         
         HStack(alignment: .bottom) {

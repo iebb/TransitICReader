@@ -191,8 +191,8 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         cardTypeStr = try container.decodeIfPresent(String.self, forKey: .cardTypeStr)
         issueDateStr = try container.decodeIfPresent(String.self, forKey: .issueDateStr)
         expiryDateStr = try container.decodeIfPresent(String.self, forKey: .expiryDateStr)
-        rawTransactions = try container.decode([String].self, forKey: .rawTransactions)
-        rawTransitHistory = try container.decode([String].self, forKey: .rawTransitHistory)
+        rawTransactions = try container.decode([String].self, forKey: .rawTransactions).filter(Self.rawRecordHasContent)
+        rawTransitHistory = try container.decode([String].self, forKey: .rawTransitHistory).filter(Self.rawRecordHasContent)
         resultFields = try container.decode([SavedCardField].self, forKey: .resultFields)
         scannedAt = try container.decode(Date.self, forKey: .scannedAt)
         color = try container.decode(SavedCardColor.self, forKey: .color)
@@ -423,6 +423,11 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         return hex
     }
 
+    static func rawRecordHasContent(_ value: String) -> Bool {
+        guard let hex = normalizedHex(value) else { return false }
+        return hex.contains { $0 != "0" }
+    }
+
     private static func exportKey(from title: String) -> String {
         let cleaned = title.lowercased().replacingOccurrences(of: "[^a-z0-9]+", with: "_", options: .regularExpression)
         return cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "_"))
@@ -508,8 +513,8 @@ extension SavedCardRecord {
         self.cardTypeStr = snapshot.resultFields.first(where: {$0.title == "Card Type"})?.value
         self.issueDateStr = snapshot.resultFields.first(where: {$0.title == "Issue Date"})?.value
         self.expiryDateStr = snapshot.resultFields.first(where: {$0.title == "Expiry Date"})?.value
-        self.rawTransactions = snapshot.rawTransactions
-        self.rawTransitHistory = snapshot.rawTransitHistory
+        self.rawTransactions = snapshot.rawTransactions.filter(Self.rawRecordHasContent)
+        self.rawTransitHistory = snapshot.rawTransitHistory.filter(Self.rawRecordHasContent)
         self.resultFields = snapshot.resultFields.map(SavedCardField.init)
         self.scannedAt = snapshot.scannedAt
         self.color = Self.defaultColor(for: snapshot.cardFamily)
