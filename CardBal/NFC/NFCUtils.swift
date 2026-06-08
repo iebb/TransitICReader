@@ -62,7 +62,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "ezl": .ezl, "cashbee": .ezl, "namane": .namane, "climate card": .climateCard,
             "moiba": .moiba, "k-cash": .kCash, "kcash": .kCash, "octopus": .octopus,
             "rakuten edy": .edy, "edy": .edy, "waon": .waon, "nanaco": .nanaco,
-            "t-union": .tUnion, "china t-union": .tUnion
+            "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion
         ]
         
         if let directMatch = exactMap[f] { return directMatch }
@@ -80,7 +80,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         if f.hasPrefix("rakuten edy") || f == "edy" { return .edy }
         if f.hasPrefix("waon") { return .waon }
         if f.hasPrefix("nanaco") { return .nanaco }
-        if f.hasPrefix("t-union") || f.hasPrefix("china") { return .tUnion }
+        if f.hasPrefix("t-union") || f.hasPrefix("china") || f.contains("city union") { return .tUnion }
         
         // Generic Fallbacks
         if f.hasSuffix("transit ic") || f.hasSuffix("feli") || f.hasSuffix("japan") { return .suica }
@@ -205,7 +205,9 @@ struct TransactionDecoderRegistry {
         } else if technology == "ISO7816" {
             // KS X 6924 (Korean T-money/EZL/NAMANE)
             let brand = ICCardBrand.from(family: family)
-            if brand == .tUnion && data.count >= 48 {
+            if family.localizedCaseInsensitiveContains("City Union"), data.count == 23 {
+                return CityUnionDecoder.decodeTransitRecord(data: data, index: index)
+            } else if brand == .tUnion && data.count >= 48 {
                 return TUnionDecoder.decodeTravelRecord(data: data, index: index)
             } else if data.count == 52 {
                 return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: brand == .namane, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
@@ -314,7 +316,7 @@ enum NFCTestError: Error {
 
 enum NFCISO7816AccessPolicy {
     static let exactAIDs: Set<String> = [
-        "A0000004520001", "D4100000030001", "D4100000140001", "D410000029000001", "D4100000300001", "D4106509900020", "A000000632010105"
+        "A0000004520001", "D4100000030001", "D4100000140001", "D410000029000001", "D4100000300001", "D4106509900020", "A00000000386980701", "A000000632010105"
     ]
 
     static let ksx6924AllowedPrefixes: [String] = [

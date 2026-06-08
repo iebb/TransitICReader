@@ -1,6 +1,365 @@
 import Foundation
 import CoreNFC
 
+struct CityUnionDecoder: TransitCardDecoder {
+    private static let applicationAID = "A00000000386980701"
+    private static let shanghaiCityCode = 0x2000
+
+    static func canDecode(tag: NFCTag) async -> Bool {
+        guard case .iso7816(let iso) = tag else { return false }
+        let selectedAID = iso.initialSelectedAID.uppercased()
+        if selectedAID == applicationAID { return true }
+        return await selectApplication(iso: iso) != nil
+    }
+
+    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+        guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
+        let initialSelectedAID = iso.initialSelectedAID.uppercased()
+        guard let selectResponse = await selectApplication(iso: iso) else { throw NFCTestError.unsupportedCard }
+
+        var rawSections: [RawDataSection] = [
+            RawDataSection(title: "Tag", fields: [
+                RawDataField(title: "Technology", value: "ISO7816"),
+                RawDataField(title: "UID", value: iso.identifier.hexString),
+                RawDataField(title: "Initial Selected AID", value: initialSelectedAID.isEmpty ? "Unavailable" : initialSelectedAID),
+                RawDataField(title: "Application AID", value: applicationAID),
+                RawDataField(title: "Select SW1SW2", value: String(format: "%02X%02X", selectResponse.1, selectResponse.2))
+            ])
+        ]
+
+        let balancePayloads = await readBalances(iso: iso)
+        let parsedBalance = parseBalance(balancePayloads[0])
+        rawSections.append(RawDataSection(
+            title: "Balance Registers",
+            fields: balancePayloads.sorted { $0.key < $1.key }.map { index, payload in
+                RawDataField(title: "Balance \(index)", value: payload.hexString)
+            }
+        ))
+
+        let cardInfo = await readFile15(iso: iso)
+        let metadata = parseCardInfo(cardInfo)
+        if let cardInfo {
+            rawSections.append(RawDataSection(title: "Card Info File 0x15", fields: [
+                RawDataField(title: "Payload", value: cardInfo.hexString),
+                RawDataField(title: "City", value: metadata.cityDisplay ?? "Unavailable"),
+                RawDataField(title: "Serial", value: metadata.serial ?? "Unavailable")
+            ]))
+        }
+
+        var resultFields: [ResultField] = [
+            ResultField(title: "Brand", value: metadata.cityDisplay ?? "City Union")
+        ]
+        if let serial = metadata.serial {
+            resultFields.append(ResultField(title: "Card Number", value: serial))
+        }
+        if let city = metadata.cityDisplay {
+            resultFields.append(ResultField(title: "Issuing City", value: city))
+        }
+        if let issue = metadata.issueDate {
+            resultFields.append(ResultField(title: "Issue Date", value: issue))
+        }
+        if let expiry = metadata.expiryDate {
+            resultFields.append(ResultField(title: "Expiry Date", value: expiry))
+        }
+
+        let history = await readHistory(iso: iso)
+
+        return TransitCardSnapshot(
+            technology: "ISO7816",
+            cardFamily: "City Union",
+            identifierLabel: "UID",
+            identifierValue: iso.identifier.hexString,
+            rawIdentifierValue: iso.identifier.hexString,
+            pmm: nil,
+            systemCode: nil,
+            selectedAID: applicationAID,
+            balanceText: parsedBalance.formatted,
+            balanceDetail: parsedBalance.detail,
+            realSerialNumber: metadata.serial,
+            region: metadata.cityDisplay ?? "City Union",
+            resultFields: resultFields,
+            rawSections: rawSections + parsedBalance.rawSections,
+            rawTransactions: [],
+            rawTransitHistory: history,
+            scannedAt: scannedAt
+        )
+    }
+
+    private static func readBalances(iso: NFCISO7816Tag) async -> [Int: Data] {
+        var payloads: [Int: Data] = [:]
+        for index in 0...3 {
+            let apdu = NFCISO7816APDU(
+                instructionClass: 0x80,
+                instructionCode: 0x5C,
+                p1Parameter: UInt8(index),
+                p2Parameter: 0x02,
+                data: Data(),
+                expectedResponseLength: 4
+            )
+            if let response = try? await iso.sendCommand(apdu: apdu),
+               response.1 == 0x90,
+               response.2 == 0x00,
+               response.0.count >= 4 {
+                payloads[index] = response.0
+            }
+        }
+        return payloads
+    }
+
+    private static func selectApplication(iso: NFCISO7816Tag) async -> (Data, UInt8, UInt8)? {
+        let selectApdu = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xA4,
+            p1Parameter: 0x04,
+            p2Parameter: 0x00,
+            data: Data(hexString: applicationAID),
+            expectedResponseLength: 256
+        )
+        guard let response = try? await iso.sendCommand(apdu: selectApdu),
+              response.1 == 0x90,
+              response.2 == 0x00 else {
+            return nil
+        }
+        return response
+    }
+
+    private static func readHistory(iso: NFCISO7816Tag) async -> [String] {
+        var records: [String] = []
+        let p2 = (UInt8(0x18) << 3) | 0x04
+        for recordNumber in UInt8(1)...UInt8(30) {
+            guard let data = await readRecord(iso: iso, recordNumber: recordNumber, p2: p2) else { break }
+            guard data.count >= 23 else { continue }
+            guard data.contains(where: { $0 != 0x00 }) else { continue }
+            records.append(Data(data.prefix(23)).hexString.uppercased())
+        }
+        return records
+    }
+
+    static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? {
+        guard data.count >= 23 else { return nil }
+
+        // City Union stores China PBOC trip records in file 0x18:
+        // 0-1 sequence, 2-4 reserved/overdraft, 5-8 fare, 9 type,
+        // 10-15 terminal/station, 16-22 BCD timestamp.
+        let amountCents = Int(bigEndianUInt32(data, at: 5))
+        let typeByte = data[9]
+        let terminalID = data.subdata(in: 10..<16).hexString.uppercased()
+        let dateBCD = data.subdata(in: 16..<20).hexString
+        let timeBCD = data.subdata(in: 20..<23).hexString
+        guard amountCents != 0 || (dateBCD + timeBCD) != "00000000000000" else { return nil }
+
+        let decodedType = decodeTransitType(typeByte)
+        let amount = Decimal(amountCents) / 100
+        let cityID = String(terminalID.prefix(4))
+        let cityName = TUnionCityDatabase.lookupCityName(for: cityID)
+        let terminalLabel = "Terminal \(terminalID)"
+        let location = cityName.map { "\($0) • \(terminalLabel)" } ?? terminalLabel
+
+        return TransitTransaction(
+            date: CardDateFormatting.parseCompactDateTime(dateBCD + timeBCD, format: "yyyyMMddHHmmss", brand: .tUnion),
+            time: formatBCDTime(timeBCD),
+            amount: decodedType.isCredit ? amount : -amount,
+            terminalID: terminalID,
+            type: decodedType.label,
+            category: decodedType.category,
+            balanceAfter: nil,
+            location: location,
+            rawData: data.hexString.uppercased(),
+            recordNumber: index + 1
+        )
+    }
+
+    private static func readFile15(iso: NFCISO7816Tag) async -> Data? {
+        for path in [[0x1001, 0x0015], [0x0015]] {
+            if await selectPath(path, iso: iso),
+               let data = await readBinary(iso: iso),
+               data.contains(where: { $0 != 0x00 }) {
+                return data
+            }
+        }
+
+        let sfiRead = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xB0,
+            p1Parameter: 0x80 | 0x15,
+            p2Parameter: 0x00,
+            data: Data(),
+            expectedResponseLength: -1
+        )
+        if let response = try? await iso.sendCommand(apdu: sfiRead),
+           response.1 == 0x90,
+           response.2 == 0x00,
+           response.0.contains(where: { $0 != 0x00 }) {
+            return response.0
+        }
+
+        return nil
+    }
+
+    private static func selectPath(_ path: [Int], iso: NFCISO7816Tag) async -> Bool {
+        for fileID in path {
+            let data = Data([UInt8((fileID >> 8) & 0xFF), UInt8(fileID & 0xFF)])
+            let apdu = NFCISO7816APDU(
+                instructionClass: 0x00,
+                instructionCode: 0xA4,
+                p1Parameter: 0x00,
+                p2Parameter: 0x00,
+                data: data,
+                expectedResponseLength: 256
+            )
+            guard let response = try? await iso.sendCommand(apdu: apdu),
+                  response.1 == 0x90,
+                  response.2 == 0x00 else {
+                return false
+            }
+        }
+        return true
+    }
+
+    private static func readBinary(iso: NFCISO7816Tag) async -> Data? {
+        let apdu = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xB0,
+            p1Parameter: 0x00,
+            p2Parameter: 0x00,
+            data: Data(),
+            expectedResponseLength: -1
+        )
+        guard let response = try? await iso.sendCommand(apdu: apdu) else { return nil }
+        if response.1 == 0x90, response.2 == 0x00 { return response.0 }
+        if response.1 == 0x6C {
+            let retry = NFCISO7816APDU(
+                instructionClass: 0x00,
+                instructionCode: 0xB0,
+                p1Parameter: 0x00,
+                p2Parameter: 0x00,
+                data: Data(),
+                expectedResponseLength: Int(response.2)
+            )
+            if let retryResponse = try? await iso.sendCommand(apdu: retry),
+               retryResponse.1 == 0x90,
+               retryResponse.2 == 0x00 {
+                return retryResponse.0
+            }
+        }
+        return nil
+    }
+
+    private static func readRecord(iso: NFCISO7816Tag, recordNumber: UInt8, p2: UInt8) async -> Data? {
+        let apdu = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xB2,
+            p1Parameter: recordNumber,
+            p2Parameter: p2,
+            data: Data(),
+            expectedResponseLength: -1
+        )
+        guard let response = try? await iso.sendCommand(apdu: apdu) else { return nil }
+        if response.1 == 0x90, response.2 == 0x00 { return response.0 }
+        if response.1 == 0x6C {
+            let retry = NFCISO7816APDU(
+                instructionClass: 0x00,
+                instructionCode: 0xB2,
+                p1Parameter: recordNumber,
+                p2Parameter: p2,
+                data: Data(),
+                expectedResponseLength: Int(response.2)
+            )
+            if let retryResponse = try? await iso.sendCommand(apdu: retry),
+               retryResponse.1 == 0x90,
+               retryResponse.2 == 0x00 {
+                return retryResponse.0
+            }
+        }
+        return nil
+    }
+
+    private static func parseBalance(_ payload: Data?) -> (formatted: String?, detail: String, rawSections: [RawDataSection]) {
+        guard let payload, payload.count >= 4 else {
+            return (nil, "City Union balance register was unavailable.", [])
+        }
+        let cents = Int(bigEndianUInt32(payload, at: 0) & 0x7FFF_FFFF)
+        let amount = Decimal(cents) / 100
+        return (
+            formatCurrency(amount: amount, code: "CNY", fractionDigits: 2),
+            "CNY balance for City Union card.",
+            [RawDataSection(title: "Parsed Balance", fields: [
+                RawDataField(title: "Balance", value: formatCurrency(amount: amount, code: "CNY", fractionDigits: 2)),
+                RawDataField(title: "Raw Cents", value: String(cents))
+            ])]
+        )
+    }
+
+    private static func parseCardInfo(_ data: Data?) -> (serial: String?, cityDisplay: String?, issueDate: String?, expiryDate: String?) {
+        guard let data else { return (nil, nil, nil, nil) }
+        let cityCode = data.count >= 4 ? Int(bigEndianUInt16(data, at: 2)) : nil
+        let cityDisplay = cityCode.map(cityName)
+        let serial: String?
+        if data.count >= 20 {
+            if cityCode == shanghaiCityCode {
+                serial = String(bigEndianUInt32(data, at: 16))
+            } else {
+                serial = String(littleEndianUInt32(data, at: 16))
+            }
+        } else {
+            serial = nil
+        }
+        let issueDate = data.count >= 24 ? formatBCDDate(data.subdata(in: 20..<24).hexString) : nil
+        let expiryDate = data.count >= 28 ? formatBCDDate(data.subdata(in: 24..<28).hexString) : nil
+        return (serial, cityDisplay, issueDate, expiryDate)
+    }
+
+    private static func cityName(_ code: Int) -> String {
+        if code == shanghaiCityCode { return "Shanghai" }
+        let hex = String(format: "%04X", code)
+        return TUnionCityDatabase.lookupCityName(for: hex) ?? "City \(hex)"
+    }
+
+    private static func formatBCDDate(_ bcd: String) -> String? {
+        guard bcd.count == 8, bcd != "00000000" else { return nil }
+        return "\(bcd.prefix(4))-\(bcd.dropFirst(4).prefix(2))-\(bcd.suffix(2))"
+    }
+
+    private static func formatBCDTime(_ bcd: String) -> String? {
+        guard bcd.count == 6, bcd != "000000" else { return nil }
+        return "\(bcd.prefix(2)):\(bcd.dropFirst(2).prefix(2)):\(bcd.suffix(2))"
+    }
+
+    private static func decodeTransitType(_ type: UInt8) -> (label: String, category: TransactionCategory, isCredit: Bool) {
+        switch type {
+        case 0x02:
+            return ("City Union Top-up", .topUp, true)
+        case 0x06:
+            return ("City Union Transit", .train, false)
+        case 0x09:
+            return ("City Union Composite Transit", .train, false)
+        case 0x04:
+            return ("City Union Adjustment", .adjustment, false)
+        case 0x05:
+            return ("City Union Refund", .refund, true)
+        default:
+            return ("City Union Transaction \(String(format: "%02X", type))", .unknown, false)
+        }
+    }
+
+    private static func bigEndianUInt16(_ data: Data, at offset: Int) -> UInt16 {
+        guard data.count >= offset + 2 else { return 0 }
+        return data[offset..<(offset + 2)].reduce(UInt16(0)) { ($0 << 8) | UInt16($1) }
+    }
+
+    private static func bigEndianUInt32(_ data: Data, at offset: Int) -> UInt32 {
+        guard data.count >= offset + 4 else { return 0 }
+        return data[offset..<(offset + 4)].reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+    }
+
+    private static func littleEndianUInt32(_ data: Data, at offset: Int) -> UInt32 {
+        guard data.count >= offset + 4 else { return 0 }
+        return data[offset..<(offset + 4)].enumerated().reduce(UInt32(0)) { result, entry in
+            result | (UInt32(entry.element) << UInt32(entry.offset * 8))
+        }
+    }
+}
+
 struct TUnionDecoder: TransitCardDecoder {
     static func canDecode(tag: NFCTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
@@ -61,7 +420,6 @@ struct TUnionDecoder: TransitCardDecoder {
         
         let parsedBalance = parseTUnionBalances(balancePayloads)
         var realSN: String?
-        var cardFamily = "T-Union"
         var brandRegion = "T-Union Cities"
         var issuingCity: String?
         var cardTypeStr: String?

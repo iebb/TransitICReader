@@ -23,7 +23,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.4.0</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>29</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIconName</key>
@@ -101,6 +101,7 @@
 		<string>D410000029000001</string>
 		<string>D4100000300001</string>
 		<string>D4106509900020</string>
+		<string>A00000000386980701</string>
 		<string>A000000632010105</string>
 	</array>
 </dict>

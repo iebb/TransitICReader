@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */; };
 		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
+		0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */; };
 		0EFAFB50E232381B6246D786 /* icoca.png in Resources */ = {isa = PBXBuildFile; fileRef = DD02F5701AE4C47C4D43B861 /* icoca.png */; };
 		1B6A2C8BF37E5CB823EB883C /* Localizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118B2F4C7E32F920855B0DF5 /* Localizer.swift */; };
 		1B8F4CB55CA980FA310E0F04 /* hayakaken.png in Resources */ = {isa = PBXBuildFile; fileRef = 3720A3E74F7150E885F94341 /* hayakaken.png */; };
@@ -453,7 +453,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 29;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -484,7 +484,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 29;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;

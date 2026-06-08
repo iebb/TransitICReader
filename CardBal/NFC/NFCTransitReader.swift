@@ -18,6 +18,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private var session: NFCTagReaderSession?
 
     private let decoders: [TransitCardDecoder.Type] = [
+        CityUnionDecoder.self,
         TUnionDecoder.self,
         CalypsoDecoder.self,
         KSX6924Decoder.self,
@@ -146,6 +147,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
         Task {
             var feliCaSnapshot: TransitCardSnapshot?
             var iso7816Snapshot: TransitCardSnapshot?
+            var unsupportedTagDetails: [String] = []
 
             for (index, tag) in tags.enumerated() {
                 NSLog("[READER] Processing tag [\(index)]: \(tag)")
@@ -155,10 +157,40 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                     let scannedAt = Date()
                     var snapshot: TransitCardSnapshot?
 
+                    switch tag {
+                    case .iso7816(let iso):
+                        let aid = iso.initialSelectedAID.uppercased()
+                        let detail = "ISO7816 AID \(aid.isEmpty ? "empty" : aid), UID \(iso.identifier.hexString.uppercased())"
+                        unsupportedTagDetails.append(detail)
+                        NSLog("[READER] \(detail)")
+                    case .feliCa(let feliCa):
+                        let detail = "FeliCa IDm \(feliCa.currentIDm.hexString.uppercased())"
+                        unsupportedTagDetails.append(detail)
+                        NSLog("[READER] \(detail)")
+                    case .miFare(let miFare):
+                        let detail = "MIFARE UID \(miFare.identifier.hexString.uppercased())"
+                        unsupportedTagDetails.append(detail)
+                        NSLog("[READER] \(detail)")
+                    case .iso15693(let iso15693):
+                        let detail = "ISO15693 UID \(iso15693.identifier.hexString.uppercased())"
+                        unsupportedTagDetails.append(detail)
+                        NSLog("[READER] \(detail)")
+                    @unknown default:
+                        unsupportedTagDetails.append("Unknown NFC tag")
+                        NSLog("[READER] Unknown NFC tag")
+                    }
+
                     for decoder in decoders {
-                        if await decoder.canDecode(tag: tag) {
+                        let decoderName = String(describing: decoder)
+                        let canDecode = await decoder.canDecode(tag: tag)
+                        NSLog("[READER] Decoder \(decoderName) canDecode=\(canDecode)")
+                        if canDecode {
                             snapshot = try? await decoder.decode(tag: tag, scannedAt: scannedAt)
-                            if snapshot != nil { break }
+                            if snapshot != nil {
+                                NSLog("[READER] Decoder \(decoderName) decoded successfully")
+                                break
+                            }
+                            NSLog("[READER] Decoder \(decoderName) matched but decode failed")
                         }
                     }
 
@@ -230,7 +262,11 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
             if let finalSnapshot {
                 await MainActor.run { self.finish(with: finalSnapshot, session: session) }
             } else {
-                await MainActor.run { self.fail("Could not read any supported transit card data.", session: session) }
+                let detail = unsupportedTagDetails.prefix(3).joined(separator: "; ")
+                let message = detail.isEmpty
+                    ? "Could not read any supported transit card data."
+                    : "Could not read any supported transit card data. Detected: \(detail)"
+                await MainActor.run { self.fail(message, session: session) }
             }
         }
     }

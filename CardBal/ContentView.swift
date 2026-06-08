@@ -36,6 +36,24 @@ private struct KoreanTripCrowdsourcingResponse: Decodable {
     let duplicates: Int?
 }
 
+struct CardBalBackupDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data = Data()) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
 enum KoreanTripCrowdsourcing {
     static func isEligible(snapshot: TransitCardSnapshot) -> Bool {
         guard snapshot.technology == "ISO7816" else { return false }
@@ -233,7 +251,7 @@ struct ScanHomeView: View {
                                 Spacer()
                                 Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
                             }
-                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
                         }.padding(.vertical, 6)
                     }
                 }
@@ -610,6 +628,10 @@ struct SettingsView: View {
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
     @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
     @AppStorage(KoreanTripCrowdsourcingPreferences.promptedKey) private var koreanTripCrowdsourcingPrompted = false
+    @State private var backupDocument = CardBalBackupDocument()
+    @State private var isExportingBackup = false
+    @State private var isImportingBackup = false
+    @State private var backupMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -637,6 +659,24 @@ struct SettingsView: View {
                     } else {
                         Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "icloud.and.arrow.up") }
                         Button { store.restoreFromiCloud() } label: { Label("Restore from iCloud", systemImage: "icloud.and.arrow.down") }
+                        Button {
+                            if let data = store.exportBackup() {
+                                backupDocument = CardBalBackupDocument(data: data)
+                                isExportingBackup = true
+                            }
+                        } label: {
+                            Label("Export Cross-Platform Backup", systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            isImportingBackup = true
+                        } label: {
+                            Label("Import Cross-Platform Backup", systemImage: "square.and.arrow.down")
+                        }
+                        if let backupMessage {
+                            Text(backupMessage)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 Section("App Settings") {
@@ -707,6 +747,40 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+        }
+        .fileExporter(
+            isPresented: $isExportingBackup,
+            document: backupDocument,
+            contentType: .json,
+            defaultFilename: "cardbal-backup"
+        ) { result in
+            switch result {
+            case .success:
+                backupMessage = "Backup exported."
+            case .failure(let error):
+                backupMessage = "Export failed: \(error.localizedDescription)"
+            }
+        }
+        .fileImporter(
+            isPresented: $isImportingBackup,
+            allowedContentTypes: [.json]
+        ) { result in
+            switch result {
+            case .success(let url):
+                let didAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if didAccess { url.stopAccessingSecurityScopedResource() }
+                }
+                do {
+                    let data = try Data(contentsOf: url)
+                    let importResult = try store.importBackup(data)
+                    backupMessage = "Imported \(importResult.imported) cards (\(importResult.replaced) replaced)."
+                } catch {
+                    backupMessage = "Import failed: \(error.localizedDescription)"
+                }
+            case .failure(let error):
+                backupMessage = "Import failed: \(error.localizedDescription)"
+            }
         }
     }
 }
