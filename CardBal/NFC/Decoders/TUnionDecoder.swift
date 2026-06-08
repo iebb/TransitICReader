@@ -322,9 +322,8 @@ struct CityUnionDecoder: TransitCardDecoder {
     }
 
     private static func cityName(_ code: Int) -> String {
-        if code == shanghaiCityCode { return "Shanghai" }
         let hex = String(format: "%04X", code)
-        return TUnionCityDatabase.lookupCityName(for: hex) ?? "City \(hex)"
+        return CityUnionCityDatabase.lookupCityName(for: hex) ?? "City \(hex)"
     }
 
     private static func formatBCDDate(_ bcd: String) -> String? {
@@ -369,6 +368,96 @@ struct CityUnionDecoder: TransitCardDecoder {
         return data[offset..<(offset + 4)].enumerated().reduce(UInt32(0)) { result, entry in
             result | (UInt32(entry.element) << UInt32(entry.offset * 8))
         }
+    }
+}
+
+struct CityUnionCityDatabase {
+    // City Union city/project codes use the first four digits of the city postal code.
+    private static let cityCodes: [String: String] = [
+        "0001": "Beijing Future Science City",
+        "0560": "Handan",
+        "1100": "Shenyang",
+        "1120": "Tieling",
+        "1130": "Fushun",
+        "1150": "Yingkou",
+        "1170": "Benxi",
+        "1210": "Jinzhou",
+        "1250": "Huludao",
+        "1251": "Xingcheng",
+        "1362": "Liaoyuan",
+        "1380": "Songyuan",
+        "2000": "Shanghai",
+        "2140": "Wuxi",
+        "2142": "Yixing",
+        "2144": "Jiangyin",
+        "2153": "Kunshan",
+        "2154": "Taicang",
+        "2155": "Changshu",
+        "2230": "Huai'an",
+        "2240": "Yancheng",
+        "2253": "Taizhou",
+        "2260": "Nantong",
+        "2320": "Huainan",
+        "2360": "Fuyang",
+        "2760": "Linyi",
+        "3000": "Tianjin",
+        "3120": "Shaoxing",
+        "3130": "Huzhou",
+        "3131": "Changxing",
+        "3140": "Jiaxing",
+        "3150": "Ningbo",
+        "3160": "Zhoushan",
+        "3180": "Taizhou",
+        "3210": "Jinhua",
+        "3220": "Yiwu",
+        "3250": "Wenzhou",
+        "3300": "Nanchang",
+        "3320": "Jiujiang",
+        "3340": "Shangrao",
+        "3350": "Yingtan",
+        "3410": "Ganzhou",
+        "3500": "Fuzhou",
+        "3511": "Putian",
+        "3620": "Quanzhou",
+        "3622": "Jinjiang",
+        "3640": "Longyan",
+        "4000": "Chongqing",
+        "4111": "Xiangtan",
+        "4120": "Zhuzhou",
+        "4250": "Yongzhou",
+        "4331": "Qianjiang",
+        "4420": "Shiyan",
+        "4500": "Zhengzhou",
+        "4501": "Xingyang",
+        "4511": "Xinzheng",
+        "4620": "Luohe",
+        "4630": "Zhumadian",
+        "4670": "Pingdingshan",
+        "4730": "Nanyang",
+        "5190": "Zhuhai",
+        "5240": "Zhanjiang",
+        "5560": "Kaili",
+        "5580": "Duyun",
+        "5630": "Zunyi",
+        "5720": "Sanya",
+        "6150": "Xichang",
+        "6217": "Jiangyou",
+        "6374": "Langzhong",
+        "6430": "Zigong",
+        "6500": "Kunming",
+        "6710": "Dali",
+        "7120": "Xianyang",
+        "7121": "Yangling",
+        "7140": "Weinan",
+        "7190": "Yulin",
+        "7300": "Lanzhou",
+        "7309": "Baiyin",
+        "7441": "Huating",
+        "8340": "Karamay"
+    ]
+
+    static func lookupCityName(for cityId: String) -> String? {
+        cityCodes[cityId.uppercased()]
     }
 }
 
