@@ -62,7 +62,8 @@ struct CityUnionDecoder: TransitCardDecoder {
             resultFields.append(ResultField(title: "Expiry Date", value: expiry))
         }
 
-        let history = await readHistory(iso: iso)
+        let transactionLog = await readTransactionLog(iso: iso)
+        let transitHistory = transactionLog.filter(isTransitRecord)
 
         return TransitCardSnapshot(
             technology: "ISO7816",
@@ -79,8 +80,8 @@ struct CityUnionDecoder: TransitCardDecoder {
             region: metadata.cityDisplay ?? "City Union",
             resultFields: resultFields,
             rawSections: rawSections + parsedBalance.rawSections,
-            rawTransactions: [],
-            rawTransitHistory: history,
+            rawTransactions: transactionLog,
+            rawTransitHistory: transitHistory,
             scannedAt: scannedAt
         )
     }
@@ -123,7 +124,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         return response
     }
 
-    private static func readHistory(iso: NFCISO7816Tag) async -> [String] {
+    private static func readTransactionLog(iso: NFCISO7816Tag) async -> [String] {
         var records: [String] = []
         let p2 = (UInt8(0x18) << 3) | 0x04
         for recordNumber in UInt8(1)...UInt8(30) {
@@ -133,6 +134,17 @@ struct CityUnionDecoder: TransitCardDecoder {
             records.append(Data(data.prefix(23)).hexString.uppercased())
         }
         return records
+    }
+
+    private static func isTransitRecord(_ raw: String) -> Bool {
+        let data = Data(hexString: raw)
+        guard data.count >= 23 else { return false }
+        switch data[9] {
+        case 0x06, 0x09:
+            return true
+        default:
+            return false
+        }
     }
 
     static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? {
