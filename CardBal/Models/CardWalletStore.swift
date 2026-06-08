@@ -31,12 +31,29 @@ class CardWalletStore: ObservableObject {
 
     private let userDefaultsKey = "savedTransitCards"
     private var saveTask: Task<Void, Never>?
+    private var automaticCloudSyncTask: Task<Void, Never>?
+    private var iCloudChangeObserver: NSObjectProtocol?
+    private var isApplyingCloudSync = false
     private var imageCache: [String: UIImage] = [:]
+
+    private let iCloudBackupKey = "icloud_card_backup"
+    private let iCloudBackupUpdatedAtKey = "icloud_card_backup_updated_at"
+    private let localDataUpdatedAtKey = "cardbal_local_data_updated_at"
+    private let lastAppliedCloudUpdateKey = "cardbal_last_applied_cloud_update_at"
+    private let lastUploadedCloudUpdateKey = "cardbal_last_uploaded_cloud_update_at"
 
     init() {
         openDatabase()
         migrateIfNeeded()
         load()
+        startAutomaticiCloudSync()
+    }
+
+    deinit {
+        automaticCloudSyncTask?.cancel()
+        if let iCloudChangeObserver {
+            NotificationCenter.default.removeObserver(iCloudChangeObserver)
+        }
     }
 
     private func openDatabase() {
@@ -506,70 +523,130 @@ class CardWalletStore: ObservableObject {
     }
 
     private var ubiquityDocumentsURL: URL? {
-        FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents")
+        FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.ad.neko.cardbal")?.appendingPathComponent("Documents")
     }
 
     func backupToiCloud() {
         Task { @MainActor in
+            await runiCloudBackup(showProgress: true)
+        }
+    }
+
+    func restoreFromiCloud() {
+        Task { @MainActor in
+            let changed = await runiCloudRestore(showProgress: true, force: true)
+            if changed {
+                scheduleAutomaticiCloudBackup(delay: 1_000_000_000)
+            }
+        }
+    }
+
+    private func startAutomaticiCloudSync() {
+        iCloudChangeObserver = NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: NSUbiquitousKeyValueStore.default,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let changed = await self.runiCloudRestore(showProgress: false, force: false)
+                if changed {
+                    self.scheduleAutomaticiCloudBackup(delay: 1_000_000_000)
+                }
+            }
+        }
+
+        NSUbiquitousKeyValueStore.default.synchronize()
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 750_000_000)
+            let changed = await runiCloudRestore(showProgress: false, force: cards.isEmpty)
+            if changed || !cards.isEmpty {
+                scheduleAutomaticiCloudBackup(delay: 2_000_000_000)
+            }
+        }
+    }
+
+    private func scheduleAutomaticiCloudBackup(delay: UInt64 = 3_000_000_000) {
+        guard !isApplyingCloudSync else { return }
+        automaticCloudSyncTask?.cancel()
+        automaticCloudSyncTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: delay)
+            guard !Task.isCancelled else { return }
+            await runiCloudBackup(showProgress: false)
+        }
+    }
+
+    @MainActor
+    private func runiCloudBackup(showProgress: Bool) async {
+        save(force: true, scheduleCloudSync: false)
+        guard let data = exportBackup(includeFaceAssets: false) else {
+            print("[iCloud] Failed to export metadata")
+            return
+        }
+
+        if showProgress {
             isSyncing = true
             syncProgress = 0.1
             syncMessage = "Preparing backup..."
-            
-            print("[iCloud] Starting backup...")
-            
-            // 1. Sync card metadata to KVS
-            guard let data = exportBackup() else { 
-                print("[iCloud] Failed to export metadata")
-                isSyncing = false
-                return 
-            }
-            NSUbiquitousKeyValueStore.default.set(data, forKey: "icloud_card_backup")
-            NSUbiquitousKeyValueStore.default.synchronize()
+        }
+
+        print("[iCloud] Starting backup...")
+        let cloudUpdatedAt = Date().timeIntervalSince1970
+        let store = NSUbiquitousKeyValueStore.default
+        store.set(data, forKey: iCloudBackupKey)
+        store.set(cloudUpdatedAt, forKey: iCloudBackupUpdatedAtKey)
+        store.synchronize()
+        UserDefaults.standard.set(cloudUpdatedAt, forKey: lastAppliedCloudUpdateKey)
+        UserDefaults.standard.set(cloudUpdatedAt, forKey: lastUploadedCloudUpdateKey)
+
+        if showProgress {
             syncProgress = 0.3
             syncMessage = "Metadata synced..."
-            print("[iCloud] Card metadata synced to KVS")
-            
-            // 2. Backup DB and Images to Ubiquity Container
-            if let remoteDir = ubiquityDocumentsURL {
-                print("[iCloud] Ubiquity container URL: \(remoteDir.path)")
-                syncMessage = "Uploading database..."
-                do {
-                    try FileManager.default.createDirectory(at: remoteDir, withIntermediateDirectories: true)
-                    let localDB = URL(fileURLWithPath: self.dbPath)
-                    let remoteDB = remoteDir.appendingPathComponent("cards.sqlite")
-                    if FileManager.default.fileExists(atPath: remoteDB.path) {
-                        try FileManager.default.removeItem(at: remoteDB)
-                    }
-                    try FileManager.default.copyItem(at: localDB, to: remoteDB)
-                    print("[iCloud] Database uploaded successfully")
-                } catch {
-                    print("[iCloud] Database upload failed: \(error)")
+        }
+        print("[iCloud] Card metadata synced to KVS")
+
+        if let remoteDir = ubiquityDocumentsURL {
+            print("[iCloud] Ubiquity container URL: \(remoteDir.path)")
+            if showProgress { syncMessage = "Uploading database..." }
+            do {
+                try FileManager.default.createDirectory(at: remoteDir, withIntermediateDirectories: true)
+                let localDB = URL(fileURLWithPath: dbPath)
+                let remoteDB = remoteDir.appendingPathComponent("cards.sqlite")
+                if FileManager.default.fileExists(atPath: remoteDB.path) {
+                    try FileManager.default.removeItem(at: remoteDB)
                 }
-                syncProgress = 0.6
-                
-                let assets = self.faceAssets()
-                print("[iCloud] Found \(assets.count) images to upload")
-                for (index, asset) in assets.enumerated() {
-                    let local = self.cardFaceFileURL(fileName: asset.fileName)
-                    let remote = remoteDir.appendingPathComponent(asset.fileName)
-                    syncMessage = "Uploading images (\(index + 1)/\(assets.count))..."
-                    do {
-                        if !FileManager.default.fileExists(atPath: remote.path) {
-                            try FileManager.default.copyItem(at: local, to: remote)
-                            print("[iCloud] Uploaded image: \(asset.fileName)")
-                        } else {
-                            print("[iCloud] Image already exists in iCloud: \(asset.fileName)")
-                        }
-                    } catch {
-                        print("[iCloud] Image upload failed for \(asset.fileName): \(error)")
+                try FileManager.default.copyItem(at: localDB, to: remoteDB)
+                print("[iCloud] Database uploaded successfully")
+            } catch {
+                print("[iCloud] Database upload failed: \(error)")
+            }
+            if showProgress { syncProgress = 0.6 }
+
+            let assets = faceAssets()
+            print("[iCloud] Found \(assets.count) images to upload")
+            for (index, asset) in assets.enumerated() {
+                let local = cardFaceFileURL(fileName: asset.fileName)
+                let remote = remoteDir.appendingPathComponent(asset.fileName)
+                if showProgress { syncMessage = "Uploading images (\(index + 1)/\(assets.count))..." }
+                do {
+                    if FileManager.default.fileExists(atPath: remote.path) {
+                        try FileManager.default.removeItem(at: remote)
                     }
+                    try FileManager.default.copyItem(at: local, to: remote)
+                    print("[iCloud] Uploaded image: \(asset.fileName)")
+                } catch {
+                    print("[iCloud] Image upload failed for \(asset.fileName): \(error)")
+                }
+                if showProgress, !assets.isEmpty {
                     syncProgress = 0.6 + (Double(index + 1) / Double(assets.count) * 0.4)
                 }
-            } else {
-                print("[iCloud] Ubiquity container is NOT available. Check iCloud settings.")
-                syncMessage = "Error: iCloud Unavailable"
             }
-            
+        } else {
+            print("[iCloud] Ubiquity container is NOT available. Check iCloud settings.")
+            if showProgress { syncMessage = "Error: iCloud Unavailable" }
+        }
+
+        if showProgress {
             syncMessage = "Backup complete"
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             isSyncing = false
@@ -577,69 +654,250 @@ class CardWalletStore: ObservableObject {
         }
     }
 
-    func restoreFromiCloud() {
-        Task { @MainActor in
+    @MainActor
+    @discardableResult
+    private func runiCloudRestore(showProgress: Bool, force: Bool) async -> Bool {
+        if showProgress {
             isSyncing = true
             syncProgress = 0.1
             syncMessage = "Connecting to iCloud..."
-            NSUbiquitousKeyValueStore.default.synchronize()
-            
-            // 1. Download and Merge SQLite DB
-            if let remoteDir = ubiquityDocumentsURL {
-                syncMessage = "Merging database..."
-                let remoteDB = remoteDir.appendingPathComponent("cards.sqlite")
-                if FileManager.default.fileExists(atPath: remoteDB.path) {
-                    mergeSQLite(from: remoteDB)
+        }
+
+        let store = NSUbiquitousKeyValueStore.default
+        store.synchronize()
+        let cloudUpdatedAt = store.double(forKey: iCloudBackupUpdatedAtKey)
+        let shouldApplyCloud = shouldApplyCloudData(cloudUpdatedAt: cloudUpdatedAt, force: force)
+        var changed = false
+
+        isApplyingCloudSync = true
+        defer {
+            isApplyingCloudSync = false
+            if showProgress {
+                Task { @MainActor in
+                    syncMessage = changed ? "Restore complete" : "Already up to date"
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    isSyncing = false
+                    syncMessage = nil
                 }
             }
-            syncProgress = 0.5
-            
-            // 2. Download Images
-            if let remoteDir = ubiquityDocumentsURL {
-                try? ensureCardFaceDirectoryExists()
-                let assets = (try? FileManager.default.contentsOfDirectory(atPath: remoteDir.path)) ?? []
-                let jpgs = assets.filter { $0.hasSuffix(".jpg") }
-                for (index, assetName) in jpgs.enumerated() {
-                    syncMessage = "Downloading images (\(index + 1)/\(jpgs.count))..."
-                    let local = cardFaceFileURL(fileName: assetName)
-                    let remote = remoteDir.appendingPathComponent(assetName)
-                    if !FileManager.default.fileExists(atPath: local.path) {
-                        try? FileManager.default.copyItem(at: remote, to: local)
-                    }
-                    syncProgress = 0.5 + (Double(index + 1) / Double(jpgs.count) * 0.5)
-                }
+        }
+
+        if shouldApplyCloud, let remoteDir = ubiquityDocumentsURL {
+            if showProgress { syncMessage = "Merging database..." }
+            let remoteDB = remoteDir.appendingPathComponent("cards.sqlite")
+            if FileManager.default.fileExists(atPath: remoteDB.path) {
+                changed = mergeSQLite(from: remoteDB) || changed
             }
-            
-            // 3. Finalize
-            syncMessage = "Reloading..."
+            if showProgress { syncProgress = 0.4 }
+        }
+
+        if shouldApplyCloud, let data = store.data(forKey: iCloudBackupKey) {
+            changed = mergeBackupData(data, includeAssets: true) || changed
+            if showProgress { syncProgress = 0.6 }
+        }
+
+        if let remoteDir = ubiquityDocumentsURL {
+            changed = downloadRemoteFaceAssets(from: remoteDir, showProgress: showProgress) || changed
+        }
+
+        if changed {
             load()
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            isSyncing = false
-            syncMessage = nil
+        }
+        if cloudUpdatedAt > 0, shouldApplyCloud {
+            UserDefaults.standard.set(cloudUpdatedAt, forKey: lastAppliedCloudUpdateKey)
+        }
+
+        return changed
+    }
+
+    private func shouldApplyCloudData(cloudUpdatedAt: TimeInterval, force: Bool) -> Bool {
+        if force || cards.isEmpty { return true }
+        guard cloudUpdatedAt > 0 else { return false }
+        let localUpdatedAt = UserDefaults.standard.double(forKey: localDataUpdatedAtKey)
+        let lastApplied = UserDefaults.standard.double(forKey: lastAppliedCloudUpdateKey)
+        let newestKnownLocal = max(localUpdatedAt, lastApplied)
+        return cloudUpdatedAt > newestKnownLocal
+    }
+
+    private func mergeSQLite(from sourceURL: URL) -> Bool {
+        var sourceDB: OpaquePointer?
+        guard sqlite3_open(sourceURL.path, &sourceDB) == SQLITE_OK else {
+            print("[iCloud] Could not open incoming SQLite backup")
+            return false
+        }
+        defer { sqlite3_close(sourceDB) }
+
+        let query = "SELECT json_data FROM cards;"
+        var stmt: OpaquePointer?
+        var changed = false
+        if sqlite3_prepare_v2(sourceDB, query, -1, &stmt, nil) == SQLITE_OK {
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let json = sqlite3_column_text(stmt, 0) {
+                    let data = Data(String(cString: json).utf8)
+                    if let card = try? JSONDecoder().decode(SavedCardRecord.self, from: data) {
+                        changed = mergeIncomingCard(card) || changed
+                    }
+                }
+            }
+        } else {
+            print("[iCloud] Incoming SQLite backup has no cards table")
+        }
+        sqlite3_finalize(stmt)
+        return changed
+    }
+
+    private func mergeBackupData(_ data: Data, includeAssets: Bool) -> Bool {
+        guard let backup = try? CardBackupData.decoder.decode(CardBackupData.self, from: data) else {
+            print("[iCloud] Could not decode iCloud backup data")
+            return false
+        }
+
+        var changed = false
+        for card in backup.cards {
+            changed = mergeIncomingCard(card) || changed
+        }
+
+        if includeAssets, !backup.faceAssets.isEmpty {
+            do {
+                try ensureCardFaceDirectoryExists()
+                for (fileName, imageData) in backup.faceAssets {
+                    let local = cardFaceFileURL(fileName: fileName)
+                    if !FileManager.default.fileExists(atPath: local.path) {
+                        try imageData.write(to: local, options: [.atomic])
+                        changed = true
+                    }
+                }
+            } catch {
+                print("[iCloud] Could not import iCloud face assets: \(error)")
+            }
+        }
+
+        return changed
+    }
+
+    private func mergeIncomingCard(_ incoming: SavedCardRecord) -> Bool {
+        guard let index = cards.firstIndex(where: { $0.id == incoming.id }) else {
+            cards.append(incoming)
+            saveCardToSQLite(incoming)
+            return true
+        }
+
+        let local = cards[index]
+        let merged = mergedCard(local: local, incoming: incoming)
+        guard merged != local else { return false }
+        cards[index] = merged
+        saveCardToSQLite(merged)
+        return true
+    }
+
+    private func mergedCard(local: SavedCardRecord, incoming: SavedCardRecord) -> SavedCardRecord {
+        var merged = incoming.scannedAt > local.scannedAt ? incoming : local
+        let other = incoming.scannedAt > local.scannedAt ? local : incoming
+
+        merged.rawTransactions = mergeRawRecords(
+            existing: local.rawTransactions,
+            incoming: incoming.rawTransactions,
+            family: merged.cardFamily,
+            technology: merged.technology,
+            kind: .transactions
+        )
+        merged.rawTransitHistory = mergeRawRecords(
+            existing: local.rawTransitHistory,
+            incoming: incoming.rawTransitHistory,
+            family: merged.cardFamily,
+            technology: merged.technology,
+            kind: .transit
+        )
+
+        if merged.faceImageFileName == nil {
+            merged.faceImageFileName = other.faceImageFileName
+            merged.isUsingImage = other.isUsingImage
+        }
+        if merged.customTitle == nil { merged.customTitle = other.customTitle }
+        if merged.customDisplaySerialNumber == nil { merged.customDisplaySerialNumber = other.customDisplaySerialNumber }
+        if merged.realSerialNumber == nil { merged.realSerialNumber = other.realSerialNumber }
+        if merged.balanceText == nil { merged.balanceText = other.balanceText }
+        if merged.balanceDetail == nil { merged.balanceDetail = other.balanceDetail }
+        return merged
+    }
+
+    private func downloadRemoteFaceAssets(from remoteDir: URL, showProgress: Bool) -> Bool {
+        do {
+            try ensureCardFaceDirectoryExists()
+            let assets = try FileManager.default.contentsOfDirectory(atPath: remoteDir.path)
+            let images = assets.filter {
+                let lower = $0.lowercased()
+                return lower.hasSuffix(".jpg") || lower.hasSuffix(".jpeg") || lower.hasSuffix(".png")
+            }
+            var changed = false
+            for (index, assetName) in images.enumerated() {
+                if showProgress {
+                    syncMessage = "Downloading images (\(index + 1)/\(images.count))..."
+                }
+                let local = cardFaceFileURL(fileName: assetName)
+                let remote = remoteDir.appendingPathComponent(assetName)
+                if !FileManager.default.fileExists(atPath: local.path) {
+                    try FileManager.default.copyItem(at: remote, to: local)
+                    changed = true
+                }
+                if showProgress, !images.isEmpty {
+                    syncProgress = 0.6 + (Double(index + 1) / Double(images.count) * 0.4)
+                }
+            }
+            return changed
+        } catch {
+            print("[iCloud] Image download failed: \(error)")
+            return false
         }
     }
 
-    private func mergeSQLite(from sourceURL: URL) {
-        // Strategy: Attach the incoming DB and insert/replace into local cards table
-        let sourcePath = sourceURL.path
-        let attachSQL = "ATTACH DATABASE '\(sourcePath)' AS incoming;"
-        
-        if sqlite3_exec(db, attachSQL, nil, nil, nil) == SQLITE_OK {
-            // Merge records: INSERT OR REPLACE INTO cards SELECT * FROM incoming.cards
-            let mergeSQL = "INSERT OR REPLACE INTO cards SELECT * FROM incoming.cards;"
-            if sqlite3_exec(db, mergeSQL, nil, nil, nil) != SQLITE_OK {
-                print("Error during SQLite merge")
-            }
-            sqlite3_exec(db, "DETACH DATABASE incoming;", nil, nil, nil)
+    @discardableResult
+    func importBackup(_ data: Data) throws -> CardBackupImportResult {
+        let backup = try CardBackupData.decoder.decode(CardBackupData.self, from: data)
+        var byID = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+        var replaced = 0
+
+        for card in backup.cards {
+            if byID[card.id] != nil { replaced += 1 }
+            byID[card.id] = card
+            saveCardToSQLite(card)
         }
+
+        if !backup.faceAssets.isEmpty {
+            try ensureCardFaceDirectoryExists()
+            for (fileName, imageData) in backup.faceAssets {
+                try imageData.write(to: cardFaceFileURL(fileName: fileName), options: [.atomic])
+            }
+        }
+
+        cards = byID.values.sorted {
+            if $0.order != $1.order { return $0.order < $1.order }
+            return $0.scannedAt > $1.scannedAt
+        }
+        markMapDataChanged()
+        scheduleAutomaticiCloudBackup(delay: 1_000_000_000)
+        return CardBackupImportResult(imported: backup.cards.count, replaced: replaced)
     }
 
     func exportBackup() -> Data? {
-        let backup = CardBackupData(version: 1, cards: cards, faceAssets: [:])
-        return try? JSONEncoder().encode(backup)
+        exportBackup(includeFaceAssets: true)
     }
 
-    private func save(force: Bool = false) {
+    private func exportBackup(includeFaceAssets: Bool) -> Data? {
+        let usedFaceNames = Set(cards.compactMap(\.faceImageFileName))
+        var exportedFaceAssets: [String: Data] = [:]
+        if includeFaceAssets {
+            for asset in faceAssets() where usedFaceNames.contains(asset.fileName) {
+                if let data = try? Data(contentsOf: cardFaceFileURL(fileName: asset.fileName)) {
+                    exportedFaceAssets[asset.fileName] = data
+                }
+            }
+        }
+        let backup = CardBackupData(version: 1, cards: cards, faceAssets: exportedFaceAssets)
+        return try? CardBackupData.encoder.encode(backup)
+    }
+
+    private func save(force: Bool = false, scheduleCloudSync: Bool = true) {
         saveTask?.cancel()
         let currentCards = cards
         let work = { [weak self] in
@@ -647,6 +905,10 @@ class CardWalletStore: ObservableObject {
             for card in currentCards {
                 self.saveCardToSQLite(card)
             }
+        }
+        if scheduleCloudSync && !isApplyingCloudSync {
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: localDataUpdatedAtKey)
+            scheduleAutomaticiCloudBackup()
         }
         if force { work(); return }
         saveTask = Task { @MainActor in
@@ -855,4 +1117,48 @@ struct CardBackupData: Codable {
     let version: Int
     let cards: [SavedCardRecord]
     let faceAssets: [String: Data]
+
+    static var encoder: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(iso8601WithFractionalSeconds.string(from: date))
+        }
+        return encoder
+    }
+
+    static var decoder: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            if let string = try? container.decode(String.self) {
+                if let date = iso8601WithFractionalSeconds.date(from: string) ?? iso8601.date(from: string) {
+                    return date
+                }
+            }
+            if let value = try? container.decode(Double.self) {
+                return Date(timeIntervalSinceReferenceDate: value)
+            }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported CardBal date value")
+        }
+        return decoder
+    }
+
+    private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let iso8601: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+}
+
+struct CardBackupImportResult {
+    let imported: Int
+    let replaced: Int
 }

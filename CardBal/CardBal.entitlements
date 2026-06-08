@@ -16,5 +16,9 @@
 	<array>
 		<string>iCloud.ad.neko.cardbal</string>
 	</array>
+	<key>com.apple.developer.ubiquity-container-identifiers</key>
+	<array>
+		<string>iCloud.ad.neko.cardbal</string>
+	</array>
 </dict>
 </plist>
