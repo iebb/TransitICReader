@@ -45,6 +45,7 @@ __pycache__/
 *.py[cod]
 
 # Standalone sibling repositories and local snapshots
+/.external/
 /android/
 /kreader/
 /build_armv8_apk.sh

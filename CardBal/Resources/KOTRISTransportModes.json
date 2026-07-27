@@ -11,7 +11,7 @@
     "license": "이용허락범위 제한 없음",
     "licenseEnglish": "No restrictions on permitted use",
     "rowCount": 319,
-    "generatedFrom": "cloudflare/korean-trip-visualizer/scripts/sources/kotris_transport_modes.csv",
+    "generatedFrom": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/kotris_transport_modes.csv",
     "sourceEncoding": "UTF-8 converted from the official CP949 CSV",
     "sourceSHA256": "47b501a0bea9cb579ae361c55765548b1e826b4625968833607a98664ae34767",
     "transformation": "Converted to UTF-8 JSON and trimmed surrounding whitespace from descriptions and class values; codes and labels are otherwise unchanged."

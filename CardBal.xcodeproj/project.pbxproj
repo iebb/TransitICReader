@@ -49,9 +49,6 @@
 		A00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* Assets.xcassets */; };
 		A00000000000000000000015 /* Assets.xcassets/AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* Assets.xcassets/AppIcon.icon */; };
 		A0000000000000000000002B /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* libsqlite3.tbd */; };
-		A00000000000000000000105 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000106 /* GoogleService-Info.plist */; };
-		A00000000000000000000107 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000010A /* FirebaseAnalytics */; };
-		A00000000000000000000108 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000010B /* FirebaseCore */; };
 		A0000CB5D9D53022E4B40B45 /* CalypsoProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */; };
 		AAEEA38E1C01D912373060D4 /* manaca.png in Resources */ = {isa = PBXBuildFile; fileRef = 74B3BF2807E457CDC85FCEF1 /* manaca.png */; };
 		B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11B0256184978348338611A /* FeliCaProfiles.swift */; };
@@ -113,7 +110,6 @@
 		A00000000000000000000007 /* CardBal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CardBal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000008 /* Assets.xcassets/AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Assets.xcassets/AppIcon.icon; sourceTree = "<group>"; };
 		A0000000000000000000002A /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
-		A00000000000000000000106 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoProfiles.swift; sourceTree = "<group>"; };
 		B11B0256184978348338611A /* FeliCaProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeliCaProfiles.swift; sourceTree = "<group>"; };
 		C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPBusCodes.csv; sourceTree = "<group>"; };
@@ -138,8 +134,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A0000000000000000000002B /* libsqlite3.tbd in Frameworks */,
-				A00000000000000000000107 /* FirebaseAnalytics in Frameworks */,
-				A00000000000000000000108 /* FirebaseCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -224,7 +218,6 @@
 				80112233445566778899AA01 /* TUnionCityCodes.json */,
 				8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */,
 				8E6F12002F6F2ACB0071B6C4 /* tunion_stations.sqlite */,
-				A00000000000000000000106 /* GoogleService-Info.plist */,
 				EC38266AABB2DF946A942826 /* JPStationCodes.csv */,
 				FD27111B8E07C4D1E9C71213 /* JPStationCodes.json */,
 				F17A22002F6F2ACB0071B6C4 /* jp_stations.sqlite */,
@@ -331,10 +324,6 @@
 			dependencies = (
 			);
 			name = CardBal;
-			packageProductDependencies = (
-				A0000000000000000000010A /* FirebaseAnalytics */,
-				A0000000000000000000010B /* FirebaseCore */,
-			);
 			productName = CardBal;
 			productReference = A00000000000000000000007 /* CardBal.app */;
 			productType = "com.apple.product-type.application";
@@ -351,7 +340,6 @@
 				TargetAttributes = {
 					A00000000000000000000041 = {
 						CreatedOnToolsVersion = 26.3;
-						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -367,9 +355,6 @@
 			);
 			mainGroup = A00000000000000000000031;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				A00000000000000000000109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A00000000000000000000033 /* Products */;
 			projectDirPath = "";
@@ -395,7 +380,6 @@
 				D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */,
 				D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */,
 				8E6F12012F6F2ACB0071B6C4 /* tunion_stations.sqlite in Resources */,
-				A00000000000000000000105 /* GoogleService-Info.plist in Resources */,
 				2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */,
 				984347E534E49A3231B42A2E /* JPStationCodes.json in Resources */,
 				F17A22012F6F2ACB0071B6C4 /* jp_stations.sqlite in Resources */,
@@ -488,6 +472,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 31;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
@@ -501,6 +486,7 @@
 				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -519,6 +505,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 31;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
@@ -532,6 +519,7 @@
 				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -612,29 +600,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		A00000000000000000000109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 12.14.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		A0000000000000000000010A /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A00000000000000000000109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
-		A0000000000000000000010B /* FirebaseCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A00000000000000000000109 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
-		};
-/* End XCSwiftPackageProductDependency section */
-};
-rootObject = A00000000000000000000061 /* Project object */;
+	};
+	rootObject = A00000000000000000000061 /* Project object */;
 }

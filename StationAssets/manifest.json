@@ -1,6 +1,6 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-07-27T00:09:03.604651+00:00",
+  "generatedAt": "2026-07-27T17:15:56.269406+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
       "bytes": 2730199,
@@ -19,12 +19,12 @@
       "sha256": "a26d5092a710c4a5ffe9178172e9d0b110c25b8d47cd9e1ac493b9895fd6efd3"
     },
     "KOTRISTransportModes.json": {
-      "bytes": 25934,
-      "sha256": "7f58fc0192cd623fe45ca1a0ebddd78d7da884bd741f0a471ec3455a98272b72"
+      "bytes": 25972,
+      "sha256": "98b2c821afc602b4d9efce2563ba869effa40f33e845aa210121870ea4701fb8"
     },
     "KoreanStationAliases.json": {
-      "bytes": 684568,
-      "sha256": "ab35bd930245b6457eefc55cc1da4c1ccef0c8b32477576b585e09fcd9422eca"
+      "bytes": 685275,
+      "sha256": "676438b35c4f2662f108e87d8d38d75ff6b49cd40b3dcfd883250783950b9d6f"
     },
     "README.md": {
       "bytes": 629,

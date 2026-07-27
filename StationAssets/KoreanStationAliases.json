@@ -6,7 +6,7 @@
       "title": "국토교통부_정류장 현황_20250613",
       "publisher": "국토교통부",
       "catalogURL": "https://www.data.go.kr/data/15128614/fileData.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_settlement_stations_20250613.csv",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_settlement_stations_20250613.csv",
       "datasetDate": "2025-06-13",
       "portalModifiedDate": "2025-07-01",
       "retrievedAt": "2026-07-27",
@@ -21,7 +21,7 @@
       "title": "국토교통부_버스정류장",
       "publisher": "국토교통부",
       "catalogURL": "https://www.data.go.kr/data/15142032/openapi.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_seoul_settlement_stops_20250801.json",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_seoul_settlement_stops_20250801.json",
       "datasetDate": "20250801",
       "portalModifiedDate": "2026-04-10",
       "retrievedAt": "2026-07-26T17:32:14Z",
@@ -36,7 +36,7 @@
       "title": "국토교통부_버스정류장 경기도 2025-08-01 delta",
       "publisher": "국토교통부",
       "catalogURL": "https://www.data.go.kr/data/15142032/openapi.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_20250801_delta_mappings.json",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_gyeonggi_20250801_delta_mappings.json",
       "datasetDate": "2025-08-01",
       "portalModifiedDate": "2026-04-10",
       "retrievedAt": "2026-07-27",
@@ -51,16 +51,16 @@
       "title": "국토교통부_버스정류장 제주특별자치도 2025-08-01 selector",
       "publisher": "국토교통부",
       "catalogURL": "https://www.data.go.kr/data/15142032/openapi.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_jeju_20250801_mappings.json",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_jeju_20250801_mappings.json",
       "sourceFiles": [
         {
           "sggCode": "50110",
-          "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_jeju_50110_stops_20250801.json",
+          "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_jeju_50110_stops_20250801.json",
           "sha256": "8bd3106f7803b10d62697601a1a81e5dc06e607702c8c4a8a43a0c86c1a27e47"
         },
         {
           "sggCode": "50130",
-          "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_jeju_50130_stops_20250801.json",
+          "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_jeju_50130_stops_20250801.json",
           "sha256": "47150566ffb95df2e7647048ef853be118432cbeb5286983c72822bfcf6bc0c9"
         }
       ],
@@ -78,17 +78,17 @@
       "title": "국토교통부_버스정류장 서울특별시 2025-11-07 selector",
       "publisher": "국토교통부",
       "catalogURL": "https://www.data.go.kr/data/15142032/openapi.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_seoul_settlement_stops_20251107.json",
-      "mappingLocalPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_seoul_code190_20251107_mappings.json",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_seoul_settlement_stops_20251107.json",
+      "mappingLocalPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_seoul_code190_20251107_mappings.json",
       "districtSourceFiles": [
         {
           "sggCode": "11200",
-          "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_seoul_11200_stops_20251107.json",
+          "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_seoul_11200_stops_20251107.json",
           "sha256": "bac9aa98b3bdabacc6098ba85668ad490b4af8f1952b63fe990aff3732f57ca1"
         },
         {
           "sggCode": "11710",
-          "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/molit_seoul_11710_stops_20251107.json",
+          "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/molit_seoul_11710_stops_20251107.json",
           "sha256": "5bfc79d3dc1576726db02cf459112f783eca72059fbb16f892800c34bd3aafd2"
         }
       ],
@@ -107,7 +107,7 @@
       "title": "서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv",
       "publisher": "서울특별시 빅데이터캠퍼스",
       "catalogURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/seoul_bigdata_subway_stations_cp949.csv",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/seoul_bigdata_subway_stations_cp949.csv",
       "datasetDate": "2017-01 to 2026-05",
       "portalModifiedDate": "2026-06-30",
       "retrievedAt": "2026-07-27",
@@ -116,7 +116,7 @@
       "sourceSHA256": "4f16945824b78291c9ce142eb81e00d0fb7b57ff4dcf3df706895d60c640c36c",
       "rowCount": 736,
       "matchingMethod": "Require an exact observed 12-character locationCode in the stable crosswalk. Each entry must have high confidence, an official current station row, a validated legacy range/offset rule, and no event dependence. Never direct-join the legacy raw serial to a current public station ID.",
-      "crosswalkLocalPath": "cloudflare/korean-trip-visualizer/scripts/sources/cardbal_capital_rail_crosswalk_stable_v1.json",
+      "crosswalkLocalPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/cardbal_capital_rail_crosswalk_stable_v1.json",
       "crosswalkSHA256": "db20447e7632a8fc73fab4898692c86e7f8edf9e44bcb3a91e374d77515abb06"
     },
     {
@@ -124,7 +124,7 @@
       "title": "CardBal additional capital-rail high-confidence crosswalk",
       "publisher": "CardBal research using official station rows",
       "catalogURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/cardbal_additional_capital_rail_crosswalk_high_v1.json",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/cardbal_additional_capital_rail_crosswalk_high_v1.json",
       "datasetDate": "2025-06-13 to 2026-06-30",
       "portalModifiedDate": null,
       "retrievedAt": "2026-07-27",
@@ -163,8 +163,8 @@
       "title": "부산광역시 버스정보관리시스템 노선별 정류소 정보",
       "publisher": "부산광역시",
       "catalogURL": "https://www.data.go.kr/data/15092750/openapi.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/busan_bims_stationinfo_20260727.xls",
-      "canonicalLocalPath": "cloudflare/korean-trip-visualizer/scripts/sources/busan_bims_stops_20260727.json",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/busan_bims_stationinfo_20260727.xls",
+      "canonicalLocalPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/busan_bims_stops_20260727.json",
       "canonicalSHA256": "ce2ecb1a97472e298c3d73deeef19bdd0888f26e80abcefedbd7cccfad2405db",
       "datasetDate": "2026-07-27",
       "portalModifiedDate": null,
@@ -180,7 +180,7 @@
       "title": "대구교통공사_2호선 역 구간정보_20251231",
       "publisher": "대구교통공사",
       "catalogURL": "https://www.data.go.kr/data/15061835/fileData.do",
-      "localPath": "cloudflare/korean-trip-visualizer/scripts/sources/daegu_metro_line2_sections_20251231.csv",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/daegu_metro_line2_sections_20251231.csv",
       "datasetDate": "2025-12-31",
       "portalModifiedDate": null,
       "retrievedAt": "2026-07-27",
@@ -195,7 +195,7 @@
       "title": "CardBal user-confirmed Korean station samples",
       "publisher": "CardBal contributors",
       "catalogURL": null,
-      "localPath": "transit_record_comparison.tsv",
+      "localPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/transit_record_comparison.tsv",
       "datasetDate": null,
       "portalModifiedDate": null,
       "retrievedAt": "2026-07-27",
@@ -396,7 +396,7 @@
     "officialChineseNameAliases": 177,
     "officialTraditionalChineseNameAliases": 45,
     "officialJapaneseNameAliases": 177,
-    "stationMetadataLocalPath": "cloudflare/korean-trip-visualizer/scripts/sources/korean_station_metadata_20260727.json",
+    "stationMetadataLocalPath": "https://github.com/kitta-co/cardbal-korean-trips/blob/master/visualizer/scripts/sources/korean_station_metadata_20260727.json",
     "stationMetadataSHA256": "1235ae21d88251f1808b2a281d67dc8c8d79ffb74389d5966e61c2a9326b37cf"
   },
   "locations": [

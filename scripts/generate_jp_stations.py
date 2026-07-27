@@ -13,9 +13,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CODES_CSV = REPO_ROOT / "CardBal/Resources/JPStationCodes.csv"
 DEFAULT_LOCAL_STATIONS_CSV = REPO_ROOT / "station20240426.csv"
-DEFAULT_STATION_DATABASE_DIR = REPO_ROOT / "vendor/station_database/out/extra"
+DEFAULT_STATION_DATABASE_DIR = REPO_ROOT / ".external/station_database/out/extra"
 DEFAULT_OUTPUT_DB = REPO_ROOT / "CardBal/Resources/jp_stations.sqlite"
 DEFAULT_REPORT = REPO_ROOT / "CardBal/Resources/jp_stations_coverage.json"
+STATION_DATABASE_REVISION = "76d4d4dbf15aa1ef967fc137b4ddf892abe3f3f8"
 
 NAME_OVERRIDES = {
     "奥中山": "奥中山高原",
@@ -790,7 +791,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate jp_stations SQLite from JPStationCodes.csv and station_database.")
     parser.add_argument("--codes-csv", type=Path, default=DEFAULT_CODES_CSV)
     parser.add_argument("--local-stations-csv", type=Path, default=DEFAULT_LOCAL_STATIONS_CSV)
-    parser.add_argument("--station-database-dir", type=Path, default=DEFAULT_STATION_DATABASE_DIR)
+    parser.add_argument(
+        "--station-database-dir",
+        type=Path,
+        default=DEFAULT_STATION_DATABASE_DIR,
+        help="Path to station_database/out/extra (kept outside this repository)",
+    )
     parser.add_argument("--output-db", type=Path, default=DEFAULT_OUTPUT_DB)
     parser.add_argument("--report-json", type=Path, default=DEFAULT_REPORT)
     return parser.parse_args()
@@ -798,6 +804,18 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    required_station_files = ("station.csv", "register.csv")
+    missing_station_files = [
+        name for name in required_station_files if not (args.station_database_dir / name).is_file()
+    ]
+    if missing_station_files:
+        raise FileNotFoundError(
+            "station_database input is missing: "
+            + ", ".join(missing_station_files)
+            + ". Clone https://github.com/Seo-4d696b75/station_database.git into "
+            + str(REPO_ROOT / ".external/station_database")
+            + f" and check out {STATION_DATABASE_REVISION}, or pass --station-database-dir."
+        )
     rows = load_rows(args.codes_csv)
     resolver = Resolver(args.station_database_dir, args.local_stations_csv)
     assignments, methods = resolver.resolve_rows(rows)

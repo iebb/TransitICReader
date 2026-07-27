@@ -1,6 +1,0 @@
-{
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "cardbal-korean-trips",
-  "pages_build_output_dir": "./dist",
-  "compatibility_date": "2026-07-26"
-}

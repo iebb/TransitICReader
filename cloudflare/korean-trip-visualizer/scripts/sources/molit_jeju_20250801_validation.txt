@@ -1,8 +1,0 @@
-MOLIT Jeju 2025-08-01 transformed exact-match validation
-artifact: cloudflare/korean-trip-visualizer/scripts/sources/molit_jeju_20250801_mappings.json
-official snapshot: 2 district files / 3400 selector rows
-mapped: 59 fingerprints / 67 rows / 6 cards
-by mode: {"03DE": {"locations": 9, "records": 9}, "03E2": {"locations": 34, "records": 41}, "03E3": {"locations": 16, "records": 17}}
-locationCode invariant: True
-exact unique selector joins: True
-provenance boundary: official selector rows; final token digit interpretation remains a corpus inference.
