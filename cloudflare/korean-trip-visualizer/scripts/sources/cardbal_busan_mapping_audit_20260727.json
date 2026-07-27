@@ -1,0 +1,3570 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUTC": "2026-07-26T18:24:51.536662+00:00",
+  "scope": {
+    "corpusRows": 3651,
+    "busanScopedRows": 763
+  },
+  "decoder": {
+    "rule": "For observed Busan tokens only: candidate = UInt16(byte07) | (UInt16(byte08) << 8), where stationToken is bytes05-08 and byte07/08 are its final two bytes.",
+    "exampleBus": "0013A10F -> bytes A1 0F -> 0x0FA1 -> 4001 -> ARS 04001",
+    "exampleRail": "00137100 -> bytes 71 00 -> 0x0071 -> station code 113",
+    "guardrails": [
+      "Gate by transport-mode namespace first.",
+      "Keep the complete stationToken/locationCode as the stable raw fingerprint.",
+      "Do not interpret the candidate as a nationwide ID."
+    ]
+  },
+  "officialSources": {
+    "kotrisTransportModes": {
+      "catalogURL": "https://www.data.go.kr/data/15121099/fileData.do",
+      "downloadSHA256": "e9cca4a9e36b6a1c1c11d84defb445558152670b24fdc177268d70df95200c22",
+      "snapshot": "2023 catalog file",
+      "notes": [
+        "Lists 601-618 Busan bus variants and 870 부산교통공단.",
+        "Does not contain 877."
+      ]
+    },
+    "busanBIMSApi": {
+      "catalogURL": "https://www.data.go.kr/data/15092750/openapi.do",
+      "operation": "http://apis.data.go.kr/6260000/BusanBIMS/busStopList",
+      "inputs": [
+        "arsno",
+        "bstopnm"
+      ],
+      "outputs": [
+        "arsno",
+        "bstopid",
+        "bstopnm",
+        "gpsx",
+        "gpsy",
+        "stoptype"
+      ]
+    },
+    "busanBIMSRouteStopDownload": {
+      "url": "https://bus.busan.go.kr/busanbims/StationInfo.asp",
+      "downloadSHA256": "dd235d1dc4df9e4c986591696d1aa4664f5b9d86b926c23dfbd1baca4e7721d0",
+      "fileLabel": "StationInfo_2026-07-27.xls",
+      "routeStopRows": 24756,
+      "uniqueStopIDs": 8514,
+      "validARSStops": 4116,
+      "uniqueValidARS": 4116,
+      "validARSCollisions": 0,
+      "invalidOrPlaceholderARSRecords": 7
+    },
+    "busanMetroStationCoordinates": {
+      "catalogURL": "https://www.data.go.kr/data/15043686/fileData.do",
+      "downloadSHA256": "611d0dab158dbc0b5a44081f979c4f5bbd888b66e94e2df7f0f0e23da63d6b89",
+      "sourceDate": "2021-02-26",
+      "rows": 114,
+      "uniqueStationCodes": 114,
+      "stationCodeCollisions": 0
+    },
+    "busanMetroLatestNames": {
+      "catalogURL": "https://www.data.go.kr/data/3077187/fileData.do",
+      "downloadURL": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003536842&fileDetailSn=1&insertDataPrcus=N",
+      "downloadSHA256": "487f0784e3ef4787d7f866718984c0d4d301be848ecebd6f74e6ca104287e042",
+      "sourceDate": "2025-10-31",
+      "rows": 114,
+      "uniqueStationCodes": 113,
+      "duplicateStationCodes": {
+        "209": [
+          {
+            "호선": "2호선",
+            "역번호": "209",
+            "역명": "수영",
+            "영문": "Suyeong",
+            "주소": "부산광역시 수영구 수영로 지하 677",
+            "전화번호": "051-678-6208"
+          },
+          {
+            "호선": "2호선",
+            "역번호": "209",
+            "역명": "광안",
+            "영문": "Gwangan",
+            "주소": "부산광역시 수영구 수영로 지하 576",
+            "전화번호": "051-678-6209"
+          }
+        ]
+      },
+      "qualityFinding": "The file labels both Suyeong and Gwangan as code 209, omitting 208; older official coordinates file correctly has 208 Suyeong and 209 Gwangan."
+    },
+    "molitRailRouteCodes": {
+      "catalogURL": "https://www.data.go.kr/data/15130667/fileData.do",
+      "downloadSHA256": "85702a4e775fe3a0578b87929de128fad13453c46bcd34f6e342cb6c5f23f277",
+      "sourceDate": "2025-08-11",
+      "bglOperatorCode": "BG",
+      "bglLineCode": "B1",
+      "bglStations": {
+        "0101": "사상(서부터미널)",
+        "0102": "괘법르네시떼(강변공원)",
+        "0103": "서부산유통지구(금호마을)",
+        "0104": "공항",
+        "0105": "덕두",
+        "0106": "등구",
+        "0107": "대저",
+        "0108": "평강",
+        "0109": "대사",
+        "0110": "불암",
+        "0111": "지내",
+        "0112": "김해대학(안동)",
+        "0113": "인제대(활천)",
+        "0114": "김해시청",
+        "0115": "부원",
+        "0116": "봉황(김해여객터미널)",
+        "0117": "수로왕릉(김해보건소)",
+        "0118": "박물관",
+        "0119": "연지공원",
+        "0120": "장신대(화정)",
+        "0121": "가야대(삼계)"
+      }
+    },
+    "molitUrbanRailOrder": {
+      "catalogURL": "https://www.data.go.kr/data/15122916/fileData.do",
+      "downloadSHA256": "8a60490ea582a62ce859877380e4b96b34416c536d96b1dcb1a869426bedc363",
+      "sourceDate": "2025-12-11"
+    },
+    "bglAddressData": {
+      "catalogURL": "https://www.data.go.kr/data/15041096/fileData.do",
+      "downloadSHA256": "9a927e32b119f2e168716b93b1aa20af7cf7787ad41470e51f4311fca4982577"
+    },
+    "molitSettlementBusStops": {
+      "catalogURL": "https://www.data.go.kr/data/15142032/openapi.do",
+      "samplePageURL": "https://tbo.stcis.go.kr/tsdw/open-api/api-search?gn=BusStop",
+      "snapshotDate": "2025-08-01",
+      "downloadSHA256": "4e0ca987e010fd7b9cdbf208f7390e5352116915c419f5b7b30236ee414baf9e",
+      "busanDistrictSelectorRows": 8131,
+      "uniqueStationIDs": 8122,
+      "ambiguousStationIDs": 9
+    }
+  },
+  "secondarySources": {
+    "esriKoreaBusStops": {
+      "itemURL": "https://www.arcgis.com/home/item.html?id=0fc294dc57444beabe5702ad9bc790dc",
+      "serviceURL": "https://portal.esrikr.com/arcgis/rest/services/Hosted/BusStops/FeatureServer/0",
+      "rawClaimedSource": "https://www.data.go.kr/data/15067528/fileData.do",
+      "snapshotRowsBusanBIS": 9960,
+      "snapshotSHA256": "2ee43434939d699f8df4d8c01d46ecd72ef8f6020843899280d86eb340ca8957",
+      "role": "Corroboration only; exact BusanBIS mobile-number audit reproduces the official BIMS ARS joins."
+    },
+    "historicOpenSourceApp": {
+      "url": "https://github.com/kmshack/busanbus-android",
+      "status": "deprecated",
+      "dataAge": "2012-12",
+      "role": "Historical corroboration that BIMS exposed bstop_id and downloadable station data; never use as current station truth."
+    }
+  },
+  "bus": {
+    "modes": {
+      "0259": {
+        "systemDecimal": 601,
+        "officialNameKo": "부산일반버스",
+        "rows": 395,
+        "uniqueStationTokens": 70,
+        "matchedTokens": 34,
+        "matchedRows": 229,
+        "unmatchedTokens": 36,
+        "unmatchedRows": 166,
+        "tokens": [
+          {
+            "stationToken": "0013032B",
+            "rows": 2,
+            "bytes07_08Hex": "032B",
+            "decodedLow16LittleEndian": 11011,
+            "candidateARS": "11011",
+            "fullLocationCodes": [
+              "0013032B0259"
+            ],
+            "terminalReferences": [
+              "02000329",
+              "3B000329"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "범어사입구",
+              "nameEn": "Beomeosa Temple Entrance",
+              "city": "부산광역시",
+              "district": "금정구",
+              "neighborhood": "청룡노포동",
+              "longitude": 129.090442745443,
+              "latitude": 35.274892236775,
+              "arsID": "11011",
+              "stopID": "21110671006",
+              "routes": [
+                "90"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00130952",
+            "rows": 10,
+            "bytes07_08Hex": "0952",
+            "decodedLow16LittleEndian": 21001,
+            "candidateARS": "21001",
+            "fullLocationCodes": [
+              "001309520259"
+            ],
+            "terminalReferences": [
+              "0A000324",
+              "0C000324",
+              "0F000324",
+              "11000324",
+              "16000324",
+              "1A000324",
+              "23000324",
+              "2D000324",
+              "39000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00130B52",
+            "rows": 12,
+            "bytes07_08Hex": "0B52",
+            "decodedLow16LittleEndian": 21003,
+            "candidateARS": "21003",
+            "fullLocationCodes": [
+              "00130B520259"
+            ],
+            "terminalReferences": [
+              "06000324",
+              "10000324",
+              "16000324",
+              "17000324",
+              "1C000324",
+              "1E000324",
+              "21000324",
+              "22000324",
+              "2D000324",
+              "2E000324",
+              "3A000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00130D52",
+            "rows": 4,
+            "bytes07_08Hex": "0D52",
+            "decodedLow16LittleEndian": 21005,
+            "candidateARS": "21005",
+            "fullLocationCodes": [
+              "00130D520259"
+            ],
+            "terminalReferences": [
+              "0A000324",
+              "17000324",
+              "29000324",
+              "2E000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00131127",
+            "rows": 4,
+            "bytes07_08Hex": "1127",
+            "decodedLow16LittleEndian": 10001,
+            "candidateARS": "10001",
+            "fullLocationCodes": [
+              "001311270259"
+            ],
+            "terminalReferences": [
+              "02000314",
+              "07000314",
+              "24000314",
+              "28000314"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "감천초등학교",
+              "nameEn": "Gamcheon Elementary School",
+              "city": "부산광역시",
+              "district": "사하구",
+              "neighborhood": "감천1동",
+              "longitude": 129.009810617288,
+              "latitude": 35.082536813594,
+              "arsID": "10001",
+              "stopID": "21100651014",
+              "routes": [
+                "16",
+                "171",
+                "172",
+                "6",
+                "61",
+                "9",
+                "96-1"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00131352",
+            "rows": 10,
+            "bytes07_08Hex": "1352",
+            "decodedLow16LittleEndian": 21011,
+            "candidateARS": "21011",
+            "fullLocationCodes": [
+              "001313520259"
+            ],
+            "terminalReferences": [
+              "04000324",
+              "08000324",
+              "0B000324",
+              "0D000324",
+              "14000324",
+              "19000324",
+              "26000324",
+              "31000324",
+              "36000324",
+              "38000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00131979",
+            "rows": 4,
+            "bytes07_08Hex": "1979",
+            "decodedLow16LittleEndian": 31001,
+            "candidateARS": "31001",
+            "fullLocationCodes": [
+              "001319790259"
+            ],
+            "terminalReferences": [
+              "06000336",
+              "17000336",
+              "24000336",
+              "36000336"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013214E",
+            "rows": 4,
+            "bytes07_08Hex": "214E",
+            "decodedLow16LittleEndian": 20001,
+            "candidateARS": "20001",
+            "fullLocationCodes": [
+              "0013214E0259"
+            ],
+            "terminalReferences": [
+              "04000322",
+              "06000322",
+              "27000322",
+              "2A000322"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013224E",
+            "rows": 4,
+            "bytes07_08Hex": "224E",
+            "decodedLow16LittleEndian": 20002,
+            "candidateARS": "20002",
+            "fullLocationCodes": [
+              "0013224E0259"
+            ],
+            "terminalReferences": [
+              "07000322",
+              "11000322",
+              "14000322",
+              "1E000322"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013394A",
+            "rows": 2,
+            "bytes07_08Hex": "394A",
+            "decodedLow16LittleEndian": 19001,
+            "candidateARS": "19001",
+            "fullLocationCodes": [
+              "0013394A0259"
+            ],
+            "terminalReferences": [
+              "0C000321",
+              "0E000321"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00133A4A",
+            "rows": 2,
+            "bytes07_08Hex": "3A4A",
+            "decodedLow16LittleEndian": 19002,
+            "candidateARS": "19002",
+            "fullLocationCodes": [
+              "00133A4A0259"
+            ],
+            "terminalReferences": [
+              "23000321",
+              "36000321"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013411F",
+            "rows": 1,
+            "bytes07_08Hex": "411F",
+            "decodedLow16LittleEndian": 8001,
+            "candidateARS": "08001",
+            "fullLocationCodes": [
+              "0013411F0259"
+            ],
+            "terminalReferences": [
+              "3A000313"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "금곡주공1단지",
+              "nameEn": "Geumgok Jugong Apartment 1(il)-danji",
+              "city": "부산광역시",
+              "district": "북구",
+              "neighborhood": "금곡동",
+              "longitude": 129.018599613041,
+              "latitude": 35.267158975375,
+              "arsID": "08001",
+              "stopID": "21080541002",
+              "routes": [
+                "111",
+                "111-1",
+                "121",
+                "15",
+                "15(심야)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00135546",
+            "rows": 2,
+            "bytes07_08Hex": "5546",
+            "decodedLow16LittleEndian": 18005,
+            "candidateARS": "18005",
+            "fullLocationCodes": [
+              "001355460259"
+            ],
+            "terminalReferences": [
+              "1E000324",
+              "35000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00135998",
+            "rows": 4,
+            "bytes07_08Hex": "5998",
+            "decodedLow16LittleEndian": 39001,
+            "candidateARS": "39001",
+            "fullLocationCodes": [
+              "001359980259"
+            ],
+            "terminalReferences": [
+              "0E000350",
+              "0F000350",
+              "10000350",
+              "11000350"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00135C1B",
+            "rows": 1,
+            "bytes07_08Hex": "5C1B",
+            "decodedLow16LittleEndian": 7004,
+            "candidateARS": "07004",
+            "fullLocationCodes": [
+              "00135C1B0259"
+            ],
+            "terminalReferences": [
+              "30000312"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "낙농마을",
+              "nameEn": "Naknong Village",
+              "city": "부산광역시",
+              "district": "남구",
+              "neighborhood": "대연3동",
+              "longitude": 129.098047487672,
+              "latitude": 35.145071784705,
+              "arsID": "07004",
+              "stopID": "21070531001",
+              "routes": [
+                "38",
+                "583"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00135D1B",
+            "rows": 6,
+            "bytes07_08Hex": "5D1B",
+            "decodedLow16LittleEndian": 7005,
+            "candidateARS": "07005",
+            "fullLocationCodes": [
+              "00135D1B0259"
+            ],
+            "terminalReferences": [
+              "00000312",
+              "02000312",
+              "0F000312",
+              "13000312",
+              "39000312"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "대남교차로",
+              "nameEn": "Daenam Intersection",
+              "city": "부산광역시",
+              "district": "남구",
+              "neighborhood": "대연3동",
+              "longitude": 129.104206966946,
+              "latitude": 35.140627941227,
+              "arsID": "07005",
+              "stopID": "21070531031",
+              "routes": [
+                "38",
+                "583"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00136C42",
+            "rows": 7,
+            "bytes07_08Hex": "6C42",
+            "decodedLow16LittleEndian": 17004,
+            "candidateARS": "17004",
+            "fullLocationCodes": [
+              "00136C420259"
+            ],
+            "terminalReferences": [
+              "01000331",
+              "03000331",
+              "08000331",
+              "18000331",
+              "1B000331",
+              "30000331",
+              "37000331"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "00137117",
+            "rows": 6,
+            "bytes07_08Hex": "7117",
+            "decodedLow16LittleEndian": 6001,
+            "candidateARS": "06001",
+            "fullLocationCodes": [
+              "001371170259"
+            ],
+            "terminalReferences": [
+              "11000310",
+              "14000310",
+              "1A000310",
+              "20000310"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "식물원입구",
+              "nameEn": "Botanical Garden Entrance",
+              "city": "부산광역시",
+              "district": "동래구",
+              "neighborhood": "온천1동",
+              "longitude": 129.081714465579,
+              "latitude": 35.223677475402,
+              "arsID": "06001",
+              "stopID": "21060551005",
+              "routes": [
+                "1002(심야)",
+                "110",
+                "77"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013863E",
+            "rows": 9,
+            "bytes07_08Hex": "863E",
+            "decodedLow16LittleEndian": 16006,
+            "candidateARS": "16006",
+            "fullLocationCodes": [
+              "0013863E0259"
+            ],
+            "terminalReferences": [
+              "00000316",
+              "15000316",
+              "17000316",
+              "1A000316",
+              "26000316",
+              "2A000316",
+              "32000316",
+              "36000316",
+              "38000316"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "안평역.고촌마을",
+              "nameEn": "Anpyeong Staion. Gochon Village",
+              "city": "부산광역시",
+              "district": "기장군",
+              "neighborhood": "철마면",
+              "longitude": 129.173049269093,
+              "latitude": 35.237762176949,
+              "arsID": "16006",
+              "stopID": "21310331019",
+              "routes": [
+                "183",
+                "183(심야)",
+                "187",
+                "188",
+                "36",
+                "73",
+                "73(아침)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013A03A",
+            "rows": 10,
+            "bytes07_08Hex": "A03A",
+            "decodedLow16LittleEndian": 15008,
+            "candidateARS": "15008",
+            "fullLocationCodes": [
+              "0013A03A0259"
+            ],
+            "terminalReferences": [
+              "04000330",
+              "0F000330",
+              "13000330",
+              "29000324",
+              "36000324",
+              "37000324",
+              "3B000330"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "주물공단입구",
+              "nameEn": "Jumul Industrial Complex Entrance",
+              "city": "부산광역시",
+              "district": "사상구",
+              "neighborhood": "감전1동",
+              "longitude": 128.978673456317,
+              "latitude": 35.151603767322,
+              "arsID": "15008",
+              "stopID": "21150581021",
+              "routes": [
+                "138"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013A10F",
+            "rows": 76,
+            "bytes07_08Hex": "A10F",
+            "decodedLow16LittleEndian": 4001,
+            "candidateARS": "04001",
+            "fullLocationCodes": [
+              "0013A10F0259"
+            ],
+            "terminalReferences": [
+              "00000306",
+              "01000306",
+              "04000306",
+              "05000306",
+              "06000306",
+              "08000306",
+              "10000306",
+              "11000306",
+              "12000306",
+              "15000306",
+              "16000306",
+              "17000306",
+              "19000306",
+              "1A000306",
+              "1B000306",
+              "1C000306",
+              "1E000306",
+              "1F000306",
+              "20000306",
+              "21000306",
+              "22000306",
+              "23000306",
+              "25000306",
+              "26000306",
+              "27000306",
+              "28000306",
+              "29000306",
+              "2A000306",
+              "2C000306",
+              "2D000306",
+              "2E000306",
+              "2F000306",
+              "31000306",
+              "33000306",
+              "36000306",
+              "37000306",
+              "38000306",
+              "39000306",
+              "3A000306",
+              "3B000306"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "미광마린타워",
+              "nameEn": "Migwang Marine Tower Apartment",
+              "city": "부산광역시",
+              "district": "영도구",
+              "neighborhood": "봉래1동",
+              "longitude": 129.043199993312,
+              "latitude": 35.093615800672,
+              "arsID": "04001",
+              "stopID": "21040591003",
+              "routes": [
+                "101",
+                "70",
+                "88-1A"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013A961",
+            "rows": 2,
+            "bytes07_08Hex": "A961",
+            "decodedLow16LittleEndian": 25001,
+            "candidateARS": "25001",
+            "fullLocationCodes": [
+              "0013A9610259"
+            ],
+            "terminalReferences": [
+              "2B000330",
+              "2F000330"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013AD61",
+            "rows": 2,
+            "bytes07_08Hex": "AD61",
+            "decodedLow16LittleEndian": 25005,
+            "candidateARS": "25005",
+            "fullLocationCodes": [
+              "0013AD610259"
+            ],
+            "terminalReferences": [
+              "23000330",
+              "34000330"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013BA0B",
+            "rows": 8,
+            "bytes07_08Hex": "BA0B",
+            "decodedLow16LittleEndian": 3002,
+            "candidateARS": "03002",
+            "fullLocationCodes": [
+              "0013BA0B0259"
+            ],
+            "terminalReferences": [
+              "02000304",
+              "11000304",
+              "16000304",
+              "17000304",
+              "22000304",
+              "2F000304"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "범곡교차로",
+              "nameEn": "Beomgok Intersection",
+              "city": "부산광역시",
+              "district": "동구",
+              "neighborhood": "범일1동",
+              "longitude": 129.056322955492,
+              "latitude": 35.140717975053,
+              "arsID": "03002",
+              "stopID": "21030651003",
+              "routes": [
+                "103",
+                "17",
+                "59",
+                "61",
+                "67",
+                "85",
+                "88(A)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013BA88",
+            "rows": 1,
+            "bytes07_08Hex": "BA88",
+            "decodedLow16LittleEndian": 35002,
+            "candidateARS": "35002",
+            "fullLocationCodes": [
+              "0013BA880259"
+            ],
+            "terminalReferences": [
+              "18000341"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013BC0B",
+            "rows": 8,
+            "bytes07_08Hex": "BC0B",
+            "decodedLow16LittleEndian": 3004,
+            "candidateARS": "03004",
+            "fullLocationCodes": [
+              "0013BC0B0259"
+            ],
+            "terminalReferences": [
+              "0A000304",
+              "0D000304",
+              "25000304",
+              "27000304",
+              "2C000304",
+              "2E000304",
+              "3A000304",
+              "3B000304"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "아름빌아파트",
+              "nameEn": "Areumbil Apartment",
+              "city": "부산광역시",
+              "district": "동구",
+              "neighborhood": "범일4동",
+              "longitude": 129.052248722123,
+              "latitude": 35.141521517731,
+              "arsID": "03004",
+              "stopID": "21030671005",
+              "routes": [
+                "186",
+                "29",
+                "38",
+                "38-1",
+                "86"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013BF0B",
+            "rows": 2,
+            "bytes07_08Hex": "BF0B",
+            "decodedLow16LittleEndian": 3007,
+            "candidateARS": "03007",
+            "fullLocationCodes": [
+              "0013BF0B0259"
+            ],
+            "terminalReferences": [
+              "17000304",
+              "1F000304"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "서광교회",
+              "nameEn": "Seogwang Church",
+              "city": "부산광역시",
+              "district": "동구",
+              "neighborhood": "범일6동",
+              "longitude": 129.051049030824,
+              "latitude": 35.140579381567,
+              "arsID": "03007",
+              "stopID": "21030691005",
+              "routes": [
+                "186",
+                "29",
+                "38",
+                "38-1",
+                "86"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013C00B",
+            "rows": 2,
+            "bytes07_08Hex": "C00B",
+            "decodedLow16LittleEndian": 3008,
+            "candidateARS": "03008",
+            "fullLocationCodes": [
+              "0013C00B0259"
+            ],
+            "terminalReferences": [
+              "0C000304",
+              "22000304"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "범일초등학교",
+              "nameEn": "Beomil Elementary School",
+              "city": "부산광역시",
+              "district": "동구",
+              "neighborhood": "범일6동",
+              "longitude": 129.049074054218,
+              "latitude": 35.140774933988,
+              "arsID": "03008",
+              "stopID": "21030691008",
+              "routes": [
+                "29",
+                "87"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013C15D",
+            "rows": 10,
+            "bytes07_08Hex": "C15D",
+            "decodedLow16LittleEndian": 24001,
+            "candidateARS": "24001",
+            "fullLocationCodes": [
+              "0013C15D0259"
+            ],
+            "terminalReferences": [
+              "04000327",
+              "0B000327",
+              "16000327",
+              "19000327",
+              "1A000327",
+              "1C000327",
+              "20000327",
+              "2E000327"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013C25D",
+            "rows": 2,
+            "bytes07_08Hex": "C25D",
+            "decodedLow16LittleEndian": 24002,
+            "candidateARS": "24002",
+            "fullLocationCodes": [
+              "0013C25D0259"
+            ],
+            "terminalReferences": [
+              "04000327",
+              "19000327"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013C55D",
+            "rows": 2,
+            "bytes07_08Hex": "C55D",
+            "decodedLow16LittleEndian": 24005,
+            "candidateARS": "24005",
+            "fullLocationCodes": [
+              "0013C55D0259"
+            ],
+            "terminalReferences": [
+              "18000336",
+              "39000336"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013CD32",
+            "rows": 4,
+            "bytes07_08Hex": "CD32",
+            "decodedLow16LittleEndian": 13005,
+            "candidateARS": "13005",
+            "fullLocationCodes": [
+              "0013CD320259"
+            ],
+            "terminalReferences": [
+              "08000315",
+              "0A000315",
+              "24000315",
+              "26000315"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "교대역",
+              "nameEn": "Busan National University of Education Station",
+              "city": "부산광역시",
+              "district": "연제구",
+              "neighborhood": "거제1동",
+              "longitude": 129.0801388364,
+              "latitude": 35.194866420558,
+              "arsID": "13005",
+              "stopID": "21130511008",
+              "routes": [
+                "179",
+                "29",
+                "51",
+                "51(심야)",
+                "52"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013CE32",
+            "rows": 2,
+            "bytes07_08Hex": "CE32",
+            "decodedLow16LittleEndian": 13006,
+            "candidateARS": "13006",
+            "fullLocationCodes": [
+              "0013CE320259"
+            ],
+            "terminalReferences": [
+              "06000319",
+              "09000319"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013D284",
+            "rows": 4,
+            "bytes07_08Hex": "D284",
+            "decodedLow16LittleEndian": 34002,
+            "candidateARS": "34002",
+            "fullLocationCodes": [
+              "0013D2840259"
+            ],
+            "terminalReferences": [
+              "14000340",
+              "1B000340",
+              "22000340",
+              "39000340"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013D484",
+            "rows": 2,
+            "bytes07_08Hex": "D484",
+            "decodedLow16LittleEndian": 34004,
+            "candidateARS": "34004",
+            "fullLocationCodes": [
+              "0013D4840259"
+            ],
+            "terminalReferences": [
+              "04000340",
+              "0A000340"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013D532",
+            "rows": 11,
+            "bytes07_08Hex": "D532",
+            "decodedLow16LittleEndian": 13013,
+            "candidateARS": "13013",
+            "fullLocationCodes": [
+              "0013D5320259"
+            ],
+            "terminalReferences": [
+              "04000315",
+              "08000315",
+              "15000315",
+              "16000315",
+              "17000315",
+              "1D000315",
+              "27000315",
+              "31000315",
+              "36000315",
+              "3B000315"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013D584",
+            "rows": 13,
+            "bytes07_08Hex": "D584",
+            "decodedLow16LittleEndian": 34005,
+            "candidateARS": "34005",
+            "fullLocationCodes": [
+              "0013D5840259"
+            ],
+            "terminalReferences": [
+              "07000340",
+              "08000340",
+              "0C000340",
+              "0D000340",
+              "16000340",
+              "17000340",
+              "1E000340",
+              "26000340",
+              "2A000340",
+              "32000340",
+              "36000340",
+              "37000340"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013DB59",
+            "rows": 2,
+            "bytes07_08Hex": "DB59",
+            "decodedLow16LittleEndian": 23003,
+            "candidateARS": "23003",
+            "fullLocationCodes": [
+              "0013DB590259"
+            ],
+            "terminalReferences": [
+              "06000326",
+              "08000326"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013E22E",
+            "rows": 2,
+            "bytes07_08Hex": "E22E",
+            "decodedLow16LittleEndian": 12002,
+            "candidateARS": "12002",
+            "fullLocationCodes": [
+              "0013E22E0259"
+            ],
+            "terminalReferences": [
+              "10000311",
+              "22000311"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013E32E",
+            "rows": 4,
+            "bytes07_08Hex": "E32E",
+            "decodedLow16LittleEndian": 12003,
+            "candidateARS": "12003",
+            "fullLocationCodes": [
+              "0013E32E0259"
+            ],
+            "terminalReferences": [
+              "00000311",
+              "2E000311",
+              "37000311",
+              "38000311"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "대저119안전센터",
+              "nameEn": "Daejeo Fire House",
+              "city": "부산광역시",
+              "district": "강서구",
+              "neighborhood": "대저1동",
+              "longitude": 128.977467351001,
+              "latitude": 35.214610854538,
+              "arsID": "12003",
+              "stopID": "21120511013",
+              "routes": [
+                "1004(심야)",
+                "123",
+                "127",
+                "307"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013E82E",
+            "rows": 4,
+            "bytes07_08Hex": "E82E",
+            "decodedLow16LittleEndian": 12008,
+            "candidateARS": "12008",
+            "fullLocationCodes": [
+              "0013E82E0259"
+            ],
+            "terminalReferences": [
+              "05000311",
+              "16000311",
+              "2F000311",
+              "30000311"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "평강역",
+              "nameEn": "Pyeonggang Station",
+              "city": "부산광역시",
+              "district": "강서구",
+              "neighborhood": "대저1동",
+              "longitude": 128.950047713766,
+              "latitude": 35.214292066419,
+              "arsID": "12008",
+              "stopID": "21120511008",
+              "routes": [
+                "1004",
+                "1004(심야)",
+                "123",
+                "127"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013E92E",
+            "rows": 2,
+            "bytes07_08Hex": "E92E",
+            "decodedLow16LittleEndian": 12009,
+            "candidateARS": "12009",
+            "fullLocationCodes": [
+              "0013E92E0259"
+            ],
+            "terminalReferences": [
+              "14000311",
+              "1B000311"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "대사리3구",
+              "nameEn": "Daesari 3(sam)-gu",
+              "city": "부산광역시",
+              "district": "강서구",
+              "neighborhood": "강동동",
+              "longitude": 128.943639418937,
+              "latitude": 35.216126791979,
+              "arsID": "12009",
+              "stopID": "21120531008",
+              "routes": [
+                "1004",
+                "1004(심야)",
+                "123",
+                "127"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013EB03",
+            "rows": 3,
+            "bytes07_08Hex": "EB03",
+            "decodedLow16LittleEndian": 1003,
+            "candidateARS": "01003",
+            "fullLocationCodes": [
+              "0013EB030259"
+            ],
+            "terminalReferences": [
+              "06000347",
+              "2C000347",
+              "39000347"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "시민아파트",
+              "nameEn": "Simin Apartment",
+              "city": "부산광역시",
+              "district": "중구",
+              "neighborhood": "영주2동",
+              "longitude": 129.031748556372,
+              "latitude": 35.115140030577,
+              "arsID": "01003",
+              "stopID": "21010601005",
+              "routes": [
+                "190",
+                "38",
+                "43",
+                "508",
+                "508(심야)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013ED03",
+            "rows": 1,
+            "bytes07_08Hex": "ED03",
+            "decodedLow16LittleEndian": 1005,
+            "candidateARS": "01005",
+            "fullLocationCodes": [
+              "0013ED030259"
+            ],
+            "terminalReferences": [
+              "1D000347"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "중앙공원.민주공원입구",
+              "nameEn": "Jungang Park.Demo Park Entrance",
+              "city": "부산광역시",
+              "district": "중구",
+              "neighborhood": "영주2동",
+              "longitude": 129.029762226582,
+              "latitude": 35.114486856198,
+              "arsID": "01005",
+              "stopID": "21010601003",
+              "routes": [
+                "38",
+                "43",
+                "508",
+                "508(심야)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013F355",
+            "rows": 13,
+            "bytes07_08Hex": "F355",
+            "decodedLow16LittleEndian": 22003,
+            "candidateARS": "22003",
+            "fullLocationCodes": [
+              "0013F3550259"
+            ],
+            "terminalReferences": [
+              "04000306",
+              "0B000306",
+              "0C000306",
+              "0D000306",
+              "10000306",
+              "17000306",
+              "18000306",
+              "1F000306",
+              "24000306",
+              "2A000306",
+              "31000306",
+              "38000306"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013FB2A",
+            "rows": 9,
+            "bytes07_08Hex": "FB2A",
+            "decodedLow16LittleEndian": 11003,
+            "candidateARS": "11003",
+            "fullLocationCodes": [
+              "0013FB2A0259"
+            ],
+            "terminalReferences": [
+              "05000329",
+              "06000329",
+              "07000329",
+              "0F000329",
+              "12000329",
+              "15000329",
+              "17000329",
+              "2E000329",
+              "35000329"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "두구동 입구",
+              "nameEn": "Dugu-dong Entrance",
+              "city": "부산광역시",
+              "district": "금정구",
+              "neighborhood": "선두구동",
+              "longitude": 129.103267895956,
+              "latitude": 35.297496720377,
+              "arsID": "11003",
+              "stopID": "21110641002",
+              "routes": [
+                "1002(심야)",
+                "37",
+                "50"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013FC2A",
+            "rows": 4,
+            "bytes07_08Hex": "FC2A",
+            "decodedLow16LittleEndian": 11004,
+            "candidateARS": "11004",
+            "fullLocationCodes": [
+              "0013FC2A0259"
+            ],
+            "terminalReferences": [
+              "07000329",
+              "0B000329",
+              "14000329",
+              "1F000329"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "금정체육공원입구",
+              "nameEn": "Geumjung Sports Park Entrance",
+              "city": "부산광역시",
+              "district": "금정구",
+              "neighborhood": "청룡노포동",
+              "longitude": 129.098881893485,
+              "latitude": 35.291543371916,
+              "arsID": "11004",
+              "stopID": "21110671020",
+              "routes": [
+                "1002(심야)",
+                "37",
+                "50",
+                "90"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113062B",
+            "rows": 2,
+            "bytes07_08Hex": "062B",
+            "decodedLow16LittleEndian": 11014,
+            "candidateARS": "11014",
+            "fullLocationCodes": [
+              "0113062B0259"
+            ],
+            "terminalReferences": [
+              "1A000304",
+              "24000304"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "어린이놀이터",
+              "nameEn": "Childrens Playground",
+              "city": "부산광역시",
+              "district": "금정구",
+              "neighborhood": "청룡노포동",
+              "longitude": 129.087514603685,
+              "latitude": 35.275424313578,
+              "arsID": "11014",
+              "stopID": "21110671014",
+              "routes": [
+                "29",
+                "300",
+                "51",
+                "51(심야)",
+                "80",
+                "90"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "01130A52",
+            "rows": 1,
+            "bytes07_08Hex": "0A52",
+            "decodedLow16LittleEndian": 21002,
+            "candidateARS": "21002",
+            "fullLocationCodes": [
+              "01130A520259"
+            ],
+            "terminalReferences": [
+              "3A000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "01130B52",
+            "rows": 11,
+            "bytes07_08Hex": "0B52",
+            "decodedLow16LittleEndian": 21003,
+            "candidateARS": "21003",
+            "fullLocationCodes": [
+              "01130B520259"
+            ],
+            "terminalReferences": [
+              "0A000330",
+              "0D000330",
+              "0F000324",
+              "12000306",
+              "14000306",
+              "16000306",
+              "17000306",
+              "17000324",
+              "18000324",
+              "2E000324",
+              "34000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "01131527",
+            "rows": 2,
+            "bytes07_08Hex": "1527",
+            "decodedLow16LittleEndian": 10005,
+            "candidateARS": "10005",
+            "fullLocationCodes": [
+              "011315270259"
+            ],
+            "terminalReferences": [
+              "1C000347",
+              "2E000347"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "감천사거리",
+              "nameEn": "Gamcheon Sageori",
+              "city": "부산광역시",
+              "district": "사하구",
+              "neighborhood": "감천1동",
+              "longitude": 129.005913888639,
+              "latitude": 35.086660977012,
+              "arsID": "10005",
+              "stopID": "21100651018",
+              "routes": [
+                "16",
+                "171",
+                "172",
+                "3006",
+                "6",
+                "61",
+                "9",
+                "96-1"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "01131979",
+            "rows": 2,
+            "bytes07_08Hex": "1979",
+            "decodedLow16LittleEndian": 31001,
+            "candidateARS": "31001",
+            "fullLocationCodes": [
+              "011319790259"
+            ],
+            "terminalReferences": [
+              "03000311"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113214E",
+            "rows": 4,
+            "bytes07_08Hex": "214E",
+            "decodedLow16LittleEndian": 20001,
+            "candidateARS": "20001",
+            "fullLocationCodes": [
+              "0113214E0259"
+            ],
+            "terminalReferences": [
+              "01000334",
+              "22000334",
+              "25000334",
+              "3B000334"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "01133A4A",
+            "rows": 2,
+            "bytes07_08Hex": "3A4A",
+            "decodedLow16LittleEndian": 19002,
+            "candidateARS": "19002",
+            "fullLocationCodes": [
+              "01133A4A0259"
+            ],
+            "terminalReferences": [
+              "0D000321",
+              "1C000321"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "01135D1B",
+            "rows": 2,
+            "bytes07_08Hex": "5D1B",
+            "decodedLow16LittleEndian": 7005,
+            "candidateARS": "07005",
+            "fullLocationCodes": [
+              "01135D1B0259"
+            ],
+            "terminalReferences": [
+              "18000324",
+              "35000324"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "대남교차로",
+              "nameEn": "Daenam Intersection",
+              "city": "부산광역시",
+              "district": "남구",
+              "neighborhood": "대연3동",
+              "longitude": 129.104206966946,
+              "latitude": 35.140627941227,
+              "arsID": "07005",
+              "stopID": "21070531031",
+              "routes": [
+                "38",
+                "583"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "01137117",
+            "rows": 2,
+            "bytes07_08Hex": "7117",
+            "decodedLow16LittleEndian": 6001,
+            "candidateARS": "06001",
+            "fullLocationCodes": [
+              "011371170259"
+            ],
+            "terminalReferences": [
+              "1A000306",
+              "3B000306"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "식물원입구",
+              "nameEn": "Botanical Garden Entrance",
+              "city": "부산광역시",
+              "district": "동래구",
+              "neighborhood": "온천1동",
+              "longitude": 129.081714465579,
+              "latitude": 35.223677475402,
+              "arsID": "06001",
+              "stopID": "21060551005",
+              "routes": [
+                "1002(심야)",
+                "110",
+                "77"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113863E",
+            "rows": 3,
+            "bytes07_08Hex": "863E",
+            "decodedLow16LittleEndian": 16006,
+            "candidateARS": "16006",
+            "fullLocationCodes": [
+              "0113863E0259"
+            ],
+            "terminalReferences": [
+              "27000306",
+              "28000306",
+              "29000306"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "안평역.고촌마을",
+              "nameEn": "Anpyeong Staion. Gochon Village",
+              "city": "부산광역시",
+              "district": "기장군",
+              "neighborhood": "철마면",
+              "longitude": 129.173049269093,
+              "latitude": 35.237762176949,
+              "arsID": "16006",
+              "stopID": "21310331019",
+              "routes": [
+                "183",
+                "183(심야)",
+                "187",
+                "188",
+                "36",
+                "73",
+                "73(아침)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "01138990",
+            "rows": 2,
+            "bytes07_08Hex": "8990",
+            "decodedLow16LittleEndian": 37001,
+            "candidateARS": "37001",
+            "fullLocationCodes": [
+              "011389900259"
+            ],
+            "terminalReferences": [
+              "08000312",
+              "21000312"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113A03A",
+            "rows": 6,
+            "bytes07_08Hex": "A03A",
+            "decodedLow16LittleEndian": 15008,
+            "candidateARS": "15008",
+            "fullLocationCodes": [
+              "0113A03A0259"
+            ],
+            "terminalReferences": [
+              "05000330",
+              "06000330",
+              "0C000312",
+              "0E000312",
+              "10000312",
+              "2B000312"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "주물공단입구",
+              "nameEn": "Jumul Industrial Complex Entrance",
+              "city": "부산광역시",
+              "district": "사상구",
+              "neighborhood": "감전1동",
+              "longitude": 128.978673456317,
+              "latitude": 35.151603767322,
+              "arsID": "15008",
+              "stopID": "21150581021",
+              "routes": [
+                "138"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113A10F",
+            "rows": 11,
+            "bytes07_08Hex": "A10F",
+            "decodedLow16LittleEndian": 4001,
+            "candidateARS": "04001",
+            "fullLocationCodes": [
+              "0113A10F0259"
+            ],
+            "terminalReferences": [
+              "00000316",
+              "05000306",
+              "12000306",
+              "19000306",
+              "22000306",
+              "23000306",
+              "25000306",
+              "27000306",
+              "2E000306",
+              "31000306",
+              "35000316"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "미광마린타워",
+              "nameEn": "Migwang Marine Tower Apartment",
+              "city": "부산광역시",
+              "district": "영도구",
+              "neighborhood": "봉래1동",
+              "longitude": 129.043199993312,
+              "latitude": 35.093615800672,
+              "arsID": "04001",
+              "stopID": "21040591003",
+              "routes": [
+                "101",
+                "70",
+                "88-1A"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113AD61",
+            "rows": 2,
+            "bytes07_08Hex": "AD61",
+            "decodedLow16LittleEndian": 25005,
+            "candidateARS": "25005",
+            "fullLocationCodes": [
+              "0113AD610259"
+            ],
+            "terminalReferences": [
+              "18000324",
+              "27000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113B136",
+            "rows": 2,
+            "bytes07_08Hex": "B136",
+            "decodedLow16LittleEndian": 14001,
+            "candidateARS": "14001",
+            "fullLocationCodes": [
+              "0113B1360259"
+            ],
+            "terminalReferences": [
+              "33000316",
+              "3B000316"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "망미우체국",
+              "nameEn": "Mangmi Post Office",
+              "city": "부산광역시",
+              "district": "수영구",
+              "neighborhood": "망미2동",
+              "longitude": 129.107425763924,
+              "latitude": 35.177219711983,
+              "arsID": "14001",
+              "stopID": "21140551005",
+              "routes": [
+                "210",
+                "42",
+                "49",
+                "54",
+                "57"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113BE46",
+            "rows": 2,
+            "bytes07_08Hex": "BE46",
+            "decodedLow16LittleEndian": 18110,
+            "candidateARS": "18110",
+            "fullLocationCodes": [
+              "0113BE460259"
+            ],
+            "terminalReferences": [
+              "28000313",
+              "31000313"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113C15D",
+            "rows": 2,
+            "bytes07_08Hex": "C15D",
+            "decodedLow16LittleEndian": 24001,
+            "candidateARS": "24001",
+            "fullLocationCodes": [
+              "0113C15D0259"
+            ],
+            "terminalReferences": [
+              "03000324",
+              "18000324"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113E92E",
+            "rows": 2,
+            "bytes07_08Hex": "E92E",
+            "decodedLow16LittleEndian": 12009,
+            "candidateARS": "12009",
+            "fullLocationCodes": [
+              "0113E92E0259"
+            ],
+            "terminalReferences": [
+              "1E000324",
+              "37000324"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "대사리3구",
+              "nameEn": "Daesari 3(sam)-gu",
+              "city": "부산광역시",
+              "district": "강서구",
+              "neighborhood": "강동동",
+              "longitude": 128.943639418937,
+              "latitude": 35.216126791979,
+              "arsID": "12009",
+              "stopID": "21120531008",
+              "routes": [
+                "1004",
+                "1004(심야)",
+                "123",
+                "127"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113EB03",
+            "rows": 2,
+            "bytes07_08Hex": "EB03",
+            "decodedLow16LittleEndian": 1003,
+            "candidateARS": "01003",
+            "fullLocationCodes": [
+              "0113EB030259"
+            ],
+            "terminalReferences": [
+              "24000329",
+              "37000329"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "시민아파트",
+              "nameEn": "Simin Apartment",
+              "city": "부산광역시",
+              "district": "중구",
+              "neighborhood": "영주2동",
+              "longitude": 129.031748556372,
+              "latitude": 35.115140030577,
+              "arsID": "01003",
+              "stopID": "21010601005",
+              "routes": [
+                "190",
+                "38",
+                "43",
+                "508",
+                "508(심야)"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113F355",
+            "rows": 5,
+            "bytes07_08Hex": "F355",
+            "decodedLow16LittleEndian": 22003,
+            "candidateARS": "22003",
+            "fullLocationCodes": [
+              "0113F3550259"
+            ],
+            "terminalReferences": [
+              "0B000306",
+              "21000306",
+              "22000306"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113FC2A",
+            "rows": 2,
+            "bytes07_08Hex": "FC2A",
+            "decodedLow16LittleEndian": 11004,
+            "candidateARS": "11004",
+            "fullLocationCodes": [
+              "0113FC2A0259"
+            ],
+            "terminalReferences": [
+              "23000329",
+              "24000329"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "금정체육공원입구",
+              "nameEn": "Geumjung Sports Park Entrance",
+              "city": "부산광역시",
+              "district": "금정구",
+              "neighborhood": "청룡노포동",
+              "longitude": 129.098881893485,
+              "latitude": 35.291543371916,
+              "arsID": "11004",
+              "stopID": "21110671020",
+              "routes": [
+                "1002(심야)",
+                "37",
+                "50",
+                "90"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "02137117",
+            "rows": 3,
+            "bytes07_08Hex": "7117",
+            "decodedLow16LittleEndian": 6001,
+            "candidateARS": "06001",
+            "fullLocationCodes": [
+              "021371170259"
+            ],
+            "terminalReferences": [
+              "02000310",
+              "04000310",
+              "15000310"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "식물원입구",
+              "nameEn": "Botanical Garden Entrance",
+              "city": "부산광역시",
+              "district": "동래구",
+              "neighborhood": "온천1동",
+              "longitude": 129.081714465579,
+              "latitude": 35.223677475402,
+              "arsID": "06001",
+              "stopID": "21060551005",
+              "routes": [
+                "1002(심야)",
+                "110",
+                "77"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0213A10F",
+            "rows": 24,
+            "bytes07_08Hex": "A10F",
+            "decodedLow16LittleEndian": 4001,
+            "candidateARS": "04001",
+            "fullLocationCodes": [
+              "0213A10F0259"
+            ],
+            "terminalReferences": [
+              "02000306",
+              "04000306",
+              "06000306",
+              "0C000306",
+              "0F000306",
+              "10000306",
+              "11000306",
+              "16000306",
+              "1B000306",
+              "1C000306",
+              "1D000306",
+              "25000306",
+              "26000306",
+              "2A000306",
+              "2B000306",
+              "2D000306",
+              "2E000306",
+              "30000306",
+              "33000306",
+              "37000306"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "미광마린타워",
+              "nameEn": "Migwang Marine Tower Apartment",
+              "city": "부산광역시",
+              "district": "영도구",
+              "neighborhood": "봉래1동",
+              "longitude": 129.043199993312,
+              "latitude": 35.093615800672,
+              "arsID": "04001",
+              "stopID": "21040591003",
+              "routes": [
+                "101",
+                "70",
+                "88-1A"
+              ]
+            },
+            "status": "exact_official_ars"
+          }
+        ]
+      },
+      "025B": {
+        "systemDecimal": 603,
+        "officialNameKo": "부산급행",
+        "rows": 75,
+        "uniqueStationTokens": 8,
+        "matchedTokens": 7,
+        "matchedRows": 73,
+        "unmatchedTokens": 1,
+        "unmatchedRows": 2,
+        "tokens": [
+          {
+            "stationToken": "0013062B",
+            "rows": 2,
+            "bytes07_08Hex": "062B",
+            "decodedLow16LittleEndian": 11014,
+            "candidateARS": "11014",
+            "fullLocationCodes": [
+              "0013062B025B"
+            ],
+            "terminalReferences": [
+              "23000340",
+              "37000340"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "어린이놀이터",
+              "nameEn": "Childrens Playground",
+              "city": "부산광역시",
+              "district": "금정구",
+              "neighborhood": "청룡노포동",
+              "longitude": 129.087514603685,
+              "latitude": 35.275424313578,
+              "arsID": "11014",
+              "stopID": "21110671014",
+              "routes": [
+                "29",
+                "300",
+                "51",
+                "51(심야)",
+                "80",
+                "90"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00131527",
+            "rows": 7,
+            "bytes07_08Hex": "1527",
+            "decodedLow16LittleEndian": 10005,
+            "candidateARS": "10005",
+            "fullLocationCodes": [
+              "00131527025B"
+            ],
+            "terminalReferences": [
+              "08000314",
+              "0A000314",
+              "11000314",
+              "25000314",
+              "2A000314",
+              "2B000314",
+              "2F000314"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "감천사거리",
+              "nameEn": "Gamcheon Sageori",
+              "city": "부산광역시",
+              "district": "사하구",
+              "neighborhood": "감천1동",
+              "longitude": 129.005913888639,
+              "latitude": 35.086660977012,
+              "arsID": "10005",
+              "stopID": "21100651018",
+              "routes": [
+                "16",
+                "171",
+                "172",
+                "3006",
+                "6",
+                "61",
+                "9",
+                "96-1"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00131627",
+            "rows": 2,
+            "bytes07_08Hex": "1627",
+            "decodedLow16LittleEndian": 10006,
+            "candidateARS": "10006",
+            "fullLocationCodes": [
+              "00131627025B"
+            ],
+            "terminalReferences": [
+              "07000314",
+              "1A000314"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "감천우체국",
+              "nameEn": "Gamcheon Post Office",
+              "city": "부산광역시",
+              "district": "사하구",
+              "neighborhood": "감천1동",
+              "longitude": 129.005263651917,
+              "latitude": 35.087783503959,
+              "arsID": "10006",
+              "stopID": "21100651001",
+              "routes": [
+                "61"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "00132A23",
+            "rows": 4,
+            "bytes07_08Hex": "2A23",
+            "decodedLow16LittleEndian": 9002,
+            "candidateARS": "09002",
+            "fullLocationCodes": [
+              "00132A23025B"
+            ],
+            "terminalReferences": [
+              "15000329",
+              "1C000329",
+              "2A000329",
+              "39000329"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "브라보주유소",
+              "nameEn": "Bravo Gas Station",
+              "city": "부산광역시",
+              "district": "해운대구",
+              "neighborhood": "송정동",
+              "longitude": 129.205560671684,
+              "latitude": 35.19488533267,
+              "arsID": "09002",
+              "stopID": "21090561008",
+              "routes": [
+                "139",
+                "180(아침)",
+                "200",
+                "38",
+                "39",
+                "40",
+                "63"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0013CB32",
+            "rows": 49,
+            "bytes07_08Hex": "CB32",
+            "decodedLow16LittleEndian": 13003,
+            "candidateARS": "13003",
+            "fullLocationCodes": [
+              "0013CB32025B"
+            ],
+            "terminalReferences": [
+              "01000315",
+              "02000315",
+              "03000315",
+              "04000315",
+              "07000315",
+              "09000315",
+              "0A000315",
+              "0C000315",
+              "0E000315",
+              "0F000315",
+              "10000315",
+              "11000315",
+              "12000315",
+              "14000315",
+              "18000315",
+              "1F000315",
+              "20000315",
+              "21000315",
+              "26000315",
+              "28000315",
+              "29000315",
+              "2A000315",
+              "2B000315",
+              "2C000315",
+              "2D000315",
+              "2F000315",
+              "33000315",
+              "34000315",
+              "35000315",
+              "37000315",
+              "38000315",
+              "39000315",
+              "3B000315"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "교대역",
+              "nameEn": "Busan National University of Education Station",
+              "city": "부산광역시",
+              "district": "연제구",
+              "neighborhood": "거제1동",
+              "longitude": 129.079935715204,
+              "latitude": 35.196711758344,
+              "arsID": "13003",
+              "stopID": "21130511015",
+              "routes": [
+                "10",
+                "100-1",
+                "129-1",
+                "189",
+                "31",
+                "43",
+                "506",
+                "77"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113A10F",
+            "rows": 1,
+            "bytes07_08Hex": "A10F",
+            "decodedLow16LittleEndian": 4001,
+            "candidateARS": "04001",
+            "fullLocationCodes": [
+              "0113A10F025B"
+            ],
+            "terminalReferences": [
+              "3A000315"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "미광마린타워",
+              "nameEn": "Migwang Marine Tower Apartment",
+              "city": "부산광역시",
+              "district": "영도구",
+              "neighborhood": "봉래1동",
+              "longitude": 129.043199993312,
+              "latitude": 35.093615800672,
+              "arsID": "04001",
+              "stopID": "21040591003",
+              "routes": [
+                "101",
+                "70",
+                "88-1A"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "0113D284",
+            "rows": 2,
+            "bytes07_08Hex": "D284",
+            "decodedLow16LittleEndian": 34002,
+            "candidateARS": "34002",
+            "fullLocationCodes": [
+              "0113D284025B"
+            ],
+            "terminalReferences": [
+              "10000314",
+              "1A000314"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0213CB32",
+            "rows": 8,
+            "bytes07_08Hex": "CB32",
+            "decodedLow16LittleEndian": 13003,
+            "candidateARS": "13003",
+            "fullLocationCodes": [
+              "0213CB32025B"
+            ],
+            "terminalReferences": [
+              "04000315",
+              "06000315",
+              "2A000315",
+              "2C000315",
+              "35000315",
+              "36000315",
+              "38000315"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "교대역",
+              "nameEn": "Busan National University of Education Station",
+              "city": "부산광역시",
+              "district": "연제구",
+              "neighborhood": "거제1동",
+              "longitude": 129.079935715204,
+              "latitude": 35.196711758344,
+              "arsID": "13003",
+              "stopID": "21130511015",
+              "routes": [
+                "10",
+                "100-1",
+                "129-1",
+                "189",
+                "31",
+                "43",
+                "506",
+                "77"
+              ]
+            },
+            "status": "exact_official_ars"
+          }
+        ]
+      },
+      "025D": {
+        "systemDecimal": 605,
+        "officialNameKo": "부산마을버스(605)",
+        "rows": 7,
+        "uniqueStationTokens": 4,
+        "matchedTokens": 1,
+        "matchedRows": 1,
+        "unmatchedTokens": 3,
+        "unmatchedRows": 6,
+        "tokens": [
+          {
+            "stationToken": "00134B71",
+            "rows": 4,
+            "bytes07_08Hex": "4B71",
+            "decodedLow16LittleEndian": 29003,
+            "candidateARS": "29003",
+            "fullLocationCodes": [
+              "00134B71025D"
+            ],
+            "terminalReferences": [
+              "03000436",
+              "18000436",
+              "1E000436",
+              "22000436"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "01134B71",
+            "rows": 1,
+            "bytes07_08Hex": "4B71",
+            "decodedLow16LittleEndian": 29003,
+            "candidateARS": "29003",
+            "fullLocationCodes": [
+              "01134B71025D"
+            ],
+            "terminalReferences": [
+              "34000436"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "01136A10",
+            "rows": 1,
+            "bytes07_08Hex": "6A10",
+            "decodedLow16LittleEndian": 4202,
+            "candidateARS": "04202",
+            "fullLocationCodes": [
+              "01136A10025D"
+            ],
+            "terminalReferences": [
+              "2F000417"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "국립수산물품질관리원",
+              "nameEn": "National Fishery Products Quality Management Service",
+              "city": "부산광역시",
+              "district": null,
+              "neighborhood": null,
+              "longitude": 129.075117835653,
+              "latitude": 35.078946045276,
+              "arsID": "04202",
+              "stopID": "50000000823",
+              "routes": [
+                "186"
+              ]
+            },
+            "status": "exact_official_ars"
+          },
+          {
+            "stationToken": "02138F4E",
+            "rows": 1,
+            "bytes07_08Hex": "8F4E",
+            "decodedLow16LittleEndian": 20111,
+            "candidateARS": "20111",
+            "fullLocationCodes": [
+              "02138F4E025D"
+            ],
+            "terminalReferences": [
+              "10000490"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          }
+        ]
+      },
+      "025E": {
+        "systemDecimal": 606,
+        "officialNameKo": "부산마을버스(606)",
+        "rows": 16,
+        "uniqueStationTokens": 3,
+        "matchedTokens": 1,
+        "matchedRows": 2,
+        "unmatchedTokens": 2,
+        "unmatchedRows": 14,
+        "tokens": [
+          {
+            "stationToken": "00138990",
+            "rows": 6,
+            "bytes07_08Hex": "8990",
+            "decodedLow16LittleEndian": 37001,
+            "candidateARS": "37001",
+            "fullLocationCodes": [
+              "00138990025E"
+            ],
+            "terminalReferences": [
+              "0A000463",
+              "0C000463",
+              "10000463",
+              "12000463",
+              "14000463",
+              "16000463"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0013BE46",
+            "rows": 8,
+            "bytes07_08Hex": "BE46",
+            "decodedLow16LittleEndian": 18110,
+            "candidateARS": "18110",
+            "fullLocationCodes": [
+              "0013BE46025E"
+            ],
+            "terminalReferences": [
+              "02000437",
+              "07000463",
+              "13000437",
+              "1C000463",
+              "1D000437",
+              "1F000437",
+              "2B000463"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          },
+          {
+            "stationToken": "0113BA0B",
+            "rows": 2,
+            "bytes07_08Hex": "BA0B",
+            "decodedLow16LittleEndian": 3002,
+            "candidateARS": "03002",
+            "fullLocationCodes": [
+              "0113BA0B025E"
+            ],
+            "terminalReferences": [
+              "01000437",
+              "36000437"
+            ],
+            "officialBIMSMatchCount": 1,
+            "secondaryEsriBusanBISMatchCount": 1,
+            "mapping": {
+              "nameKo": "범곡교차로",
+              "nameEn": "Beomgok Intersection",
+              "city": "부산광역시",
+              "district": "동구",
+              "neighborhood": "범일1동",
+              "longitude": 129.056322955492,
+              "latitude": 35.140717975053,
+              "arsID": "03002",
+              "stopID": "21030651003",
+              "routes": [
+                "103",
+                "17",
+                "59",
+                "61",
+                "67",
+                "85",
+                "88(A)"
+              ]
+            },
+            "status": "exact_official_ars"
+          }
+        ]
+      },
+      "0261": {
+        "systemDecimal": 609,
+        "officialNameKo": "부산마을버스(609)",
+        "rows": 2,
+        "uniqueStationTokens": 1,
+        "matchedTokens": 0,
+        "matchedRows": 0,
+        "unmatchedTokens": 1,
+        "unmatchedRows": 2,
+        "tokens": [
+          {
+            "stationToken": "00134C71",
+            "rows": 2,
+            "bytes07_08Hex": "4C71",
+            "decodedLow16LittleEndian": 29004,
+            "candidateARS": "29004",
+            "fullLocationCodes": [
+              "00134C710261"
+            ],
+            "terminalReferences": [
+              "04000504",
+              "39000504"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          }
+        ]
+      },
+      "026A": {
+        "systemDecimal": 618,
+        "officialNameKo": "부산일반심야",
+        "rows": 2,
+        "uniqueStationTokens": 1,
+        "matchedTokens": 0,
+        "matchedRows": 0,
+        "unmatchedTokens": 1,
+        "unmatchedRows": 2,
+        "tokens": [
+          {
+            "stationToken": "0013D684",
+            "rows": 2,
+            "bytes07_08Hex": "D684",
+            "decodedLow16LittleEndian": 34006,
+            "candidateARS": "34006",
+            "fullLocationCodes": [
+              "0013D684026A"
+            ],
+            "terminalReferences": [
+              "10000340",
+              "26000340"
+            ],
+            "officialBIMSMatchCount": 0,
+            "secondaryEsriBusanBISMatchCount": 0,
+            "status": "unmatched"
+          }
+        ]
+      }
+    },
+    "totals": {
+      "rows": 497,
+      "uniqueModeTokenPairs": 87,
+      "uniqueRawStationTokens": 86,
+      "uniqueDecodedValues": 61,
+      "matchedModeTokenPairs": 43,
+      "matchedRows": 305
+    },
+    "validARSCollisionAudit": {
+      "validOfficialARSRecords": 4116,
+      "uniqueValidARS": 4116,
+      "collisions": 0
+    },
+    "unsafeBIMSStopIDSuffixJoin": {
+      "0259_only": {
+        "uniqueTokens": 70,
+        "distribution": {
+          "multiple": 21,
+          "none": 45,
+          "one": 4
+        },
+        "examples": {
+          "multiple": [
+            {
+              "stationToken": "0013032B",
+              "suffix": "11011",
+              "distinctStopIDs": 11
+            },
+            {
+              "stationToken": "00130952",
+              "suffix": "21001",
+              "distinctStopIDs": 22
+            },
+            {
+              "stationToken": "00130B52",
+              "suffix": "21003",
+              "distinctStopIDs": 24
+            },
+            {
+              "stationToken": "00130D52",
+              "suffix": "21005",
+              "distinctStopIDs": 19
+            },
+            {
+              "stationToken": "00131127",
+              "suffix": "10001",
+              "distinctStopIDs": 27
+            },
+            {
+              "stationToken": "00131352",
+              "suffix": "21011",
+              "distinctStopIDs": 10
+            },
+            {
+              "stationToken": "00131979",
+              "suffix": "31001",
+              "distinctStopIDs": 22
+            },
+            {
+              "stationToken": "0013214E",
+              "suffix": "20001",
+              "distinctStopIDs": 15
+            }
+          ],
+          "none": [
+            {
+              "stationToken": "0013394A",
+              "suffix": "19001",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00133A4A",
+              "suffix": "19002",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "0013411F",
+              "suffix": "08001",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00135546",
+              "suffix": "18005",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00135998",
+              "suffix": "39001",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00135C1B",
+              "suffix": "07004",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00135D1B",
+              "suffix": "07005",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00136C42",
+              "suffix": "17004",
+              "distinctStopIDs": 0
+            }
+          ],
+          "one": [
+            {
+              "stationToken": "0013BA0B",
+              "suffix": "03002",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0013BC0B",
+              "suffix": "03004",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0013BF0B",
+              "suffix": "03007",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0013C00B",
+              "suffix": "03008",
+              "distinctStopIDs": 1
+            }
+          ]
+        }
+      },
+      "all_observed_busan_bus_modes": {
+        "uniqueTokens": 86,
+        "distribution": {
+          "multiple": 24,
+          "none": 57,
+          "one": 5
+        },
+        "examples": {
+          "multiple": [
+            {
+              "stationToken": "0013032B",
+              "suffix": "11011",
+              "distinctStopIDs": 11
+            },
+            {
+              "stationToken": "0013062B",
+              "suffix": "11014",
+              "distinctStopIDs": 10
+            },
+            {
+              "stationToken": "00130952",
+              "suffix": "21001",
+              "distinctStopIDs": 22
+            },
+            {
+              "stationToken": "00130B52",
+              "suffix": "21003",
+              "distinctStopIDs": 24
+            },
+            {
+              "stationToken": "00130D52",
+              "suffix": "21005",
+              "distinctStopIDs": 19
+            },
+            {
+              "stationToken": "00131127",
+              "suffix": "10001",
+              "distinctStopIDs": 27
+            },
+            {
+              "stationToken": "00131352",
+              "suffix": "21011",
+              "distinctStopIDs": 10
+            },
+            {
+              "stationToken": "00131527",
+              "suffix": "10005",
+              "distinctStopIDs": 16
+            }
+          ],
+          "none": [
+            {
+              "stationToken": "00132A23",
+              "suffix": "09002",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "0013394A",
+              "suffix": "19001",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00133A4A",
+              "suffix": "19002",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "0013411F",
+              "suffix": "08001",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00134B71",
+              "suffix": "29003",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00134C71",
+              "suffix": "29004",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00135546",
+              "suffix": "18005",
+              "distinctStopIDs": 0
+            },
+            {
+              "stationToken": "00135998",
+              "suffix": "39001",
+              "distinctStopIDs": 0
+            }
+          ],
+          "one": [
+            {
+              "stationToken": "0013BA0B",
+              "suffix": "03002",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0013BC0B",
+              "suffix": "03004",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0013BF0B",
+              "suffix": "03007",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0013C00B",
+              "suffix": "03008",
+              "distinctStopIDs": 1
+            },
+            {
+              "stationToken": "0113BA0B",
+              "suffix": "03002",
+              "distinctStopIDs": 1
+            }
+          ]
+        }
+      }
+    },
+    "nationwideMobileNumberCollisionAudit": {
+      "uniqueDecodedValues": 61,
+      "distribution": {
+        "multiple": 61
+      },
+      "finding": "Every observed numeric candidate has multiple nationwide mobile-number matches. Namespace by Busan mode and BusanBIS before joining."
+    },
+    "settlementIDFinding": "Do not prefix 26 to the decoded number. It conflicts with exact ARS matches (e.g. raw 04001 is BIMS 미광마린타워, while 2604001 is absent; raw 01003 is BIMS 시민아파트 while settlement ID 2601003 is 당감동)."
+  },
+  "rail870": {
+    "rows": 256,
+    "uniqueStationTokens": 30,
+    "official2021MatchedTokens": 28,
+    "official2021MatchedRows": 250,
+    "tokens": [
+      {
+        "stationToken": "00136E00",
+        "rows": 4,
+        "decodedLow16LittleEndian": 110,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "110",
+          "nameKo": "자갈치역",
+          "nameEn": "Jagalchi",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.097372,
+          "longitude": 129.02667,
+          "address": "부산광역시 중구 구덕로 지하 80",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00136F00",
+        "rows": 16,
+        "decodedLow16LittleEndian": 111,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "111",
+          "nameKo": "남포역",
+          "nameEn": "Nampo",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.097953,
+          "longitude": 129.034869,
+          "address": "부산광역시 중구 구덕로 지하 12",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00137000",
+        "rows": 4,
+        "decodedLow16LittleEndian": 112,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "112",
+          "nameKo": "중앙역",
+          "nameEn": "Jungang",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.103837,
+          "longitude": 129.036371,
+          "address": "부산광역시 중구 중앙대로 지하 83",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00137100",
+        "rows": 22,
+        "decodedLow16LittleEndian": 113,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "113",
+          "nameKo": "부산역",
+          "nameEn": "Busan Station",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.115224,
+          "longitude": 129.0397,
+          "address": "부산광역시 동구 중앙대로 지하 200",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00137200",
+        "rows": 4,
+        "decodedLow16LittleEndian": 114,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "114",
+          "nameKo": "초량역",
+          "nameEn": "Choryang",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.121168,
+          "longitude": 129.043039,
+          "address": "부산광역시 동구 중앙대로 지하 264",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00137500",
+        "rows": 4,
+        "decodedLow16LittleEndian": 117,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "117",
+          "nameKo": "범일역",
+          "nameEn": "Beomil",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.140952,
+          "longitude": 129.059352,
+          "address": "부산광역시 동구 범일로 지하 108",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00137700",
+        "rows": 18,
+        "decodedLow16LittleEndian": 119,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "119",
+          "nameKo": "서면역(1호선)",
+          "nameEn": "Seomyeon",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.158282,
+          "longitude": 129.059556,
+          "address": "부산광역시 부산진구 중앙대로 지하 730",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00137D00",
+        "rows": 4,
+        "decodedLow16LittleEndian": 125,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "125",
+          "nameKo": "동래역",
+          "nameEn": "Dongnae",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.205641,
+          "longitude": 129.078506,
+          "address": "부산광역시 동래구 중앙대로 1324",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00138000",
+        "rows": 2,
+        "decodedLow16LittleEndian": 128,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "128",
+          "nameKo": "부산대역",
+          "nameEn": "Pusan Nat''''''''l Univ.",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.229609,
+          "longitude": 129.089358,
+          "address": "부산광역시 금정구 장전온천천로 48",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00138300",
+        "rows": 2,
+        "decodedLow16LittleEndian": 131,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "131",
+          "nameKo": "두실역",
+          "nameEn": "Dusil",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.256959,
+          "longitude": 129.091386,
+          "address": "부산광역시 금정구 중앙대로 지하 1927-1",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00138600",
+        "rows": 4,
+        "decodedLow16LittleEndian": 134,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "134",
+          "nameKo": "노포역",
+          "nameEn": "Nopo",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.28468657,
+          "longitude": 129.094967,
+          "address": "부산광역시 금정구 중앙대로 2238",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "00139400",
+        "rows": 4,
+        "decodedLow16LittleEndian": 148,
+        "officialMatchCount": 0,
+        "status": "unmatched"
+      },
+      {
+        "stationToken": "0013C900",
+        "rows": 2,
+        "decodedLow16LittleEndian": 201,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "201",
+          "nameKo": "장산역",
+          "nameEn": "Jangsan",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.169914,
+          "longitude": 129.176986,
+          "address": "부산광역시 해운대구 해운대로 지하 820",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013CB00",
+        "rows": 8,
+        "decodedLow16LittleEndian": 203,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "203",
+          "nameKo": "해운대역",
+          "nameEn": "Haeundae",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.163672,
+          "longitude": 129.158908,
+          "address": "부산광역시 해운대구 해운대로 지하 626",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013CE00",
+        "rows": 5,
+        "decodedLow16LittleEndian": 206,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "206",
+          "nameKo": "센텀시티역",
+          "nameEn": "Centum City",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.168827,
+          "longitude": 129.131745,
+          "address": "부산광역시 해운대구 센텀남대로 지하 76",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013D000",
+        "rows": 2,
+        "decodedLow16LittleEndian": 208,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "208",
+          "nameKo": "수영역",
+          "nameEn": "Suyeong",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.165227,
+          "longitude": 129.114713,
+          "address": "부산광역시 수영구 수영로 지하 677",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013D100",
+        "rows": 7,
+        "decodedLow16LittleEndian": 209,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "209",
+          "nameKo": "광안역",
+          "nameEn": "Gwangan",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.157916,
+          "longitude": 129.113168,
+          "address": "부산광역시 수영구 수영로 지하 576",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013D200",
+        "rows": 2,
+        "decodedLow16LittleEndian": 210,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "210",
+          "nameKo": "금련산역",
+          "nameEn": "Geumnyeonsan",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.149771,
+          "longitude": 129.110961,
+          "address": "부산광역시 수영구 수영로 지하 482",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013D600",
+        "rows": 4,
+        "decodedLow16LittleEndian": 214,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "214",
+          "nameKo": "못골역",
+          "nameEn": "Motgol",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.134731,
+          "longitude": 129.084415,
+          "address": "부산광역시 남구 수영로 지하 170",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013DB00",
+        "rows": 8,
+        "decodedLow16LittleEndian": 219,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "219",
+          "nameKo": "서면역(2호선)",
+          "nameEn": "Seomyeon",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.15774,
+          "longitude": 129.059084,
+          "address": "부산광역시 부산진구 중앙대로 지하 730",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0013E300",
+        "rows": 4,
+        "decodedLow16LittleEndian": 227,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "227",
+          "nameKo": "사상역",
+          "nameEn": "Sasang",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.162361,
+          "longitude": 128.984621,
+          "address": "부산광역시 사상구 사상로 지하 203",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "01136D00",
+        "rows": 4,
+        "decodedLow16LittleEndian": 109,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "109",
+          "nameKo": "토성역",
+          "nameEn": "Toseong",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.100727,
+          "longitude": 129.019776,
+          "address": "부산광역시 서구 구덕로 지하 170",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "01136F00",
+        "rows": 7,
+        "decodedLow16LittleEndian": 111,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "111",
+          "nameKo": "남포역",
+          "nameEn": "Nampo",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.097953,
+          "longitude": 129.034869,
+          "address": "부산광역시 중구 구덕로 지하 12",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "01137A00",
+        "rows": 47,
+        "decodedLow16LittleEndian": 122,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "122",
+          "nameKo": "시청역",
+          "nameEn": "City Hall",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.179837,
+          "longitude": 129.076642,
+          "address": "부산광역시 연제구 중앙대로 지하 1017",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "01138600",
+        "rows": 51,
+        "decodedLow16LittleEndian": 134,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "134",
+          "nameKo": "노포역",
+          "nameEn": "Nopo",
+          "lineCode": "S2601",
+          "lineName": "부산도시철도 1호선",
+          "latitude": 35.28468657,
+          "longitude": 129.094967,
+          "address": "부산광역시 금정구 중앙대로 2238",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0113B400",
+        "rows": 2,
+        "decodedLow16LittleEndian": 180,
+        "officialMatchCount": 0,
+        "status": "unmatched"
+      },
+      {
+        "stationToken": "0113C900",
+        "rows": 2,
+        "decodedLow16LittleEndian": 201,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "201",
+          "nameKo": "장산역",
+          "nameEn": "Jangsan",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.169914,
+          "longitude": 129.176986,
+          "address": "부산광역시 해운대구 해운대로 지하 820",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0113D000",
+        "rows": 1,
+        "decodedLow16LittleEndian": 208,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "208",
+          "nameKo": "수영역",
+          "nameEn": "Suyeong",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.165227,
+          "longitude": 129.114713,
+          "address": "부산광역시 수영구 수영로 지하 677",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0113DD00",
+        "rows": 10,
+        "decodedLow16LittleEndian": 221,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "221",
+          "nameKo": "가야역",
+          "nameEn": "Gaya",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.155883,
+          "longitude": 129.042817,
+          "address": "부산광역시 부산진구 가야대로 지하 650",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      },
+      {
+        "stationToken": "0113E300",
+        "rows": 2,
+        "decodedLow16LittleEndian": 227,
+        "officialMatchCount": 1,
+        "status": "exact_official_station_code",
+        "mapping": {
+          "stationCode": "227",
+          "nameKo": "사상역",
+          "nameEn": "Sasang",
+          "lineCode": "S2602",
+          "lineName": "부산도시철도 2호선",
+          "latitude": 35.162361,
+          "longitude": 128.984621,
+          "address": "부산광역시 사상구 사상로 지하 203",
+          "operator": "부산교통공사",
+          "sourceDate": "2021-02-26"
+        }
+      }
+    ],
+    "latest2025DirectMatchedTokens": 26,
+    "latest2025DirectMatchedRows": 247,
+    "unmatchedDecodedValues": [
+      148,
+      180
+    ],
+    "finding": "28/30 station tokens (250/256 rows) exactly match official station codes with WGS84 coordinates. Values 148 and 180 have no match in the 2021 or 2025 official Busan Metro station lists and should remain unknown."
+  },
+  "observed877": {
+    "rows": 10,
+    "uniqueStationTokens": 2,
+    "cards": 5,
+    "cardsAlsoContainingMode870": 5,
+    "cardsAlsoContainingObservedBusanBusModes": 4,
+    "officialKOTRIS2023Status": "absent",
+    "tokens": [
+      {
+        "stationToken": "00130400",
+        "rows": 4,
+        "cards": 2,
+        "decodedLow16LittleEndian": 4,
+        "candidateTransform": "0100 + ordinal",
+        "candidateOfficialBGLStationCode": "0104",
+        "candidateOfficialBGLName": "공항",
+        "terminalReferences": [
+          "00000010"
+        ],
+        "status": "inferred_candidate_not_officially_tied_to_mode_877"
+      },
+      {
+        "stationToken": "01130100",
+        "rows": 6,
+        "cards": 3,
+        "decodedLow16LittleEndian": 1,
+        "candidateTransform": "0100 + ordinal",
+        "candidateOfficialBGLStationCode": "0101",
+        "candidateOfficialBGLName": "사상(서부터미널)",
+        "terminalReferences": [
+          "00000010"
+        ],
+        "status": "inferred_candidate_not_officially_tied_to_mode_877"
+      }
+    ],
+    "inference": "The token layout, Busan co-occurrence, and exact ordinal correspondence make 부산김해경전철 plausible: low16 1 -> official BG/B1 code 0101 사상; low16 4 -> 0104 공항. No primary source found tying KOTRIS/card mode 877 to operator BG, so do not label it as official or deterministic."
+  },
+  "integrationRecommendation": [
+    "Build lookup keys as `${transportModeCode}:${stationToken}`; preserve locationCode for audit.",
+    "For modes 601-618 only, derive candidateARS from the final two token bytes little-endian, zero-pad to 5 digits, and join only to valid official Busan BIMS ARS entries. Accept only exactly one Busan match.",
+    "For mode 870, use the same little-endian derivation as the official 3-digit Busan Metro station code; join to the collision-free 2021 station+coordinate dataset, then overlay newer names from the 2025 file except known code-quality errors.",
+    "Keep decoded values 148 and 180 unknown; show the numeric candidate and evidence status.",
+    "Keep mode 877 as observed/unknown by default. If the UI supports hypotheses, show BGL candidates 0101 Sasang and 0104 Airport with an explicit inferred badge and source links, never as confirmed.",
+    "Do not use nationwide ARS, BIMS stopID suffix, or 26-prefix joins: collision audits show they are unsafe."
+  ]
+}

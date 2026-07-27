@@ -1,0 +1,1324 @@
+{
+  "coverage": {
+    "cards": 192,
+    "exactEventPercent": 95.0,
+    "exactEventRows": 3497,
+    "namedStationPercent": 83.8,
+    "namedStationRows": 3086,
+    "officialModePercent": 95.8,
+    "officialModeRows": 3527,
+    "pairedJourneyCandidates": 1219,
+    "plausibleTimestampPercent": 76.2,
+    "plausibleTimestampRows": 2805,
+    "records": 3681,
+    "transportModeCodesObserved": 83
+  },
+  "files": {
+    "cardbal-korean-transit.sqlite": {
+      "bytes": 23789568,
+      "path": "datasets/korean-transit/cardbal-korean-transit.sqlite",
+      "sha256": "671b1b032e584f5b0da9bfcc095a10ca6d072f643ac816e33844eb89b5df60e7"
+    },
+    "korean-trips.json": {
+      "bytes": 15125793,
+      "path": "datasets/korean-transit/korean-trips.json",
+      "sha256": "9054c685b666a1188de9dd2f4ae10f5112e4bce2d469cae3b359664c8366ff96"
+    }
+  },
+  "format": "cardbal-korean-transit-manifest-v1",
+  "generatedAt": "2026-07-27T00:04:55+00:00",
+  "generator": "scripts/generate_korean_transit_dataset.py",
+  "observedModes": [
+    {
+      "area": "Seoul",
+      "decimalCode": 201,
+      "hexCode": "00C9",
+      "locations": 78,
+      "matchStatus": "official_kotris",
+      "namedLocations": 67,
+      "officialNameKo": "서울메트로",
+      "records": 1072,
+      "timestampLayouts": {
+        "packed33": 1072
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 115,
+      "hexCode": "0073",
+      "locations": 240,
+      "matchStatus": "official_kotris",
+      "namedLocations": 200,
+      "officialNameKo": "간선버스",
+      "records": 438,
+      "timestampLayouts": {
+        "packed33": 438
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 601,
+      "hexCode": "0259",
+      "locations": 70,
+      "matchStatus": "official_kotris",
+      "namedLocations": 24,
+      "officialNameKo": "부산일반버스",
+      "records": 395,
+      "timestampLayouts": {
+        "operator_opaque": 395
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 870,
+      "hexCode": "0366",
+      "locations": 30,
+      "matchStatus": "official_kotris",
+      "namedLocations": 23,
+      "officialNameKo": "부산교통공단",
+      "records": 256,
+      "timestampLayouts": {
+        "operator_opaque": 256
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 203,
+      "hexCode": "00CB",
+      "locations": 51,
+      "matchStatus": "official_kotris",
+      "namedLocations": 47,
+      "officialNameKo": "도시철도",
+      "records": 247,
+      "timestampLayouts": {
+        "packed33": 247
+      }
+    },
+    {
+      "area": "National / KORAIL",
+      "decimalCode": 202,
+      "hexCode": "00CA",
+      "locations": 52,
+      "matchStatus": "official_kotris",
+      "namedLocations": 11,
+      "officialNameKo": "한국철도공사",
+      "records": 221,
+      "timestampLayouts": {
+        "packed33": 221
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 120,
+      "hexCode": "0078",
+      "locations": 103,
+      "matchStatus": "official_kotris",
+      "namedLocations": 90,
+      "officialNameKo": "지선버스(120)",
+      "records": 173,
+      "timestampLayouts": {
+        "packed33": 173
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 603,
+      "hexCode": "025B",
+      "locations": 8,
+      "matchStatus": "official_kotris",
+      "namedLocations": 6,
+      "officialNameKo": "부산급행",
+      "records": 75,
+      "timestampLayouts": {
+        "operator_opaque": 75
+      }
+    },
+    {
+      "area": "Airport Railroad",
+      "decimalCode": 206,
+      "hexCode": "00CE",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 4,
+      "officialNameKo": "공항철도 단독구간",
+      "records": 70,
+      "timestampLayouts": {
+        "packed33": 70
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 500,
+      "hexCode": "01F4",
+      "locations": 35,
+      "matchStatus": "official_kotris",
+      "namedLocations": 30,
+      "officialNameKo": "경기일반버스(500)-거리비례제",
+      "records": 51,
+      "timestampLayouts": {
+        "packed33": 51
+      }
+    },
+    {
+      "area": "Airport Railroad",
+      "decimalCode": 207,
+      "hexCode": "00CF",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 4,
+      "officialNameKo": "공항철도 연락구간",
+      "records": 45,
+      "timestampLayouts": {
+        "packed33": 45
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 105,
+      "hexCode": "0069",
+      "locations": 34,
+      "matchStatus": "official_kotris",
+      "namedLocations": 31,
+      "officialNameKo": "마을버스(105)",
+      "records": 43,
+      "timestampLayouts": {
+        "packed33": 43
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 142,
+      "hexCode": "008E",
+      "locations": 18,
+      "matchStatus": "official_seoul",
+      "namedLocations": 13,
+      "officialNameKo": "도심순환(142)",
+      "records": 42,
+      "timestampLayouts": {
+        "packed33": 42
+      }
+    },
+    {
+      "area": "Jeju",
+      "decimalCode": 994,
+      "hexCode": "03E2",
+      "locations": 34,
+      "matchStatus": "official_kotris",
+      "namedLocations": 29,
+      "officialNameKo": "제주시내일반",
+      "records": 41,
+      "timestampLayouts": {
+        "bcd14": 41
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 533,
+      "hexCode": "0215",
+      "locations": 29,
+      "matchStatus": "official_kotris",
+      "namedLocations": 22,
+      "officialNameKo": "경기좌석(533)",
+      "records": 38,
+      "timestampLayouts": {
+        "packed33": 38
+      }
+    },
+    {
+      "area": "Capital region",
+      "decimalCode": 290,
+      "hexCode": "0122",
+      "locations": 3,
+      "matchStatus": "corpus_geometry_inference",
+      "namedLocations": 3,
+      "officialNameKo": "GTX-A candidate",
+      "records": 28,
+      "timestampLayouts": {
+        "packed33": 28
+      }
+    },
+    {
+      "area": "Incheon",
+      "decimalCode": 470,
+      "hexCode": "01D6",
+      "locations": 19,
+      "matchStatus": "official_kotris",
+      "namedLocations": 16,
+      "officialNameKo": "인천간선",
+      "records": 28,
+      "timestampLayouts": {
+        "packed33": 28
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 205,
+      "hexCode": "00CD",
+      "locations": 8,
+      "matchStatus": "official_kotris",
+      "namedLocations": 8,
+      "officialNameKo": "9호선",
+      "records": 27,
+      "timestampLayouts": {
+        "packed33": 27
+      }
+    },
+    {
+      "area": "Naju",
+      "decimalCode": 792,
+      "hexCode": "0318",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "나주일반",
+      "records": 24,
+      "timestampLayouts": {
+        "operator_opaque": 24
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 237,
+      "hexCode": "00ED",
+      "locations": 3,
+      "matchStatus": "institutional_reference",
+      "namedLocations": 0,
+      "officialNameKo": "신림경전철㈜",
+      "records": 20,
+      "timestampLayouts": {
+        "packed33": 20
+      }
+    },
+    {
+      "area": "Yangsan",
+      "decimalCode": 633,
+      "hexCode": "0279",
+      "locations": 5,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "양산좌석",
+      "records": 19,
+      "timestampLayouts": {
+        "operator_opaque": 19
+      }
+    },
+    {
+      "area": "Jeju",
+      "decimalCode": 995,
+      "hexCode": "03E3",
+      "locations": 16,
+      "matchStatus": "official_kotris",
+      "namedLocations": 14,
+      "officialNameKo": "제주시내좌석",
+      "records": 17,
+      "timestampLayouts": {
+        "bcd14": 17
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 131,
+      "hexCode": "0083",
+      "locations": 9,
+      "matchStatus": "official_kotris",
+      "namedLocations": 9,
+      "officialNameKo": "광역버스(131)",
+      "records": 16,
+      "timestampLayouts": {
+        "packed33": 16
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 606,
+      "hexCode": "025E",
+      "locations": 3,
+      "matchStatus": "official_kotris",
+      "namedLocations": 1,
+      "officialNameKo": "부산마을버스(606)",
+      "records": 16,
+      "timestampLayouts": {
+        "operator_opaque": 16
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 580,
+      "hexCode": "0244",
+      "locations": 12,
+      "matchStatus": "official_kotris",
+      "namedLocations": 11,
+      "officialNameKo": "경기마을버스(580)",
+      "records": 14,
+      "timestampLayouts": {
+        "packed33": 14
+      }
+    },
+    {
+      "area": "Airport limousine",
+      "decimalCode": 818,
+      "hexCode": "0332",
+      "locations": 8,
+      "matchStatus": "official_kotris",
+      "namedLocations": 8,
+      "officialNameKo": "공항예비",
+      "records": 14,
+      "timestampLayouts": {
+        "bcd14": 14
+      }
+    },
+    {
+      "area": "Chuncheon",
+      "decimalCode": 717,
+      "hexCode": "02CD",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "춘천일반",
+      "records": 12,
+      "timestampLayouts": {
+        "bcd14": 12
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 950,
+      "hexCode": "03B6",
+      "locations": 3,
+      "matchStatus": "unmapped",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 11,
+      "timestampLayouts": {
+        "bcd14": 11
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 971,
+      "hexCode": "03CB",
+      "locations": 9,
+      "matchStatus": "unmapped",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 11,
+      "timestampLayouts": {
+        "bcd14": 11
+      }
+    },
+    {
+      "area": "Capital region",
+      "decimalCode": 210,
+      "hexCode": "00D2",
+      "locations": 3,
+      "matchStatus": "institutional_reference",
+      "namedLocations": 3,
+      "officialNameKo": "새서울철도㈜",
+      "records": 10,
+      "timestampLayouts": {
+        "packed33": 10
+      }
+    },
+    {
+      "area": "Ulsan",
+      "decimalCode": 621,
+      "hexCode": "026D",
+      "locations": 10,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "울산일반",
+      "records": 10,
+      "timestampLayouts": {
+        "operator_opaque": 10
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 877,
+      "hexCode": "036D",
+      "locations": 2,
+      "matchStatus": "corpus_association",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 10,
+      "timestampLayouts": {
+        "alternate_unknown": 2,
+        "packed33": 8
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 905,
+      "hexCode": "0389",
+      "locations": 1,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 10,
+      "timestampLayouts": {
+        "alternate_unknown": 4,
+        "packed33": 6
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 909,
+      "hexCode": "038D",
+      "locations": 1,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 10,
+      "timestampLayouts": {
+        "alternate_unknown": 8,
+        "packed33": 2
+      }
+    },
+    {
+      "area": "Incheon",
+      "decimalCode": 204,
+      "hexCode": "00CC",
+      "locations": 7,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "인천지하철",
+      "records": 9,
+      "timestampLayouts": {
+        "packed33": 9
+      }
+    },
+    {
+      "area": "Capital region",
+      "decimalCode": 208,
+      "hexCode": "00D0",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "신분당선",
+      "records": 9,
+      "timestampLayouts": {
+        "packed33": 9
+      }
+    },
+    {
+      "area": "Jeju",
+      "decimalCode": 990,
+      "hexCode": "03DE",
+      "locations": 9,
+      "matchStatus": "official_kotris",
+      "namedLocations": 7,
+      "officialNameKo": "제주시외버스",
+      "records": 9,
+      "timestampLayouts": {
+        "bcd14": 9
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 570,
+      "hexCode": "023A",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 4,
+      "officialNameKo": "국토부경기광역",
+      "records": 8,
+      "timestampLayouts": {
+        "packed33": 8
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 695,
+      "hexCode": "02B7",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "예비",
+      "records": 8,
+      "timestampLayouts": {
+        "bcd14": 8
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 901,
+      "hexCode": "0385",
+      "locations": 1,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 8,
+      "timestampLayouts": {
+        "operator_opaque": 8
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 605,
+      "hexCode": "025D",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 1,
+      "officialNameKo": "부산마을버스(605)",
+      "records": 7,
+      "timestampLayouts": {
+        "operator_opaque": 7
+      }
+    },
+    {
+      "area": "Ulsan",
+      "decimalCode": 622,
+      "hexCode": "026E",
+      "locations": 6,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "울산좌석",
+      "records": 7,
+      "timestampLayouts": {
+        "operator_opaque": 7
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 980,
+      "hexCode": "03D4",
+      "locations": 6,
+      "matchStatus": "unmapped",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 7,
+      "timestampLayouts": {
+        "bcd14": 7
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 0,
+      "hexCode": "0000",
+      "locations": 3,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 4,
+      "timestampLayouts": {
+        "alternate_unknown": 1,
+        "packed33": 3
+      }
+    },
+    {
+      "area": "Incheon",
+      "decimalCode": 480,
+      "hexCode": "01E0",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 3,
+      "officialNameKo": "인천지선",
+      "records": 4,
+      "timestampLayouts": {
+        "packed33": 4
+      }
+    },
+    {
+      "area": "Incheon",
+      "decimalCode": 483,
+      "hexCode": "01E3",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 4,
+      "officialNameKo": "인천공항좌석(483)-초승거리비례제",
+      "records": 4,
+      "timestampLayouts": {
+        "packed33": 4
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 511,
+      "hexCode": "01FF",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 3,
+      "officialNameKo": "경기일반버스(511)-기본요금",
+      "records": 4,
+      "timestampLayouts": {
+        "packed33": 4
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 530,
+      "hexCode": "0212",
+      "locations": 3,
+      "matchStatus": "official_kotris",
+      "namedLocations": 3,
+      "officialNameKo": "경기좌석(530)",
+      "records": 4,
+      "timestampLayouts": {
+        "packed33": 4
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 599,
+      "hexCode": "0257",
+      "locations": 3,
+      "matchStatus": "official_kotris",
+      "namedLocations": 3,
+      "officialNameKo": "경기시외버스",
+      "records": 4,
+      "timestampLayouts": {
+        "bcd14": 4
+      }
+    },
+    {
+      "area": "Gimhae",
+      "decimalCode": 641,
+      "hexCode": "0281",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "김해일반",
+      "records": 4,
+      "timestampLayouts": {
+        "operator_opaque": 4
+      }
+    },
+    {
+      "area": "Asan",
+      "decimalCode": 656,
+      "hexCode": "0290",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "아산일반",
+      "records": 4,
+      "timestampLayouts": {
+        "operator_opaque": 4
+      }
+    },
+    {
+      "area": "Daejeon",
+      "decimalCode": 679,
+      "hexCode": "02A7",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "대전간선_연기/금산",
+      "records": 4,
+      "timestampLayouts": {
+        "packed33": 4
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 696,
+      "hexCode": "02B8",
+      "locations": 1,
+      "matchStatus": "corpus_association",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 4,
+      "timestampLayouts": {
+        "bcd14": 4
+      }
+    },
+    {
+      "area": "Daegu",
+      "decimalCode": 872,
+      "hexCode": "0368",
+      "locations": 4,
+      "matchStatus": "official_kotris",
+      "namedLocations": 3,
+      "officialNameKo": "대구지하철공사",
+      "records": 4,
+      "timestampLayouts": {
+        "packed33": 4
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 928,
+      "hexCode": "03A0",
+      "locations": 1,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 4,
+      "timestampLayouts": {
+        "operator_opaque": 4
+      }
+    },
+    {
+      "area": "Cheonan",
+      "decimalCode": 651,
+      "hexCode": "028B",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "천안일반",
+      "records": 3,
+      "timestampLayouts": {
+        "operator_opaque": 3
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 4096,
+      "hexCode": "1000",
+      "locations": 3,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 3,
+      "timestampLayouts": {
+        "alternate_unknown": 2,
+        "packed33": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 16384,
+      "hexCode": "4000",
+      "locations": 3,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 3,
+      "timestampLayouts": {
+        "packed33": 3
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 121,
+      "hexCode": "0079",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 2,
+      "officialNameKo": "지선버스(121)",
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 190,
+      "hexCode": "00BE",
+      "locations": 2,
+      "matchStatus": "unmapped",
+      "namedLocations": 2,
+      "officialNameKo": null,
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": "Capital region",
+      "decimalCode": 209,
+      "hexCode": "00D1",
+      "locations": 1,
+      "matchStatus": "official_seoul",
+      "namedLocations": 1,
+      "officialNameKo": "경기철도",
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": "Incheon",
+      "decimalCode": 496,
+      "hexCode": "01F0",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 2,
+      "officialNameKo": "국토부인천광역",
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": "Gyeonggi",
+      "decimalCode": 582,
+      "hexCode": "0246",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 2,
+      "officialNameKo": "경기마을버스(582)",
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 609,
+      "hexCode": "0261",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "부산마을버스(609)",
+      "records": 2,
+      "timestampLayouts": {
+        "operator_opaque": 2
+      }
+    },
+    {
+      "area": "Busan",
+      "decimalCode": 618,
+      "hexCode": "026A",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "부산일반심야",
+      "records": 2,
+      "timestampLayouts": {
+        "operator_opaque": 2
+      }
+    },
+    {
+      "area": "Ulsan",
+      "decimalCode": 624,
+      "hexCode": "0270",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "울산마을",
+      "records": 2,
+      "timestampLayouts": {
+        "operator_opaque": 2
+      }
+    },
+    {
+      "area": "Yangsan",
+      "decimalCode": 632,
+      "hexCode": "0278",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "양산일반",
+      "records": 2,
+      "timestampLayouts": {
+        "operator_opaque": 2
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 684,
+      "hexCode": "02AC",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "예비",
+      "records": 2,
+      "timestampLayouts": {
+        "bcd14": 2
+      }
+    },
+    {
+      "area": "Sacheon",
+      "decimalCode": 796,
+      "hexCode": "031C",
+      "locations": 2,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "사천일반",
+      "records": 2,
+      "timestampLayouts": {
+        "operator_opaque": 2
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 20480,
+      "hexCode": "5000",
+      "locations": 2,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 24576,
+      "hexCode": "6000",
+      "locations": 2,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 2,
+      "timestampLayouts": {
+        "packed33": 2
+      }
+    },
+    {
+      "area": "Yongin",
+      "decimalCode": 231,
+      "hexCode": "00E7",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "용인경전철",
+      "records": 1,
+      "timestampLayouts": {
+        "packed33": 1
+      }
+    },
+    {
+      "area": "Seoul",
+      "decimalCode": 235,
+      "hexCode": "00EB",
+      "locations": 1,
+      "matchStatus": "official_seoul",
+      "namedLocations": 0,
+      "officialNameKo": "우이신설경전철",
+      "records": 1,
+      "timestampLayouts": {
+        "packed33": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 685,
+      "hexCode": "02AD",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 0,
+      "officialNameKo": "예비",
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": "Airport limousine",
+      "decimalCode": 811,
+      "hexCode": "032B",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 1,
+      "officialNameKo": "대한항공리무진",
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": "Airport limousine",
+      "decimalCode": 812,
+      "hexCode": "032C",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 1,
+      "officialNameKo": "공항리무진",
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": "Airport limousine",
+      "decimalCode": 816,
+      "hexCode": "0330",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 1,
+      "officialNameKo": "도심공항리무진",
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": "Airport limousine",
+      "decimalCode": 820,
+      "hexCode": "0334",
+      "locations": 1,
+      "matchStatus": "official_kotris",
+      "namedLocations": 1,
+      "officialNameKo": "공항예비",
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 926,
+      "hexCode": "039E",
+      "locations": 1,
+      "matchStatus": "unmapped",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 1,
+      "timestampLayouts": {
+        "operator_opaque": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 970,
+      "hexCode": "03CA",
+      "locations": 1,
+      "matchStatus": "unmapped",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 972,
+      "hexCode": "03CC",
+      "locations": 1,
+      "matchStatus": "unmapped",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 1,
+      "timestampLayouts": {
+        "bcd14": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 28672,
+      "hexCode": "7000",
+      "locations": 1,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 1,
+      "timestampLayouts": {
+        "packed33": 1
+      }
+    },
+    {
+      "area": null,
+      "decimalCode": 32768,
+      "hexCode": "8000",
+      "locations": 1,
+      "matchStatus": "layout_warning",
+      "namedLocations": 0,
+      "officialNameKo": null,
+      "records": 1,
+      "timestampLayouts": {
+        "packed33": 1
+      }
+    }
+  ],
+  "privacy": {
+    "cardIdentifiers": "SHA-256 hashes supplied by the collector; no plaintext card ID is stored.",
+    "lastFourDigits": "Retained because the user explicitly authorized the public dataset.",
+    "rawRecords": "Full 52-byte records retained for reproducible protocol research."
+  },
+  "rebuildCommands": {
+    "offline": "python3 scripts/generate_korean_transit_dataset.py --source-sqlite datasets/korean-transit/cardbal-korean-transit.sqlite",
+    "online": "python3 scripts/generate_korean_transit_dataset.py"
+  },
+  "source": "sqlite:datasets/korean-transit/cardbal-korean-transit.sqlite",
+  "sources": [
+    {
+      "note": "Official unrestricted 319-row table (source date 2023-08-25; catalog modified 2025-09-03). Applying the table to card bytes 09-10 is a CardBal corpus inference.",
+      "title": "KORAIL KOTRIS public-transport code table",
+      "url": "https://www.data.go.kr/data/15121099/fileData.do"
+    },
+    {
+      "note": "Official Seoul/Smart Card monthly code table (updated 2026-06-30). Exact rows supply observed codes 142 (도심순환), 209 (경기철도), and 235 (우이신설경전철). The original CP949 CSV is vendored with SHA-256 f4702ebe2ef2265118b7cdc69ce0201d1824e787411409311ce4c904920b2303.",
+      "title": "Seoul Smart Card transport-code table",
+      "url": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"
+    },
+    {
+      "note": "Institutional working-paper reference for observed codes 210 (새서울철도㈜) and 237 (신림경전철㈜). It is deliberately labeled institutional_reference, not an official KOTRIS row.",
+      "title": "Incheon Institute metropolitan transport-code table",
+      "url": "https://www.ii.re.kr/storage/data/2024/04/30/DATA_ATTACH_1714437784942.pdf"
+    },
+    {
+      "note": "Official line/station context used with the corpus's exact 26.2 km geometry. Code 290 and its three tokens remain corpus_geometry_inference rather than an official code-table claim.",
+      "title": "KOTI GTX-A line reference",
+      "url": "https://cppr.koti.re.kr/site.do?command=railwyDetail&railwyId=RID241201000022"
+    },
+    {
+      "note": "Official current station IDs, operators, and line names. Two high-only, versioned legacy-serial crosswalks resolve 1,580 rows across 159 exact six-byte fingerprints. Twelve of the 18 additional mappings also revalidate exact cited Seoul CSV rows. Twelve review candidates (54 rows) remain excluded, and direct legacy-ID joins are rejected by negative controls.",
+      "title": "Seoul Big Data Campus subway station table",
+      "url": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"
+    },
+    {
+      "note": "Official unrestricted annual inventory (2025-06-13; 127,641 rows) for bus and subway stations reported by settlement operators. Exact bus settlement-ID joins resolve 860 rows across 517 fingerprints. It also revalidates the 18 additional capital-rail station identities and the separately labeled 250-row Busan Mybi station-byte transform; legacy transforms remain CardBal inferences.",
+      "title": "MOLIT nationwide settlement-operator station inventory",
+      "url": "https://www.data.go.kr/data/15128614/fileData.do"
+    },
+    {
+      "note": "Official unrestricted sample-data selector used for dated Seoul/Gyeonggi overlays, individual ARS-ID verification, and 3,400 Jeju City/Seogwipo rows. A mode-scoped seven-digit exact join resolves all 67 observed Jeju rows across 59 fingerprints. A trip-date Seoul snapshot also resolves two code-190 places while deliberately leaving that system/operator unidentified. Token transforms remain CardBal inferences; the selector is not treated as a rail crosswalk.",
+      "title": "MOLIT settlement-operator bus-stop selector",
+      "url": "https://www.data.go.kr/data/15142032/openapi.do"
+    },
+    {
+      "note": "Official Busan stop data: 24,756 route-stop rows and 4,116 unique valid five-digit ARS IDs with zero collisions. A mode-scoped low16 little-endian token transform followed by an exact ARS join resolves 305 rows across 43 fingerprints; stop-ID suffix and nationwide-number fallbacks were rejected by collision tests.",
+      "title": "Busan BIMS route-stop inventory",
+      "url": "https://www.data.go.kr/data/15092750/openapi.do"
+    },
+    {
+      "note": "Official operator station codes and names. A separately labeled event-split token transform resolves all four observed mode-872 rows; the transform is a CardBal inference from two journeys, so aliases retain the event byte.",
+      "title": "Daegu Transportation Corporation Line 2 station sections",
+      "url": "https://www.data.go.kr/data/15061835/fileData.do"
+    },
+    {
+      "note": "Current official ridership data uses Seoul standard NODE_ID. It can enrich stops after a documented crosswalk, but NODE_ID is not the raw settlement ID found here.",
+      "title": "Seoul bus-stop boarding dataset",
+      "url": "https://data.seoul.go.kr/dataList/OA-12912/A/1/datasetView.do"
+    },
+    {
+      "note": "Official station-code/name data checked as a non-match for the four-byte raw rail token; no numerical rail crosswalk is claimed.",
+      "title": "Seoul Metro station ridership API",
+      "url": "https://data.seoul.go.kr/dataList/OA-22723/A/1/datasetView.do"
+    },
+    {
+      "note": "Current official operator/line/station namespace checked as a non-match for the raw rail token; it is linked for future crosswalk work and is not redistributed here.",
+      "title": "KRIC operator / line / station data",
+      "url": "https://data.kric.go.kr/rips/M_04_02/detail.do?id=17"
+    },
+    {
+      "note": "Ten unique location codes with explicit labels retained as evidence anchors. Every labelled fingerprint now also has an official station-row attribution, so no production alias relies solely on a user label.",
+      "title": "15 user-confirmed CardBal samples",
+      "url": null
+    },
+    {
+      "note": "Official report documenting that MT12 carries station ID and a separate internal station number. It establishes the namespace distinction but publishes no row-level crosswalk; SHA-256 c73d6193cb6bfe9ba16d9dfe1f46e626868c1a0293395a2678b2fbc7259380de.",
+      "title": "MOLIT / KRRI 2018 AFC standardization report (MT12 schema)",
+      "url": "https://www.codil.or.kr/filebank/original/RK/OTKCRK190216/OTKCRK190216.pdf"
+    },
+    {
+      "note": "Official report documenting distinct external and internal station-number fields in RSI. It supplies schema evidence, not public crosswalk rows; SHA-256 ae77df0c4f4be40be9fd8a7a0d174a6cac5324a91cb9311c08bc513a082e9bc1.",
+      "title": "MTC / KOTI 2021 AFC report (RSI schema)",
+      "url": "https://www.codil.or.kr/filebank/original/RK/OTKCRK240571/OTKCRK240571.pdf"
+    },
+    {
+      "note": "Independent SFI 3 field hypotheses, checked against this larger corpus.",
+      "title": "K-Transit reverse-engineering notes",
+      "url": "https://github.com/thanhdo1110/K-Transit/blob/main/ANALYSIS.md"
+    },
+    {
+      "note": "Independent reader corroborates KOTRIS-code-specific field profiles. Its current implementation treats Mybi Busan, integrated Mybi, Busan subway, and Gwangju clocks as unavailable; CardBal therefore exposes their two 24-bit counters but does not invent an epoch.",
+      "title": "BucaCheck transport-card reader",
+      "url": "https://play.google.com/store/apps/details?id=com.happypool.bucacheck"
+    },
+    {
+      "note": "Community protocol and issuer context; issuer ID is kept separate from the KOTRIS transport-mode field.",
+      "title": "Metrodroid South Korea notes",
+      "url": "https://github.com/metrodroid/metrodroid/wiki/South-Korea"
+    },
+    {
+      "note": "Open implementation of the card protocol and purse metadata.",
+      "title": "Proxmark3 KS X 6924 implementation",
+      "url": "https://github.com/RfidResearchGroup/proxmark3/tree/master/client/src/ksx6924"
+    },
+    {
+      "note": "Academic background for the Korean interoperable transit-card standard.",
+      "title": "KS X 6924 compatibility research",
+      "url": "https://journal.kits.or.kr/journal/article.php?code=41675"
+    },
+    {
+      "note": "The source covers stops managed by fare-settlement operators. CardBal's removal of the final zero nibble from qualifying bus tokens is an interpretation; a name is included only after an exact source sttn_id match.",
+      "title": "국토교통부_버스정류장",
+      "url": "https://www.data.go.kr/data/15142032/openapi.do"
+    },
+    {
+      "note": "Exact rows from all 47 official Gyeonggi selector files. These five station IDs are absent from the 2025-06-13 annual inventory; request bodies, district source-row indexes, and hashes are retained in the artifact.",
+      "title": "국토교통부_버스정류장 경기도 2025-08-01 delta",
+      "url": "https://www.data.go.kr/data/15142032/openapi.do"
+    },
+    {
+      "note": "Annual nationwide station inventory collected from fare-settlement operators under the Public Transportation Act. Bus rows require an exact settlement-ID match. For KOTRIS mode 870 only, CardBal also applies the separately identified Mybi Busan Metro station-byte transform and retains that distinct provenance.",
+      "title": "국토교통부_정류장 현황_20250613",
+      "url": "https://www.data.go.kr/data/15128614/fileData.do"
+    },
+    {
+      "note": "National TAGO stop coordinates; KOTRIS settlement IDs are never joined directly to NODE_ID.",
+      "title": "국토교통부_전국 버스정류장 위치정보_20251031",
+      "url": "https://www.data.go.kr/data/15067528/fileData.do"
+    },
+    {
+      "note": "Official current station IDs, names, operators, and lines. CardBal's versioned relation from the legacy packed-decimal card serial is inferred and stored in a stable-only exact-location crosswalk; three medium-high extension candidates are deliberately excluded.",
+      "title": "서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv",
+      "url": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"
+    },
+    {
+      "note": "Official English, Hanja, simplified Chinese, and Japanese station labels.",
+      "title": "서울교통공사_역명다국어표기_20260326",
+      "url": "https://www.data.go.kr/data/15044232/fileData.do"
+    },
+    {
+      "note": "Coordinates for capital-region rail aliases.",
+      "title": "서울시 역사마스터 정보",
+      "url": "https://data.seoul.go.kr/dataList/OA-21232/S/1/datasetView.do?tab=A"
+    },
+    {
+      "note": "All 59 observed Jeju fingerprints join uniquely to one of 3,400 official Jeju selector rows. Dropping token digit eight is a CardBal corpus inference scoped only to KOTRIS modes 990, 994, and 995; the official source does not publish the card wire format.",
+      "title": "국토교통부_버스정류장 제주특별자치도 2025-08-01 selector",
+      "url": "https://www.data.go.kr/data/15142032/openapi.do"
+    },
+    {
+      "note": "Eighteen exact observed fingerprints are high-confidence legacy-to-current mappings backed by exact cited MOLIT rows; twelve also have exact Seoul table rows. Legacy relations remain CardBal inferences because public MT12/RSI documentation proves internal and external station-number namespaces exist but does not publish the row-level crosswalk. Mode 210 retains institutional operator-code provenance and mode 290 retains corpus/KOTI association provenance. Nine strong hypotheses are stored only as exclusions and are never emitted as aliases.",
+      "title": "CardBal additional capital-rail high-confidence crosswalk",
+      "url": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"
+    },
+    {
+      "note": "Nationwide urban-rail coordinates plus official English and Hanja fields.",
+      "title": "전체 도시철도역사정보",
+      "url": "https://data.kric.go.kr/rips/M_01_01/detail.do?id=32"
+    },
+    {
+      "note": "Official multilingual Shinbundang route labels.",
+      "title": "국가철도공단_신분당선_역정보",
+      "url": "https://www.data.go.kr/data/15041033/fileData.do"
+    },
+    {
+      "note": "Official multilingual route labels for the private Line 9 section.",
+      "title": "국가철도공단_수도권9호선_역정보",
+      "url": "https://www.data.go.kr/data/15041811/fileData.do"
+    },
+    {
+      "note": "Official multilingual Airport Railroad route labels.",
+      "title": "국가철도공단_공항철도_역정보",
+      "url": "https://www.data.go.kr/data/15041034/fileData.do"
+    },
+    {
+      "note": "The vendored official route-stop download contains 24,756 rows. Its canonical stop export has 4,116 unique valid five-digit ARS IDs with zero collisions. Low16 little-endian decoding of the card token remains a CardBal corpus inference.",
+      "title": "부산광역시 버스정보관리시스템 노선별 정류소 정보",
+      "url": "https://www.data.go.kr/data/15092750/openapi.do"
+    },
+    {
+      "note": "Official English, simplified/traditional Chinese, and Japanese labels fetched for the exact station IDs.",
+      "title": "부산교통공사 역정보",
+      "url": "https://work.humetro.busan.kr/homepage/default/stationinfo/page/list01.do?menu_no=1001010201"
+    },
+    {
+      "note": "Official Busan station coordinates, English, and Hanja.",
+      "title": "전국도시철도역사정보표준데이터 (Busan operator extract)",
+      "url": "https://www.data.go.kr/data/15043686/fileData.do"
+    },
+    {
+      "note": "Official operator Line 2 station codes and names. CardBal's event-dependent split of the card token and the 10x settlement-ID relation are a high-confidence corpus inference over two observed journeys, not a published operator format.",
+      "title": "대구교통공사_2호선 역 구간정보_20251231",
+      "url": "https://www.data.go.kr/data/15061835/fileData.do"
+    },
+    {
+      "note": "Official multilingual route labels.",
+      "title": "국가철도공단_대구2호선_역정보",
+      "url": "https://www.data.go.kr/data/15041045/fileData.do"
+    },
+    {
+      "note": "Two code-190 fingerprints exactly match official selector IDs on the trip date and form one coherent ride. Only the places are attributed: no source identifies transport-mode code 190 or its operator, so the system identity deliberately remains unresolved.",
+      "title": "국토교통부_버스정류장 서울특별시 2025-11-07 selector",
+      "url": "https://www.data.go.kr/data/15142032/openapi.do"
+    }
+  ]
+}

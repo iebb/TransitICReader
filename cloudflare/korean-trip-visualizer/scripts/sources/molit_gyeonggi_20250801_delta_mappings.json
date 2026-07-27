@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": {
+    "generator": "scripts/generate_molit_gyeonggi_delta_mappings.py",
+    "cardbalDataset": "datasets/korean-transit/korean-trips.json",
+    "cardbalDatasetSha256": "be14fef74537d75941b9e3338ca0c0225ae89b051d5281323fef2e27034b9582",
+    "officialCatalogURL": "https://www.data.go.kr/data/15142032/openapi.do",
+    "officialSamplePageURL": "https://tbo.stcis.go.kr/tsdw/open-api/api-search?gn=BusStop",
+    "officialDistrictEndpoint": "https://tbo.stcis.go.kr/tsdw/open-api/41/sgg",
+    "officialSelectorEndpoint": "https://tbo.stcis.go.kr/tsdw/open-api/getSttnOrRte/list",
+    "publisher": "국토교통부",
+    "datasetDate": "20250801",
+    "portalModifiedDate": "2026-04-10",
+    "catalogLicense": "이용허락범위 제한 없음",
+    "access": "Anonymous official sample UI backend; no service key used",
+    "districtMap": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_sgg_20250801.json",
+    "districtMapSha256": "5631abded507f0d4d4d881f1cf19093a1cd4111d59956775da7531baa7c03242",
+    "districtFiles": 47,
+    "selectorRows": 27819,
+    "districtCorpusSha256": "0f703a2164a7cc05e04f90637305ddb5c7b1181986c87936719fa62ee2223142",
+    "annualComparison": "cloudflare/korean-trip-visualizer/scripts/sources/molit_settlement_stations_20250613.csv",
+    "annualComparisonSha256": "4e6c06b8f2b1457e938e0be1d0d2a28d0d6706a27113e1a8af6ab8c94e22644f"
+  },
+  "method": {
+    "status": "exact official selector-row join",
+    "scope": "CardBal locations whose KOTRIS system class is Bus",
+    "stationIDExpression": "stationToken.slice(0, 7)",
+    "constraints": "stationToken must contain eight decimal digits and end in zero; no fuzzy or geographic name matching",
+    "deltaDefinition": "The five exact station IDs occur in the official 2025-08-01 Gyeonggi selector snapshot and are absent from the official annual 2025-06-13 inventory.",
+    "caveat": "Dropping the final zero nibble is a corpus interpretation. Each resulting identifier is then joined exactly and uniquely to an official source row."
+  },
+  "validation": {
+    "mappedLocations": 5,
+    "mappedRecords": 8,
+    "mappedCards": 8,
+    "mappedStationIDs": 5,
+    "allLocationCodesExact": true,
+    "allTokensEightDecimalDigitsEndingZero": true,
+    "allDerivedIDsExact": true,
+    "allSelectorRowsUniqueWithinDistrict": true,
+    "allAbsentFromAnnual20250613": true
+  },
+  "knownLocations": [
+    {
+      "code": "4170093001F4",
+      "locationCode": "4170093001F4",
+      "stationToken": "41700930",
+      "transportModeCode": "01F4",
+      "systemDecimal": 500,
+      "systemOfficialNameKo": "경기일반버스(500)-거리비례제",
+      "name": "수원역.AK플라자",
+      "mode": "bus",
+      "provenance": "official_dataset_exact_match",
+      "sourceID": "molit-settlement-stops-20250801",
+      "sourceTitle": "국토교통부_버스정류장",
+      "sourceStationID": "4170093",
+      "arsID": null,
+      "ctpvName": "경기도",
+      "sggName": "수원시 팔달구",
+      "records": 4,
+      "cards": 4,
+      "exactMatch": {
+        "expression": "stationToken.slice(0, 7)",
+        "derivedStationID": "4170093",
+        "requirements": [
+          "official KOTRIS class B transport mode",
+          "eight decimal BCD station-token digits",
+          "station token ends in zero",
+          "exact unique selector value match"
+        ]
+      },
+      "sourceRequest": {
+        "method": "POST",
+        "url": "https://tbo.stcis.go.kr/tsdw/open-api/getSttnOrRte/list",
+        "form": {
+          "type": "sttn",
+          "ymd": "20250801",
+          "sido": "41",
+          "sgg": "41115"
+        }
+      },
+      "sourceFile": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_districts_20250801/41115.json",
+      "sourceFileSha256": "b9c66981e748e950d1e9903c1007dd9a05757f1ba4996651355759f0a7166271",
+      "sourceSelectorIndex": 212,
+      "sourceRow": {
+        "value": "4170093",
+        "text": "수원역.AK플라자"
+      },
+      "absentFromAnnual20250613": true
+    },
+    {
+      "code": "001034100078",
+      "locationCode": "001034100078",
+      "stationToken": "00103410",
+      "transportModeCode": "0078",
+      "systemDecimal": 120,
+      "systemOfficialNameKo": "지선버스(120)",
+      "name": "광명경찰서",
+      "mode": "bus",
+      "provenance": "official_dataset_exact_match",
+      "sourceID": "molit-settlement-stops-20250801",
+      "sourceTitle": "국토교통부_버스정류장",
+      "sourceStationID": "0010341",
+      "arsID": null,
+      "ctpvName": "경기도",
+      "sggName": "광명시",
+      "records": 1,
+      "cards": 1,
+      "exactMatch": {
+        "expression": "stationToken.slice(0, 7)",
+        "derivedStationID": "0010341",
+        "requirements": [
+          "official KOTRIS class B transport mode",
+          "eight decimal BCD station-token digits",
+          "station token ends in zero",
+          "exact unique selector value match"
+        ]
+      },
+      "sourceRequest": {
+        "method": "POST",
+        "url": "https://tbo.stcis.go.kr/tsdw/open-api/getSttnOrRte/list",
+        "form": {
+          "type": "sttn",
+          "ymd": "20250801",
+          "sido": "41",
+          "sgg": "41210"
+        }
+      },
+      "sourceFile": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_districts_20250801/41210.json",
+      "sourceFileSha256": "f3078010b53c218bddf9c766813d9995376ceaf49fde6d98f6a01bcc33000209",
+      "sourceSelectorIndex": 97,
+      "sourceRow": {
+        "value": "0010341",
+        "text": "광명경찰서"
+      },
+      "absentFromAnnual20250613": true
+    },
+    {
+      "code": "007384400073",
+      "locationCode": "007384400073",
+      "stationToken": "00738440",
+      "transportModeCode": "0073",
+      "systemDecimal": 115,
+      "systemOfficialNameKo": "간선버스",
+      "name": "인덕원사거리.인덕원역",
+      "mode": "bus",
+      "provenance": "official_dataset_exact_match",
+      "sourceID": "molit-settlement-stops-20250801",
+      "sourceTitle": "국토교통부_버스정류장",
+      "sourceStationID": "0073844",
+      "arsID": null,
+      "ctpvName": "경기도",
+      "sggName": "안양시 동안구",
+      "records": 1,
+      "cards": 1,
+      "exactMatch": {
+        "expression": "stationToken.slice(0, 7)",
+        "derivedStationID": "0073844",
+        "requirements": [
+          "official KOTRIS class B transport mode",
+          "eight decimal BCD station-token digits",
+          "station token ends in zero",
+          "exact unique selector value match"
+        ]
+      },
+      "sourceRequest": {
+        "method": "POST",
+        "url": "https://tbo.stcis.go.kr/tsdw/open-api/getSttnOrRte/list",
+        "form": {
+          "type": "sttn",
+          "ymd": "20250801",
+          "sido": "41",
+          "sgg": "41173"
+        }
+      },
+      "sourceFile": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_districts_20250801/41173.json",
+      "sourceFileSha256": "dca846273e9f4fd7a3bacdead8eaaaef535389099044f5a81bea1c94bf5c3a26",
+      "sourceSelectorIndex": 268,
+      "sourceRow": {
+        "value": "0073844",
+        "text": "인덕원사거리.인덕원역"
+      },
+      "absentFromAnnual20250613": true
+    },
+    {
+      "code": "410297600212",
+      "locationCode": "410297600212",
+      "stationToken": "41029760",
+      "transportModeCode": "0212",
+      "systemDecimal": 530,
+      "systemOfficialNameKo": "경기좌석(530)",
+      "name": "포천시청앞",
+      "mode": "bus",
+      "provenance": "official_dataset_exact_match",
+      "sourceID": "molit-settlement-stops-20250801",
+      "sourceTitle": "국토교통부_버스정류장",
+      "sourceStationID": "4102976",
+      "arsID": null,
+      "ctpvName": "경기도",
+      "sggName": "포천시",
+      "records": 1,
+      "cards": 1,
+      "exactMatch": {
+        "expression": "stationToken.slice(0, 7)",
+        "derivedStationID": "4102976",
+        "requirements": [
+          "official KOTRIS class B transport mode",
+          "eight decimal BCD station-token digits",
+          "station token ends in zero",
+          "exact unique selector value match"
+        ]
+      },
+      "sourceRequest": {
+        "method": "POST",
+        "url": "https://tbo.stcis.go.kr/tsdw/open-api/getSttnOrRte/list",
+        "form": {
+          "type": "sttn",
+          "ymd": "20250801",
+          "sido": "41",
+          "sgg": "41650"
+        }
+      },
+      "sourceFile": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_districts_20250801/41650.json",
+      "sourceFileSha256": "1eab4fed4ad50bf982f3bbad60e2a4180fabd285c50df6e613c5aa6ea100663d",
+      "sourceSelectorIndex": 204,
+      "sourceRow": {
+        "value": "4102976",
+        "text": "포천시청앞"
+      },
+      "absentFromAnnual20250613": true
+    },
+    {
+      "code": "4106605001F4",
+      "locationCode": "4106605001F4",
+      "stationToken": "41066050",
+      "transportModeCode": "01F4",
+      "systemDecimal": 500,
+      "systemOfficialNameKo": "경기일반버스(500)-거리비례제",
+      "name": "의정부역센트럴자이.위브캐슬아파트",
+      "mode": "bus",
+      "provenance": "official_dataset_exact_match",
+      "sourceID": "molit-settlement-stops-20250801",
+      "sourceTitle": "국토교통부_버스정류장",
+      "sourceStationID": "4106605",
+      "arsID": null,
+      "ctpvName": "경기도",
+      "sggName": "의정부시",
+      "records": 1,
+      "cards": 1,
+      "exactMatch": {
+        "expression": "stationToken.slice(0, 7)",
+        "derivedStationID": "4106605",
+        "requirements": [
+          "official KOTRIS class B transport mode",
+          "eight decimal BCD station-token digits",
+          "station token ends in zero",
+          "exact unique selector value match"
+        ]
+      },
+      "sourceRequest": {
+        "method": "POST",
+        "url": "https://tbo.stcis.go.kr/tsdw/open-api/getSttnOrRte/list",
+        "form": {
+          "type": "sttn",
+          "ymd": "20250801",
+          "sido": "41",
+          "sgg": "41150"
+        }
+      },
+      "sourceFile": "cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_districts_20250801/41150.json",
+      "sourceFileSha256": "52adc7f39b76f1497899fcc6ef7aa99dbf86e4782ae68f50e93172c4a5ab456c",
+      "sourceSelectorIndex": 359,
+      "sourceRow": {
+        "value": "4106605",
+        "text": "의정부역센트럴자이.위브캐슬아파트"
+      },
+      "absentFromAnnual20250613": true
+    }
+  ]
+}

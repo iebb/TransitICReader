@@ -266,6 +266,8 @@ class Resolver:
             self.line_sequences[line_code].sort()
 
     def _load_local_supplements(self) -> None:
+        if not self.local_stations_csv.exists():
+            return
         existing_aliases = {alias for entity in self.entities.values() for alias in entity["aliases"]}
         with self.local_stations_csv.open(encoding="utf-8-sig", newline="") as handle:
             for row in csv.DictReader(handle):

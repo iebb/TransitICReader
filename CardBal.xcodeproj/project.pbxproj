@@ -57,6 +57,11 @@
 		B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11B0256184978348338611A /* FeliCaProfiles.swift */; };
 		C8B201E5325832FA793E6AC8 /* nimoca.png in Resources */ = {isa = PBXBuildFile; fileRef = 3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */; };
 		CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */; };
+		D3A110012F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */; };
+		D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */; };
+		D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */; };
+		D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */; };
+		D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */ = {isa = PBXBuildFile; fileRef = D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */; };
 		E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */; };
 		F17A22012F6F2ACB0071B6C4 /* jp_stations.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = F17A22002F6F2ACB0071B6C4 /* jp_stations.sqlite */; };
 /* End PBXBuildFile section */
@@ -112,6 +117,11 @@
 		A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoProfiles.swift; sourceTree = "<group>"; };
 		B11B0256184978348338611A /* FeliCaProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeliCaProfiles.swift; sourceTree = "<group>"; };
 		C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPBusCodes.csv; sourceTree = "<group>"; };
+		D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanTransitCatalog.swift; sourceTree = "<group>"; };
+		D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = KOTRISTransportModes.json; sourceTree = "<group>"; };
+		D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = KoreanStationAliases.json; sourceTree = "<group>"; };
+		D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityAtlasView.swift; sourceTree = "<group>"; };
+		D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = EastAsiaCityBoundaries.json; sourceTree = "<group>"; };
 		D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
 		DD02F5701AE4C47C4D43B861 /* icoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = icoca.png; path = Presets/icoca.png; sourceTree = "<group>"; };
 		E1CFC46C45DB7BAB5A38F0E8 /* pasmo.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = pasmo.png; path = Presets/pasmo.png; sourceTree = "<group>"; };
@@ -173,6 +183,7 @@
 			isa = PBXGroup;
 			children = (
 				8C46920F2F6F2ACB0071B6C4 /* KSX6924Enums.swift */,
+				D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */,
 				A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */,
 				B11B0256184978348338611A /* FeliCaProfiles.swift */,
 			);
@@ -193,6 +204,7 @@
 		8C4692042F6F2ACB0071B6C4 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */,
 				8C4692002F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift */,
 				8D7A11002F6F2ACB0071B6C4 /* RideMapView.swift */,
 				8C4692012F6F2ACB0071B6C4 /* SavedCardDetailView.swift */,
@@ -205,7 +217,10 @@
 		8C4692132F6F2ACB0071B6C4 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */,
 				8C4692112F6F2ACB0071B6C4 /* TUnionCardNames.json */,
+				D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */,
+				D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */,
 				80112233445566778899AA01 /* TUnionCityCodes.json */,
 				8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */,
 				8E6F12002F6F2ACB0071B6C4 /* tunion_stations.sqlite */,
@@ -376,6 +391,9 @@
 				8C4692122F6F2ACB0071B6C4 /* TUnionCardNames.json in Resources */,
 				8C4692142F6F2ACB0071B6C4 /* TUnionCityCodes.json in Resources */,
 				8C4692152F6F2ACB0071B6C4 /* TUnionLineStations.json in Resources */,
+				D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */,
+				D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */,
+				D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */,
 				8E6F12012F6F2ACB0071B6C4 /* tunion_stations.sqlite in Resources */,
 				A00000000000000000000105 /* GoogleService-Info.plist in Resources */,
 				2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */,
@@ -408,11 +426,13 @@
 				8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */,
 				8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */,
 				8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */,
+				D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */,
 				8D7A11012F6F2ACB0071B6C4 /* RideMapView.swift in Sources */,
 				8C46920B2F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift in Sources */,
 				8C46920C2F6F2ACB0071B6C4 /* NFCUtils.swift in Sources */,
 				8C46920E2F6F2ACB0071B6C4 /* TUnionDecoder.swift in Sources */,
 				8C4692102F6F2ACB0071B6C4 /* KSX6924Enums.swift in Sources */,
+				D3A110012F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift in Sources */,
 				8C4692262F6F2ACB0071B6C4 /* TransitCardDecoder.swift in Sources */,
 				8C4692272F6F2ACB0071B6C4 /* KSX6924Decoder.swift in Sources */,
 				8C4692282F6F2ACB0071B6C4 /* JapaneseICDecoder.swift in Sources */,

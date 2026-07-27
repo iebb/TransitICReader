@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import csv
 import json
 import sqlite3
@@ -82,6 +83,35 @@ def fetch_text(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=30) as response:
         return response.read().decode("utf-8-sig", errors="replace")
+
+
+def load_tripreader_sources_from_cache(source_cache_path: Path) -> tuple[dict[str, SourceStation], dict[str, SourceLine]]:
+    payload = json.loads(source_cache_path.read_text(encoding="utf-8"))
+    stations = {
+        key: SourceStation(
+            city_id=value["city_id"],
+            code=value["code"],
+            station_type=value["type"],
+            line_name=value["line"],
+            station_name=value["station"],
+            city_folder=value["city_folder"],
+            csv_file=value["csv_file"],
+        )
+        for key, value in payload.get("stations", {}).items()
+    }
+    lines = {
+        key: SourceLine(
+            city_id=value["city_id"],
+            line_code=value["line_code"],
+            line_name=value["line"],
+            station_type=value["type"],
+            city_folder=value["city_folder"],
+            csv_file=value["csv_file"],
+            source_count=int(value["station_count"]),
+        )
+        for key, value in payload.get("lines", {}).items()
+    }
+    return stations, lines
 
 
 def load_tripreader_sources() -> tuple[dict[str, SourceStation], dict[str, SourceLine]]:
@@ -198,8 +228,11 @@ def choose_line_source(
     return candidates[0]
 
 
-def merge_into_database(db_path: Path, source_cache_path: Path) -> None:
-    source_stations, source_lines = load_tripreader_sources()
+def merge_into_database(db_path: Path, source_cache_path: Path, offline: bool = False) -> None:
+    if offline:
+        source_stations, source_lines = load_tripreader_sources_from_cache(source_cache_path)
+    else:
+        source_stations, source_lines = load_tripreader_sources()
     city_names = load_city_names()
 
     source_cache_path.write_text(
@@ -476,8 +509,17 @@ def merge_into_database(db_path: Path, source_cache_path: Path) -> None:
     )
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Merge tripreader T-Union source metadata into tunion_stations SQLite.")
+    parser.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parser.add_argument("--source-cache", type=Path, default=DEFAULT_SOURCE_CACHE)
+    parser.add_argument("--offline", action="store_true", help="Use the existing source cache instead of fetching tripreader-data.")
+    return parser.parse_args()
+
+
 def main() -> None:
-    merge_into_database(DEFAULT_DB, DEFAULT_SOURCE_CACHE)
+    args = parse_args()
+    merge_into_database(args.db, args.source_cache, offline=args.offline)
 
 
 if __name__ == "__main__":

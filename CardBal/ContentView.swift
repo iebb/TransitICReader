@@ -183,12 +183,18 @@ struct ContentView: View {
                     Label("Map", systemImage: "map.fill")
                 }
                 .tag(2)
-            
+
+            CityAtlasTabView(store: cardStore)
+                .tabItem {
+                    Label("Cities", systemImage: "globe.asia.australia.fill")
+                }
+                .tag(3)
+
             SettingsView(store: cardStore, reader: reader)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
-                .tag(3)
+                .tag(4)
         }
         .tint(Color.accentColor)
         .onChange(of: reader.latestSnapshot?.id) { _ in
@@ -743,6 +749,24 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                         Link("Open OpenStreetMap Copyright Page", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
                             .font(.footnote)
+                        Text("East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Link("Open geoBoundaries", destination: URL(string: "https://www.geoboundaries.org/")!)
+                            .font(.footnote)
+                        Text("Korean transport-mode names and R/B/T classes use KORAIL's KOTRIS public-transport code table (2023-08-25). Matching card bytes 09–10 to this field is a CardBal corpus inference.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Link("Open KORAIL KOTRIS data source", destination: URL(string: "https://www.data.go.kr/data/15121099/fileData.do")!)
+                            .font(.footnote)
+                        Text("Korean bus stop names use MOLIT's settlement-operator stop dataset. CardBal resolves a stop only after an exact source match; deriving a seven-digit candidate from qualifying on-card BCD tokens is a CardBal interpretation.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Link("Open MOLIT settlement-stop data source", destination: URL(string: "https://www.data.go.kr/data/15142032/openapi.do")!)
+                            .font(.footnote)
+                        Text("Korean rail station aliases are user-confirmed sample matches keyed by the complete six-byte location fingerprint; they are not an official rail station-code crosswalk.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

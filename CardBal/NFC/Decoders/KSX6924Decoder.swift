@@ -242,59 +242,76 @@ struct KSX6924Decoder: TransitCardDecoder {
         }
         // T-money SFI 3 Transit Record (52 bytes)
         if block.count >= 52 {
-            let tripState = block[2]
-            let subtype = block[8]
-            let fareLayout = KoreanTransitHistoryFareLayout.decode(block)
-            
-            let dtRaw = UInt32(block.bigEndianInt(start: 11, length: 4))
-            let timestamp = decodeTMoneyPackedTime(dtRaw)
+            let record = block.count == 52 ? block : block.subdata(in: 0..<52)
+            let tripState = record[2]
+            let fareLayout = KoreanTransitHistoryFareLayout.decode(record)
+            let timestamp = KoreanTransitTimestampDecoder.decode(record)
+            let distanceM = record.bigEndianInt(start: 19, length: 2)
+            let stationToken = record.subdata(in: 5..<9).hexString.uppercased()
+            let transportModeHex = record.subdata(in: 9..<11).hexString.uppercased()
+            let transportModeCode = record.bigEndianInt(start: 9, length: 2)
+            let locationCode = stationToken + transportModeHex
+            let transportMode = KOTRISTransportModeCatalog.bundled?.mode(for: transportModeCode)
+            let stationAlias = KoreanStationAliasCatalog.bundled?.location(
+                for: locationCode,
+                eventRaw: Int(tripState)
+            )
+            let stationDisplay = stationAlias?.localizedDisplayName ?? String(
+                format: NSLocalizedString("korean_station_token_format", comment: "Unknown Korean station-token display"),
+                stationToken
+            )
+            let transportModeDisplay: String
+            if let transportMode {
+                transportModeDisplay = "\(transportMode.nameKo) · \(transportMode.transportClass.displayName)"
+            } else {
+                transportModeDisplay = String(
+                    format: NSLocalizedString("korean_unmapped_transport_mode_format", comment: "Unmapped Korean transport-mode display"),
+                    transportModeHex,
+                    transportModeCode
+                )
+            }
 
-            let distanceM = block.bigEndianInt(start: 18, length: 3)
-            let legacyAmount = fareLayout?.legacyAmount ?? block.bigEndianInt(start: 22, length: 2)
-            let amountMain = fareLayout?.selectedAmount ?? legacyAmount
-            let secondaryAmount = block.bigEndianInt(start: 40, length: 2)
-            let stationCode = block.subdata(in: 5..<9).hexString.uppercased()
-            let operatorCode = block.subdata(in: 9..<11).hexString.uppercased()
-            let locationCode = stationCode + operatorCode
-            var typeStr = "unknown"
-            var amountToDisplay = amountMain
+            var typeStr: String
             var cat: TransactionCategory = .unknown
-            
-            let isTrain = (subtype == 0x20 || subtype == 0x30)
-            
-            if tripState == 0x00 { 
+
+            if tripState == 0x00 {
                 typeStr = NSLocalizedString("tap_on", comment: "tap-on")
-                cat = isTrain ? .trainOn : .busOn
-            } else if tripState == 0x01 { 
+                switch transportMode?.transportClass {
+                case .rail: cat = .trainOn
+                case .bus: cat = .busOn
+                case .taxi, .none: cat = .unknown
+                }
+            } else if tripState == 0x01 {
                 typeStr = NSLocalizedString("tap_off", comment: "tap-off")
-                cat = isTrain ? .trainOff : .busOff
+                switch transportMode?.transportClass {
+                case .rail: cat = .trainOff
+                case .bus: cat = .busOff
+                case .taxi, .none: cat = .unknown
+                }
+            } else {
+                typeStr = String(
+                    format: NSLocalizedString("korean_flagged_event_format", comment: "Unknown Korean transit event byte"),
+                    tripState
+                )
             }
 
-            if amountToDisplay == 0 || amountToDisplay > 10_000 {
-                amountToDisplay = fareLayout?.selectedAmount ?? legacyAmount
-                if amountToDisplay == 0 {
-                    amountToDisplay = secondaryAmount
-                }
-            }
-            
             let distKm = Double(distanceM) / 1000.0
             let details = distKm > 0 ? String(format: " (%.1f km)", distKm) : ""
-            let layoutNote = (fareLayout?.variant == .regional) ? " [Regional]" : ""
-            
+
             let tx = TransitTransaction(
-                date: timestamp.date,
-                time: timestamp.timeStr,
-                amount: Decimal(-amountToDisplay),
+                date: timestamp?.date,
+                time: timestamp?.timeString,
+                amount: Decimal(-(fareLayout?.selectedAmount ?? 0)),
                 terminalID: locationCode,
-                type: typeStr + details + layoutNote,
+                type: typeStr + details,
                 category: cat,
                 balanceAfter: nil,
-                location: "Station \(stationCode), Operator \(operatorCode)",
-                entryStation: tripState == 0x00 ? "Station \(stationCode)" : nil,
-                exitStation: tripState == 0x01 ? "Station \(stationCode)" : nil,
+                location: "\(stationDisplay) · \(transportModeDisplay)",
+                entryStation: tripState == 0x00 ? stationDisplay : nil,
+                exitStation: tripState == 0x01 ? stationDisplay : nil,
                 entryStationCode: tripState == 0x00 ? locationCode : nil,
                 exitStationCode: tripState == 0x01 ? locationCode : nil,
-                rawData: block.hexString,
+                rawData: record.hexString,
                 recordNumber: recordIndex,
                 distance: distKm > 0 ? distKm : nil
             )
@@ -350,52 +367,21 @@ struct KSX6924Decoder: TransitCardDecoder {
         return nil
     }
 
-    private static func decodeTMoneyPackedTime(_ v: UInt32) -> (date: Date, timeStr: String) {
-        let dateWord = UInt16(v >> 16)
-        let timeWord = UInt16(v & 0xFFFF)
-        
-        let year = 2000 + Int(dateWord >> 9)
-        let month = Int((dateWord >> 5) & 0x0F)
-        let day = Int(dateWord & 0x1F)
-        
-        let hour = Int(timeWord >> 11)
-        let minute = Int((timeWord >> 5) & 0x3F)
-        let second = Int(timeWord & 0x1F) * 2
-        
-        var components = DateComponents()
-        components.year = year
-        components.month = month
-        components.day = day
-        components.hour = hour
-        components.minute = minute
-        components.second = second
-        
-        let date = CardDateFormatting.date(
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            brand: .tmoney
-        ) ?? Date.distantPast
-        let timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
-        return (date, timeStr)
-    }
-
 }
 
 struct KoreanTransitHistoryFareLayout {
     enum Variant: Equatable {
-        case standard
-        case regional
+        case primary22
+        case regional36
+        case base40
+        case unresolved
     }
 
     let variant: Variant
-    let selectedAmount: Int
-    let selectedAmountHex: String
-    let legacyAmount: Int
-    let legacyAmountHex: String
+    let selectedAmount: Int?
+    let selectedAmountHex: String?
+    let primaryAmount: Int
+    let primaryAmountHex: String
     let regionalAmount: Int
     let regionalAmountHex: String
     let baseFare: Int
@@ -404,20 +390,25 @@ struct KoreanTransitHistoryFareLayout {
     static func decode(_ data: Data) -> KoreanTransitHistoryFareLayout? {
         guard data.count >= 42 else { return nil }
 
-        let legacyAmount = data.bigEndianInt(start: 22, length: 2)
+        let primaryAmount = data.bigEndianInt(start: 22, length: 2)
         let regionalAmount = data.bigEndianInt(start: 36, length: 2)
         let baseFare = data.bigEndianInt(start: 40, length: 2)
 
-        let useRegionalLayout = legacyAmount == 0 || legacyAmount > 10_000
-        let selectedAmount = useRegionalLayout ? regionalAmount : legacyAmount
-        let variant: Variant = useRegionalLayout ? .regional : .standard
+        let primary = (Variant.primary22, primaryAmount, data.subdata(in: 22..<24).hexString.uppercased())
+        let regional = (Variant.regional36, regionalAmount, data.subdata(in: 36..<38).hexString.uppercased())
+        let base = (Variant.base40, baseFare, data.subdata(in: 40..<42).hexString.uppercased())
+        let profile = KoreanTransitOperatorFieldProfile.forRecord(data)
+        let candidates = profile?.usesOpaqueCounters == true
+            ? [base, regional, primary]
+            : [primary, base, regional]
+        let selection = candidates.first { isPlausibleFare($0.1) }
 
         return KoreanTransitHistoryFareLayout(
-            variant: variant,
-            selectedAmount: selectedAmount,
-            selectedAmountHex: (useRegionalLayout ? data.subdata(in: 36..<38) : data.subdata(in: 22..<24)).hexString.uppercased(),
-            legacyAmount: legacyAmount,
-            legacyAmountHex: data.subdata(in: 22..<24).hexString.uppercased(),
+            variant: selection?.0 ?? .unresolved,
+            selectedAmount: selection?.1,
+            selectedAmountHex: selection?.2,
+            primaryAmount: primaryAmount,
+            primaryAmountHex: data.subdata(in: 22..<24).hexString.uppercased(),
             regionalAmount: regionalAmount,
             regionalAmountHex: data.subdata(in: 36..<38).hexString.uppercased(),
             baseFare: baseFare,
@@ -425,10 +416,20 @@ struct KoreanTransitHistoryFareLayout {
         )
     }
 
+    private static func isPlausibleFare(_ value: Int) -> Bool {
+        (1...10_000).contains(value)
+    }
+
     var variantDisplayName: String {
         switch variant {
-        case .standard: return "Standard layout"
-        case .regional: return "Regional layout"
+        case .primary22:
+            return NSLocalizedString("korean_fare_layout_primary22", comment: "Korean transit fare stored at bytes 22-23")
+        case .regional36:
+            return NSLocalizedString("korean_fare_layout_regional36", comment: "Korean transit fare stored at bytes 36-37")
+        case .base40:
+            return NSLocalizedString("korean_fare_layout_base40", comment: "Korean transit fare stored at bytes 40-41")
+        case .unresolved:
+            return NSLocalizedString("korean_fare_layout_unresolved", comment: "Korean transit fare layout is unresolved")
         }
     }
 }

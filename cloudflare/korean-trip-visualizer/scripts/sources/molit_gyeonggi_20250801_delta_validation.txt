@@ -1,0 +1,10 @@
+MOLIT Gyeonggi 2025-08-01 exact-match delta validation
+artifact: cloudflare/korean-trip-visualizer/scripts/sources/molit_gyeonggi_20250801_delta_mappings.json
+official snapshot: 47 district files / 27819 selector rows
+mapped: 5 fingerprints / 8 rows / 8 cards
+station IDs: 4170093, 0010341, 0073844, 4102976, 4106605
+locationCode invariant: True
+token shape invariant: True
+exact unique selector joins: True
+absent from annual 2025-06-13 source: True
+provenance boundary: official selector rows; dropping the final zero nibble remains a corpus interpretation.

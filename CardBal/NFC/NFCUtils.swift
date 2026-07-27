@@ -226,6 +226,15 @@ struct TransactionDecoderRegistry {
 }
 
 extension TransitTransaction {
+    var hasUnresolvedKoreanTransitFare: Bool {
+        guard let rawData else {
+            return false
+        }
+        let data = Data(hexString: rawData)
+        guard data.count == KoreanTransitTimestampDecoder.recordLength else { return false }
+        return KoreanTransitHistoryFareLayout.decode(data)?.variant == .unresolved
+    }
+
     var iconInfo: (name: String, color: Color) {
         switch self.category {
         case .topUp: return ("arrow.down.left.circle.fill", .green)
@@ -395,6 +404,10 @@ struct TransitTransactionRow: View {
                              formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: currencyFractionDigits))
                             .font(.headline.monospacedDigit().bold())
                             .foregroundStyle(isTopUp ? .green : .primary)
+                    } else if brand.isKorean && tx.hasUnresolvedKoreanTransitFare {
+                        Text("Fare unknown")
+                            .font(.headline.bold())
+                            .foregroundStyle(.secondary)
                     } else {
                         Text("No Charge")
                             .font(.headline.monospacedDigit().bold())
@@ -528,6 +541,16 @@ struct TransactionDetailView: View {
                         } label: {
                             HStack {
                                 Circle().fill(brand == .tUnion ? .orange : .green).frame(width: 8, height: 8)
+                                Text("Amount")
+                            }
+                        }
+                    } else if isKorean, tx.hasUnresolvedKoreanTransitFare {
+                        LabeledContent {
+                            Text("Fare unknown")
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            HStack {
+                                Circle().fill(.gray).frame(width: 8, height: 8)
                                 Text("Amount")
                             }
                         }
@@ -739,49 +762,155 @@ struct KoreanRawBreakdownView: View {
             let data = Data(hexString: raw)
             if data.count >= 52 {
                 // T-Money Transit Record (52 bytes)
-                let fareLayout = KoreanTransitHistoryFareLayout.decode(data)
-                let recType = data.subdata(in: 0..<2).hexString
-                let tripState = data[2]
-                let seq = data.bigEndianInt(start: 6, length: 2)
-                let subtype = data[8]
-                
-                let dtRaw = UInt32(data.bigEndianInt(start: 11, length: 4))
-                let dateWord = UInt16(dtRaw >> 16)
-                let timeWord = UInt16(dtRaw & 0xFFFF)
-                
-                let year = 2000 + Int(dateWord >> 9)
-                let month = Int((dateWord >> 5) & 0x0F)
-                let day = Int(dateWord & 0x1F)
-                let hour = Int(timeWord >> 11)
-                let minute = Int((timeWord >> 5) & 0x3F)
-                let second = Int(timeWord & 0x1F) * 2
-                
-                let ts = String(format: "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
-                
-                let distM = data.bigEndianInt(start: 18, length: 3)
-                let legacyAmount = data.bigEndianInt(start: 22, length: 2)
-                let regionalAmount = data.bigEndianInt(start: 36, length: 2)
-                let selectedAmount = fareLayout?.selectedAmount ?? (legacyAmount > 0 ? legacyAmount : regionalAmount)
-                let baseFare = data.bigEndianInt(start: 40, length: 2)
-                let stationCode = data.subdata(in: 5..<9).hexString.uppercased()
-                let operatorCode = data.subdata(in: 9..<11).hexString.uppercased()
-                let locationCode = stationCode + operatorCode
-                
+                let record = data.count == 52 ? data : data.subdata(in: 0..<52)
+                let fareLayout = KoreanTransitHistoryFareLayout.decode(record)
+                let timestamp = KoreanTransitTimestampDecoder.decode(record)
+                let operatorProfile = KoreanTransitOperatorFieldProfile.forRecord(record)
+                let recType = record.subdata(in: 0..<2).hexString
+                let tripState = record[2]
+                let tripStateDisplay = tripState == 0x00
+                    ? NSLocalizedString("korean_event_boarding", comment: "Korean transit boarding event")
+                    : tripState == 0x01
+                        ? NSLocalizedString("korean_event_alighting", comment: "Korean transit alighting event")
+                        : NSLocalizedString("korean_event_flagged", comment: "Korean transit unknown flagged event")
+                let timestampDisplay = timestamp.map {
+                    String(format: "%04d-%02d-%02d %02d:%02d:%02d", $0.year, $0.month, $0.day, $0.hour, $0.minute, $0.second)
+                } ?? NSLocalizedString("Unresolved", comment: "A raw value could not be decoded")
+                let timestampLayout = timestamp?.layout == .bcd14
+                    ? "BCD14"
+                    : timestamp?.layout == .packed33
+                        ? "Packed33"
+                        : operatorProfile?.usesOpaqueCounters == true
+                            ? "Operator counters"
+                            : "Unknown"
+                let distM = record.bigEndianInt(start: 19, length: 2)
+                let primaryAmount = record.bigEndianInt(start: 22, length: 2)
+                let regionalAmount = record.bigEndianInt(start: 36, length: 2)
+                let baseFare = record.bigEndianInt(start: 40, length: 2)
+                let selectedAmount = fareLayout?.selectedAmount.map { "₩\($0)" } ?? NSLocalizedString("Unresolved", comment: "A raw value could not be decoded")
+                let stationToken = record.subdata(in: 5..<9).hexString.uppercased()
+                let transportModeHex = record.subdata(in: 9..<11).hexString.uppercased()
+                let transportModeCode = record.bigEndianInt(start: 9, length: 2)
+                let transportMode = KOTRISTransportModeCatalog.bundled?.mode(for: transportModeCode)
+                let locationCode = stationToken + transportModeHex
+                let stationCatalog = KoreanStationAliasCatalog.bundled
+                let stationAlias = stationCatalog?.location(for: locationCode, eventRaw: Int(tripState))
+                let stationSource = stationAlias.flatMap { stationCatalog?.source(for: $0.sourceID) }
+                let nameSource = stationAlias.flatMap {
+                    $0.nameSourceID.flatMap { stationCatalog?.source(for: $0) }
+                }
+                let hanjaSource = stationAlias.flatMap {
+                    $0.nameHanjaSourceID.flatMap { stationCatalog?.source(for: $0) }
+                }
+                let coordinateSource = stationAlias.flatMap {
+                    stationCatalog?.source(for: $0.coordinateSourceID ?? $0.sourceID)
+                }
+                let settlementCandidate = KoreanStationAliasCatalog.busSettlementStationIDCandidate(
+                    stationToken: stationToken,
+                    transportClass: transportMode?.transportClass
+                )
+                let transportModeDisplay = transportMode.map {
+                    "\($0.nameKo) · \($0.transportClass.displayName) · \($0.provenanceDisplayName)"
+                } ?? NSLocalizedString("Unmapped", comment: "No data-source match")
+
                 Group {
                     DetailRawRow(title: "Record Type", value: recType, hex: "")
-                    DetailRawRow(title: "Trip State", value: tripState == 0x01 ? "Exit / Closed" : "Entry / Open", hex: String(format: "0x%02X", tripState), color: .red)
-                    DetailRawRow(title: "Layout Variant", value: fareLayout?.variantDisplayName ?? "Unknown", hex: "", color: .gray)
-                    DetailRawRow(title: "Unknown Header (Seq)", value: "\(seq)", hex: data.subdata(in: 6..<8).hexString, color: .blue)
-                    DetailRawRow(title: "Trip Subtype", value: String(format: "0x%02X", subtype), hex: "")
-                    DetailRawRow(title: "Packed Timestamp", value: ts, hex: data.subdata(in: 11..<15).hexString, color: .brown)
-                    DetailRawRow(title: "Distance", value: "\(distM) m (\(Double(distM)/1000.0) km)", hex: data.subdata(in: 18..<21).hexString, color: .indigo)
-                    DetailRawRow(title: "Detected Charge", value: "₩\(selectedAmount)", hex: fareLayout?.selectedAmountHex ?? data.subdata(in: 22..<24).hexString, color: .orange)
-                    DetailRawRow(title: "Legacy Amount", value: "₩\(legacyAmount)", hex: data.subdata(in: 22..<24).hexString, color: .secondary)
-                    DetailRawRow(title: "Regional Amount", value: "₩\(regionalAmount)", hex: data.subdata(in: 36..<38).hexString, color: .green)
-                    DetailRawRow(title: "Base Fare", value: "₩\(baseFare)", hex: data.subdata(in: 40..<42).hexString, color: .indigo)
-                    DetailRawRow(title: "Station Code", value: stationCode, hex: data.subdata(in: 5..<9).hexString, color: .cyan)
-                    DetailRawRow(title: "Operator Code", value: operatorCode, hex: data.subdata(in: 9..<11).hexString, color: .teal)
-                    DetailRawRow(title: "Location Code", value: locationCode, hex: data.subdata(in: 5..<11).hexString, color: .blue)
+                    DetailRawRow(title: "Trip State", value: tripStateDisplay, hex: String(format: "0x%02X", tripState), color: .red)
+                    DetailRawRow(title: "Timestamp (\(timestampLayout))", value: timestampDisplay, hex: record.subdata(in: 11..<18).hexString, color: .brown)
+                    if operatorProfile?.usesOpaqueCounters == true {
+                        let counterA = record.bigEndianInt(start: 11, length: 3)
+                        let counterB = record.bigEndianInt(start: 14, length: 3)
+                        DetailRawRow(
+                            title: "Operator Clock Counters",
+                            value: "\(counterA) · \(counterB) · flag \(String(format: "0x%02X", record[17]))",
+                            hex: operatorProfile?.rawValue ?? "",
+                            color: .brown
+                        )
+                    }
+                    DetailRawRow(title: "Unknown Byte 18", value: String(format: "0x%02X", record[18]), hex: "", color: .gray)
+                    DetailRawRow(title: "Distance", value: "\(distM) m (\(Double(distM)/1000.0) km)", hex: record.subdata(in: 19..<21).hexString, color: .indigo)
+                    DetailRawRow(title: "Fare Layout", value: fareLayout?.variantDisplayName ?? NSLocalizedString("Unknown", comment: "Unknown value"), hex: "", color: .gray)
+                    DetailRawRow(title: "Detected Fare", value: selectedAmount, hex: fareLayout?.selectedAmountHex ?? "", color: .orange)
+                    DetailRawRow(title: "Primary Fare Candidate", value: "₩\(primaryAmount)", hex: record.subdata(in: 22..<24).hexString, color: .secondary)
+                    DetailRawRow(title: "Regional Fare Candidate", value: "₩\(regionalAmount)", hex: record.subdata(in: 36..<38).hexString, color: .green)
+                    DetailRawRow(title: "Base Fare Candidate", value: "₩\(baseFare)", hex: record.subdata(in: 40..<42).hexString, color: .indigo)
+                    DetailRawRow(title: "Station Token", value: stationAlias?.localizedDisplayName ?? stationToken, hex: stationToken, color: .cyan)
+                    if let settlementCandidate {
+                        DetailRawRow(title: "Settlement Stop ID Candidate", value: settlementCandidate, hex: "", color: .cyan)
+                    }
+                    if let stationAlias {
+                        let stationMatchDisplay = [
+                            stationAlias.provenance.displayName,
+                            stationAlias.administrativeAreaDisplay
+                        ].compactMap { $0 }.joined(separator: " · ")
+                        DetailRawRow(title: "Station Match", value: stationMatchDisplay, hex: stationAlias.sourceStationID ?? "", color: .mint)
+                        if let nameCanonicalKo = stationAlias.nameCanonicalKo,
+                           nameCanonicalKo != stationAlias.name {
+                            DetailRawRow(title: "Official Korean Name", value: nameCanonicalKo, hex: stationAlias.nameSourceStationID ?? "", color: .mint)
+                        }
+                        if let nameEnglish = stationAlias.nameEnglish {
+                            DetailRawRow(title: "Official English Name", value: nameEnglish, hex: "", color: .mint)
+                        }
+                        if let nameChineseSimplified = stationAlias.nameChineseSimplified {
+                            DetailRawRow(title: "Official Chinese Name (Simplified)", value: nameChineseSimplified, hex: "", color: .mint)
+                        }
+                        if let nameChineseTraditional = stationAlias.nameChineseTraditional {
+                            DetailRawRow(title: "Official Chinese Name (Traditional)", value: nameChineseTraditional, hex: "", color: .mint)
+                        }
+                        if let nameJapanese = stationAlias.nameJapanese {
+                            DetailRawRow(title: "Official Japanese Name", value: nameJapanese, hex: "", color: .mint)
+                        }
+                        if let nameHanja = stationAlias.nameHanja {
+                            DetailRawRow(title: "Official Hanja Name", value: nameHanja, hex: "", color: .mint)
+                        }
+                        if let latitude = stationAlias.latitude, let longitude = stationAlias.longitude {
+                            DetailRawRow(
+                                title: "Station Coordinates",
+                                value: String(format: "%.6f, %.6f", latitude, longitude),
+                                hex: stationAlias.coordinateSourceStationID ?? stationAlias.sourceStopID ?? "",
+                                color: .mint
+                            )
+                        }
+                    }
+                    if let stationSource {
+                        DetailRawRow(title: "Station Data Source", value: stationSource.title, hex: stationSource.datasetDate ?? "", color: .mint)
+                    }
+                    if let stationAlias,
+                       let nameSource,
+                       nameSource.id != stationSource?.id {
+                        DetailRawRow(
+                            title: "Station Name Data Source",
+                            value: nameSource.title,
+                            hex: stationAlias.nameSourceStationID ?? stationAlias.nameMatchingMethod ?? "",
+                            color: .mint
+                        )
+                    }
+                    if let hanjaSource,
+                       hanjaSource.id != nameSource?.id,
+                       hanjaSource.id != stationSource?.id {
+                        DetailRawRow(
+                            title: "Hanja Data Source",
+                            value: hanjaSource.title,
+                            hex: hanjaSource.datasetDate ?? "",
+                            color: .mint
+                        )
+                    }
+                    if let stationAlias,
+                       let coordinateSource,
+                       stationAlias.latitude != nil,
+                       coordinateSource.id != stationSource?.id {
+                        DetailRawRow(
+                            title: "Coordinate Data Source",
+                            value: coordinateSource.title,
+                            hex: stationAlias.coordinateMatchingMethod ?? coordinateSource.datasetDate ?? "",
+                            color: .mint
+                        )
+                    }
+                    DetailRawRow(title: "KOTRIS Transport Mode", value: transportModeDisplay, hex: "\(transportModeHex) · \(transportModeCode)", color: .teal)
+                    if let sourceTitle = transportMode?.sourceTitle {
+                        DetailRawRow(title: "Transport Code Source", value: sourceTitle, hex: transportMode?.sourceURL?.absoluteString ?? "", color: .teal)
+                    }
+                    DetailRawRow(title: "Location Fingerprint", value: locationCode, hex: "", color: .blue)
                 }
             } else if data.count >= 33 {
                 let type = data[0]
@@ -1569,14 +1698,14 @@ struct CardRawDataHighlightView: View {
             if dataCount >= 52 {
                 return [
                     Highlight(range: 2..<3, color: .red, label: "Trip State"),
-                    Highlight(range: 5..<9, color: .cyan, label: "Station Code"),
-                    Highlight(range: 9..<11, color: .teal, label: "Operator Code"),
-                    Highlight(range: 11..<13, color: .brown, label: "Date Word"),
-                    Highlight(range: 13..<15, color: .purple, label: "Time Word"),
-                    Highlight(range: 18..<21, color: .indigo, label: "Distance"),
-                    Highlight(range: 22..<24, color: .orange, label: "Legacy Amount"),
-                    Highlight(range: 36..<38, color: .green, label: "Regional Amount"),
-                    Highlight(range: 40..<42, color: .indigo, label: "Base Fare")
+                    Highlight(range: 5..<9, color: .cyan, label: "Station Token"),
+                    Highlight(range: 9..<11, color: .teal, label: "KOTRIS Transport Mode"),
+                    Highlight(range: 11..<18, color: .brown, label: "Timestamp Candidate"),
+                    Highlight(range: 18..<19, color: .gray, label: "Unknown"),
+                    Highlight(range: 19..<21, color: .indigo, label: "Distance"),
+                    Highlight(range: 22..<24, color: .orange, label: "Primary Fare Candidate"),
+                    Highlight(range: 36..<38, color: .green, label: "Regional Fare Candidate"),
+                    Highlight(range: 40..<42, color: .indigo, label: "Base Fare Candidate")
                 ]
             } else if dataCount >= 14 {
                 return [

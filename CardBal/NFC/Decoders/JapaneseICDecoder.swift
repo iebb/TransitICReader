@@ -212,8 +212,9 @@ struct JapaneseICDecoder: TransitCardDecoder {
         
         let terminalName = Localizer.localize("suica_terminal_\(consoleType)")
         let usageName = Localizer.localize("suica_process_\(processType)")
+        let stationFieldMode = japaneseStationFieldMode(consoleType: consoleType, processType: processType)
         
-        if consoleType == 199 || consoleType == 200 || processType == 70 || processType == 198 || processType == 203 {
+        if isJapanesePurchaseLike(consoleType: consoleType, processType: processType) {
             let timeData = Int(block[6]) << 8 | Int(block[7])
             let hour = (timeData >> 11) & 0x1F
             let minute = (timeData >> 5) & 0x3F
@@ -227,13 +228,13 @@ struct JapaneseICDecoder: TransitCardDecoder {
             let entryLow = Int(block[6]) << 8 | Int(block[7])
             let exitLow = Int(block[8]) << 8 | Int(block[9])
             if entryLow != 0 || exitLow != 0 {
-                if processType == 13 || processType == 15 {
+                if stationFieldMode == .bus {
                     let operatorName = BusResolver.shared.resolve(entryLow) ?? "Bus Operator \(String(format: "%04X", entryLow))"
                     let stopName = exitLow == 0 ? "N/A" : "Station \(String(format: "%04X", exitLow))"
                     entryStation = operatorName
                     exitStation = stopName
                     location = "\(operatorName) (\(stopName))"
-                } else {
+                } else if stationFieldMode == .rail {
                     let fullEntryCode = (area << 16) | entryLow
                     let fullExitCode = (area << 16) | exitLow
                     let entry = StationResolver.shared.resolve(fullEntryCode) ?? "Station \(String(format: "%X%04X", area, entryLow))"
@@ -250,14 +251,16 @@ struct JapaneseICDecoder: TransitCardDecoder {
         }
 
         let date = Calendar.current.date(from: components)
-        let entryCodeHex = entryStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[6]) << 8 | Int(block[7]))) : nil
-        let exitCodeHex = exitStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[8]) << 8 | Int(block[9]))) : nil
+        let entryCodeHex = stationFieldMode == .rail && entryStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[6]) << 8 | Int(block[7]))) : nil
+        let exitCodeHex = stationFieldMode == .rail && exitStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[8]) << 8 | Int(block[9]))) : nil
 
         var cat: TransactionCategory = .unknown
-        if consoleType == 199 || consoleType == 200 || processType == 70 || processType == 198 || processType == 203 {
+        if isJapanesePurchaseLike(consoleType: consoleType, processType: processType) {
             cat = .purchase
-        } else if processType == 13 || processType == 15 {
+        } else if stationFieldMode == .bus {
             cat = .bus
+        } else if stationFieldMode == .rail {
+            cat = .train
         } else if amount != 0 {
             cat = (typeStr == NSLocalizedString("top_up", comment: "")) ? .topUp : .payment
         }
@@ -279,6 +282,31 @@ struct JapaneseICDecoder: TransitCardDecoder {
             rawData: block.hexString.uppercased(),
             recordNumber: Int(block[13]) << 8 | Int(block[14])
         )
+    }
+
+    private enum JapaneseStationFieldMode {
+        case rail
+        case bus
+    }
+
+    private static let japaneseRailProcessTypes: Set<UInt8> = [1, 4, 5, 19, 132, 133]
+    private static let japanesePurchaseProcessTypes: Set<UInt8> = [70, 72, 73, 74, 75, 198, 203]
+
+    private static func japaneseStationFieldMode(consoleType: UInt8, processType: UInt8) -> JapaneseStationFieldMode? {
+        if isJapanesePurchaseLike(consoleType: consoleType, processType: processType) {
+            return nil
+        }
+        if processType == 13 || processType == 15 {
+            return .bus
+        }
+        if japaneseRailProcessTypes.contains(processType) {
+            return .rail
+        }
+        return nil
+    }
+
+    private static func isJapanesePurchaseLike(consoleType: UInt8, processType: UInt8) -> Bool {
+        consoleType == 199 || consoleType == 200 || japanesePurchaseProcessTypes.contains(processType)
     }
 
     private static func decodeEdyHistory(block: Data) -> TransitTransaction? {
@@ -601,6 +629,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
 
     private static func inferCandidateStation(from block: Data, targetLowCode: Int, targetDate: Date?) -> (distance: TimeInterval, fullCode: Int, stationName: String)? {
         guard block.count >= 16 else { return nil }
+        guard japaneseStationFieldMode(consoleType: block[0], processType: block[1]) == .rail else { return nil }
 
         let rawDate = Int(block[4]) << 8 | Int(block[5])
         let year = (rawDate >> 9) & 0x7F

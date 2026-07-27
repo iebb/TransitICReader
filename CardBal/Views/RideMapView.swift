@@ -973,11 +973,31 @@ private struct RideRouteCandidate {
     let endCode: String
     let startName: String?
     let endName: String?
+    let startEventRaw: Int?
+    let endEventRaw: Int?
+    let addsEndpointHits: Bool
+}
+
+private struct RidePointCandidate {
+    let transaction: TransitTransaction
+    let lookupCode: String
+    let stationName: String?
+    let eventRaw: Int?
+    let role: String
+}
+
+private struct KoreanMapEvent {
+    let transaction: TransitTransaction
+    let raw: String
+    let locationCode: String
+    let eventRaw: Int
+    let tripCounter: Int
+    let timestamp: Date?
 }
 
 private final class StationGraphDatabase {
     static let shared = StationGraphDatabase()
-    private static let cacheVersion = 1
+    private static let cacheVersion = 2
 
     private(set) var isReady = false
     private let pathCacheLock = NSLock()
@@ -991,12 +1011,19 @@ private final class StationGraphDatabase {
             buildFromBundledDatabases()
             saveCachedGraph()
         }
+        // Korean aliases are intentionally loaded after the persisted base graph so
+        // catalog updates take effect immediately without relying on a cache-version bump.
+        loadKoreanCatalog()
         isReady = !stationsByLookupCode.isEmpty
     }
 
-    func station(forLookupCode rawCode: String?) -> StationGraphStation? {
+    func station(forLookupCode rawCode: String?, eventRaw: Int? = nil) -> StationGraphStation? {
         guard let rawCode else { return nil }
-        return stationsByLookupCode[normalizeLookupCode(rawCode)]
+        let code = normalizeLookupCode(rawCode)
+        if let eventRaw, let eventStation = stationsByLookupCode["\(code):\(eventRaw)"] {
+            return eventStation
+        }
+        return stationsByLookupCode[code]
     }
 
     func shortestPath(from sourceCode: String, to targetCode: String) -> [StationGraphStation] {
@@ -1140,6 +1167,35 @@ private final class StationGraphDatabase {
         loadEdges(db: db)
     }
 
+    private func loadKoreanCatalog() {
+        guard let catalog = KoreanStationAliasCatalog.bundled else { return }
+        for alias in catalog.locations {
+            guard let latitude = alias.latitude, let longitude = alias.longitude else { continue }
+            let coordinateSource = alias.coordinateSourceID ?? alias.sourceID
+            let physicalStationID = alias.coordinateSourceStationID
+                ?? alias.sourceStationID
+                ?? alias.sourceStopID
+                ?? alias.arsID
+                ?? alias.locationCode
+            let stationCode = "kr:\(coordinateSource):\(physicalStationID)"
+            let station = StationGraphStation(
+                hexCode: alias.locationCode,
+                stationCode: stationCode,
+                stationName: alias.localizedDisplayName,
+                latitude: latitude,
+                longitude: longitude,
+                isPseudo: false
+            )
+            let lookupCode = normalizeLookupCode(alias.locationCode)
+            if let eventRaw = alias.eventRaw {
+                stationsByLookupCode["\(lookupCode):\(eventRaw)"] = station
+            } else {
+                stationsByLookupCode[lookupCode] = station
+            }
+            stationsByStationCode[stationCode] = station
+        }
+    }
+
     private func loadCachedGraph() -> Bool {
         guard let url = cachedGraphURL(),
               let data = try? Data(contentsOf: url) else {
@@ -1222,10 +1278,15 @@ private struct RideMapBuilder {
 
     /// Quick check if a card has any mappable trips at all (without building full route data).
     func hasMappableTrips(card: SavedCardRecord) -> Bool {
+        if pointCandidates(for: card).contains(where: { candidate in
+            database.station(forLookupCode: candidate.lookupCode, eventRaw: candidate.eventRaw) != nil
+        }) {
+            return true
+        }
         let candidates = routeCandidates(for: card)
         return candidates.contains { candidate in
-            database.station(forLookupCode: candidate.startCode) != nil &&
-            database.station(forLookupCode: candidate.endCode) != nil
+            database.station(forLookupCode: candidate.startCode, eventRaw: candidate.startEventRaw) != nil &&
+            database.station(forLookupCode: candidate.endCode, eventRaw: candidate.endEventRaw) != nil
         }
     }
 
@@ -1243,11 +1304,40 @@ private struct RideMapBuilder {
                 }
                 return card.markerColor.color
             }()
+            for candidate in pointCandidates(for: card) {
+                guard let station = database.station(
+                    forLookupCode: candidate.lookupCode,
+                    eventRaw: candidate.eventRaw
+                ) else {
+                    continue
+                }
+                let key = station.stationCode == "0" ? station.hexCode : station.stationCode
+                var entry = pointCounts[key] ?? (station, 0, color, [])
+                entry.count += 1
+                entry.color = color
+                entry.hits.append(
+                    RideMapPointHit(
+                        id: "\(card.id)|\(candidate.transaction.id.uuidString)|\(candidate.role)|\(key)",
+                        cardID: card.id,
+                        cardTitle: card.displayTitle,
+                        cardFamily: card.cardFamily,
+                        role: candidate.role,
+                        transaction: candidate.transaction
+                    )
+                )
+                pointCounts[key] = entry
+            }
             for candidate in routeCandidates(for: card) {
-                let startStation = database.station(forLookupCode: candidate.startCode)
-                let endStation = database.station(forLookupCode: candidate.endCode)
+                let startStation = database.station(
+                    forLookupCode: candidate.startCode,
+                    eventRaw: candidate.startEventRaw
+                )
+                let endStation = database.station(
+                    forLookupCode: candidate.endCode,
+                    eventRaw: candidate.endEventRaw
+                )
 
-                if let startStation {
+                if candidate.addsEndpointHits, let startStation {
                     let key = startStation.stationCode == "0" ? startStation.hexCode : startStation.stationCode
                     var entry = pointCounts[key] ?? (startStation, 0, color, [])
                     entry.count += 1
@@ -1264,7 +1354,7 @@ private struct RideMapBuilder {
                     )
                     pointCounts[key] = entry
                 }
-                if let endStation {
+                if candidate.addsEndpointHits, let endStation {
                     let key = endStation.stationCode == "0" ? endStation.hexCode : endStation.stationCode
                     var entry = pointCounts[key] ?? (endStation, 0, color, [])
                     entry.count += 1
@@ -1346,7 +1436,11 @@ private struct RideMapBuilder {
     }
 
     private func routeCandidates(for card: SavedCardRecord) -> [RideRouteCandidate] {
-        if ICCardBrand.from(family: card.cardFamily) == .tUnion {
+        let brand = ICCardBrand.from(family: card.cardFamily)
+        if brand.isKorean {
+            return koreanRouteCandidates(for: card)
+        }
+        if brand == .tUnion {
             return tUnionRouteCandidates(for: card)
         }
 
@@ -1374,7 +1468,10 @@ private struct RideMapBuilder {
                         startCode: transaction.entryStationCode ?? "",
                         endCode: transaction.exitStationCode ?? "",
                         startName: transaction.entryStation,
-                        endName: transaction.exitStation
+                        endName: transaction.exitStation,
+                        startEventRaw: nil,
+                        endEventRaw: nil,
+                        addsEndpointHits: true
                     )
                 )
             }
@@ -1417,7 +1514,10 @@ private struct RideMapBuilder {
                         startCode: startCode,
                         endCode: endCode,
                         startName: entry.entryStation,
-                        endName: transaction.exitStation
+                        endName: transaction.exitStation,
+                        startEventRaw: nil,
+                        endEventRaw: nil,
+                        addsEndpointHits: true
                     )
                 )
                 openEntry = nil
@@ -1427,5 +1527,90 @@ private struct RideMapBuilder {
         }
 
         return candidates.reversed()
+    }
+
+    private func pointCandidates(for card: SavedCardRecord) -> [RidePointCandidate] {
+        guard ICCardBrand.from(family: card.cardFamily).isKorean else { return [] }
+        return koreanMapEvents(for: card).map { event in
+            RidePointCandidate(
+                transaction: event.transaction,
+                lookupCode: event.locationCode,
+                stationName: event.eventRaw == 0
+                    ? event.transaction.entryStation
+                    : event.transaction.exitStation,
+                eventRaw: event.eventRaw,
+                role: event.eventRaw == 0 ? "start" : "end"
+            )
+        }
+    }
+
+    private func koreanRouteCandidates(for card: SavedCardRecord) -> [RideRouteCandidate] {
+        let events = koreanMapEvents(for: card)
+            .filter { $0.timestamp != nil }
+            .sorted { lhs, rhs in
+                if lhs.timestamp != rhs.timestamp {
+                    return lhs.timestamp! < rhs.timestamp!
+                }
+                return lhs.raw < rhs.raw
+            }
+        var usedAlightings = Set<Int>()
+        var candidates: [RideRouteCandidate] = []
+
+        for (index, boarding) in events.enumerated() where boarding.eventRaw == 0 {
+            guard let boardedAt = boarding.timestamp else { continue }
+            for candidateIndex in events.indices where candidateIndex > index {
+                guard !usedAlightings.contains(candidateIndex) else { continue }
+                let alighting = events[candidateIndex]
+                guard alighting.eventRaw == 1, let alightedAt = alighting.timestamp else { continue }
+                let interval = alightedAt.timeIntervalSince(boardedAt)
+                if interval < 0 { continue }
+                if interval > 8 * 60 * 60 { break }
+                guard alighting.tripCounter == boarding.tripCounter else { continue }
+                usedAlightings.insert(candidateIndex)
+                candidates.append(
+                    RideRouteCandidate(
+                        transaction: alighting.transaction,
+                        startCode: boarding.locationCode,
+                        endCode: alighting.locationCode,
+                        startName: boarding.transaction.entryStation,
+                        endName: alighting.transaction.exitStation,
+                        startEventRaw: boarding.eventRaw,
+                        endEventRaw: alighting.eventRaw,
+                        addsEndpointHits: false
+                    )
+                )
+                break
+            }
+        }
+        return candidates.reversed()
+    }
+
+    private func koreanMapEvents(for card: SavedCardRecord) -> [KoreanMapEvent] {
+        let transactions = card.transitHistory + card.transactions
+        var seenRaw = Set<String>()
+        var events: [KoreanMapEvent] = []
+        for transaction in transactions {
+            guard let rawData = transaction.rawData else { continue }
+            let raw = rawData.uppercased().filter(\.isHexDigit)
+            guard seenRaw.insert(raw).inserted else { continue }
+            let data = Data(hexString: raw)
+            guard data.count >= KoreanTransitTimestampDecoder.recordLength else { continue }
+            let record = data.count == KoreanTransitTimestampDecoder.recordLength
+                ? data
+                : data.subdata(in: 0..<KoreanTransitTimestampDecoder.recordLength)
+            let eventRaw = Int(record[2])
+            guard eventRaw == 0 || eventRaw == 1 else { continue }
+            events.append(
+                KoreanMapEvent(
+                    transaction: transaction,
+                    raw: record.hexString.uppercased(),
+                    locationCode: record.subdata(in: 5..<11).hexString.uppercased(),
+                    eventRaw: eventRaw,
+                    tripCounter: Int(record[4]),
+                    timestamp: KoreanTransitTimestampDecoder.decode(record)?.date
+                )
+            )
+        }
+        return events
     }
 }

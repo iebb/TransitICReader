@@ -40,6 +40,15 @@ build/
 *.swp
 *~
 *.lock
+tmp/
+__pycache__/
+*.py[cod]
+
+# Standalone sibling repositories and local snapshots
+/android/
+/kreader/
+/build_armv8_apk.sh
+/CardBal/NFC/Decoders.zip
 
 # Project-specific logs
 build_log.txt
