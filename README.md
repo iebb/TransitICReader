@@ -19,3 +19,7 @@ Native SwiftUI iPhone app for scanning physical transit IC cards with CoreNFC.
 
 - NFC scanning requires a real iPhone. The simulator can build the app but cannot read cards.
 - In Xcode, set your own signing team before running on device.
+- Xcode Cloud stores the Firebase plist as the
+  `FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64` workflow environment variable.
+  `ci_scripts/ci_post_clone.sh` decodes it before the build; the generated plist
+  remains ignored by Git.

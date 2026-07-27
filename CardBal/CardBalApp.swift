@@ -1,9 +1,16 @@
 import SwiftUI
 import UIKit
+import FirebaseCore
+import FirebaseAnalytics
 
 @main
 struct CardBalApp: App {
     init() {
+        if Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil {
+            FirebaseApp.configure()
+            Analytics.setAnalyticsCollectionEnabled(true)
+        }
+
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithDefaultBackground()
 
