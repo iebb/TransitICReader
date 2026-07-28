@@ -150,97 +150,23 @@ struct KOTRISTransportModeCatalog {
     }
 }
 
-enum KoreanStationAliasProvenance: String, Codable {
-    case officialDatasetExactMatch = "official_dataset_exact_match"
-    case officialDatasetTransformedExactMatch = "official_dataset_transformed_exact_match"
-    case userConfirmed = "user_confirmed"
-
-    var displayName: String {
-        switch self {
-        case .officialDatasetExactMatch:
-            return NSLocalizedString("korean_station_provenance_official_exact", comment: "Exact station match in an official dataset")
-        case .officialDatasetTransformedExactMatch:
-            return NSLocalizedString("korean_station_provenance_official_transformed", comment: "Station match using an official row and documented transform")
-        case .userConfirmed:
-            return NSLocalizedString("korean_station_provenance_user_confirmed", comment: "Station label confirmed by a CardBal user")
-        }
-    }
-}
-
-struct KoreanStationAliasSource: Codable, Equatable {
-    let id: String
-    let title: String
-    let publisher: String
-    let catalogURL: URL?
-    let localPath: String?
-    let datasetDate: String?
-    let portalModifiedDate: String?
-    let retrievedAt: String
-    let license: String
-    let note: String
-    let sourceSHA256: String?
-    let rowCount: Int?
-    let matchingMethod: String?
-}
-
-struct KoreanStationAliasStatistics: Codable, Equatable {
-    let corpusRows: Int
-    let officialBusRows: Int
-    let eligibleBusRows: Int
-    let exactMatchedRows: Int
-    let exactMatchedLocationCodes: Int
-    let exactMatchedSettlementStationIDs: Int
-    let exactMatchedNames: Int
-    let userConfirmedLocationCodes: Int
-    let transformedRailMatchedRows: Int?
-    let transformedRailMatchedLocationCodes: Int?
-    let transformedRailMatchedStationIDs: Int?
-    let busanBIMSMatchedRows: Int?
-    let busanBIMSMatchedLocationCodes: Int?
-    let busanTransformedRailMatchedRows: Int?
-    let daeguTransformedRailMatchedRows: Int?
-    let capitalRailMatchedRows: Int?
-    let capitalRailMatchedLocationCodes: Int?
-    let capitalRailExcludedReviewRows: Int?
-}
-
-struct KoreanStationAlias: Codable, Equatable {
+struct KoreanStationAlias: Equatable {
     let locationCode: String
-    let stationToken: String
+    let stationID: String
     let transportModeCode: Int
-    let name: String
-    let provenance: KoreanStationAliasProvenance
-    let sourceID: String
-    let sourceStationID: String?
-    let sourceStopID: String?
-    let arsID: String?
-    let ctpvCode: String?
-    let ctpvName: String?
-    let sggCode: String?
-    let sggName: String?
-    let latitude: Double?
-    let longitude: Double?
-    let coordinateSourceID: String?
-    let coordinateSourceStationID: String?
-    let coordinateMatchingMethod: String?
-    let nameCanonicalKo: String?
+    let nameKorean: String
+    let canonicalNameKorean: String
     let nameEnglish: String?
+    let nameJapanese: String?
     let nameHanja: String?
     let nameChineseSimplified: String?
     let nameChineseTraditional: String?
-    let nameJapanese: String?
-    let nameSourceID: String?
-    let nameSourceStationID: String?
-    let nameHanjaSourceID: String?
-    let nameMatchingMethod: String?
-    let eventRaw: Int?
-    let userConfirmedSampleIDs: [String]?
-    let matchingMethod: String?
-
-    var administrativeAreaDisplay: String? {
-        let parts = [ctpvName, sggName].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
-    }
+    let latitude: Double?
+    let longitude: Double?
+    let provinceCode: String?
+    let districtCode: String?
+    let operatorName: String?
+    let lineName: String?
 
     var localizedDisplayName: String {
         let languageCode = Locale.current.language.languageCode?.identifier.lowercased()
@@ -264,144 +190,168 @@ struct KoreanStationAlias: Codable, Equatable {
                 return nameChineseTraditional
             }
         }
-        if let nameCanonicalKo, !nameCanonicalKo.isEmpty {
-            return nameCanonicalKo
+        return canonicalNameKorean
+    }
+
+    var mapStationID: String {
+        guard let latitude, let longitude else { return stationID }
+        return [
+            provinceCode ?? "",
+            districtCode ?? "",
+            canonicalNameKorean,
+            operatorName ?? "",
+            lineName ?? "",
+            String(latitude.bitPattern),
+            String(longitude.bitPattern),
+        ].map(normalizedMapComponent).joined(separator: "|")
+    }
+
+    var allowedEventRawValues: Set<Int>? {
+        switch locationCode {
+        case "221000000368", "230000000368":
+            return [0]
+        case "221022900368", "230022100368":
+            return [1]
+        default:
+            return nil
         }
-        return name
+    }
+
+    private func normalizedMapComponent(_ value: String) -> String {
+        value.precomposedStringWithCanonicalMapping
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
     }
 }
 
 enum KoreanStationAliasCatalogError: Error, Equatable {
-    case unsupportedSchemaVersion(Int)
+    case invalidUTF8
+    case unexpectedHeader
+    case invalidRow(Int)
+    case rowCountMismatch(expected: Int, actual: Int)
     case duplicateLocationCode(String)
     case invalidLocationCode(String)
-    case inconsistentLocationCode(String)
-    case missingSource(String)
-    case incompleteCoordinates(String)
-    case invalidCoordinates(String)
-    case coordinateSourceWithoutCoordinates(String)
 }
 
-/// Exact station aliases keyed by the complete bytes 05-10 fingerprint.
-///
-/// The four-byte station token is not globally unique and is not assumed to be
-/// a public rail station ID. Bus stop candidates are exposed only for decimal
-/// BCD tokens ending in zero and still require an exact source-catalog match.
+/// Reviewed Korean stations from the current-state consumer export published by
+/// https://github.com/iebb/korean-stations.
 struct KoreanStationAliasCatalog {
-    private struct Payload: Decodable {
-        let schemaVersion: Int
-        let sources: [KoreanStationAliasSource]
-        let statistics: KoreanStationAliasStatistics?
-        let locations: [KoreanStationAlias]
-    }
+    private static let expectedRowCount = 820
+    private static let expectedHeader = [
+        "location_code", "station_id", "transport_mode_code",
+        "transport_mode_name_ko", "transport_mode_name_en", "transport_mode_name_ja",
+        "transport_mode_name_hanja", "transport_mode_name_zh_hans", "transport_mode_name_zh_hant",
+        "transport_class", "station_name_ko", "canonical_name_ko",
+        "station_name_en", "station_name_ja", "station_name_hanja",
+        "station_name_zh_hans", "station_name_zh_hant", "operator_name", "line_name",
+        "latitude", "longitude", "province_code", "province_name", "district_code", "district_name",
+    ]
 
     static let bundled: KoreanStationAliasCatalog? = {
-        guard let url = Bundle.main.url(forResource: "KoreanStationAliases", withExtension: "json"),
-              let data = try? Data(contentsOf: url) else {
+        guard let url = Bundle.main.url(forResource: "korean_stations", withExtension: "tsv") else {
             return nil
         }
-        return try? KoreanStationAliasCatalog(data: data)
+        return try? KoreanStationAliasCatalog(tsvURL: url)
     }()
 
-    let sources: [KoreanStationAliasSource]
-    let statistics: KoreanStationAliasStatistics?
     let locations: [KoreanStationAlias]
     private let locationsByCode: [String: KoreanStationAlias]
-    private let eventLocationsByKey: [String: KoreanStationAlias]
+
+    init(tsvURL: URL) throws {
+        try self.init(data: Data(contentsOf: tsvURL))
+    }
 
     init(data: Data) throws {
-        let payload = try JSONDecoder().decode(Payload.self, from: data)
-        guard payload.schemaVersion == 1 else {
-            throw KoreanStationAliasCatalogError.unsupportedSchemaVersion(payload.schemaVersion)
+        guard let payload = String(data: data, encoding: .utf8) else {
+            throw KoreanStationAliasCatalogError.invalidUTF8
         }
-
-        let sourceIDs = Set(payload.sources.map(\.id))
+        let lines = payload.split(whereSeparator: \.isNewline)
+        guard let headerLine = lines.first,
+              headerLine.split(separator: "\t", omittingEmptySubsequences: false).map(String.init) == Self.expectedHeader else {
+            throw KoreanStationAliasCatalogError.unexpectedHeader
+        }
+        var loaded: [KoreanStationAlias] = []
         var byCode: [String: KoreanStationAlias] = [:]
-        var byEventKey: [String: KoreanStationAlias] = [:]
-        for location in payload.locations {
-            let code = location.locationCode.uppercased()
-            guard code.count == 12, code.allSatisfy({ $0.isHexDigit }) else {
-                throw KoreanStationAliasCatalogError.invalidLocationCode(location.locationCode)
+        for (offset, line) in lines.dropFirst().enumerated() {
+            let lineNumber = offset + 2
+            let columns = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+            guard columns.count == Self.expectedHeader.count,
+                  let transportModeCode = Int(columns[2]) else {
+                throw KoreanStationAliasCatalogError.invalidRow(lineNumber)
             }
-            let expectedMode = String(format: "%04X", location.transportModeCode)
-            guard location.stationToken.uppercased() == String(code.prefix(8)),
-                  expectedMode == String(code.suffix(4)) else {
-                throw KoreanStationAliasCatalogError.inconsistentLocationCode(location.locationCode)
+            let latitude = Double(columns[19])
+            let longitude = Double(columns[20])
+            guard columns[19].isEmpty == columns[20].isEmpty,
+                  columns[19].isEmpty || (latitude != nil && longitude != nil),
+                  !columns[10].isEmpty,
+                  !columns[11].isEmpty else {
+                throw KoreanStationAliasCatalogError.invalidRow(lineNumber)
             }
-            guard sourceIDs.contains(location.sourceID) else {
-                throw KoreanStationAliasCatalogError.missingSource(location.sourceID)
-            }
-            if let nameSourceID = location.nameSourceID,
-               !sourceIDs.contains(nameSourceID) {
-                throw KoreanStationAliasCatalogError.missingSource(nameSourceID)
-            }
-            if let nameHanjaSourceID = location.nameHanjaSourceID,
-               !sourceIDs.contains(nameHanjaSourceID) {
-                throw KoreanStationAliasCatalogError.missingSource(nameHanjaSourceID)
-            }
-            switch (location.latitude, location.longitude) {
-            case let (latitude?, longitude?):
+            if let latitude, let longitude {
                 guard latitude.isFinite,
                       longitude.isFinite,
                       (32.0...40.0).contains(latitude),
                       (123.0...133.0).contains(longitude) else {
-                    throw KoreanStationAliasCatalogError.invalidCoordinates(location.locationCode)
+                    throw KoreanStationAliasCatalogError.invalidRow(lineNumber)
                 }
-                if let coordinateSourceID = location.coordinateSourceID,
-                   !sourceIDs.contains(coordinateSourceID) {
-                    throw KoreanStationAliasCatalogError.missingSource(coordinateSourceID)
-                }
-            case (nil, nil):
-                if location.coordinateSourceID != nil
-                    || location.coordinateSourceStationID != nil
-                    || location.coordinateMatchingMethod != nil {
-                    throw KoreanStationAliasCatalogError.coordinateSourceWithoutCoordinates(location.locationCode)
-                }
-            default:
-                throw KoreanStationAliasCatalogError.incompleteCoordinates(location.locationCode)
             }
-            if let eventRaw = location.eventRaw {
-                let eventKey = "\(code):\(eventRaw)"
-                guard (0...255).contains(eventRaw),
-                      byEventKey.updateValue(location, forKey: eventKey) == nil else {
-                    throw KoreanStationAliasCatalogError.duplicateLocationCode(eventKey)
-                }
-            } else if byCode.updateValue(location, forKey: code) != nil {
-                throw KoreanStationAliasCatalogError.duplicateLocationCode(code)
+            let locationCode = columns[0].uppercased()
+            let stationID = columns[1].uppercased()
+            guard locationCode.count == 12,
+                  locationCode.allSatisfy(\.isHexDigit),
+                  stationID.count == 8,
+                  locationCode.hasPrefix(stationID),
+                  String(locationCode.suffix(4)) == String(format: "%04X", transportModeCode) else {
+                throw KoreanStationAliasCatalogError.invalidLocationCode(locationCode)
             }
+            let alias = KoreanStationAlias(
+                locationCode: locationCode,
+                stationID: stationID,
+                transportModeCode: transportModeCode,
+                nameKorean: columns[10],
+                canonicalNameKorean: columns[11],
+                nameEnglish: Self.optionalText(columns[12]),
+                nameJapanese: Self.optionalText(columns[13]),
+                nameHanja: Self.optionalText(columns[14]),
+                nameChineseSimplified: Self.optionalText(columns[15]),
+                nameChineseTraditional: Self.optionalText(columns[16]),
+                latitude: latitude,
+                longitude: longitude,
+                provinceCode: Self.optionalText(columns[21]),
+                districtCode: Self.optionalText(columns[23]),
+                operatorName: Self.optionalText(columns[17]),
+                lineName: Self.optionalText(columns[18])
+            )
+            guard byCode.updateValue(alias, forKey: locationCode) == nil else {
+                throw KoreanStationAliasCatalogError.duplicateLocationCode(locationCode)
+            }
+            loaded.append(alias)
+        }
+        guard loaded.count == Self.expectedRowCount else {
+            throw KoreanStationAliasCatalogError.rowCountMismatch(
+                expected: Self.expectedRowCount,
+                actual: loaded.count
+            )
         }
 
-        sources = payload.sources
-        statistics = payload.statistics
-        locations = payload.locations
+        locations = loaded
         locationsByCode = byCode
-        eventLocationsByKey = byEventKey
     }
 
     func location(for locationCode: String, eventRaw: Int? = nil) -> KoreanStationAlias? {
-        let code = locationCode.uppercased()
-        if let eventRaw, let eventMatch = eventLocationsByKey["\(code):\(eventRaw)"] {
-            return eventMatch
-        }
-        return locationsByCode[code]
-    }
-
-    func source(for id: String) -> KoreanStationAliasSource? {
-        sources.first { $0.id == id }
-    }
-
-    static func busSettlementStationIDCandidate(
-        stationToken: String,
-        transportClass: KOTRISTransportClass?
-    ) -> String? {
-        guard transportClass == .bus,
-              stationToken.count == 8,
-              stationToken.allSatisfy({ $0.isNumber }),
-              stationToken.last == "0" else {
+        guard let alias = locationsByCode[locationCode.uppercased()] else { return nil }
+        if let eventRaw,
+           let allowedEventRawValues = alias.allowedEventRawValues,
+           !allowedEventRawValues.contains(eventRaw) {
             return nil
         }
-        return String(stationToken.dropLast())
+        return alias
     }
+
+    private static func optionalText(_ value: String) -> String? {
+        value.isEmpty ? nil : value
+    }
+
 }
 
 enum KoreanTransitOperatorFieldProfile: String, Codable {

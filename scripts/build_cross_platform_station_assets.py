@@ -40,9 +40,11 @@ TUNION_SOURCE_ASSETS = [
 
 KOREAN_ASSETS = [
     "KOTRISTransportModes.json",
-    "KoreanStationAliases.json",
-    "EastAsiaCityBoundaries.json",
 ]
+
+# CardBal iOS vendors korean_stations.tsv and its derived East Asia boundary
+# catalog directly. They are intentionally not copied into Android or portable
+# asset trees.
 
 
 def asset_names(target: str) -> list[str]:
@@ -210,7 +212,7 @@ def main() -> None:
 
     write_manifest(args.portable_assets)
     if not args.no_sync_ios:
-        copy_assets(platform_names + ["manifest.json"], args.portable_assets, args.ios_resources)
+        copy_assets(platform_names, args.portable_assets, args.ios_resources)
     if not args.no_sync_android:
         copy_assets(platform_names + ["manifest.json"], args.portable_assets, args.android_assets)
 

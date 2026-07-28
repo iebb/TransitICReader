@@ -18,6 +18,7 @@ request per second and persisted in the generated catalog.
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
 import hashlib
 import json
@@ -36,7 +37,7 @@ from typing import Any, Iterable
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_JAPAN_DATABASE = REPO_ROOT / "CardBal/Resources/jp_stations.sqlite"
 DEFAULT_CHINA_DATABASE = REPO_ROOT / "CardBal/Resources/tunion_stations.sqlite"
-DEFAULT_KOREA_ALIASES = REPO_ROOT / "CardBal/Resources/KoreanStationAliases.json"
+DEFAULT_KOREA_STATIONS = REPO_ROOT / "CardBal/Resources/korean_stations.tsv"
 DEFAULT_OUTPUT = REPO_ROOT / "CardBal/Resources/EastAsiaCityBoundaries.json"
 
 GEBOUNDARIES_COMMIT = "9469f09592ced973a3448cf66b6100b741b64c0d"
@@ -782,7 +783,7 @@ def find_single_feature(feature_collection: dict[str, Any], shape_name: str) -> 
 def build_korea_boundaries(
     adm1: dict[str, Any],
     adm2: dict[str, Any],
-    aliases_path: Path,
+    stations_path: Path,
 ) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, str], dict[str, int]]:
     boundary_ids_by_area: dict[str, str] = {}
     boundaries = []
@@ -808,22 +809,18 @@ def build_korea_boundaries(
         for mode_code, area_key in sorted(KOREA_MODE_TO_AREA.items(), key=lambda item: int(item[0]))
     }
 
-    aliases_payload = load_json(aliases_path)
-    locations = aliases_payload.get("locations", [])
+    with stations_path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        locations = [
+            (row["location_code"], row["province_name"], row["district_name"])
+            for row in reader
+        ]
     actual_aliases: dict[str, str] = {}
-    for location in locations:
-        location_code = str(location["locationCode"]).upper()
-        provenance = str(location.get("provenance") or "")
-        if provenance not in {
-            "official_dataset_exact_match",
-            "official_dataset_transformed_exact_match",
-        }:
-            raise RuntimeError(
-                f"Korean alias {location_code} lacks official row provenance: {provenance!r}"
-            )
-        ctpv_name = str(location.get("ctpvName") or "")
+    for location_code, ctpv_name, sgg_name in locations:
+        location_code = str(location_code).upper()
+        ctpv_name = str(ctpv_name or "")
         if ctpv_name == "경기도":
-            sgg_name = str(location.get("sggName") or "")
+            sgg_name = str(sgg_name or "")
             municipality_match = re.match(r"^(.+?시)", sgg_name)
             if not municipality_match:
                 raise RuntimeError(
@@ -840,7 +837,7 @@ def build_korea_boundaries(
         previous = actual_aliases.setdefault(location_code, boundary_id)
         if previous != boundary_id:
             raise RuntimeError(
-                f"Event-specific Korean aliases disagree on area for {location_code}"
+                f"Korean aliases disagree on area for {location_code}"
             )
 
     location_mapping = dict(sorted(actual_aliases.items()))
@@ -869,7 +866,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         korea_boundaries, korea_mode_mapping, korea_location_mapping, korea_stats = build_korea_boundaries(
             geo["KOR_ADM1"],
             geo["KOR_ADM2"],
-            args.korea_aliases,
+            args.korea_stations,
         )
         china_boundaries, china_mapping, china_stats, china_source_relations = build_china_boundaries(
             args.china_database,
@@ -931,7 +928,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             "localLookups": {
                 "japan": "CardBal/Resources/jp_stations.sqlite, non-pseudo coordinates",
                 "china": "CardBal/Resources/tunion_stations.sqlite, distinct city_id/city_name pairs",
-                "korea": "CardBal/Resources/KoreanStationAliases.json plus explicit verified transport-mode codes",
+                "korea": "CardBal/Resources/korean_stations.tsv from iebb/korean-stations plus explicit verified transport-mode codes",
             },
         },
         "generation": {
@@ -967,7 +964,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--japan-database", type=Path, default=DEFAULT_JAPAN_DATABASE)
     parser.add_argument("--china-database", type=Path, default=DEFAULT_CHINA_DATABASE)
-    parser.add_argument("--korea-aliases", type=Path, default=DEFAULT_KOREA_ALIASES)
+    parser.add_argument("--korea-stations", type=Path, default=DEFAULT_KOREA_STATIONS)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--nominatim-delay",
@@ -980,7 +977,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    for input_path in (args.japan_database, args.china_database, args.korea_aliases):
+    for input_path in (args.japan_database, args.china_database, args.korea_stations):
         if not input_path.is_file():
             raise FileNotFoundError(input_path)
     catalog = build_catalog(args)

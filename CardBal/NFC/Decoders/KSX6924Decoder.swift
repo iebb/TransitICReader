@@ -380,12 +380,6 @@ struct KoreanTransitHistoryFareLayout {
     let variant: Variant
     let selectedAmount: Int?
     let selectedAmountHex: String?
-    let primaryAmount: Int
-    let primaryAmountHex: String
-    let regionalAmount: Int
-    let regionalAmountHex: String
-    let baseFare: Int
-    let baseFareHex: String
 
     static func decode(_ data: Data) -> KoreanTransitHistoryFareLayout? {
         guard data.count >= 42 else { return nil }
@@ -406,13 +400,7 @@ struct KoreanTransitHistoryFareLayout {
         return KoreanTransitHistoryFareLayout(
             variant: selection?.0 ?? .unresolved,
             selectedAmount: selection?.1,
-            selectedAmountHex: selection?.2,
-            primaryAmount: primaryAmount,
-            primaryAmountHex: data.subdata(in: 22..<24).hexString.uppercased(),
-            regionalAmount: regionalAmount,
-            regionalAmountHex: data.subdata(in: 36..<38).hexString.uppercased(),
-            baseFare: baseFare,
-            baseFareHex: data.subdata(in: 40..<42).hexString.uppercased()
+            selectedAmountHex: selection?.2
         )
     }
 
@@ -420,18 +408,6 @@ struct KoreanTransitHistoryFareLayout {
         (1...10_000).contains(value)
     }
 
-    var variantDisplayName: String {
-        switch variant {
-        case .primary22:
-            return NSLocalizedString("korean_fare_layout_primary22", comment: "Korean transit fare stored at bytes 22-23")
-        case .regional36:
-            return NSLocalizedString("korean_fare_layout_regional36", comment: "Korean transit fare stored at bytes 36-37")
-        case .base40:
-            return NSLocalizedString("korean_fare_layout_base40", comment: "Korean transit fare stored at bytes 40-41")
-        case .unresolved:
-            return NSLocalizedString("korean_fare_layout_unresolved", comment: "Korean transit fare layout is unresolved")
-        }
-    }
 }
 
 private struct KSX6924CardProfile {

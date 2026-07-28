@@ -59,7 +59,7 @@
 		CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */; };
 		D3A110012F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */; };
 		D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */; };
-		D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */; };
+		D3A110052F6F2ACB0071B6C4 /* korean_stations.tsv in Resources */ = {isa = PBXBuildFile; fileRef = D3A110042F6F2ACB0071B6C4 /* korean_stations.tsv */; };
 		D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */; };
 		D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */ = {isa = PBXBuildFile; fileRef = D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */; };
 		D4A120052F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json in Resources */ = {isa = PBXBuildFile; fileRef = D4A120042F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json */; };
@@ -120,7 +120,7 @@
 		C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPBusCodes.csv; sourceTree = "<group>"; };
 		D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanTransitCatalog.swift; sourceTree = "<group>"; };
 		D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = KOTRISTransportModes.json; sourceTree = "<group>"; };
-		D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = KoreanStationAliases.json; sourceTree = "<group>"; };
+		D3A110042F6F2ACB0071B6C4 /* korean_stations.tsv */ = {isa = PBXFileReference; lastKnownFileType = text; path = korean_stations.tsv; sourceTree = "<group>"; };
 		D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityAtlasView.swift; sourceTree = "<group>"; };
 		D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = EastAsiaCityBoundaries.json; sourceTree = "<group>"; };
 		D4A120042F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = EastAsiaProvinceBoundaries.json; sourceTree = "<group>"; };
@@ -223,7 +223,7 @@
 				D4A120042F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json */,
 				8C4692112F6F2ACB0071B6C4 /* TUnionCardNames.json */,
 				D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */,
-				D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */,
+				D3A110042F6F2ACB0071B6C4 /* korean_stations.tsv */,
 				80112233445566778899AA01 /* TUnionCityCodes.json */,
 				8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */,
 				8E6F12002F6F2ACB0071B6C4 /* tunion_stations.sqlite */,
@@ -394,7 +394,7 @@
 				8C4692142F6F2ACB0071B6C4 /* TUnionCityCodes.json in Resources */,
 				8C4692152F6F2ACB0071B6C4 /* TUnionLineStations.json in Resources */,
 				D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */,
-				D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */,
+				D3A110052F6F2ACB0071B6C4 /* korean_stations.tsv in Resources */,
 				D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */,
 				D4A120052F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json in Resources */,
 				8E6F12012F6F2ACB0071B6C4 /* tunion_stations.sqlite in Resources */,

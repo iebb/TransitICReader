@@ -1171,13 +1171,7 @@ private final class StationGraphDatabase {
         guard let catalog = KoreanStationAliasCatalog.bundled else { return }
         for alias in catalog.locations {
             guard let latitude = alias.latitude, let longitude = alias.longitude else { continue }
-            let coordinateSource = alias.coordinateSourceID ?? alias.sourceID
-            let physicalStationID = alias.coordinateSourceStationID
-                ?? alias.sourceStationID
-                ?? alias.sourceStopID
-                ?? alias.arsID
-                ?? alias.locationCode
-            let stationCode = "kr:\(coordinateSource):\(physicalStationID)"
+            let stationCode = "kr:\(alias.mapStationID)"
             let station = StationGraphStation(
                 hexCode: alias.locationCode,
                 stationCode: stationCode,
@@ -1187,8 +1181,10 @@ private final class StationGraphDatabase {
                 isPseudo: false
             )
             let lookupCode = normalizeLookupCode(alias.locationCode)
-            if let eventRaw = alias.eventRaw {
-                stationsByLookupCode["\(lookupCode):\(eventRaw)"] = station
+            if let allowedEventRawValues = alias.allowedEventRawValues {
+                for eventRaw in allowedEventRawValues {
+                    stationsByLookupCode["\(lookupCode):\(eventRaw)"] = station
+                }
             } else {
                 stationsByLookupCode[lookupCode] = station
             }
