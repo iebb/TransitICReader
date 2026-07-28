@@ -62,6 +62,7 @@
 		D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */; };
 		D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */; };
 		D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */ = {isa = PBXBuildFile; fileRef = D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */; };
+		D4A120052F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json in Resources */ = {isa = PBXBuildFile; fileRef = D4A120042F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json */; };
 		E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */; };
 		F17A22012F6F2ACB0071B6C4 /* jp_stations.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = F17A22002F6F2ACB0071B6C4 /* jp_stations.sqlite */; };
 /* End PBXBuildFile section */
@@ -122,6 +123,7 @@
 		D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = KoreanStationAliases.json; sourceTree = "<group>"; };
 		D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityAtlasView.swift; sourceTree = "<group>"; };
 		D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = EastAsiaCityBoundaries.json; sourceTree = "<group>"; };
+		D4A120042F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = EastAsiaProvinceBoundaries.json; sourceTree = "<group>"; };
 		D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
 		DD02F5701AE4C47C4D43B861 /* icoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = icoca.png; path = Presets/icoca.png; sourceTree = "<group>"; };
 		E1CFC46C45DB7BAB5A38F0E8 /* pasmo.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = pasmo.png; path = Presets/pasmo.png; sourceTree = "<group>"; };
@@ -218,6 +220,7 @@
 			isa = PBXGroup;
 			children = (
 				D4A120022F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json */,
+				D4A120042F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json */,
 				8C4692112F6F2ACB0071B6C4 /* TUnionCardNames.json */,
 				D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */,
 				D3A110042F6F2ACB0071B6C4 /* KoreanStationAliases.json */,
@@ -393,6 +396,7 @@
 				D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */,
 				D3A110052F6F2ACB0071B6C4 /* KoreanStationAliases.json in Resources */,
 				D4A120032F6F2ACB0071B6C4 /* EastAsiaCityBoundaries.json in Resources */,
+				D4A120052F6F2ACB0071B6C4 /* EastAsiaProvinceBoundaries.json in Resources */,
 				8E6F12012F6F2ACB0071B6C4 /* tunion_stations.sqlite in Resources */,
 				A00000000000000000000105 /* GoogleService-Info.plist in Resources */,
 				2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */,

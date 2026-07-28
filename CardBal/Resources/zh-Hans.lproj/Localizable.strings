@@ -277,7 +277,7 @@
 "The bundled East Asia city boundaries are missing." = "缺少内置的东亚城市边界数据。";
 "The bundled East Asia city boundaries could not be read." = "无法读取内置的东亚城市边界数据。";
 "Unsupported city boundary data version %lld." = "不支持的城市边界数据版本：%lld。";
-"East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities." = "东亚城市边界采用 CC BY 4.0 授权的 geoBoundaries gbOpen 数据，受支持的中国城市采用 OpenStreetMap 行政边界。";
+"East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap." = "东亚城市及省级边界采用 CC BY 4.0 授权的 geoBoundaries gbOpen 数据。日本边界包含基于 ODbL 1.0 的 OpenStreetMap 衍生几何，受支持的中国城市边界也使用 OpenStreetMap 数据。";
 "Open geoBoundaries" = "打开 geoBoundaries";
 "%lld records" = "%lld 条记录";
 "1 record" = "1 条记录";

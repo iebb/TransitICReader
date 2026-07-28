@@ -13,6 +13,7 @@ private struct CityAtlasView: View {
     @ObservedObject var store: CardWalletStore
 
     @State private var visits: [CityAtlasVisit] = []
+    @State private var provinceBoundaries: [CityAtlasBoundary] = []
     @State private var scope: CityAtlasScope = .all
     @State private var selectedCityID: String?
     @State private var focusedCityID: String?
@@ -25,6 +26,11 @@ private struct CityAtlasView: View {
     private var visibleVisits: [CityAtlasVisit] {
         guard let country = scope.country else { return visits }
         return visits.filter { $0.country == country }
+    }
+
+    private var visibleProvinceBoundaries: [CityAtlasBoundary] {
+        guard let country = scope.country else { return provinceBoundaries }
+        return provinceBoundaries.filter { $0.countryCode == country }
     }
 
     private var recordCount: Int {
@@ -66,6 +72,7 @@ private struct CityAtlasView: View {
 
             CityAtlasMapRepresentable(
                 visits: visibleVisits,
+                provinceBoundaries: visibleProvinceBoundaries,
                 focusedCityID: focusedCityID,
                 cameraRevision: cameraRevision,
                 resetCameraRevision: resetCameraRevision,
@@ -330,13 +337,15 @@ private struct CityAtlasView: View {
 
         guard !Task.isCancelled, reloadToken == token else { return }
         switch result {
-        case .success(let resolvedVisits):
-            visits = resolvedVisits
-            if let focusedCityID, !resolvedVisits.contains(where: { $0.id == focusedCityID }) {
+        case .success(let resolution):
+            visits = resolution.visits
+            provinceBoundaries = resolution.provinceBoundaries
+            if let focusedCityID, !resolution.visits.contains(where: { $0.id == focusedCityID }) {
                 self.focusedCityID = nil
             }
         case .failure(let error):
             visits = []
+            provinceBoundaries = []
             loadError = error.localizedDescription
         }
         isLoading = false
@@ -472,6 +481,7 @@ private extension View {
 
 private struct CityAtlasMapRepresentable: UIViewRepresentable {
     let visits: [CityAtlasVisit]
+    let provinceBoundaries: [CityAtlasBoundary]
     let focusedCityID: String?
     let cameraRevision: Int
     let resetCameraRevision: Int
@@ -536,10 +546,11 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         }
 
         func updateMap(_ mapView: MKMapView) {
-            let signature = parent.visits
+            let visitSignature = parent.visits
                 .map { "\($0.id):\($0.recordCount):\($0.cards.count)" }
                 .joined(separator: "|")
-                + "|selected=\(parent.selectedCityID ?? "")"
+            let provinceSignature = parent.provinceBoundaries.map(\.id).joined(separator: "|")
+            let signature = "\(provinceSignature)|visits=\(visitSignature)|selected=\(parent.selectedCityID ?? "")"
 
             if signature != renderedSignature {
                 renderedSignature = signature
@@ -572,9 +583,27 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             styles.removeAll(keepingCapacity: true)
             visitByID = Dictionary(uniqueKeysWithValues: parent.visits.map { ($0.id, $0) })
 
+            var provinceOverlays: [MKMultiPolygon] = []
             var glowOverlays: [MKPolygon] = []
             var fillOverlays: [MKPolygon] = []
             var annotations: [CityAtlasAnnotation] = []
+
+            for province in parent.provinceBoundaries {
+                let polygons = province.coordinateRings.compactMap { ring -> MKPolygon? in
+                    guard ring.count >= 3 else { return nil }
+                    var coordinates = ring
+                    return MKPolygon(coordinates: &coordinates, count: coordinates.count)
+                }
+                guard !polygons.isEmpty else { continue }
+                let provinceOverlay = MKMultiPolygon(polygons)
+                styles[ObjectIdentifier(provinceOverlay)] = CityAtlasOverlayStyle(
+                    color: province.countryCode.uiTint,
+                    fillAlpha: 0.035,
+                    strokeAlpha: 0.58,
+                    lineWidth: 1.25
+                )
+                provinceOverlays.append(provinceOverlay)
+            }
 
             for visit in parent.visits {
                 let isSelected = visit.id == parent.selectedCityID
@@ -603,17 +632,31 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 annotations.append(CityAtlasAnnotation(visit: visit))
             }
 
+            mapView.addOverlays(provinceOverlays, level: .aboveRoads)
             mapView.addOverlays(glowOverlays, level: .aboveLabels)
             mapView.addOverlays(fillOverlays, level: .aboveLabels)
             mapView.addAnnotations(annotations)
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            guard let polygon = overlay as? MKPolygon,
-                  let style = styles[ObjectIdentifier(polygon)] else {
-                return MKOverlayRenderer(overlay: overlay)
+            if let multiPolygon = overlay as? MKMultiPolygon,
+               let style = styles[ObjectIdentifier(multiPolygon)] {
+                return configured(
+                    MKMultiPolygonRenderer(multiPolygon: multiPolygon),
+                    style: style
+                )
             }
-            let renderer = MKPolygonRenderer(polygon: polygon)
+            if let polygon = overlay as? MKPolygon,
+               let style = styles[ObjectIdentifier(polygon)] {
+                return configured(MKPolygonRenderer(polygon: polygon), style: style)
+            }
+            return MKOverlayRenderer(overlay: overlay)
+        }
+
+        private func configured(
+            _ renderer: MKOverlayPathRenderer,
+            style: CityAtlasOverlayStyle
+        ) -> MKOverlayRenderer {
             renderer.fillColor = style.color.withAlphaComponent(style.fillAlpha)
             renderer.strokeColor = style.color.withAlphaComponent(style.strokeAlpha)
             renderer.lineWidth = style.lineWidth
@@ -933,6 +976,16 @@ private struct CityAtlasBoundaryCatalog: Decodable {
     let koreaLocationToBoundary: [String: String]
 }
 
+private struct CityAtlasProvinceCatalog: Decodable {
+    let version: Int
+    let boundaries: [CityAtlasBoundary]
+}
+
+private struct CityAtlasResolution {
+    let visits: [CityAtlasVisit]
+    let provinceBoundaries: [CityAtlasBoundary]
+}
+
 private struct CityAtlasVisitAccumulator {
     var evidenceIDs = Set<String>()
     var cardEvidenceCounts: [String: Int] = [:]
@@ -965,19 +1018,31 @@ private enum CityAtlasResolverError: LocalizedError {
 }
 
 private struct CityAtlasVisitResolver {
-    func resolve(cards: [SavedCardRecord]) throws -> [CityAtlasVisit] {
-        guard let url = Bundle.main.url(
+    func resolve(cards: [SavedCardRecord]) throws -> CityAtlasResolution {
+        guard let cityURL = Bundle.main.url(
             forResource: "EastAsiaCityBoundaries",
+            withExtension: "json"
+        ), let provinceURL = Bundle.main.url(
+            forResource: "EastAsiaProvinceBoundaries",
             withExtension: "json"
         ) else {
             throw CityAtlasResolverError.missingCatalog
         }
-        guard let data = try? Data(contentsOf: url),
-              let catalog = try? JSONDecoder().decode(CityAtlasBoundaryCatalog.self, from: data) else {
+        guard let cityData = try? Data(contentsOf: cityURL),
+              let provinceData = try? Data(contentsOf: provinceURL),
+              let catalog = try? JSONDecoder().decode(CityAtlasBoundaryCatalog.self, from: cityData),
+              let provinceCatalog = try? JSONDecoder().decode(CityAtlasProvinceCatalog.self, from: provinceData) else {
             throw CityAtlasResolverError.unreadableCatalog
         }
         guard catalog.version == 1 else {
             throw CityAtlasResolverError.unsupportedCatalog(catalog.version)
+        }
+        guard provinceCatalog.version == 1 else {
+            throw CityAtlasResolverError.unsupportedCatalog(provinceCatalog.version)
+        }
+
+        let provinceBoundaries = provinceCatalog.boundaries.filter { boundary in
+            boundary.countryCode != .china || !boundary.name.localizedCaseInsensitiveContains("Taiwan")
         }
 
         let boundaries = Dictionary(uniqueKeysWithValues: catalog.boundaries.map { ($0.id, $0) })
@@ -1012,7 +1077,7 @@ private struct CityAtlasVisitResolver {
             }
         }
 
-        return accumulators.compactMap { boundaryID, accumulator -> CityAtlasVisit? in
+        let visits = accumulators.compactMap { boundaryID, accumulator -> CityAtlasVisit? in
             guard let boundary = boundaries[boundaryID] else { return nil }
             let cardVisits = accumulator.cardEvidenceCounts.compactMap { cardID, count -> CityAtlasCardVisit? in
                 guard let card = cardsByID[cardID] else { return nil }
@@ -1042,6 +1107,7 @@ private struct CityAtlasVisitResolver {
             if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
             return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
         }
+        return CityAtlasResolution(visits: visits, provinceBoundaries: provinceBoundaries)
     }
 
     private func isSupportedJapaneseTransitCard(

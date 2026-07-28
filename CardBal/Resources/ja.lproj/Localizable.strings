@@ -277,7 +277,7 @@
 "The bundled East Asia city boundaries are missing." = "同梱の東アジア都市境界データがありません。";
 "The bundled East Asia city boundaries could not be read." = "同梱の東アジア都市境界データを読み込めませんでした。";
 "Unsupported city boundary data version %lld." = "未対応の都市境界データバージョンです：%lld。";
-"East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities." = "東アジアの都市境界には、CC BY 4.0のgeoBoundaries gbOpenデータと、対応する中国都市のOpenStreetMap行政境界を使用しています。";
+"East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap." = "東アジアの都市・都道府県級境界には、CC BY 4.0 の geoBoundaries gbOpen データを使用しています。日本の境界データには ODbL 1.0 の OpenStreetMap 由来ジオメトリが含まれ、対応する中国都市の境界にも OpenStreetMap を使用しています。";
 "Open geoBoundaries" = "geoBoundariesを開く";
 "%lld records" = "%lld件";
 "1 record" = "1件";

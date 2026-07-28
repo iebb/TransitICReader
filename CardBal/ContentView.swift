@@ -724,7 +724,12 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Information") {
-                    HStack { Text("App Version"); Spacer(); Text("1.3.1").foregroundStyle(.secondary) }
+                    HStack {
+                        Text("App Version")
+                        Spacer()
+                        Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
+                            .foregroundStyle(.secondary)
+                    }
                     Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Credits") {
@@ -749,7 +754,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                         Link("Open OpenStreetMap Copyright Page", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
                             .font(.footnote)
-                        Text("East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities.")
+                        Text("East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         Link("Open geoBoundaries", destination: URL(string: "https://www.geoboundaries.org/")!)

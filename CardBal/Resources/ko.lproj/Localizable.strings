@@ -281,7 +281,7 @@
 "The bundled East Asia city boundaries are missing." = "내장된 동아시아 도시 경계 데이터가 없습니다.";
 "The bundled East Asia city boundaries could not be read." = "내장된 동아시아 도시 경계 데이터를 읽을 수 없습니다.";
 "Unsupported city boundary data version %lld." = "지원되지 않는 도시 경계 데이터 버전입니다: %lld.";
-"East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities." = "동아시아 도시 경계에는 CC BY 4.0의 geoBoundaries gbOpen 데이터와 지원되는 중국 도시의 OpenStreetMap 행정 경계를 사용합니다.";
+"East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap." = "동아시아 도시 및 광역 행정구역 경계에는 CC BY 4.0의 geoBoundaries gbOpen 데이터를 사용합니다. 일본 경계에는 ODbL 1.0의 OpenStreetMap 파생 지오메트리가 포함되며, 지원되는 중국 도시 경계에도 OpenStreetMap 데이터를 사용합니다.";
 "Open geoBoundaries" = "geoBoundaries 열기";
 "%lld records" = "%lld건";
 "1 record" = "1건";
