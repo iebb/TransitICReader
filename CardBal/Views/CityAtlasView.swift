@@ -20,6 +20,7 @@ private struct CityAtlasView: View {
     @State private var cameraRevision = 0
     @State private var resetCameraRevision = 0
     @State private var isLoading = true
+    @State private var hasCompletedInitialLoad = false
     @State private var loadError: String?
     @State private var reloadToken = UUID()
 
@@ -349,6 +350,10 @@ private struct CityAtlasView: View {
             loadError = error.localizedDescription
         }
         isLoading = false
+        if !hasCompletedInitialLoad {
+            hasCompletedInitialLoad = true
+            resetCameraRevision &+= 1
+        }
         cameraRevision &+= 1
     }
 }
@@ -480,6 +485,10 @@ private extension View {
 // MARK: - Map
 
 private struct CityAtlasMapRepresentable: UIViewRepresentable {
+    // Portrait framing keeps HCMC, Xi'an, Harbin, and Sapporo clear of the map edges.
+    static let defaultEastAsiaDistance: CLLocationDistance = 14_000_000
+    static let maximumEastAsiaDistance: CLLocationDistance = 15_000_000
+
     let visits: [CityAtlasVisit]
     let provinceBoundaries: [CityAtlasBoundary]
     let focusedCityID: String?
@@ -515,7 +524,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         mapView.cameraBoundary = MKMapView.CameraBoundary(coordinateRegion: eastAsia)
         mapView.cameraZoomRange = MKMapView.CameraZoomRange(
             minCenterCoordinateDistance: 18_000,
-            maxCenterCoordinateDistance: 10_000_000
+            maxCenterCoordinateDistance: Self.maximumEastAsiaDistance
         )
         mapView.camera = Self.eastAsiaCamera
         return mapView
@@ -527,10 +536,10 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
     }
 
     static let eastAsiaCamera = MKMapCamera(
-        lookingAtCenter: CLLocationCoordinate2D(latitude: 34.5, longitude: 124.5),
-        fromDistance: 5_700_000,
-        pitch: 42,
-        heading: 350
+        lookingAtCenter: CLLocationCoordinate2D(latitude: 28.5, longitude: 124),
+        fromDistance: defaultEastAsiaDistance,
+        pitch: 38,
+        heading: 0
     )
 
     final class Coordinator: NSObject, MKMapViewDelegate {
