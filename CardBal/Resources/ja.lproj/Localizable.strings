@@ -291,3 +291,13 @@
 "%@, %lld records" = "%@、%lld件";
 "%@, %lld records, %lld cards" = "%@、記録%lld件、カード%lld枚";
 "BOUNDARIES" = "境界";
+"Province" = "都道府県";
+"Provinces" = "都道府県";
+"Loading cities…" = "都市を読み込み中…";
+"Loading provinces…" = "都道府県を読み込み中…";
+"Province map unavailable" = "都道府県マップを利用できません";
+"Your provinces will glow here" = "訪れた都道府県がここで輝きます";
+"No provinces in %@" = "%@には都道府県がありません";
+"Scan a supported Chinese, Japanese, or Korean transit card." = "対応する中国・日本・韓国の交通系ICカードをスキャンしてください。";
+"No cities in %@" = "%@には都市がありません";
+"No saved transit records appear here yet." = "この地域には保存済みの交通履歴がまだありません。";

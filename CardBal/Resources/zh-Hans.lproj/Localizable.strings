@@ -291,3 +291,13 @@
 "%@, %lld records" = "%@，%lld 条记录";
 "%@, %lld records, %lld cards" = "%@，%lld 条记录，%lld 张卡片";
 "BOUNDARIES" = "边界";
+"Province" = "省级";
+"Provinces" = "省级区域";
+"Loading cities…" = "正在加载城市…";
+"Loading provinces…" = "正在加载省级区域…";
+"Province map unavailable" = "省级地图不可用";
+"Your provinces will glow here" = "你去过的省级区域将在这里点亮";
+"No provinces in %@" = "%@暂无省级区域";
+"Scan a supported Chinese, Japanese, or Korean transit card." = "扫描支持的中国、日本或韩国交通卡。";
+"No cities in %@" = "%@暂无城市";
+"No saved transit records appear here yet." = "此处尚无已保存的交通记录。";

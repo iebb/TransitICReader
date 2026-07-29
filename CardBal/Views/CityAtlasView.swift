@@ -13,8 +13,11 @@ private struct CityAtlasView: View {
     @ObservedObject var store: CardWalletStore
 
     @State private var visits: [CityAtlasVisit] = []
+    @State private var cityBoundaries: [CityAtlasBoundary] = []
     @State private var provinceBoundaries: [CityAtlasBoundary] = []
+    @State private var provinceBoundaryByCityID: [String: String] = [:]
     @State private var scope: CityAtlasScope = .all
+    @State private var boundaryLevel: CityAtlasBoundaryLevel = .province
     @State private var selectedCityID: String?
     @State private var focusedCityID: String?
     @State private var cameraRevision = 0
@@ -29,17 +32,96 @@ private struct CityAtlasView: View {
         return visits.filter { $0.country == country }
     }
 
+    private var visibleDisplayVisits: [CityAtlasVisit] {
+        guard boundaryLevel == .province else { return visibleVisits }
+
+        let provincesByID = Dictionary(
+            uniqueKeysWithValues: visibleProvinceBoundaries.map { ($0.id, $0) }
+        )
+        let groupedCities = Dictionary(grouping: visibleVisits) { visit in
+            provinceBoundaryByCityID[visit.id]
+        }
+
+        return groupedCities.compactMap { provinceID, cityVisits -> CityAtlasVisit? in
+            guard let provinceID, let province = provincesByID[provinceID] else { return nil }
+
+            let evidenceIDs = cityVisits.reduce(into: Set<String>()) { result, visit in
+                result.formUnion(visit.evidenceIDs)
+            }
+            var cardsByID: [String: CityAtlasCardVisit] = [:]
+            for card in cityVisits.flatMap(\.cards) {
+                if let existing = cardsByID[card.id] {
+                    cardsByID[card.id] = CityAtlasCardVisit(
+                        id: existing.id,
+                        title: existing.title,
+                        color: existing.color,
+                        recordCount: existing.recordCount + card.recordCount
+                    )
+                } else {
+                    cardsByID[card.id] = card
+                }
+            }
+            let cards = cardsByID.values.sorted {
+                if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
+                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            }
+
+            return CityAtlasVisit(
+                id: provinceID,
+                boundary: province,
+                country: province.countryCode,
+                recordCount: evidenceIDs.count,
+                evidenceIDs: evidenceIDs,
+                cards: cards,
+                lastVisited: cityVisits.compactMap(\.lastVisited).max(),
+                displayNameOverride: province.provinceDisplayName
+            )
+        }
+        .sorted {
+            if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
+            return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
+        }
+    }
+
     private var visibleProvinceBoundaries: [CityAtlasBoundary] {
         guard let country = scope.country else { return provinceBoundaries }
         return provinceBoundaries.filter { $0.countryCode == country }
     }
 
+    private var visibleCityBoundaries: [CityAtlasBoundary] {
+        guard let country = scope.country else { return cityBoundaries }
+        return cityBoundaries.filter { $0.countryCode == country }
+    }
+
+    private var visibleReferenceBoundaries: [CityAtlasBoundary] {
+        switch boundaryLevel {
+        case .province: return visibleProvinceBoundaries
+        case .city: return visibleCityBoundaries
+        }
+    }
+
     private var recordCount: Int {
-        Set(visibleVisits.flatMap(\.evidenceIDs)).count
+        Set(visibleDisplayVisits.flatMap(\.evidenceIDs)).count
     }
 
     private var cardCount: Int {
-        Set(visibleVisits.flatMap { $0.cards.map(\.id) }).count
+        Set(visibleDisplayVisits.flatMap { $0.cards.map(\.id) }).count
+    }
+
+    private var placeCountLabel: LocalizedStringKey {
+        boundaryLevel == .province ? "Provinces" : "Cities"
+    }
+
+    private var loadingPlaceLabel: LocalizedStringKey {
+        boundaryLevel == .province ? "Loading provinces…" : "Loading cities…"
+    }
+
+    private var unavailablePlaceLabel: LocalizedStringKey {
+        boundaryLevel == .province ? "Province map unavailable" : "City map unavailable"
+    }
+
+    private var emptyPlaceLabel: LocalizedStringKey {
+        boundaryLevel == .province ? "Your provinces will glow here" : "Your cities will glow here"
     }
 
     private var cityDataRevision: String {
@@ -60,7 +142,7 @@ private struct CityAtlasView: View {
         Binding(
             get: {
                 guard let selectedCityID else { return nil }
-                return visits.first { $0.id == selectedCityID }
+                return visibleDisplayVisits.first { $0.id == selectedCityID }
             },
             set: { selectedCityID = $0?.id }
         )
@@ -72,8 +154,10 @@ private struct CityAtlasView: View {
                 .ignoresSafeArea()
 
             CityAtlasMapRepresentable(
-                visits: visibleVisits,
-                provinceBoundaries: visibleProvinceBoundaries,
+                visits: visibleDisplayVisits,
+                referenceBoundaries: visibleReferenceBoundaries,
+                scope: scope,
+                boundaryLevel: boundaryLevel,
                 focusedCityID: focusedCityID,
                 cameraRevision: cameraRevision,
                 resetCameraRevision: resetCameraRevision,
@@ -103,12 +187,11 @@ private struct CityAtlasView: View {
 
             VStack(spacing: 0) {
                 header
+                    .padding(.horizontal, 16)
                 Spacer(minLength: 80)
                 bottomPanel
             }
-            .padding(.horizontal, 14)
             .padding(.top, 8)
-            .padding(.bottom, 10)
         }
         .preferredColorScheme(.dark)
         .task(id: cityDataRevision) {
@@ -130,36 +213,43 @@ private struct CityAtlasView: View {
                         .tracking(1.5)
                         .foregroundStyle(.white.opacity(0.58))
                     Text("Transit Atlas")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .font(.system(.title2, design: .default, weight: .semibold))
                         .foregroundStyle(.white)
                 }
 
                 Spacer()
 
                 Button {
+                    scope = .all
                     focusedCityID = nil
+                    selectedCityID = nil
                     resetCameraRevision &+= 1
                     cameraRevision &+= 1
                 } label: {
                     Image(systemName: "scope")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .overlay(Circle().strokeBorder(.white.opacity(0.16), lineWidth: 0.5))
+                        .frame(width: 44, height: 44)
+                        .background(Color.black.opacity(0.36))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Reset East Asia view")
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 7) {
+                HStack(spacing: 20) {
                     ForEach(CityAtlasScope.allCases) { item in
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 scope = item
                             }
                             focusedCityID = nil
+                            selectedCityID = nil
                             cameraRevision &+= 1
                         } label: {
                             HStack(spacing: 6) {
@@ -171,21 +261,54 @@ private struct CityAtlasView: View {
                                 Text(item.title)
                                     .font(.caption.weight(.semibold))
                             }
-                            .foregroundStyle(scope == item ? Color.black : Color.white.opacity(0.86))
-                            .padding(.horizontal, 11)
-                            .frame(height: 30)
-                            .background(
-                                scope == item ? Color.white : Color.black.opacity(0.32),
-                                in: Capsule()
-                            )
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(.white.opacity(scope == item ? 0 : 0.18), lineWidth: 0.5)
-                            )
+                            .foregroundStyle(scope == item ? Color.white : Color.white.opacity(0.66))
+                            .padding(.horizontal, 1)
+                            .frame(height: 36)
+                            .overlay(alignment: .bottom) {
+                                Rectangle()
+                                    .fill(scope == item ? Color.white : Color.clear)
+                                    .frame(height: 2)
+                            }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(scope == item ? .isSelected : [])
                     }
                 }
+            }
+
+            HStack(spacing: 18) {
+                Text("BOUNDARIES")
+                    .font(.caption2.weight(.bold))
+                    .tracking(1.1)
+                    .foregroundStyle(.white.opacity(0.46))
+
+                ForEach(CityAtlasBoundaryLevel.allCases) { item in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            boundaryLevel = item
+                        }
+                        focusedCityID = nil
+                        selectedCityID = nil
+                        cameraRevision &+= 1
+                    } label: {
+                        Text(item.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(
+                                boundaryLevel == item ? Color.white : Color.white.opacity(0.58)
+                            )
+                            .padding(.horizontal, 1)
+                            .frame(height: 28)
+                            .overlay(alignment: .bottom) {
+                                Rectangle()
+                                    .fill(boundaryLevel == item ? Color.white : Color.clear)
+                                    .frame(height: 2)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(boundaryLevel == item ? .isSelected : [])
+                }
+
+                Spacer(minLength: 0)
             }
         }
     }
@@ -196,16 +319,17 @@ private struct CityAtlasView: View {
             HStack(spacing: 10) {
                 ProgressView()
                     .tint(.white)
-                Text("Linking transit records to cities…")
+                Text(loadingPlaceLabel)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white.opacity(0.85))
                 Spacer()
             }
-            .padding(16)
-            .cityAtlasGlass()
+            .padding(.horizontal, 18)
+            .padding(.vertical, 15)
+            .cityAtlasRail()
         } else if let loadError {
             VStack(alignment: .leading, spacing: 7) {
-                Label("City map unavailable", systemImage: "exclamationmark.triangle.fill")
+                Label(unavailablePlaceLabel, systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
                     .foregroundStyle(.white)
                 Text(loadError)
@@ -213,58 +337,68 @@ private struct CityAtlasView: View {
                     .foregroundStyle(.white.opacity(0.68))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .cityAtlasGlass()
+            .padding(.horizontal, 18)
+            .padding(.vertical, 15)
+            .cityAtlasRail()
         } else if visits.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Label("Your cities will glow here", systemImage: "sparkles")
+                Label(emptyPlaceLabel, systemImage: "sparkles")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Text("Scan a supported Chinese, Japanese, or Korean transit card. Cities are added only when a saved record has a reliable location match.")
+                Text("Scan a supported Chinese, Japanese, or Korean transit card.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.68))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .cityAtlasGlass()
-        } else if visibleVisits.isEmpty {
+            .padding(.horizontal, 18)
+            .padding(.vertical, 15)
+            .cityAtlasRail()
+        } else if visibleDisplayVisits.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text("No matched cities in \(scope.title)")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                Text("Unresolved records stay off the map until their city can be matched with confidence.")
+                if boundaryLevel == .province {
+                    Text("No provinces in \(scope.title)")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                } else {
+                    Text("No cities in \(scope.title)")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
+                Text("No saved transit records appear here yet.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.68))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .cityAtlasGlass()
+            .padding(.horizontal, 18)
+            .padding(.vertical, 15)
+            .cityAtlasRail()
         } else {
-            VStack(spacing: 13) {
+            VStack(spacing: 12) {
                 HStack(spacing: 0) {
-                    CityAtlasStat(value: "\(visibleVisits.count)", label: "Cities")
+                    CityAtlasStat(value: "\(visibleDisplayVisits.count)", label: placeCountLabel)
+                    Rectangle()
+                        .fill(.white.opacity(0.12))
+                        .frame(width: 0.5, height: 30)
                     CityAtlasStat(value: "\(recordCount)", label: "Records")
+                    Rectangle()
+                        .fill(.white.opacity(0.12))
+                        .frame(width: 0.5, height: 30)
                     CityAtlasStat(value: "\(cardCount)", label: "Cards")
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(visibleVisits) { visit in
+                        ForEach(visibleDisplayVisits) { visit in
                             Button {
                                 focusedCityID = visit.id
                                 cameraRevision &+= 1
                             } label: {
                                 HStack(spacing: 9) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(visit.country.tint.opacity(0.22))
-                                            .frame(width: 27, height: 27)
-                                        Circle()
-                                            .fill(visit.country.tint)
-                                            .frame(width: 8, height: 8)
-                                            .shadow(color: visit.country.tint.opacity(0.8), radius: 5)
-                                    }
+                                    Rectangle()
+                                        .fill(visit.country.tint)
+                                        .frame(width: 3, height: 27)
+                                        .shadow(color: visit.country.tint.opacity(0.55), radius: 3)
 
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(visit.displayName)
@@ -276,25 +410,25 @@ private struct CityAtlasView: View {
                                     }
                                 }
                                 .foregroundStyle(.white)
-                                .padding(.leading, 7)
-                                .padding(.trailing, 11)
-                                .frame(height: 42)
+                                .padding(.horizontal, 10)
+                                .frame(height: 44)
                                 .background(
                                     focusedCityID == visit.id
-                                        ? visit.country.tint.opacity(0.2)
-                                        : Color.white.opacity(0.065),
-                                    in: Capsule()
+                                        ? visit.country.tint.opacity(0.14)
+                                        : Color.white.opacity(0.045)
                                 )
-                                .overlay(
-                                    Capsule().strokeBorder(
-                                        focusedCityID == visit.id
-                                            ? visit.country.tint.opacity(0.65)
-                                            : Color.white.opacity(0.1),
-                                        lineWidth: 0.75
-                                    )
-                                )
+                                .overlay(alignment: .bottom) {
+                                    Rectangle()
+                                        .fill(
+                                            focusedCityID == visit.id
+                                                ? visit.country.tint
+                                                : Color.white.opacity(0.12)
+                                        )
+                                        .frame(height: focusedCityID == visit.id ? 2 : 0.5)
+                                }
                             }
                             .buttonStyle(.plain)
+                            .accessibilityAddTraits(focusedCityID == visit.id ? .isSelected : [])
                             .accessibilityLabel(
                                 Text(
                                     verbatim: [
@@ -307,20 +441,10 @@ private struct CityAtlasView: View {
                         }
                     }
                 }
-
-                HStack(spacing: 5) {
-                    Image(systemName: "checkmark.shield.fill")
-                    Text("Only high-confidence city matches are illuminated")
-                    Spacer()
-                    Text("BOUNDARIES")
-                        .fontWeight(.bold)
-                        .tracking(0.7)
-                }
-                .font(.system(size: 9, design: .rounded))
-                .foregroundStyle(.white.opacity(0.42))
             }
-            .padding(14)
-            .cityAtlasGlass()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .cityAtlasRail()
         }
     }
 
@@ -340,13 +464,23 @@ private struct CityAtlasView: View {
         switch result {
         case .success(let resolution):
             visits = resolution.visits
+            cityBoundaries = resolution.cityBoundaries
             provinceBoundaries = resolution.provinceBoundaries
-            if let focusedCityID, !resolution.visits.contains(where: { $0.id == focusedCityID }) {
+            provinceBoundaryByCityID = resolution.provinceBoundaryByCityID
+            let placeIDs = Set(
+                resolution.visits.map(\.id) + resolution.provinceBoundaries.map(\.id)
+            )
+            if let focusedCityID, !placeIDs.contains(focusedCityID) {
                 self.focusedCityID = nil
+            }
+            if let selectedCityID, !placeIDs.contains(selectedCityID) {
+                self.selectedCityID = nil
             }
         case .failure(let error):
             visits = []
+            cityBoundaries = []
             provinceBoundaries = []
+            provinceBoundaryByCityID = [:]
             loadError = error.localizedDescription
         }
         isLoading = false
@@ -365,7 +499,7 @@ private struct CityAtlasStat: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold).monospacedDigit())
+                .font(.system(.title3, design: .default, weight: .semibold).monospacedDigit())
                 .foregroundStyle(.white)
             Text(label)
                 .font(.caption2.weight(.medium))
@@ -458,12 +592,6 @@ private struct CityAtlasDetailSheet: View {
                         }
                     }
                 }
-
-                Section {
-                    Text("A city is shown only when the saved transit record can be linked to this boundary. Unknown and ambiguous records are deliberately excluded.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
             }
             .navigationTitle(visit.displayName)
             .navigationBarTitleDisplayMode(.inline)
@@ -472,13 +600,13 @@ private struct CityAtlasDetailSheet: View {
 }
 
 private extension View {
-    func cityAtlasGlass() -> some View {
-        background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(.white.opacity(0.14), lineWidth: 0.6)
-            )
-            .shadow(color: .black.opacity(0.28), radius: 18, y: 7)
+    func cityAtlasRail() -> some View {
+        background(Color(red: 0.025, green: 0.045, blue: 0.075).opacity(0.94))
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(.white.opacity(0.18))
+                    .frame(height: 0.5)
+            }
     }
 }
 
@@ -490,7 +618,9 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
     static let maximumEastAsiaDistance: CLLocationDistance = 15_000_000
 
     let visits: [CityAtlasVisit]
-    let provinceBoundaries: [CityAtlasBoundary]
+    let referenceBoundaries: [CityAtlasBoundary]
+    let scope: CityAtlasScope
+    let boundaryLevel: CityAtlasBoundaryLevel
     let focusedCityID: String?
     let cameraRevision: Int
     let resetCameraRevision: Int
@@ -558,8 +688,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             let visitSignature = parent.visits
                 .map { "\($0.id):\($0.recordCount):\($0.cards.count)" }
                 .joined(separator: "|")
-            let provinceSignature = parent.provinceBoundaries.map(\.id).joined(separator: "|")
-            let signature = "\(provinceSignature)|visits=\(visitSignature)|selected=\(parent.selectedCityID ?? "")"
+            let referenceSignature = parent.referenceBoundaries.map(\.id).sorted().joined(separator: "|")
+            let signature = "scope=\(parent.scope.id)|level=\(parent.boundaryLevel.id)|references=\(referenceSignature)|visits=\(visitSignature)|selected=\(parent.selectedCityID ?? "")"
 
             if signature != renderedSignature {
                 renderedSignature = signature
@@ -579,10 +709,17 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             if let focusedCityID = parent.focusedCityID,
                let visit = visitByID[focusedCityID] {
                 focus(on: visit, mapView: mapView)
-            } else if parent.visits.isEmpty {
-                mapView.setCamera(CityAtlasMapRepresentable.eastAsiaCamera, animated: true)
+            } else if parent.scope.country != nil {
+                focus(
+                    on: parent.referenceBoundaries,
+                    detail: parent.boundaryLevel.renderDetail,
+                    mapView: mapView
+                )
             } else {
-                focus(on: parent.visits, mapView: mapView)
+                mapView.setCamera(
+                    CityAtlasMapRepresentable.eastAsiaCamera,
+                    animated: !UIAccessibility.isReduceMotionEnabled
+                )
             }
         }
 
@@ -592,59 +729,156 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             styles.removeAll(keepingCapacity: true)
             visitByID = Dictionary(uniqueKeysWithValues: parent.visits.map { ($0.id, $0) })
 
-            var provinceOverlays: [MKMultiPolygon] = []
-            var glowOverlays: [MKPolygon] = []
+            var referencePolygons: [CityAtlasCountry: [MKPolygon]] = [:]
+            var referenceOverlays: [MKMultiPolygon] = []
             var fillOverlays: [MKPolygon] = []
             var annotations: [CityAtlasAnnotation] = []
 
-            for province in parent.provinceBoundaries {
-                let polygons = province.coordinateRings.compactMap { ring -> MKPolygon? in
+            for boundary in parent.referenceBoundaries.sorted(by: { $0.id < $1.id }) {
+                let polygons = boundary.renderCoordinateRings(
+                    detail: parent.boundaryLevel.renderDetail
+                ).compactMap { ring -> MKPolygon? in
                     guard ring.count >= 3 else { return nil }
                     var coordinates = ring
                     return MKPolygon(coordinates: &coordinates, count: coordinates.count)
                 }
-                guard !polygons.isEmpty else { continue }
-                let provinceOverlay = MKMultiPolygon(polygons)
-                styles[ObjectIdentifier(provinceOverlay)] = CityAtlasOverlayStyle(
-                    color: province.countryCode.uiTint,
-                    fillAlpha: 0.035,
-                    strokeAlpha: 0.58,
-                    lineWidth: 1.25
-                )
-                provinceOverlays.append(provinceOverlay)
+                referencePolygons[boundary.countryCode, default: []].append(contentsOf: polygons)
             }
 
-            for visit in parent.visits {
-                let isSelected = visit.id == parent.selectedCityID
-                let alpha = min(0.42, 0.15 + log2(Double(visit.recordCount) + 1) * 0.055)
-                for ring in visit.boundary.coordinateRings where ring.count >= 3 {
-                    var coordinates = ring
-                    let glow = MKPolygon(coordinates: &coordinates, count: coordinates.count)
-                    styles[ObjectIdentifier(glow)] = CityAtlasOverlayStyle(
-                        color: visit.country.uiTint,
-                        fillAlpha: 0,
-                        strokeAlpha: isSelected ? 0.34 : 0.2,
-                        lineWidth: isSelected ? 13 : 9
-                    )
-                    glowOverlays.append(glow)
+            for country in CityAtlasCountry.allCases {
+                guard let polygons = referencePolygons[country], !polygons.isEmpty else { continue }
+                let referenceOverlay = MKMultiPolygon(polygons)
+                styles[ObjectIdentifier(referenceOverlay)] = referenceStyle(
+                    for: country,
+                    level: parent.boundaryLevel
+                )
+                referenceOverlays.append(referenceOverlay)
+            }
 
+            var visitedMasks: [String: CityAtlasVisitedMask] = [:]
+            for visit in parent.visits {
+                let boundary = visit.boundary
+
+                if var mask = visitedMasks[boundary.id] {
+                    mask.evidenceIDs.formUnion(visit.evidenceIDs)
+                    mask.isSelected = mask.isSelected || visit.id == parent.selectedCityID
+                    visitedMasks[boundary.id] = mask
+                } else {
+                    visitedMasks[boundary.id] = CityAtlasVisitedMask(
+                        boundary: boundary,
+                        country: visit.country,
+                        evidenceIDs: visit.evidenceIDs,
+                        isSelected: visit.id == parent.selectedCityID
+                    )
+                }
+            }
+
+            for mask in visitedMasks.values.sorted(by: { $0.boundary.id < $1.boundary.id }) {
+                let baseAlpha = min(
+                    0.56,
+                    0.30 + log2(Double(mask.recordCount) + 1) * 0.06
+                )
+                let visibleAlpha: CGFloat
+                switch (parent.boundaryLevel, mask.country) {
+                case (_, .china): visibleAlpha = baseAlpha
+                case (.province, .japan): visibleAlpha = max(0.34, baseAlpha)
+                case (.city, .japan): visibleAlpha = max(0.36, baseAlpha)
+                case (.province, .korea): visibleAlpha = max(0.40, baseAlpha)
+                case (.city, .korea): visibleAlpha = max(0.44, baseAlpha)
+                }
+                let fillAlpha = mask.isSelected ? min(visibleAlpha + 0.10, 0.66) : visibleAlpha
+                let strokeAlpha: CGFloat
+                let lineWidth: CGFloat
+                switch (parent.boundaryLevel, mask.country) {
+                case (_, .china):
+                    strokeAlpha = 0.96
+                    lineWidth = mask.isSelected ? 4 : 2.4
+                case (.province, .japan):
+                    strokeAlpha = 0.92
+                    lineWidth = mask.isSelected ? 2.6 : 1.8
+                case (.city, .japan):
+                    strokeAlpha = 0.92
+                    lineWidth = mask.isSelected ? 2.4 : 1.6
+                case (.province, .korea):
+                    strokeAlpha = 0.96
+                    lineWidth = mask.isSelected ? 2.8 : 2.2
+                case (.city, .korea):
+                    strokeAlpha = 0.96
+                    lineWidth = mask.isSelected ? 2.4 : 1.8
+                }
+
+                for ring in mask.boundary.renderCoordinateRings(
+                    detail: parent.boundaryLevel.renderDetail
+                ) where ring.count >= 3 {
+                    var coordinates = ring
                     let fill = MKPolygon(coordinates: &coordinates, count: coordinates.count)
                     styles[ObjectIdentifier(fill)] = CityAtlasOverlayStyle(
-                        color: visit.country.uiTint,
-                        fillAlpha: isSelected ? min(alpha + 0.12, 0.55) : alpha,
-                        strokeAlpha: 0.95,
-                        lineWidth: isSelected ? 4 : 2.2
+                        color: mask.country.uiTint,
+                        fillAlpha: fillAlpha,
+                        strokeAlpha: strokeAlpha,
+                        lineWidth: lineWidth
                     )
                     fillOverlays.append(fill)
                 }
+            }
 
+            for visit in parent.visits {
                 annotations.append(CityAtlasAnnotation(visit: visit))
             }
 
-            mapView.addOverlays(provinceOverlays, level: .aboveRoads)
-            mapView.addOverlays(glowOverlays, level: .aboveLabels)
-            mapView.addOverlays(fillOverlays, level: .aboveLabels)
+            mapView.addOverlays(fillOverlays, level: .aboveRoads)
+            mapView.addOverlays(referenceOverlays, level: .aboveRoads)
             mapView.addAnnotations(annotations)
+        }
+
+        private func referenceStyle(
+            for country: CityAtlasCountry,
+            level: CityAtlasBoundaryLevel
+        ) -> CityAtlasOverlayStyle {
+            switch (level, country) {
+            case (.province, .china):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0.03,
+                    strokeAlpha: 0.58,
+                    lineWidth: 1.25
+                )
+            case (.province, .japan):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.42,
+                    lineWidth: 0.9
+                )
+            case (.province, .korea):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.60,
+                    lineWidth: 1.15
+                )
+            case (.city, .china):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0.012,
+                    strokeAlpha: 0.4,
+                    lineWidth: 0.75
+                )
+            case (.city, .japan):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.28,
+                    lineWidth: 0.55
+                )
+            case (.city, .korea):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.50,
+                    lineWidth: 0.90
+                )
+            }
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -706,43 +940,44 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             mapView.setCamera(camera, animated: !UIAccessibility.isReduceMotionEnabled)
         }
 
-        private func focus(on visits: [CityAtlasVisit], mapView: MKMapView) {
-            guard let first = visits.first else {
-                mapView.setCamera(CityAtlasMapRepresentable.eastAsiaCamera, animated: true)
+        private func focus(
+            on boundaries: [CityAtlasBoundary],
+            detail: CityAtlasBoundaryDetail,
+            mapView: MKMapView
+        ) {
+            var visibleRect = MKMapRect.null
+            for boundary in boundaries {
+                for ring in boundary.renderCoordinateRings(detail: detail) where ring.count >= 3 {
+                    var coordinates = ring
+                    let polygon = MKPolygon(coordinates: &coordinates, count: coordinates.count)
+                    visibleRect = visibleRect.isNull
+                        ? polygon.boundingMapRect
+                        : visibleRect.union(polygon.boundingMapRect)
+                }
+            }
+
+            guard !visibleRect.isNull, !visibleRect.isEmpty else {
+                mapView.setCamera(
+                    CityAtlasMapRepresentable.eastAsiaCamera,
+                    animated: !UIAccessibility.isReduceMotionEnabled
+                )
                 return
             }
-            var minLatitude = first.boundary.minLatitude
-            var maxLatitude = first.boundary.maxLatitude
-            var minLongitude = first.boundary.minLongitude
-            var maxLongitude = first.boundary.maxLongitude
 
-            for visit in visits.dropFirst() {
-                minLatitude = min(minLatitude, visit.boundary.minLatitude)
-                maxLatitude = max(maxLatitude, visit.boundary.maxLatitude)
-                minLongitude = min(minLongitude, visit.boundary.minLongitude)
-                maxLongitude = max(maxLongitude, visit.boundary.maxLongitude)
-            }
-
-            let center = CLLocationCoordinate2D(
-                latitude: (minLatitude + maxLatitude) / 2,
-                longitude: (minLongitude + maxLongitude) / 2
-            )
-            let latitudeSpan = max(maxLatitude - minLatitude, 1.4)
-            let longitudeSpan = max(maxLongitude - minLongitude, 1.4)
-            let distance = min(
-                max(
-                    max(latitudeSpan * 185_000, longitudeSpan * 400_000),
-                    5_700_000
+            let camera = mapView.camera.copy() as! MKMapCamera
+            camera.heading = 0
+            camera.pitch = 34
+            mapView.setCamera(camera, animated: false)
+            mapView.setVisibleMapRect(
+                visibleRect,
+                edgePadding: UIEdgeInsets(
+                    top: mapView.safeAreaInsets.top + 152,
+                    left: 56,
+                    bottom: mapView.safeAreaInsets.bottom + 150,
+                    right: 56
                 ),
-                9_800_000
+                animated: !UIAccessibility.isReduceMotionEnabled
             )
-            let camera = MKMapCamera(
-                lookingAtCenter: center,
-                fromDistance: distance,
-                pitch: distance < 1_500_000 ? 52 : 42,
-                heading: 350
-            )
-            mapView.setCamera(camera, animated: !UIAccessibility.isReduceMotionEnabled)
         }
     }
 }
@@ -754,10 +989,20 @@ private struct CityAtlasOverlayStyle {
     let lineWidth: CGFloat
 }
 
+private struct CityAtlasVisitedMask {
+    let boundary: CityAtlasBoundary
+    let country: CityAtlasCountry
+    var evidenceIDs: Set<String>
+    var isSelected: Bool
+
+    var recordCount: Int { evidenceIDs.count }
+}
+
 private final class CityAtlasAnnotation: NSObject, MKAnnotation {
     let cityID: String
     let cityName: String
     let recordCount: Int
+    let country: CityAtlasCountry
     let tint: UIColor
     let coordinate: CLLocationCoordinate2D
 
@@ -765,6 +1010,7 @@ private final class CityAtlasAnnotation: NSObject, MKAnnotation {
         cityID = visit.id
         cityName = visit.displayName
         recordCount = visit.recordCount
+        country = visit.country
         tint = visit.country.uiTint
         coordinate = visit.boundary.centerCoordinate
         super.init()
@@ -774,7 +1020,7 @@ private final class CityAtlasAnnotation: NSObject, MKAnnotation {
 private final class CityAtlasAnnotationView: MKAnnotationView {
     private let dot = UIView()
     private let label = UILabel()
-    private let pill = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let plate = UIView()
 
     override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
@@ -782,11 +1028,13 @@ private final class CityAtlasAnnotationView: MKAnnotationView {
         displayPriority = .defaultHigh
         canShowCallout = false
 
-        pill.layer.cornerRadius = 11
-        pill.layer.cornerCurve = .continuous
-        pill.clipsToBounds = true
-        pill.contentView.addSubview(label)
-        addSubview(pill)
+        plate.backgroundColor = UIColor(red: 0.025, green: 0.045, blue: 0.075, alpha: 0.86)
+        plate.layer.cornerRadius = 3
+        plate.layer.borderWidth = 0.5
+        plate.layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
+        plate.clipsToBounds = true
+        plate.addSubview(label)
+        addSubview(plate)
         addSubview(dot)
 
         label.font = .systemFont(ofSize: 11, weight: .semibold)
@@ -808,11 +1056,16 @@ private final class CityAtlasAnnotationView: MKAnnotationView {
     func configure(_ annotation: CityAtlasAnnotation) {
         label.text = "\(annotation.cityName)  \(annotation.recordCount)"
         let labelSize = label.sizeThatFits(CGSize(width: 170, height: 22))
-        let pillWidth = min(max(labelSize.width + 16, 58), 180)
-        frame = CGRect(x: 0, y: 0, width: pillWidth + 20, height: 30)
-        let placesLabelOnLeft = annotation.coordinate.longitude >= 132
+        let plateWidth = min(max(labelSize.width + 14, 56), 178)
+        frame = CGRect(x: 0, y: 0, width: plateWidth + 20, height: 30)
+        let placesLabelOnLeft: Bool
+        if annotation.country == .china {
+            placesLabelOnLeft = annotation.coordinate.longitude >= 110
+        } else {
+            placesLabelOnLeft = annotation.coordinate.longitude >= 132
+        }
         dot.frame = CGRect(
-            x: placesLabelOnLeft ? pillWidth + 10 : 0,
+            x: placesLabelOnLeft ? plateWidth + 10 : 0,
             y: 10,
             width: 10,
             height: 10
@@ -820,13 +1073,13 @@ private final class CityAtlasAnnotationView: MKAnnotationView {
         dot.layer.cornerRadius = 5
         dot.backgroundColor = annotation.tint
         dot.layer.shadowColor = annotation.tint.cgColor
-        pill.frame = CGRect(
+        plate.frame = CGRect(
             x: placesLabelOnLeft ? 6 : 14,
             y: 3,
-            width: pillWidth,
+            width: plateWidth,
             height: 24
         )
-        label.frame = pill.bounds
+        label.frame = plate.bounds
         centerOffset = CGPoint(
             x: (bounds.width / 2 - 5) * (placesLabelOnLeft ? -1 : 1),
             y: 0
@@ -899,6 +1152,27 @@ private enum CityAtlasScope: String, CaseIterable, Identifiable {
     }
 }
 
+private enum CityAtlasBoundaryLevel: String, CaseIterable, Identifiable {
+    case province
+    case city
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .province: return String(localized: "Province")
+        case .city: return String(localized: "City")
+        }
+    }
+
+    var renderDetail: CityAtlasBoundaryDetail {
+        switch self {
+        case .province: return .province
+        case .city: return .city
+        }
+    }
+}
+
 private struct CityAtlasVisit: Identifiable {
     let id: String
     let boundary: CityAtlasBoundary
@@ -907,9 +1181,13 @@ private struct CityAtlasVisit: Identifiable {
     let evidenceIDs: Set<String>
     let cards: [CityAtlasCardVisit]
     let lastVisited: Date?
+    let displayNameOverride: String?
 
     var displayName: String {
-        normalizedName(boundary.name) ?? normalizedName(boundary.nativeName) ?? String(localized: "City")
+        displayNameOverride.flatMap(normalizedName)
+            ?? normalizedName(boundary.name)
+            ?? normalizedName(boundary.nativeName)
+            ?? String(localized: "City")
     }
 
     var nativeName: String {
@@ -957,6 +1235,92 @@ private struct CityAtlasBoundary: Decodable {
         }
     }
 
+    var provinceDisplayName: String {
+        preferredDisplayName.strippingCityAtlasSuffixes([
+            " Special Administrative Region",
+            " Autonomous Region",
+            " Municipality",
+            " Prefecture",
+            " Province",
+        ])
+    }
+
+    func cityDisplayName(in province: CityAtlasBoundary?) -> String {
+        let cityName = preferredDisplayName.strippingCityAtlasSuffixes([" City"])
+        guard let province,
+              cityName.caseInsensitiveCompare(province.provinceDisplayName) == .orderedSame else {
+            return cityName
+        }
+
+        switch countryCode {
+        case .japan:
+            return "\(cityName) City"
+        case .china where province.preferredDisplayName.hasCityAtlasSuffix(" Province"):
+            return "\(cityName) City"
+        case .china, .korea:
+            return cityName
+        }
+    }
+
+    private var preferredDisplayName: String {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedName.isEmpty, trimmedName.caseInsensitiveCompare("none") != .orderedSame {
+            return trimmedName
+        }
+        let trimmedNativeName = nativeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedNativeName.isEmpty ? String(localized: "City") : trimmedNativeName
+    }
+
+    func renderCoordinateRings(detail: CityAtlasBoundaryDetail) -> [[CLLocationCoordinate2D]] {
+        let rings = coordinateRings.filter { $0.count >= 3 }
+        guard countryCode != .china, !rings.isEmpty else { return rings }
+
+        let measured = rings.map { ring in
+            (ring: ring, area: Self.approximateAreaSquareKilometers(of: ring))
+        }
+        let largestArea = measured.map(\.area).max() ?? 0
+        let minimumArea = detail.minimumSecondaryAreaSquareKilometers(for: countryCode)
+        let minimumRatio = detail.minimumSecondaryAreaRatio(for: countryCode)
+        let tolerance = detail.simplificationTolerance(for: countryCode)
+
+        return measured.compactMap { item in
+            let isLargest = item.area == largestArea
+            let isMeaningfulPart = item.area >= minimumArea || (
+                largestArea > 0 && item.area / largestArea >= minimumRatio
+            )
+            guard isLargest || isMeaningfulPart else { return nil }
+            return Self.simplify(item.ring, tolerance: tolerance)
+        }
+    }
+
+    func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        let bounds = bounds
+        guard coordinate.longitude >= bounds.minLongitude,
+              coordinate.longitude <= bounds.maxLongitude,
+              coordinate.latitude >= bounds.minLatitude,
+              coordinate.latitude <= bounds.maxLatitude else {
+            return false
+        }
+        return coordinateRings.contains { Self.contains(coordinate, in: $0) }
+    }
+
+    func distance(to coordinate: CLLocationCoordinate2D) -> Double {
+        if contains(coordinate) { return 0 }
+        return coordinateRings.reduce(Double.infinity) { nearest, ring in
+            guard ring.count >= 2 else { return nearest }
+            return min(
+                nearest,
+                zip(ring, ring.dropFirst()).reduce(Double.infinity) { distance, segment in
+                    min(distance, Self.segmentDistance(from: coordinate, to: segment.0, and: segment.1))
+                }
+            )
+        }
+    }
+
+    var approximateAreaSquareKilometers: Double {
+        coordinateRings.reduce(0) { $0 + Self.approximateAreaSquareKilometers(of: $1) }
+    }
+
     var bounds: (minLongitude: Double, minLatitude: Double, maxLongitude: Double, maxLatitude: Double) {
         guard bbox.count >= 4 else {
             let center = centerCoordinate
@@ -974,6 +1338,176 @@ private struct CityAtlasBoundary: Decodable {
     var minLatitude: Double { bounds.minLatitude }
     var maxLongitude: Double { bounds.maxLongitude }
     var maxLatitude: Double { bounds.maxLatitude }
+
+    private static func approximateAreaSquareKilometers(
+        of ring: [CLLocationCoordinate2D]
+    ) -> Double {
+        guard ring.count >= 3 else { return 0 }
+        let meanLatitude = ring.reduce(0) { $0 + $1.latitude } / Double(ring.count)
+        let longitudeScale = 111.32 * cos(meanLatitude * .pi / 180)
+        let latitudeScale = 110.574
+        var twiceArea = 0.0
+        for index in ring.indices {
+            let nextIndex = ring.index(after: index) == ring.endIndex ? ring.startIndex : ring.index(after: index)
+            let left = ring[index]
+            let right = ring[nextIndex]
+            twiceArea += (left.longitude * longitudeScale) * (right.latitude * latitudeScale)
+                - (right.longitude * longitudeScale) * (left.latitude * latitudeScale)
+        }
+        return abs(twiceArea) / 2
+    }
+
+    private static func contains(
+        _ coordinate: CLLocationCoordinate2D,
+        in ring: [CLLocationCoordinate2D]
+    ) -> Bool {
+        guard ring.count >= 3 else { return false }
+        var isInside = false
+        var previous = ring[ring.index(before: ring.endIndex)]
+        for current in ring {
+            if (current.latitude > coordinate.latitude) != (previous.latitude > coordinate.latitude) {
+                let intersectionLongitude = (previous.longitude - current.longitude)
+                    * (coordinate.latitude - current.latitude)
+                    / (previous.latitude - current.latitude)
+                    + current.longitude
+                if coordinate.longitude < intersectionLongitude {
+                    isInside.toggle()
+                }
+            }
+            previous = current
+        }
+        return isInside
+    }
+
+    private static func segmentDistance(
+        from point: CLLocationCoordinate2D,
+        to left: CLLocationCoordinate2D,
+        and right: CLLocationCoordinate2D
+    ) -> Double {
+        let longitudeScale = cos(point.latitude * .pi / 180)
+        let px = point.longitude * longitudeScale
+        let py = point.latitude
+        let ax = left.longitude * longitudeScale
+        let ay = left.latitude
+        let bx = right.longitude * longitudeScale
+        let by = right.latitude
+        let dx = bx - ax
+        let dy = by - ay
+        guard dx != 0 || dy != 0 else { return hypot(px - ax, py - ay) }
+        let projection = max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+        return hypot(px - (ax + projection * dx), py - (ay + projection * dy))
+    }
+
+    private static func simplify(
+        _ ring: [CLLocationCoordinate2D],
+        tolerance: Double
+    ) -> [CLLocationCoordinate2D] {
+        guard tolerance > 0 else { return ring }
+        var points = ring
+        if let first = points.first, let last = points.last,
+           first.latitude == last.latitude, first.longitude == last.longitude {
+            points.removeLast()
+        }
+        points = points.reduce(into: []) { result, point in
+            guard let last = result.last,
+                  last.latitude == point.latitude,
+                  last.longitude == point.longitude else {
+                result.append(point)
+                return
+            }
+        }
+        guard points.count > 3 else { return points }
+
+        let toleranceSquared = tolerance * tolerance
+        var kept = Set([0, points.count - 1])
+        var pending = [(0, points.count - 1)]
+        while let segment = pending.popLast() {
+            let (start, end) = segment
+            guard end > start + 1 else { continue }
+            var furthestIndex: Int?
+            var furthestDistance = -1.0
+            for index in (start + 1)..<end {
+                let distance = perpendicularDistanceSquared(
+                    from: points[index],
+                    to: points[start],
+                    and: points[end]
+                )
+                if distance > furthestDistance {
+                    furthestDistance = distance
+                    furthestIndex = index
+                }
+            }
+            if let furthestIndex, furthestDistance > toleranceSquared {
+                kept.insert(furthestIndex)
+                pending.append((start, furthestIndex))
+                pending.append((furthestIndex, end))
+            }
+        }
+
+        let simplified = kept.sorted().map { points[$0] }
+        return simplified.count >= 3 ? simplified : points
+    }
+
+    private static func perpendicularDistanceSquared(
+        from point: CLLocationCoordinate2D,
+        to left: CLLocationCoordinate2D,
+        and right: CLLocationCoordinate2D
+    ) -> Double {
+        let dx = right.longitude - left.longitude
+        let dy = right.latitude - left.latitude
+        guard dx != 0 || dy != 0 else {
+            return pow(point.longitude - left.longitude, 2) + pow(point.latitude - left.latitude, 2)
+        }
+        let numerator = dy * point.longitude - dx * point.latitude
+            + right.longitude * left.latitude - right.latitude * left.longitude
+        return numerator * numerator / (dx * dx + dy * dy)
+    }
+}
+
+private extension String {
+    func hasCityAtlasSuffix(_ suffix: String) -> Bool {
+        lowercased().hasSuffix(suffix.lowercased())
+    }
+
+    func strippingCityAtlasSuffixes(_ suffixes: [String]) -> String {
+        for suffix in suffixes where hasCityAtlasSuffix(suffix) {
+            return String(dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return self
+    }
+}
+
+private enum CityAtlasBoundaryDetail {
+    case city
+    case province
+
+    func simplificationTolerance(for country: CityAtlasCountry) -> Double {
+        switch (self, country) {
+        case (.province, .japan): return 0.010
+        case (.province, .korea): return 0.0125
+        case (.city, .japan): return 0.005
+        case (.city, .korea): return 0.0075
+        case (_, .china): return 0
+        }
+    }
+
+    func minimumSecondaryAreaSquareKilometers(for country: CityAtlasCountry) -> Double {
+        switch (self, country) {
+        case (.province, .japan): return 25
+        case (.province, .korea): return 75
+        case (.city, .japan): return 5
+        case (.city, .korea): return 12
+        case (_, .china): return 0
+        }
+    }
+
+    func minimumSecondaryAreaRatio(for country: CityAtlasCountry) -> Double {
+        switch (self, country) {
+        case (.province, .japan), (.city, .japan): return 0.01
+        case (.province, .korea), (.city, .korea): return 0.01
+        case (_, .china): return 0
+        }
+    }
 }
 
 private struct CityAtlasBoundaryCatalog: Decodable {
@@ -992,7 +1526,14 @@ private struct CityAtlasProvinceCatalog: Decodable {
 
 private struct CityAtlasResolution {
     let visits: [CityAtlasVisit]
+    let cityBoundaries: [CityAtlasBoundary]
     let provinceBoundaries: [CityAtlasBoundary]
+    let provinceBoundaryByCityID: [String: String]
+}
+
+private struct CityAtlasProvinceResolution {
+    let boundaries: [CityAtlasBoundary]
+    let provinceBoundaryByCityID: [String: String]
 }
 
 private struct CityAtlasVisitAccumulator {
@@ -1050,11 +1591,18 @@ private struct CityAtlasVisitResolver {
             throw CityAtlasResolverError.unsupportedCatalog(provinceCatalog.version)
         }
 
-        let provinceBoundaries = provinceCatalog.boundaries.filter { boundary in
+        let eligibleProvinceBoundaries = provinceCatalog.boundaries.filter { boundary in
             boundary.countryCode != .china || !boundary.name.localizedCaseInsensitiveContains("Taiwan")
         }
+        let provinceResolution = supportedProvinceResolution(
+            eligibleProvinceBoundaries,
+            cityBoundaries: catalog.boundaries
+        )
 
         let boundaries = Dictionary(uniqueKeysWithValues: catalog.boundaries.map { ($0.id, $0) })
+        let provinceBoundariesByID = Dictionary(
+            uniqueKeysWithValues: provinceResolution.boundaries.map { ($0.id, $0) }
+        )
         let cardsByID = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
         var accumulators: [String: CityAtlasVisitAccumulator] = [:]
 
@@ -1109,14 +1657,74 @@ private struct CityAtlasVisitResolver {
                 recordCount: accumulator.evidenceIDs.count,
                 evidenceIDs: accumulator.evidenceIDs,
                 cards: cardVisits,
-                lastVisited: accumulator.lastVisited
+                lastVisited: accumulator.lastVisited,
+                displayNameOverride: boundary.cityDisplayName(
+                    in: provinceResolution.provinceBoundaryByCityID[boundaryID].flatMap {
+                        provinceBoundariesByID[$0]
+                    }
+                )
             )
         }
         .sorted {
             if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
             return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
         }
-        return CityAtlasResolution(visits: visits, provinceBoundaries: provinceBoundaries)
+        return CityAtlasResolution(
+            visits: visits,
+            cityBoundaries: catalog.boundaries,
+            provinceBoundaries: provinceResolution.boundaries,
+            provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID
+        )
+    }
+
+    private func supportedProvinceResolution(
+        _ provinces: [CityAtlasBoundary],
+        cityBoundaries: [CityAtlasBoundary]
+    ) -> CityAtlasProvinceResolution {
+        let provincesByCountry = Dictionary(grouping: provinces, by: \.countryCode)
+        let provinceAreas = Dictionary(
+            uniqueKeysWithValues: provinces.map { ($0.id, $0.approximateAreaSquareKilometers) }
+        )
+        var supportedIDs = Set<String>()
+        var provinceBoundaryByCityID: [String: String] = [:]
+
+        for city in cityBoundaries {
+            guard let candidates = provincesByCountry[city.countryCode], !candidates.isEmpty else { continue }
+            let center = city.centerCoordinate
+            let containing = candidates.filter { $0.contains(center) }
+            let selected: CityAtlasBoundary?
+            if !containing.isEmpty {
+                selected = containing.min { left, right in
+                    let leftArea = provinceAreas[left.id] ?? 0
+                    let rightArea = provinceAreas[right.id] ?? 0
+                    if leftArea != rightArea {
+                        return leftArea < rightArea
+                    }
+                    return left.id < right.id
+                }
+            } else {
+                selected = candidates.min { left, right in
+                    let leftDistance = left.distance(to: center)
+                    let rightDistance = right.distance(to: center)
+                    if leftDistance != rightDistance { return leftDistance < rightDistance }
+                    let leftArea = provinceAreas[left.id] ?? 0
+                    let rightArea = provinceAreas[right.id] ?? 0
+                    if leftArea != rightArea {
+                        return leftArea < rightArea
+                    }
+                    return left.id < right.id
+                }
+            }
+            if let selected {
+                supportedIDs.insert(selected.id)
+                provinceBoundaryByCityID[city.id] = selected.id
+            }
+        }
+
+        return CityAtlasProvinceResolution(
+            boundaries: provinces.filter { supportedIDs.contains($0.id) },
+            provinceBoundaryByCityID: provinceBoundaryByCityID
+        )
     }
 
     private func isSupportedJapaneseTransitCard(

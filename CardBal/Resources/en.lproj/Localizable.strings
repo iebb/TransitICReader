@@ -291,3 +291,13 @@
 "%@, %lld records" = "%@, %lld records";
 "%@, %lld records, %lld cards" = "%@, %lld records, %lld cards";
 "BOUNDARIES" = "BOUNDARIES";
+"Province" = "Province";
+"Provinces" = "Provinces";
+"Loading cities…" = "Loading cities…";
+"Loading provinces…" = "Loading provinces…";
+"Province map unavailable" = "Province map unavailable";
+"Your provinces will glow here" = "Your provinces will glow here";
+"No provinces in %@" = "No provinces in %@";
+"Scan a supported Chinese, Japanese, or Korean transit card." = "Scan a supported Chinese, Japanese, or Korean transit card.";
+"No cities in %@" = "No cities in %@";
+"No saved transit records appear here yet." = "No saved transit records appear here yet.";
