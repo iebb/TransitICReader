@@ -236,7 +236,7 @@ enum KoreanStationAliasCatalogError: Error, Equatable {
 /// Reviewed Korean stations from the current-state consumer export published by
 /// https://github.com/iebb/korean-stations.
 struct KoreanStationAliasCatalog {
-    private static let expectedRowCount = 820
+    private static let expectedRowCount = 832
     private static let expectedHeader = [
         "location_code", "station_id", "transport_mode_code",
         "transport_mode_name_ko", "transport_mode_name_en", "transport_mode_name_ja",

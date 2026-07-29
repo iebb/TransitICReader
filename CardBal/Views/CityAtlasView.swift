@@ -13,9 +13,10 @@ private struct CityAtlasView: View {
     @ObservedObject var store: CardWalletStore
 
     @State private var visits: [CityAtlasVisit] = []
+    @State private var provinceVisits: [CityAtlasVisit] = []
     @State private var cityBoundaries: [CityAtlasBoundary] = []
     @State private var provinceBoundaries: [CityAtlasBoundary] = []
-    @State private var provinceBoundaryByCityID: [String: String] = [:]
+    @State private var countryExtentBoundaries: [CityAtlasBoundary] = []
     @State private var scope: CityAtlasScope = .all
     @State private var boundaryLevel: CityAtlasBoundaryLevel = .province
     @State private var selectedCityID: String?
@@ -32,55 +33,13 @@ private struct CityAtlasView: View {
         return visits.filter { $0.country == country }
     }
 
+    private var visibleProvinceVisits: [CityAtlasVisit] {
+        guard let country = scope.country else { return provinceVisits }
+        return provinceVisits.filter { $0.country == country }
+    }
+
     private var visibleDisplayVisits: [CityAtlasVisit] {
-        guard boundaryLevel == .province else { return visibleVisits }
-
-        let provincesByID = Dictionary(
-            uniqueKeysWithValues: visibleProvinceBoundaries.map { ($0.id, $0) }
-        )
-        let groupedCities = Dictionary(grouping: visibleVisits) { visit in
-            provinceBoundaryByCityID[visit.id]
-        }
-
-        return groupedCities.compactMap { provinceID, cityVisits -> CityAtlasVisit? in
-            guard let provinceID, let province = provincesByID[provinceID] else { return nil }
-
-            let evidenceIDs = cityVisits.reduce(into: Set<String>()) { result, visit in
-                result.formUnion(visit.evidenceIDs)
-            }
-            var cardsByID: [String: CityAtlasCardVisit] = [:]
-            for card in cityVisits.flatMap(\.cards) {
-                if let existing = cardsByID[card.id] {
-                    cardsByID[card.id] = CityAtlasCardVisit(
-                        id: existing.id,
-                        title: existing.title,
-                        color: existing.color,
-                        recordCount: existing.recordCount + card.recordCount
-                    )
-                } else {
-                    cardsByID[card.id] = card
-                }
-            }
-            let cards = cardsByID.values.sorted {
-                if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
-                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
-            }
-
-            return CityAtlasVisit(
-                id: provinceID,
-                boundary: province,
-                country: province.countryCode,
-                recordCount: evidenceIDs.count,
-                evidenceIDs: evidenceIDs,
-                cards: cards,
-                lastVisited: cityVisits.compactMap(\.lastVisited).max(),
-                displayNameOverride: province.provinceDisplayName
-            )
-        }
-        .sorted {
-            if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
-            return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
-        }
+        boundaryLevel == .province ? visibleProvinceVisits : visibleVisits
     }
 
     private var visibleProvinceBoundaries: [CityAtlasBoundary] {
@@ -101,7 +60,7 @@ private struct CityAtlasView: View {
     }
 
     private var recordCount: Int {
-        Set(visibleDisplayVisits.flatMap(\.evidenceIDs)).count
+        Set(visibleDisplayVisits.flatMap(\.recordEvidenceIDs)).count
     }
 
     private var cardCount: Int {
@@ -156,6 +115,7 @@ private struct CityAtlasView: View {
             CityAtlasMapRepresentable(
                 visits: visibleDisplayVisits,
                 referenceBoundaries: visibleReferenceBoundaries,
+                countryExtentBoundaries: countryExtentBoundaries,
                 scope: scope,
                 boundaryLevel: boundaryLevel,
                 focusedCityID: focusedCityID,
@@ -192,6 +152,7 @@ private struct CityAtlasView: View {
                 bottomPanel
             }
             .padding(.top, 8)
+            .zIndex(1)
         }
         .preferredColorScheme(.dark)
         .task(id: cityDataRevision) {
@@ -276,39 +237,42 @@ private struct CityAtlasView: View {
                 }
             }
 
-            HStack(spacing: 18) {
-                Text("BOUNDARIES")
-                    .font(.caption2.weight(.bold))
-                    .tracking(1.1)
-                    .foregroundStyle(.white.opacity(0.46))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 18) {
+                    Text("BOUNDARIES")
+                        .font(.caption2.weight(.bold))
+                        .tracking(1.1)
+                        .foregroundStyle(.white.opacity(0.46))
 
-                ForEach(CityAtlasBoundaryLevel.allCases) { item in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            boundaryLevel = item
-                        }
-                        focusedCityID = nil
-                        selectedCityID = nil
-                        cameraRevision &+= 1
-                    } label: {
-                        Text(item.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(
-                                boundaryLevel == item ? Color.white : Color.white.opacity(0.58)
-                            )
-                            .padding(.horizontal, 1)
-                            .frame(height: 28)
-                            .overlay(alignment: .bottom) {
-                                Rectangle()
-                                    .fill(boundaryLevel == item ? Color.white : Color.clear)
-                                    .frame(height: 2)
+                    ForEach(CityAtlasBoundaryLevel.allCases) { item in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                boundaryLevel = item
                             }
+                            focusedCityID = nil
+                            selectedCityID = nil
+                            cameraRevision &+= 1
+                        } label: {
+                            Text(item.title)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(
+                                    boundaryLevel == item ? Color.white : Color.white.opacity(0.58)
+                                )
+                                .padding(.horizontal, 6)
+                                .frame(minWidth: 44, minHeight: 28)
+                                .contentShape(Rectangle())
+                                .overlay(alignment: .bottom) {
+                                    Rectangle()
+                                        .fill(boundaryLevel == item ? Color.white : Color.clear)
+                                        .frame(height: 2)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(boundaryLevel == item ? .isSelected : [])
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(boundaryLevel == item ? .isSelected : [])
-                }
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
+                }
             }
         }
     }
@@ -340,7 +304,7 @@ private struct CityAtlasView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 15)
             .cityAtlasRail()
-        } else if visits.isEmpty {
+        } else if visits.isEmpty && provinceVisits.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Label(emptyPlaceLabel, systemImage: "sparkles")
                     .font(.headline)
@@ -464,11 +428,12 @@ private struct CityAtlasView: View {
         switch result {
         case .success(let resolution):
             visits = resolution.visits
+            provinceVisits = resolution.provinceVisits
             cityBoundaries = resolution.cityBoundaries
             provinceBoundaries = resolution.provinceBoundaries
-            provinceBoundaryByCityID = resolution.provinceBoundaryByCityID
+            countryExtentBoundaries = resolution.countryExtentBoundaries
             let placeIDs = Set(
-                resolution.visits.map(\.id) + resolution.provinceBoundaries.map(\.id)
+                resolution.visits.map(\.id) + resolution.provinceVisits.map(\.id)
             )
             if let focusedCityID, !placeIDs.contains(focusedCityID) {
                 self.focusedCityID = nil
@@ -478,9 +443,10 @@ private struct CityAtlasView: View {
             }
         case .failure(let error):
             visits = []
+            provinceVisits = []
             cityBoundaries = []
             provinceBoundaries = []
-            provinceBoundaryByCityID = [:]
+            countryExtentBoundaries = []
             loadError = error.localizedDescription
         }
         isLoading = false
@@ -613,12 +579,13 @@ private extension View {
 // MARK: - Map
 
 private struct CityAtlasMapRepresentable: UIViewRepresentable {
-    // Portrait framing keeps HCMC, Xi'an, Harbin, and Sapporo clear of the map edges.
+    // The normal camera stays close; data-derived country extents may zoom out farther.
     static let defaultEastAsiaDistance: CLLocationDistance = 14_000_000
-    static let maximumEastAsiaDistance: CLLocationDistance = 15_000_000
+    static let maximumEastAsiaDistance: CLLocationDistance = 30_000_000
 
     let visits: [CityAtlasVisit]
     let referenceBoundaries: [CityAtlasBoundary]
+    let countryExtentBoundaries: [CityAtlasBoundary]
     let scope: CityAtlasScope
     let boundaryLevel: CityAtlasBoundaryLevel
     let focusedCityID: String?
@@ -632,13 +599,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView(frame: .zero)
-        let configuration = MKStandardMapConfiguration(
-            elevationStyle: .realistic,
-            emphasisStyle: .muted
-        )
-        configuration.pointOfInterestFilter = .excludingAll
-        configuration.showsTraffic = false
-        mapView.preferredConfiguration = configuration
+        mapView.preferredConfiguration = Self.globeConfiguration()
         mapView.overrideUserInterfaceStyle = .dark
         mapView.delegate = context.coordinator
         mapView.isPitchEnabled = true
@@ -648,8 +609,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         mapView.showsCompass = true
 
         let eastAsia = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 34.5, longitude: 120),
-            span: MKCoordinateSpan(latitudeDelta: 36, longitudeDelta: 70)
+            center: CLLocationCoordinate2D(latitude: 32, longitude: 110),
+            span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 90)
         )
         mapView.cameraBoundary = MKMapView.CameraBoundary(coordinateRegion: eastAsia)
         mapView.cameraZoomRange = MKMapView.CameraZoomRange(
@@ -661,9 +622,26 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
+        if !(mapView.preferredConfiguration is MKHybridMapConfiguration) {
+            mapView.preferredConfiguration = Self.globeConfiguration()
+        }
         context.coordinator.parent = self
         context.coordinator.updateMap(mapView)
     }
+
+    private static func globeConfiguration() -> MKMapConfiguration {
+        let configuration = MKHybridMapConfiguration(elevationStyle: .realistic)
+        configuration.pointOfInterestFilter = .excludingAll
+        configuration.showsTraffic = false
+        return configuration
+    }
+
+    static let allScopeAnchors = [
+        CLLocationCoordinate2D(latitude: 43.0618, longitude: 141.3545), // Sapporo
+        CLLocationCoordinate2D(latitude: 34.3416, longitude: 108.9398), // Xi'an
+        CLLocationCoordinate2D(latitude: 45.8038, longitude: 126.5340), // Harbin
+        CLLocationCoordinate2D(latitude: 10.8231, longitude: 106.6297), // Ho Chi Minh City
+    ]
 
     static let eastAsiaCamera = MKMapCamera(
         lookingAtCenter: CLLocationCoordinate2D(latitude: 28.5, longitude: 124),
@@ -700,27 +678,33 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             lastCameraRevision = parent.cameraRevision
             if parent.resetCameraRevision != lastResetCameraRevision {
                 lastResetCameraRevision = parent.resetCameraRevision
-                mapView.setCamera(
-                    CityAtlasMapRepresentable.eastAsiaCamera,
-                    animated: !UIAccessibility.isReduceMotionEnabled
-                )
+                focusOnAllCountries(mapView: mapView)
                 return
             }
             if let focusedCityID = parent.focusedCityID,
                let visit = visitByID[focusedCityID] {
                 focus(on: visit, mapView: mapView)
-            } else if parent.scope.country != nil {
+            } else if let country = parent.scope.country {
+                let countryExtent = parent.countryExtentBoundaries.filter {
+                    $0.countryCode == country
+                }
                 focus(
-                    on: parent.referenceBoundaries,
-                    detail: parent.boundaryLevel.renderDetail,
+                    on: countryExtent.isEmpty ? parent.referenceBoundaries : countryExtent,
+                    detail: .province,
                     mapView: mapView
                 )
             } else {
-                mapView.setCamera(
-                    CityAtlasMapRepresentable.eastAsiaCamera,
-                    animated: !UIAccessibility.isReduceMotionEnabled
-                )
+                focusOnAllCountries(mapView: mapView)
             }
+        }
+
+        private func focusOnAllCountries(mapView: MKMapView) {
+            focus(
+                on: parent.countryExtentBoundaries,
+                detail: .province,
+                extraCoordinates: CityAtlasMapRepresentable.allScopeAnchors,
+                mapView: mapView
+            )
         }
 
         private func rebuildOverlays(on mapView: MKMapView) {
@@ -731,6 +715,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
             var referencePolygons: [CityAtlasCountry: [MKPolygon]] = [:]
             var referenceOverlays: [MKMultiPolygon] = []
+            var glowOverlays: [MKPolygon] = []
             var fillOverlays: [MKPolygon] = []
             var annotations: [CityAtlasAnnotation] = []
 
@@ -781,7 +766,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 let visibleAlpha: CGFloat
                 switch (parent.boundaryLevel, mask.country) {
                 case (_, .china): visibleAlpha = baseAlpha
-                case (.province, .japan): visibleAlpha = max(0.34, baseAlpha)
+                case (.province, .japan): visibleAlpha = max(0.40, baseAlpha)
                 case (.city, .japan): visibleAlpha = max(0.36, baseAlpha)
                 case (.province, .korea): visibleAlpha = max(0.40, baseAlpha)
                 case (.city, .korea): visibleAlpha = max(0.44, baseAlpha)
@@ -811,6 +796,18 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                     detail: parent.boundaryLevel.renderDetail
                 ) where ring.count >= 3 {
                     var coordinates = ring
+                    let glow = MKPolygon(coordinates: &coordinates, count: coordinates.count)
+                    styles[ObjectIdentifier(glow)] = CityAtlasOverlayStyle(
+                        color: mask.country.uiTint,
+                        fillAlpha: 0,
+                        strokeAlpha: mask.isSelected ? 0.28 : 0.16,
+                        lineWidth: glowLineWidth(
+                            for: mask.country,
+                            level: parent.boundaryLevel
+                        )
+                    )
+                    glowOverlays.append(glow)
+
                     let fill = MKPolygon(coordinates: &coordinates, count: coordinates.count)
                     styles[ObjectIdentifier(fill)] = CityAtlasOverlayStyle(
                         color: mask.country.uiTint,
@@ -828,7 +825,19 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
             mapView.addOverlays(fillOverlays, level: .aboveRoads)
             mapView.addOverlays(referenceOverlays, level: .aboveRoads)
+            mapView.addOverlays(glowOverlays, level: .aboveLabels)
             mapView.addAnnotations(annotations)
+        }
+
+        private func glowLineWidth(
+            for country: CityAtlasCountry,
+            level: CityAtlasBoundaryLevel
+        ) -> CGFloat {
+            switch (level, country) {
+            case (.province, .china): return 7
+            case (.province, .japan), (.province, .korea): return 6
+            case (.city, .china), (.city, .japan), (.city, .korea): return 5
+            }
         }
 
         private func referenceStyle(
@@ -847,8 +856,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.42,
-                    lineWidth: 0.9
+                    strokeAlpha: 0.46,
+                    lineWidth: 1.0
                 )
             case (.province, .korea):
                 return CityAtlasOverlayStyle(
@@ -927,12 +936,37 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         }
 
         private func focus(on visit: CityAtlasVisit, mapView: MKMapView) {
-            let bbox = visit.boundary.bounds
-            let width = max(abs(bbox.maxLongitude - bbox.minLongitude), 0.08)
-            let height = max(abs(bbox.maxLatitude - bbox.minLatitude), 0.08)
+            if parent.boundaryLevel == .province {
+                focus(
+                    on: [visit.boundary],
+                    detail: .province,
+                    mapView: mapView
+                )
+                return
+            }
+
+            let renderedCoordinates = visit.boundary.renderCoordinateRings(detail: .city).flatMap { $0 }
+            let renderedBounds = renderedCoordinates.dropFirst().reduce(
+                into: (
+                    minLongitude: renderedCoordinates.first?.longitude ?? visit.boundary.minLongitude,
+                    minLatitude: renderedCoordinates.first?.latitude ?? visit.boundary.minLatitude,
+                    maxLongitude: renderedCoordinates.first?.longitude ?? visit.boundary.maxLongitude,
+                    maxLatitude: renderedCoordinates.first?.latitude ?? visit.boundary.maxLatitude
+                )
+            ) { bounds, coordinate in
+                bounds.minLongitude = min(bounds.minLongitude, coordinate.longitude)
+                bounds.minLatitude = min(bounds.minLatitude, coordinate.latitude)
+                bounds.maxLongitude = max(bounds.maxLongitude, coordinate.longitude)
+                bounds.maxLatitude = max(bounds.maxLatitude, coordinate.latitude)
+            }
+            let width = max(abs(renderedBounds.maxLongitude - renderedBounds.minLongitude), 0.08)
+            let height = max(abs(renderedBounds.maxLatitude - renderedBounds.minLatitude), 0.08)
             let distance = min(max(max(width, height) * 145_000, 70_000), 1_250_000)
             let camera = MKMapCamera(
-                lookingAtCenter: visit.boundary.centerCoordinate,
+                lookingAtCenter: CLLocationCoordinate2D(
+                    latitude: (renderedBounds.minLatitude + renderedBounds.maxLatitude) / 2,
+                    longitude: (renderedBounds.minLongitude + renderedBounds.maxLongitude) / 2
+                ),
                 fromDistance: distance,
                 pitch: distance < 300_000 ? 58 : 48,
                 heading: 350
@@ -943,6 +977,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         private func focus(
             on boundaries: [CityAtlasBoundary],
             detail: CityAtlasBoundaryDetail,
+            extraCoordinates: [CLLocationCoordinate2D] = [],
             mapView: MKMapView
         ) {
             var visibleRect = MKMapRect.null
@@ -956,6 +991,12 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 }
             }
 
+            for coordinate in extraCoordinates {
+                let point = MKMapPoint(coordinate)
+                let pointRect = MKMapRect(x: point.x, y: point.y, width: 1, height: 1)
+                visibleRect = visibleRect.isNull ? pointRect : visibleRect.union(pointRect)
+            }
+
             guard !visibleRect.isNull, !visibleRect.isEmpty else {
                 mapView.setCamera(
                     CityAtlasMapRepresentable.eastAsiaCamera,
@@ -964,20 +1005,43 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 return
             }
 
-            let camera = mapView.camera.copy() as! MKMapCamera
-            camera.heading = 0
-            camera.pitch = 34
-            mapView.setCamera(camera, animated: false)
+            let countries = Set(boundaries.map(\.countryCode))
+            let country = countries.count == 1 ? countries.first : nil
+            let expansionRatio: Double
+            switch country {
+            case .china: expansionRatio = 0.08
+            case nil: expansionRatio = 0.06
+            case .japan, .korea: expansionRatio = 0
+            }
+            if expansionRatio > 0 {
+                let horizontalMargin = visibleRect.size.width * expansionRatio
+                let verticalMargin = visibleRect.size.height * expansionRatio
+                visibleRect = MKMapRect(
+                    x: visibleRect.origin.x - horizontalMargin,
+                    y: visibleRect.origin.y - verticalMargin,
+                    width: visibleRect.size.width + horizontalMargin * 2,
+                    height: visibleRect.size.height + verticalMargin * 2
+                )
+            }
+
+            let horizontalPadding: CGFloat = country == nil ? 28 : 56
+            let edgePadding = UIEdgeInsets(
+                top: mapView.safeAreaInsets.top + 152,
+                left: horizontalPadding,
+                bottom: mapView.safeAreaInsets.bottom + 150,
+                right: horizontalPadding
+            )
             mapView.setVisibleMapRect(
                 visibleRect,
-                edgePadding: UIEdgeInsets(
-                    top: mapView.safeAreaInsets.top + 152,
-                    left: 56,
-                    bottom: mapView.safeAreaInsets.bottom + 150,
-                    right: 56
-                ),
-                animated: !UIAccessibility.isReduceMotionEnabled
+                edgePadding: edgePadding,
+                animated: false
             )
+
+            let camera = mapView.camera.copy() as! MKMapCamera
+            camera.heading = 0
+            camera.pitch = country == .china ? 34 : country == nil ? 30 : 42
+            camera.centerCoordinateDistance *= country == nil ? 1.04 : 1.12
+            mapView.setCamera(camera, animated: !UIAccessibility.isReduceMotionEnabled)
         }
     }
 }
@@ -1179,6 +1243,7 @@ private struct CityAtlasVisit: Identifiable {
     let country: CityAtlasCountry
     let recordCount: Int
     let evidenceIDs: Set<String>
+    let recordEvidenceIDs: Set<String>
     let cards: [CityAtlasCardVisit]
     let lastVisited: Date?
     let displayNameOverride: String?
@@ -1213,6 +1278,7 @@ private struct CityAtlasCardVisit: Identifiable {
 private struct CityAtlasBoundary: Decodable {
     let id: String
     let countryCode: CityAtlasCountry
+    let subdivisionCode: String?
     let name: String
     let nativeName: String
     let center: [Double]
@@ -1273,22 +1339,28 @@ private struct CityAtlasBoundary: Decodable {
 
     func renderCoordinateRings(detail: CityAtlasBoundaryDetail) -> [[CLLocationCoordinate2D]] {
         let rings = coordinateRings.filter { $0.count >= 3 }
-        guard countryCode != .china, !rings.isEmpty else { return rings }
+        guard !rings.isEmpty else { return [] }
 
         let measured = rings.map { ring in
-            (ring: ring, area: Self.approximateAreaSquareKilometers(of: ring))
+            (
+                ring: ring,
+                area: Self.approximateAreaSquareKilometers(of: ring),
+                size: Self.approximateBoundingBoxSizeKilometers(of: ring)
+            )
         }
-        let largestArea = measured.map(\.area).max() ?? 0
-        let minimumArea = detail.minimumSecondaryAreaSquareKilometers(for: countryCode)
-        let minimumRatio = detail.minimumSecondaryAreaRatio(for: countryCode)
+        guard let principalIndex = measured.indices.max(by: {
+            measured[$0].area < measured[$1].area
+        }) else { return [] }
         let tolerance = detail.simplificationTolerance(for: countryCode)
 
-        return measured.compactMap { item in
-            let isLargest = item.area == largestArea
-            let isMeaningfulPart = item.area >= minimumArea || (
-                largestArea > 0 && item.area / largestArea >= minimumRatio
-            )
-            guard isLargest || isMeaningfulPart else { return nil }
+        return measured.enumerated().compactMap { index, item in
+            let isPrincipal = index == principalIndex
+            // The bundled catalog contains outer rings only. Keep the principal
+            // landmass, then discard every tiny secondary island/exclave.
+            let isSmallSecondaryComponent = !isPrincipal
+                && item.size.width < 10
+                && item.size.height < 10
+            guard !isSmallSecondaryComponent else { return nil }
             return Self.simplify(item.ring, tolerance: tolerance)
         }
     }
@@ -1355,6 +1427,29 @@ private struct CityAtlasBoundary: Decodable {
                 - (right.longitude * longitudeScale) * (left.latitude * latitudeScale)
         }
         return abs(twiceArea) / 2
+    }
+
+    private static func approximateBoundingBoxSizeKilometers(
+        of ring: [CLLocationCoordinate2D]
+    ) -> (width: Double, height: Double) {
+        guard let first = ring.first else { return (0, 0) }
+        var minimumLatitude = first.latitude
+        var maximumLatitude = first.latitude
+        var minimumLongitude = first.longitude
+        var maximumLongitude = first.longitude
+        for coordinate in ring.dropFirst() {
+            minimumLatitude = min(minimumLatitude, coordinate.latitude)
+            maximumLatitude = max(maximumLatitude, coordinate.latitude)
+            minimumLongitude = min(minimumLongitude, coordinate.longitude)
+            maximumLongitude = max(maximumLongitude, coordinate.longitude)
+        }
+
+        let meanLatitude = (minimumLatitude + maximumLatitude) / 2
+        let longitudeScale = 111.32 * abs(cos(meanLatitude * .pi / 180))
+        return (
+            width: (maximumLongitude - minimumLongitude) * longitudeScale,
+            height: (maximumLatitude - minimumLatitude) * 110.574
+        )
     }
 
     private static func contains(
@@ -1483,7 +1578,7 @@ private enum CityAtlasBoundaryDetail {
 
     func simplificationTolerance(for country: CityAtlasCountry) -> Double {
         switch (self, country) {
-        case (.province, .japan): return 0.010
+        case (.province, .japan): return 0.022
         case (.province, .korea): return 0.0125
         case (.city, .japan): return 0.005
         case (.city, .korea): return 0.0075
@@ -1491,23 +1586,6 @@ private enum CityAtlasBoundaryDetail {
         }
     }
 
-    func minimumSecondaryAreaSquareKilometers(for country: CityAtlasCountry) -> Double {
-        switch (self, country) {
-        case (.province, .japan): return 25
-        case (.province, .korea): return 75
-        case (.city, .japan): return 5
-        case (.city, .korea): return 12
-        case (_, .china): return 0
-        }
-    }
-
-    func minimumSecondaryAreaRatio(for country: CityAtlasCountry) -> Double {
-        switch (self, country) {
-        case (.province, .japan), (.city, .japan): return 0.01
-        case (.province, .korea), (.city, .korea): return 0.01
-        case (_, .china): return 0
-        }
-    }
 }
 
 private struct CityAtlasBoundaryCatalog: Decodable {
@@ -1524,11 +1602,42 @@ private struct CityAtlasProvinceCatalog: Decodable {
     let boundaries: [CityAtlasBoundary]
 }
 
+private struct ChinaTransitCoverageCatalog: Decodable {
+    let version: Int
+    let scope: ChinaTransitCoverageScope
+    let supportedProvinceNames: [String]
+    let referenceBoundaryToProvince: [String: String]
+    let tUnion: ChinaTransitCoverageNamespace
+    let cityUnion: ChinaTransitCoverageNamespace
+}
+
+private struct ChinaTransitCoverageScope: Decodable {
+    let excludedProvinceNames: [String]
+}
+
+private struct ChinaTransitCoverageNamespace: Decodable {
+    let excludedCityBoundaryCodes: [String]
+    let cityToProvince: [String: String]
+    let cityToBoundaryAlias: [String: String]
+    let provinceOnlyCityCodes: [String]
+}
+
+private struct JapanTransitCoverageCatalog: Decodable {
+    let version: Int
+    let supportedPrefectures: [JapanTransitCoveragePrefecture]
+}
+
+private struct JapanTransitCoveragePrefecture: Decodable {
+    let code: String
+    let name: String
+}
+
 private struct CityAtlasResolution {
     let visits: [CityAtlasVisit]
+    let provinceVisits: [CityAtlasVisit]
     let cityBoundaries: [CityAtlasBoundary]
     let provinceBoundaries: [CityAtlasBoundary]
-    let provinceBoundaryByCityID: [String: String]
+    let countryExtentBoundaries: [CityAtlasBoundary]
 }
 
 private struct CityAtlasProvinceResolution {
@@ -1538,12 +1647,21 @@ private struct CityAtlasProvinceResolution {
 
 private struct CityAtlasVisitAccumulator {
     var evidenceIDs = Set<String>()
+    var recordEvidenceIDs = Set<String>()
     var cardEvidenceCounts: [String: Int] = [:]
     var lastVisited: Date?
 
-    mutating func add(evidenceID: String, cardID: String, date: Date?) {
+    mutating func add(
+        evidenceID: String,
+        cardID: String,
+        date: Date?,
+        countsAsRecord: Bool = true
+    ) {
         guard evidenceIDs.insert(evidenceID).inserted else { return }
-        cardEvidenceCounts[cardID, default: 0] += 1
+        cardEvidenceCounts[cardID, default: 0] += countsAsRecord ? 1 : 0
+        if countsAsRecord {
+            recordEvidenceIDs.insert(evidenceID)
+        }
         if let date, lastVisited == nil || date > lastVisited! {
             lastVisited = date
         }
@@ -1575,13 +1693,29 @@ private struct CityAtlasVisitResolver {
         ), let provinceURL = Bundle.main.url(
             forResource: "EastAsiaProvinceBoundaries",
             withExtension: "json"
+        ), let chinaCoverageURL = Bundle.main.url(
+            forResource: "ChinaTransitCoverage",
+            withExtension: "json"
+        ), let japanCoverageURL = Bundle.main.url(
+            forResource: "JapanTransitCoverage",
+            withExtension: "json"
         ) else {
             throw CityAtlasResolverError.missingCatalog
         }
         guard let cityData = try? Data(contentsOf: cityURL),
               let provinceData = try? Data(contentsOf: provinceURL),
+              let chinaCoverageData = try? Data(contentsOf: chinaCoverageURL),
+              let japanCoverageData = try? Data(contentsOf: japanCoverageURL),
               let catalog = try? JSONDecoder().decode(CityAtlasBoundaryCatalog.self, from: cityData),
-              let provinceCatalog = try? JSONDecoder().decode(CityAtlasProvinceCatalog.self, from: provinceData) else {
+              let provinceCatalog = try? JSONDecoder().decode(CityAtlasProvinceCatalog.self, from: provinceData),
+              let chinaCoverage = try? JSONDecoder().decode(
+                ChinaTransitCoverageCatalog.self,
+                from: chinaCoverageData
+              ),
+              let japanCoverage = try? JSONDecoder().decode(
+                JapanTransitCoverageCatalog.self,
+                from: japanCoverageData
+              ) else {
             throw CityAtlasResolverError.unreadableCatalog
         }
         guard catalog.version == 1 else {
@@ -1590,53 +1724,232 @@ private struct CityAtlasVisitResolver {
         guard provinceCatalog.version == 1 else {
             throw CityAtlasResolverError.unsupportedCatalog(provinceCatalog.version)
         }
-
-        let eligibleProvinceBoundaries = provinceCatalog.boundaries.filter { boundary in
-            boundary.countryCode != .china || !boundary.name.localizedCaseInsensitiveContains("Taiwan")
+        guard chinaCoverage.version == 1 else {
+            throw CityAtlasResolverError.unsupportedCatalog(chinaCoverage.version)
         }
-        let provinceResolution = supportedProvinceResolution(
+        guard japanCoverage.version == 1 else {
+            throw CityAtlasResolverError.unsupportedCatalog(japanCoverage.version)
+        }
+
+        let excludedChinaProvinceNames = Set(
+            chinaCoverage.scope.excludedProvinceNames.map { $0.lowercased() }
+        )
+        let supportedJapanSubdivisionCodes = Set(
+            japanCoverage.supportedPrefectures.map(\.code)
+        )
+        let excludedChinaCityBoundaryCodes = Set(
+            chinaCoverage.tUnion.excludedCityBoundaryCodes
+        )
+        let supportedChinaCityCodes = Set(catalog.chinaCityToBoundary.keys)
+            .subtracting(excludedChinaCityBoundaryCodes)
+        let supportedChinaBoundaryIDs = Set(
+            supportedChinaCityCodes.compactMap { catalog.chinaCityToBoundary[$0] }
+        ).union(chinaCoverage.referenceBoundaryToProvince.keys)
+        guard !supportedChinaCityCodes.isEmpty,
+              excludedChinaCityBoundaryCodes.allSatisfy({
+                  catalog.chinaCityToBoundary[$0] != nil
+              }),
+              supportedChinaBoundaryIDs.count
+                == supportedChinaCityCodes.count
+                    + chinaCoverage.referenceBoundaryToProvince.count else {
+            throw CityAtlasResolverError.unreadableCatalog
+        }
+        let supportedCityBoundaries = catalog.boundaries.filter { boundary in
+            switch boundary.countryCode {
+            case .china:
+                return supportedChinaBoundaryIDs.contains(boundary.id)
+            case .japan:
+                return boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
+            case .korea:
+                return true
+            }
+        }
+        let chinaProvinceNameByCityBoundaryID = try chinaProvinceNameByCityBoundaryID(
+            catalog: catalog,
+            coverage: chinaCoverage
+        )
+        let eligibleProvinceBoundaries = provinceCatalog.boundaries.filter { boundary in
+            switch boundary.countryCode {
+            case .china:
+                return !excludedChinaProvinceNames.contains(boundary.name.lowercased())
+            case .japan:
+                return boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
+            case .korea:
+                return true
+            }
+        }
+        let provinceResolution = try supportedProvinceResolution(
             eligibleProvinceBoundaries,
-            cityBoundaries: catalog.boundaries
+            cityBoundaries: supportedCityBoundaries,
+            chinaProvinceNameByCityBoundaryID: chinaProvinceNameByCityBoundaryID,
+            supportedChinaProvinceNames: Set(
+                chinaCoverage.supportedProvinceNames.map { $0.lowercased() }
+            ),
+            supportedJapanSubdivisionCodes: supportedJapanSubdivisionCodes
         )
 
-        let boundaries = Dictionary(uniqueKeysWithValues: catalog.boundaries.map { ($0.id, $0) })
+        let boundaries = Dictionary(
+            uniqueKeysWithValues: supportedCityBoundaries.map { ($0.id, $0) }
+        )
         let provinceBoundariesByID = Dictionary(
             uniqueKeysWithValues: provinceResolution.boundaries.map { ($0.id, $0) }
         )
+        let chinaProvinceBoundaryByName: [String: String] = Dictionary(
+            uniqueKeysWithValues: provinceResolution.boundaries.compactMap {
+                guard $0.countryCode == .china else { return nil }
+                return ($0.name, $0.id)
+            }
+        )
         let cardsByID = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
         var accumulators: [String: CityAtlasVisitAccumulator] = [:]
+        var provinceAccumulators: [String: CityAtlasVisitAccumulator] = [:]
 
         for card in cards {
-            let region = ICCardBrand.from(family: card.cardFamily).region
+            let brand = ICCardBrand.from(family: card.cardFamily)
+            let region = brand.region
+            let normalizedFamily = card.cardFamily
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            let isCityUnion = normalizedFamily.contains("city union")
+            let hasChinaTransitApplication = region == .china
+                || normalizedFamily.contains("t-union")
+                || normalizedFamily.contains("tunion")
+                || isCityUnion
             if isSupportedJapaneseTransitCard(card, region: region) {
                 addJapaneseEvidence(
                     from: card,
                     lookup: catalog.japanStationToBoundary,
-                    accumulators: &accumulators
+                    provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
+                    accumulators: &accumulators,
+                    provinceAccumulators: &provinceAccumulators
+                )
+            }
+            if brand == .octopus,
+               let hongKongBoundaryID = catalog.chinaCityToBoundary["9101"] {
+                addOctopusEvidence(
+                    from: card,
+                    boundaryID: hongKongBoundaryID,
+                    provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
+                    accumulators: &accumulators,
+                    provinceAccumulators: &provinceAccumulators
                 )
             }
 
-            switch region {
-            case .china:
+            if hasChinaTransitApplication {
                 addChineseEvidence(
                     from: card,
                     lookup: catalog.chinaCityToBoundary,
-                    accumulators: &accumulators
+                    coverage: isCityUnion ? chinaCoverage.cityUnion : chinaCoverage.tUnion,
+                    provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
+                    provinceBoundaryByName: chinaProvinceBoundaryByName,
+                    accumulators: &accumulators,
+                    provinceAccumulators: &provinceAccumulators
                 )
-            case .korea:
+            }
+            if region == .korea {
                 addKoreanEvidence(
                     from: card,
                     locationLookup: catalog.koreaLocationToBoundary,
-                    accumulators: &accumulators
+                    provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
+                    accumulators: &accumulators,
+                    provinceAccumulators: &provinceAccumulators
                 )
-            default:
-                break
             }
         }
 
-        let visits = accumulators.compactMap { boundaryID, accumulator -> CityAtlasVisit? in
-            guard let boundary = boundaries[boundaryID] else { return nil }
-            let cardVisits = accumulator.cardEvidenceCounts.compactMap { cardID, count -> CityAtlasCardVisit? in
+        let visits = makeVisits(
+            from: accumulators,
+            boundariesByID: boundaries,
+            cardsByID: cardsByID
+        ) { boundaryID, boundary in
+            boundary.cityDisplayName(
+                in: provinceResolution.provinceBoundaryByCityID[boundaryID].flatMap {
+                    provinceBoundariesByID[$0]
+                }
+            )
+        }
+
+        let provinceVisits = makeVisits(
+            from: provinceAccumulators,
+            boundariesByID: provinceBoundariesByID,
+            cardsByID: cardsByID
+        ) { _, boundary in
+            boundary.provinceDisplayName
+        }
+
+        return CityAtlasResolution(
+            visits: visits,
+            provinceVisits: provinceVisits,
+            cityBoundaries: supportedCityBoundaries,
+            provinceBoundaries: provinceResolution.boundaries,
+            countryExtentBoundaries: provinceResolution.boundaries
+        )
+    }
+
+    private func chinaProvinceNameByCityBoundaryID(
+        catalog: CityAtlasBoundaryCatalog,
+        coverage: ChinaTransitCoverageCatalog
+    ) throws -> [String: String] {
+        let chinaBoundaryIDs = Set(
+            catalog.boundaries.lazy
+                .filter { $0.countryCode == .china }
+                .map(\.id)
+        )
+        var provinceNameByBoundaryID = coverage.referenceBoundaryToProvince
+
+        guard Set(provinceNameByBoundaryID.keys).isSubset(of: chinaBoundaryIDs) else {
+            throw CityAtlasResolverError.unreadableCatalog
+        }
+
+        for namespace in [coverage.tUnion, coverage.cityUnion] {
+            let provinceOnlyCityCodes = Set(namespace.provinceOnlyCityCodes)
+            let excludedCityBoundaryCodes = Set(namespace.excludedCityBoundaryCodes)
+            guard provinceOnlyCityCodes.isSubset(of: Set(namespace.cityToProvince.keys)),
+                  provinceOnlyCityCodes.isDisjoint(with: Set(namespace.cityToBoundaryAlias.keys)),
+                  excludedCityBoundaryCodes.allSatisfy({
+                      catalog.chinaCityToBoundary[$0] != nil
+                  }) else {
+                throw CityAtlasResolverError.unreadableCatalog
+            }
+            for (cityCode, provinceName) in namespace.cityToProvince {
+                if provinceOnlyCityCodes.contains(cityCode) {
+                    continue
+                }
+                let boundaryCode = namespace.cityToBoundaryAlias[cityCode] ?? cityCode
+                guard let boundaryID = catalog.chinaCityToBoundary[boundaryCode] else {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+                if let existingProvinceName = provinceNameByBoundaryID[boundaryID],
+                   existingProvinceName != provinceName {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+                provinceNameByBoundaryID[boundaryID] = provinceName
+            }
+        }
+
+        let supportedProvinceNames = Set(
+            coverage.supportedProvinceNames.map { $0.lowercased() }
+        )
+        let resolvedProvinceNames = Set(
+            provinceNameByBoundaryID.values.map { $0.lowercased() }
+        )
+        guard Set(provinceNameByBoundaryID.keys) == chinaBoundaryIDs,
+              resolvedProvinceNames == supportedProvinceNames else {
+            throw CityAtlasResolverError.unreadableCatalog
+        }
+        return provinceNameByBoundaryID
+    }
+
+    private func makeVisits(
+        from accumulators: [String: CityAtlasVisitAccumulator],
+        boundariesByID: [String: CityAtlasBoundary],
+        cardsByID: [String: SavedCardRecord],
+        displayNameOverride: (String, CityAtlasBoundary) -> String?
+    ) -> [CityAtlasVisit] {
+        accumulators.compactMap { boundaryID, accumulator -> CityAtlasVisit? in
+            guard let boundary = boundariesByID[boundaryID] else { return nil }
+            let cardVisits = accumulator.cardEvidenceCounts.compactMap {
+                cardID, count -> CityAtlasCardVisit? in
                 guard let card = cardsByID[cardID] else { return nil }
                 return CityAtlasCardVisit(
                     id: card.id,
@@ -1654,41 +1967,76 @@ private struct CityAtlasVisitResolver {
                 id: boundaryID,
                 boundary: boundary,
                 country: boundary.countryCode,
-                recordCount: accumulator.evidenceIDs.count,
+                recordCount: accumulator.recordEvidenceIDs.count,
                 evidenceIDs: accumulator.evidenceIDs,
+                recordEvidenceIDs: accumulator.recordEvidenceIDs,
                 cards: cardVisits,
                 lastVisited: accumulator.lastVisited,
-                displayNameOverride: boundary.cityDisplayName(
-                    in: provinceResolution.provinceBoundaryByCityID[boundaryID].flatMap {
-                        provinceBoundariesByID[$0]
-                    }
-                )
+                displayNameOverride: displayNameOverride(boundaryID, boundary)
             )
         }
         .sorted {
             if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
             return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
         }
-        return CityAtlasResolution(
-            visits: visits,
-            cityBoundaries: catalog.boundaries,
-            provinceBoundaries: provinceResolution.boundaries,
-            provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID
-        )
     }
 
     private func supportedProvinceResolution(
         _ provinces: [CityAtlasBoundary],
-        cityBoundaries: [CityAtlasBoundary]
-    ) -> CityAtlasProvinceResolution {
+        cityBoundaries: [CityAtlasBoundary],
+        chinaProvinceNameByCityBoundaryID: [String: String],
+        supportedChinaProvinceNames: Set<String>,
+        supportedJapanSubdivisionCodes: Set<String>
+    ) throws -> CityAtlasProvinceResolution {
         let provincesByCountry = Dictionary(grouping: provinces, by: \.countryCode)
         let provinceAreas = Dictionary(
             uniqueKeysWithValues: provinces.map { ($0.id, $0.approximateAreaSquareKilometers) }
         )
-        var supportedIDs = Set<String>()
+        var supportedIDs = Set(
+            provinces.lazy
+                .filter {
+                    $0.countryCode == .japan
+                        && $0.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
+                }
+                .map(\.id)
+        )
+        supportedIDs.formUnion(
+            provinces.lazy
+                .filter { $0.countryCode == .korea }
+                .map(\.id)
+        )
         var provinceBoundaryByCityID: [String: String] = [:]
+        let japaneseProvinceIDBySubdivisionCode = Dictionary(
+            uniqueKeysWithValues: provinces.compactMap { province -> (String, String)? in
+                guard province.countryCode == .japan,
+                      let subdivisionCode = province.subdivisionCode else { return nil }
+                return (subdivisionCode, province.id)
+            }
+        )
+        let chinaProvinceIDByName = Dictionary(
+            uniqueKeysWithValues: provinces.compactMap { province -> (String, String)? in
+                guard province.countryCode == .china else { return nil }
+                return (province.name.lowercased(), province.id)
+            }
+        )
 
         for city in cityBoundaries {
+            if city.countryCode == .china {
+                guard let provinceName = chinaProvinceNameByCityBoundaryID[city.id],
+                      supportedChinaProvinceNames.contains(provinceName.lowercased()),
+                      let provinceID = chinaProvinceIDByName[provinceName.lowercased()] else {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+                supportedIDs.insert(provinceID)
+                provinceBoundaryByCityID[city.id] = provinceID
+                continue
+            }
+            if city.countryCode == .japan,
+               let subdivisionCode = city.subdivisionCode,
+               let provinceID = japaneseProvinceIDBySubdivisionCode[subdivisionCode] {
+                provinceBoundaryByCityID[city.id] = provinceID
+                continue
+            }
             guard let candidates = provincesByCountry[city.countryCode], !candidates.isEmpty else { continue }
             let center = city.centerCoordinate
             let containing = candidates.filter { $0.contains(center) }
@@ -1719,6 +2067,15 @@ private struct CityAtlasVisitResolver {
                 supportedIDs.insert(selected.id)
                 provinceBoundaryByCityID[city.id] = selected.id
             }
+        }
+
+        let resolvedChinaProvinceNames = Set(
+            provinces.lazy
+                .filter { $0.countryCode == .china && supportedIDs.contains($0.id) }
+                .map { $0.name.lowercased() }
+        )
+        guard resolvedChinaProvinceNames == supportedChinaProvinceNames else {
+            throw CityAtlasResolverError.unreadableCatalog
         }
 
         return CityAtlasProvinceResolution(
@@ -1754,7 +2111,9 @@ private struct CityAtlasVisitResolver {
     private func addJapaneseEvidence(
         from card: SavedCardRecord,
         lookup: [String: String],
-        accumulators: inout [String: CityAtlasVisitAccumulator]
+        provinceBoundaryByCityID: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
     ) {
         // Standard 090F records carry the full five-hex area + line + station code.
         // The shorter 108F/10CB activity tokens can collide across regions, so they
@@ -1768,10 +2127,14 @@ private struct CityAtlasVisitResolver {
 
             for boundaryID in boundaryIDs {
                 let evidenceID = "\(card.id)|\(rawEvidence)"
-                accumulators[boundaryID, default: CityAtlasVisitAccumulator()].add(
+                addEvidence(
+                    boundaryID: boundaryID,
                     evidenceID: evidenceID,
                     cardID: card.id,
-                    date: transaction.date
+                    date: transaction.date,
+                    provinceBoundaryByCityID: provinceBoundaryByCityID,
+                    accumulators: &accumulators,
+                    provinceAccumulators: &provinceAccumulators
                 )
             }
         }
@@ -1780,53 +2143,140 @@ private struct CityAtlasVisitResolver {
     private func addChineseEvidence(
         from card: SavedCardRecord,
         lookup: [String: String],
-        accumulators: inout [String: CityAtlasVisitAccumulator]
+        coverage: ChinaTransitCoverageNamespace,
+        provinceBoundaryByCityID: [String: String],
+        provinceBoundaryByName: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
     ) {
-        let rawRecords = Set(card.rawTransitHistory.map(normalizedRaw))
-        for raw in rawRecords {
+        let supportedBoundaryCodes = Set(lookup.keys)
+            .subtracting(coverage.excludedCityBoundaryCodes)
+        let provinceOnlyCodes = Set(coverage.provinceOnlyCityCodes)
+
+        for raw in Set(card.rawTransitHistory.map(normalizedRaw)) {
             let data = Data(hexString: raw)
-            let cityID: String?
-            let date: Date?
-
-            if data.count >= 48 {
-                cityID = data.subdata(in: 32..<34).hexString.uppercased()
-                let compactDateTime = data.subdata(in: 25..<32).hexString
-                date = CardDateFormatting.parseCompactDateTime(
-                    compactDateTime,
-                    format: "yyyyMMddHHmmss",
-                    brand: .tUnion
-                )
-            } else if data.count >= 23 {
-                let terminal = data.subdata(in: 10..<16).hexString.uppercased()
-                cityID = String(terminal.prefix(4))
-                let compactDateTime = data.subdata(in: 16..<23).hexString
-                date = CardDateFormatting.parseCompactDateTime(
-                    compactDateTime,
-                    format: "yyyyMMddHHmmss",
-                    brand: .tUnion
-                )
-            } else {
-                cityID = nil
-                date = nil
-            }
-
-            guard let cityID,
-                  let boundaryID = lookup[cityID.uppercased()] else {
-                continue
-            }
-            let evidenceID = "\(card.id)|\(raw)"
-            accumulators[boundaryID, default: CityAtlasVisitAccumulator()].add(
-                evidenceID: evidenceID,
+            guard data.count >= 48 else { continue }
+            let cityID = data.subdata(in: 32..<34).hexString.uppercased()
+            let compactDateTime = data.subdata(in: 25..<32).hexString
+            let amount = data.subdata(in: 17..<21).hexString.uppercased()
+            addChineseCityCodeEvidence(
+                cityID: cityID,
+                evidenceID: "\(card.id)|china|\(cityID)|\(compactDateTime)|\(amount)",
                 cardID: card.id,
-                date: date
+                date: CardDateFormatting.parseCompactDateTime(
+                    compactDateTime,
+                    format: "yyyyMMddHHmmss",
+                    brand: .tUnion
+                ),
+                lookup: lookup,
+                coverage: coverage,
+                supportedBoundaryCodes: supportedBoundaryCodes,
+                provinceOnlyCodes: provinceOnlyCodes,
+                provinceBoundaryByCityID: provinceBoundaryByCityID,
+                provinceBoundaryByName: provinceBoundaryByName,
+                accumulators: &accumulators,
+                provinceAccumulators: &provinceAccumulators
             )
         }
+
+        for raw in Set(card.rawTransactions.map(normalizedRaw)) {
+            let data = Data(hexString: raw)
+            guard data.count >= 23, data[9] == 0x06 || data[9] == 0x09 else { continue }
+            let terminal = data.subdata(in: 10..<16).hexString.uppercased()
+            let cityID = String(terminal.prefix(4))
+            let compactDateTime = data.subdata(in: 16..<23).hexString
+            let amount = data.subdata(in: 5..<9).hexString.uppercased()
+            addChineseCityCodeEvidence(
+                cityID: cityID,
+                evidenceID: "\(card.id)|china|\(cityID)|\(compactDateTime)|\(amount)",
+                cardID: card.id,
+                date: CardDateFormatting.parseCompactDateTime(
+                    compactDateTime,
+                    format: "yyyyMMddHHmmss",
+                    brand: .tUnion
+                ),
+                lookup: lookup,
+                coverage: coverage,
+                supportedBoundaryCodes: supportedBoundaryCodes,
+                provinceOnlyCodes: provinceOnlyCodes,
+                provinceBoundaryByCityID: provinceBoundaryByCityID,
+                provinceBoundaryByName: provinceBoundaryByName,
+                accumulators: &accumulators,
+                provinceAccumulators: &provinceAccumulators
+            )
+        }
+    }
+
+    private func addChineseCityCodeEvidence(
+        cityID: String,
+        evidenceID: String,
+        cardID: String,
+        date: Date?,
+        lookup: [String: String],
+        coverage: ChinaTransitCoverageNamespace,
+        supportedBoundaryCodes: Set<String>,
+        provinceOnlyCodes: Set<String>,
+        provinceBoundaryByCityID: [String: String],
+        provinceBoundaryByName: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
+    ) {
+        let normalizedCityID = cityID.uppercased()
+        guard let provinceName = coverage.cityToProvince[normalizedCityID] else { return }
+
+        if provinceOnlyCodes.contains(normalizedCityID) {
+            guard let provinceBoundaryID = provinceBoundaryByName[provinceName] else { return }
+            provinceAccumulators[
+                provinceBoundaryID,
+                default: CityAtlasVisitAccumulator()
+            ].add(
+                evidenceID: evidenceID,
+                cardID: cardID,
+                date: date
+            )
+            return
+        }
+
+        let cityBoundaryCode = coverage.cityToBoundaryAlias[normalizedCityID]
+            ?? normalizedCityID
+        guard supportedBoundaryCodes.contains(cityBoundaryCode),
+              let boundaryID = lookup[cityBoundaryCode] else { return }
+        addEvidence(
+            boundaryID: boundaryID,
+            evidenceID: evidenceID,
+            cardID: cardID,
+            date: date,
+            provinceBoundaryByCityID: provinceBoundaryByCityID,
+            accumulators: &accumulators,
+            provinceAccumulators: &provinceAccumulators
+        )
+    }
+
+    private func addOctopusEvidence(
+        from card: SavedCardRecord,
+        boundaryID: String,
+        provinceBoundaryByCityID: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
+    ) {
+        addEvidence(
+            boundaryID: boundaryID,
+            evidenceID: "\(card.id)|octopus-card",
+            cardID: card.id,
+            date: nil,
+            countsAsRecord: false,
+            provinceBoundaryByCityID: provinceBoundaryByCityID,
+            accumulators: &accumulators,
+            provinceAccumulators: &provinceAccumulators
+        )
     }
 
     private func addKoreanEvidence(
         from card: SavedCardRecord,
         locationLookup: [String: String],
-        accumulators: inout [String: CityAtlasVisitAccumulator]
+        provinceBoundaryByCityID: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
     ) {
         let rawRecords = Set(card.rawTransitHistory.map(normalizedRaw))
         for raw in rawRecords {
@@ -1839,12 +2289,44 @@ private struct CityAtlasVisitResolver {
             guard let boundaryID = locationLookup[locationCode] else { continue }
 
             let evidenceID = "\(card.id)|\(raw)"
-            accumulators[boundaryID, default: CityAtlasVisitAccumulator()].add(
+            addEvidence(
+                boundaryID: boundaryID,
                 evidenceID: evidenceID,
                 cardID: card.id,
-                date: KoreanTransitTimestampDecoder.decode(data)?.date
+                date: KoreanTransitTimestampDecoder.decode(data)?.date,
+                provinceBoundaryByCityID: provinceBoundaryByCityID,
+                accumulators: &accumulators,
+                provinceAccumulators: &provinceAccumulators
             )
         }
+    }
+
+    private func addEvidence(
+        boundaryID: String,
+        evidenceID: String,
+        cardID: String,
+        date: Date?,
+        countsAsRecord: Bool = true,
+        provinceBoundaryByCityID: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
+    ) {
+        accumulators[boundaryID, default: CityAtlasVisitAccumulator()].add(
+            evidenceID: evidenceID,
+            cardID: cardID,
+            date: date,
+            countsAsRecord: countsAsRecord
+        )
+        guard let provinceBoundaryID = provinceBoundaryByCityID[boundaryID] else { return }
+        provinceAccumulators[
+            provinceBoundaryID,
+            default: CityAtlasVisitAccumulator()
+        ].add(
+            evidenceID: evidenceID,
+            cardID: cardID,
+            date: date,
+            countsAsRecord: countsAsRecord
+        )
     }
 
     private func normalizedJapaneseStationCode(_ value: String) -> String {

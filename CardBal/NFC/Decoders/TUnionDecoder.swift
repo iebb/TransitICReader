@@ -462,7 +462,12 @@ struct TUnionDecoder: TransitCardDecoder {
                 // Add App Metadata to raw sections
                 rawSections.append(RawDataSection(title: "App Metadata (9F0C)", fields: [
                     RawDataField(title: "Full Payload", value: meta.hexString),
-                    RawDataField(title: "Raw City ID", value: meta.subdata(in: 2..<4).hexString.uppercased())
+                    RawDataField(
+                        title: "Raw City ID",
+                        value: meta.count >= 4
+                            ? meta.subdata(in: 2..<4).hexString.uppercased()
+                            : "Unavailable"
+                    )
                 ]))
                 
                 // Offset 10 (len 10): Card Number (CAN)
@@ -877,6 +882,19 @@ struct TUnionCityDatabase {
         return json
     }()
 
+    private static let reviewedCityCodeDisplayNames: [String: String] = {
+        guard let url = Bundle.main.url(
+            forResource: "ChinaTransitCoverage",
+            withExtension: "json"
+        ), let data = try? Data(contentsOf: url),
+           let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let tUnion = root["tUnion"] as? [String: Any],
+           let names = tUnion["cityCodeDisplayNames"] as? [String: String] else {
+            return [:]
+        }
+        return names
+    }()
+
     private static let lineStations: [String: String] = {
         guard let url = Bundle.main.url(forResource: "TUnionLineStations", withExtension: "json"),
               let data = try? Data(contentsOf: url),
@@ -905,7 +923,7 @@ struct TUnionCityDatabase {
     }
     
     static func lookupCityName(for cityId: String) -> String? {
-        return cityCodes[cityId]
+        cityCodes[cityId] ?? reviewedCityCodeDisplayNames[cityId]
     }
 
     static func lookupStationName(cityID: String, stationID: String) -> String? {

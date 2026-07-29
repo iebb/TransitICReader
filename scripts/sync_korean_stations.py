@@ -16,9 +16,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_ROOT = REPO_ROOT / ".external/korean-stations"
 DEFAULT_DESTINATION = REPO_ROOT / "CardBal/Resources/korean_stations.tsv"
 SOURCE_REPOSITORY = "iebb/korean-stations"
-SOURCE_COMMIT = "8c11164538810461aeac2170abac003cc47d4d72"
-SOURCE_SHA256 = "02ed74c3e0eeae6b776b909d10da1bcd8c7707452bb814e9c9028ad1a5dd4fc2"
-EXPECTED_ALIAS_COUNT = 820
+SOURCE_COMMIT = "82a9e4aeb534a710717056d704972a0fc1baafc9"
+SOURCE_SHA256 = "42b9053314acbae86374871aa76938b979f966b0d3e25198b789990823e0d5bf"
+EXPECTED_ALIAS_COUNT = 832
 EXPECTED_COLUMNS = [
     "location_code",
     "station_id",

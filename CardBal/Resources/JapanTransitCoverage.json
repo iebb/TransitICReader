@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "evaluatedAt": "2026-07-30",
+  "inclusionRule": "Include a prefecture when at least one public transport operator accepts a FeliCa transit card that CardBal can read. Inclusion does not imply that every station or municipality accepts that card.",
+  "cardBalReadableSystemCodes": ["0003", "80DE", "8592", "865E"],
+  "detectedButUnreadableSystemCodes": ["80E0"],
+  "expectedCounts": {
+    "bundledNonPseudoStationRows": 8462,
+    "supportedStationRows": 8403,
+    "excludedStationRows": 59,
+    "sourceADM2Boundaries": 1742,
+    "supportedADM2Boundaries": 1708,
+    "excludedADM2Boundaries": 34
+  },
+  "supportedPrefectures": [
+    {"code": "JP-01", "name": "Hokkaido"},
+    {"code": "JP-02", "name": "Aomori"},
+    {"code": "JP-03", "name": "Iwate"},
+    {"code": "JP-04", "name": "Miyagi"},
+    {"code": "JP-05", "name": "Akita"},
+    {"code": "JP-06", "name": "Yamagata"},
+    {"code": "JP-07", "name": "Fukushima"},
+    {"code": "JP-08", "name": "Ibaraki"},
+    {"code": "JP-09", "name": "Tochigi"},
+    {"code": "JP-10", "name": "Gunma"},
+    {"code": "JP-11", "name": "Saitama"},
+    {"code": "JP-12", "name": "Chiba"},
+    {"code": "JP-13", "name": "Tokyo"},
+    {"code": "JP-14", "name": "Kanagawa"},
+    {"code": "JP-15", "name": "Niigata"},
+    {"code": "JP-16", "name": "Toyama"},
+    {"code": "JP-17", "name": "Ishikawa Prefecture"},
+    {"code": "JP-18", "name": "Fukui Prefecture"},
+    {"code": "JP-19", "name": "Yamanashi"},
+    {"code": "JP-20", "name": "Nagano"},
+    {"code": "JP-21", "name": "Gifu Prefecture"},
+    {"code": "JP-22", "name": "Shizuoka"},
+    {"code": "JP-23", "name": "Aichi Prefecture"},
+    {"code": "JP-24", "name": "Mie Prefecture"},
+    {"code": "JP-25", "name": "Shiga"},
+    {"code": "JP-26", "name": "Kyoto Prefecture"},
+    {"code": "JP-27", "name": "Osaka Prefecture"},
+    {"code": "JP-28", "name": "Hyogo Prefecture"},
+    {"code": "JP-29", "name": "Nara Prefecture"},
+    {"code": "JP-30", "name": "Wakayama Prefecture"},
+    {"code": "JP-31", "name": "Tottori Prefecture"},
+    {"code": "JP-32", "name": "Shimane"},
+    {"code": "JP-33", "name": "Okayama Prefecture"},
+    {"code": "JP-34", "name": "Hiroshima"},
+    {"code": "JP-35", "name": "Yamaguchi"},
+    {"code": "JP-36", "name": "Tokushima Prefecture"},
+    {"code": "JP-37", "name": "Kagawa Prefecture"},
+    {"code": "JP-38", "name": "Ehime Prefecture"},
+    {"code": "JP-40", "name": "Fukuoka Prefecture"},
+    {"code": "JP-41", "name": "Saga Prefecture"},
+    {"code": "JP-42", "name": "Nagasaki Prefecture"},
+    {"code": "JP-43", "name": "Kumamoto"},
+    {"code": "JP-44", "name": "Oita"},
+    {"code": "JP-45", "name": "Miyazaki Prefecture"},
+    {"code": "JP-46", "name": "Kagoshima Prefecture"},
+    {"code": "JP-47", "name": "Okinawa Prefecture"}
+  ],
+  "omittedPrefectures": [
+    {
+      "code": "JP-39",
+      "name": "Kochi Prefecture",
+      "reason": "The current local transit network uses DESUCA (system 80E0), which CardBal detects by name but does not have a readable transit profile for; JR Shikoku's published ICOCA rail area is in Kagawa."
+    }
+  ],
+  "officialEvidence": [
+    {
+      "prefectureCodes": ["JP-01"],
+      "operator": "JR Hokkaido",
+      "url": "https://www.jrhokkaido.co.jp/kitaca/02area.html"
+    },
+    {
+      "prefectureCodes": ["JP-02", "JP-03", "JP-04", "JP-05", "JP-06", "JP-07", "JP-08", "JP-09", "JP-10", "JP-11", "JP-12", "JP-13", "JP-14", "JP-15", "JP-19", "JP-20"],
+      "operator": "JR East",
+      "url": "https://www.jreast.co.jp/suica/area/"
+    },
+    {
+      "prefectureCodes": ["JP-21", "JP-22", "JP-23", "JP-24"],
+      "operator": "JR Central",
+      "url": "https://toica.jr-central.co.jp/area/"
+    },
+    {
+      "prefectureCodes": ["JP-16", "JP-17", "JP-18", "JP-25", "JP-26", "JP-27", "JP-28", "JP-29", "JP-30", "JP-31", "JP-32", "JP-33", "JP-34", "JP-35"],
+      "operator": "JR West",
+      "url": "https://www.jr-odekake.net/icoca/area/map/all.html"
+    },
+    {
+      "prefectureCodes": ["JP-36"],
+      "operator": "Tokushima Bus",
+      "url": "https://www.tokubus.co.jp/routebus/icoca.html"
+    },
+    {
+      "prefectureCodes": ["JP-37"],
+      "operator": "JR Shikoku",
+      "url": "https://www.jr-shikoku.co.jp/icoca/icoca03-area.html"
+    },
+    {
+      "prefectureCodes": ["JP-38"],
+      "operator": "Iyotetsu",
+      "url": "https://www.iyotetsu.co.jp/ticket/"
+    },
+    {
+      "prefectureCodes": ["JP-40", "JP-41", "JP-42", "JP-43", "JP-44", "JP-45", "JP-46"],
+      "operator": "JR Kyushu",
+      "url": "https://www.jrkyushu.co.jp/sugoca/area/"
+    },
+    {
+      "prefectureCodes": ["JP-47"],
+      "operator": "Okinawa Urban Monorail",
+      "url": "https://www.yui-rail.co.jp/news/3425/"
+    },
+    {
+      "prefectureCodes": ["JP-39"],
+      "operator": "DESUCA",
+      "url": "https://www.desuca.co.jp/about/area.php"
+    }
+  ]
+}

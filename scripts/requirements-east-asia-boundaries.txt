@@ -1,0 +1,2 @@
+# Deterministic polygon validation and Natural Earth land intersection.
+shapely==2.1.2
