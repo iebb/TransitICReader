@@ -1782,6 +1782,12 @@ private struct CityAtlasVisitResolver {
         let supportedJapanSubdivisionCodes = Set(
             japanCoverage.supportedPrefectures.map(\.code)
         )
+        let supportedJapanCityBoundaryIDs = Set(
+            catalog.japanStationToBoundary.values
+        )
+        let supportedKoreaCityBoundaryIDs = Set(
+            catalog.koreaLocationToBoundary.values
+        )
         let excludedChinaCityBoundaryCodes = Set(
             chinaCoverage.tUnion.excludedCityBoundaryCodes
         )
@@ -1790,7 +1796,12 @@ private struct CityAtlasVisitResolver {
         let supportedChinaBoundaryIDs = Set(
             supportedChinaCityCodes.compactMap { catalog.chinaCityToBoundary[$0] }
         ).union(chinaCoverage.referenceBoundaryToProvince.keys)
+        let catalogBoundaryIDs = Set(catalog.boundaries.map(\.id))
         guard !supportedChinaCityCodes.isEmpty,
+              !supportedJapanCityBoundaryIDs.isEmpty,
+              !supportedKoreaCityBoundaryIDs.isEmpty,
+              supportedJapanCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
+              supportedKoreaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
               excludedChinaCityBoundaryCodes.allSatisfy({
                   catalog.chinaCityToBoundary[$0] != nil
               }),
@@ -1804,9 +1815,10 @@ private struct CityAtlasVisitResolver {
             case .china:
                 return supportedChinaBoundaryIDs.contains(boundary.id)
             case .japan:
-                return boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
+                return supportedJapanCityBoundaryIDs.contains(boundary.id)
+                    && boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
             case .korea:
-                return true
+                return supportedKoreaCityBoundaryIDs.contains(boundary.id)
             }
         }
         let chinaProvinceNameByCityBoundaryID = try chinaProvinceNameByCityBoundaryID(
@@ -2043,11 +2055,6 @@ private struct CityAtlasVisitResolver {
                     $0.countryCode == .japan
                         && $0.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
                 }
-                .map(\.id)
-        )
-        supportedIDs.formUnion(
-            provinces.lazy
-                .filter { $0.countryCode == .korea }
                 .map(\.id)
         )
         var provinceBoundaryByCityID: [String: String] = [:]
