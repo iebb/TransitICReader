@@ -849,43 +849,49 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0.03,
-                    strokeAlpha: 0.58,
-                    lineWidth: 1.25
+                    strokeAlpha: 0.66,
+                    lineWidth: 1.35,
+                    zoomLineWidthBoost: 0.55
                 )
             case (.province, .japan):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.46,
-                    lineWidth: 1.0
+                    strokeAlpha: 0.58,
+                    lineWidth: 1.15,
+                    zoomLineWidthBoost: 0.60
                 )
             case (.province, .korea):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.60,
-                    lineWidth: 1.15
+                    strokeAlpha: 0.68,
+                    lineWidth: 1.25,
+                    zoomLineWidthBoost: 0.55
                 )
             case (.city, .china):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0.012,
-                    strokeAlpha: 0.4,
-                    lineWidth: 0.75
+                    strokeAlpha: 0.54,
+                    lineWidth: 0.90,
+                    zoomLineWidthBoost: 0.75
                 )
             case (.city, .japan):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.28,
-                    lineWidth: 0.55
+                    strokeAlpha: 0.50,
+                    lineWidth: 0.78,
+                    zoomLineWidthBoost: 0.80
                 )
             case (.city, .korea):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.50,
-                    lineWidth: 0.90
+                    strokeAlpha: 0.62,
+                    lineWidth: 1.0,
+                    zoomLineWidthBoost: 0.70
                 )
             }
         }
@@ -895,26 +901,64 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                let style = styles[ObjectIdentifier(multiPolygon)] {
                 return configured(
                     MKMultiPolygonRenderer(multiPolygon: multiPolygon),
-                    style: style
+                    style: style,
+                    mapView: mapView
                 )
             }
             if let polygon = overlay as? MKPolygon,
                let style = styles[ObjectIdentifier(polygon)] {
-                return configured(MKPolygonRenderer(polygon: polygon), style: style)
+                return configured(
+                    MKPolygonRenderer(polygon: polygon),
+                    style: style,
+                    mapView: mapView
+                )
             }
             return MKOverlayRenderer(overlay: overlay)
         }
 
         private func configured(
             _ renderer: MKOverlayPathRenderer,
-            style: CityAtlasOverlayStyle
+            style: CityAtlasOverlayStyle,
+            mapView: MKMapView
         ) -> MKOverlayRenderer {
             renderer.fillColor = style.color.withAlphaComponent(style.fillAlpha)
             renderer.strokeColor = style.color.withAlphaComponent(style.strokeAlpha)
-            renderer.lineWidth = style.lineWidth
+            renderer.lineWidth = visibleLineWidth(for: style, on: mapView)
             renderer.lineJoin = .round
             renderer.lineCap = .round
             return renderer
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            for overlay in mapView.overlays {
+                guard let style = styles[ObjectIdentifier(overlay)],
+                      style.zoomLineWidthBoost > 0,
+                      let renderer = mapView.renderer(for: overlay) as? MKOverlayPathRenderer else {
+                    continue
+                }
+                let lineWidth = visibleLineWidth(for: style, on: mapView)
+                guard abs(renderer.lineWidth - lineWidth) > 0.05 else { continue }
+                renderer.lineWidth = lineWidth
+                renderer.setNeedsDisplay()
+            }
+        }
+
+        private func visibleLineWidth(
+            for style: CityAtlasOverlayStyle,
+            on mapView: MKMapView
+        ) -> CGFloat {
+            guard style.zoomLineWidthBoost > 0 else { return style.lineWidth }
+            let farDistance: CLLocationDistance = 3_000_000
+            let closeDistance: CLLocationDistance = 180_000
+            let progress = max(
+                0,
+                min(
+                    1,
+                    (farDistance - mapView.camera.centerCoordinateDistance)
+                        / (farDistance - closeDistance)
+                )
+            )
+            return style.lineWidth * (1 + CGFloat(progress) * style.zoomLineWidthBoost)
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -1051,6 +1095,7 @@ private struct CityAtlasOverlayStyle {
     let fillAlpha: CGFloat
     let strokeAlpha: CGFloat
     let lineWidth: CGFloat
+    var zoomLineWidthBoost: CGFloat = 0
 }
 
 private struct CityAtlasVisitedMask {
