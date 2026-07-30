@@ -39,8 +39,10 @@ from generate_east_asia_city_boundaries import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = REPO_ROOT / "CardBal/Resources/EastAsiaProvinceBoundaries.json"
+DEFAULT_CITY_CATALOG = REPO_ROOT / "CardBal/Resources/EastAsiaCityBoundaries.json"
+DEFAULT_CHINA_COVERAGE = REPO_ROOT / "CardBal/Resources/ChinaTransitCoverage.json"
 RDP_TOLERANCE_DEGREES = 0.005
-MAX_OUTPUT_BYTES = 800 * 1024
+MAX_OUTPUT_BYTES = 1_200 * 1024
 
 ASSETS: dict[str, dict[str, Any]] = {
     "CHN_ADM1": {
@@ -171,7 +173,7 @@ def build_china_province_boundary(
 
     # RDP can bridge a concave coast with a short chord over water. Intersect a
     # second time, then quantize without another simplification pass so Province
-    # fills cannot recreate that chord in the bundled outer-ring-only geometry.
+    # fills cannot recreate that chord in the bundled component geometry.
     output_geometry = polygonal_shapely_geometry(
         simplified_geometry.intersection(land),
         make_valid,
@@ -343,8 +345,8 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise RuntimeError("A China province exceeds the post-quantization land envelope")
 
-    return {
-        "version": 1,
+    catalog = {
+        "version": 2,
         "generatedAt": generated_at,
         "attribution": [
             "geoBoundaries (www.geoboundaries.org)",
@@ -377,7 +379,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         },
         "generation": {
             "coordinateOrder": "longitude,latitude",
-            "polygonRepresentation": "outer rings only; holes omitted",
+            "polygonRepresentation": "polygon components with one outer ring and zero or more interior hole rings",
             "rdpToleranceDegrees": RDP_TOLERANCE_DEGREES,
             "quantizationDecimals": {
                 "CN": CHINA_COORDINATE_DECIMALS,
@@ -409,11 +411,35 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         },
         "boundaries": boundaries,
     }
+    from optimize_east_asia_boundary_catalogs import (
+        load_json,
+        optimize_catalog,
+        prune_city_catalog_to_supported_boundaries,
+        prune_province_catalog_to_supported_boundaries,
+    )
+
+    china_coverage = json.loads(args.china_coverage.read_text(encoding="utf-8"))
+    if china_coverage.get("version") != 1:
+        raise RuntimeError(
+            f"Unsupported China transit coverage version {china_coverage.get('version')!r}"
+        )
+    city_catalog = prune_city_catalog_to_supported_boundaries(
+        load_json(args.city_catalog),
+        china_coverage,
+    )
+    catalog = prune_province_catalog_to_supported_boundaries(
+        catalog,
+        city_catalog,
+        china_coverage,
+    )
+    return optimize_catalog(catalog, "province", generated_at=generated_at)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--city-catalog", type=Path, default=DEFAULT_CITY_CATALOG)
+    parser.add_argument("--china-coverage", type=Path, default=DEFAULT_CHINA_COVERAGE)
     parser.add_argument(
         "--source-cache-directory",
         type=Path,
@@ -428,6 +454,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    for input_path in (args.city_catalog, args.china_coverage):
+        if not input_path.is_file():
+            raise FileNotFoundError(input_path)
     catalog = build_catalog(args)
     encoded = json.dumps(catalog, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"
     if len(encoded) > MAX_OUTPUT_BYTES:
@@ -436,9 +465,13 @@ def main() -> None:
         )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(encoded)
+    country_metadata = catalog["generation"]["boundaryOptimization"]["countries"]
     print(
         f"Wrote {args.output} ({len(encoded):,} bytes; "
-        + ", ".join(f"{country} {count}" for country, count in catalog["generation"]["counts"].items())
+        + ", ".join(
+            f"{country} {country_metadata[country]['boundaryCount']}"
+            for country in sorted(country_metadata)
+        )
         + ")"
     )
 

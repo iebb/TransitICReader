@@ -392,7 +392,7 @@ struct KoreanTransitHistoryFareLayout {
         let regional = (Variant.regional36, regionalAmount, data.subdata(in: 36..<38).hexString.uppercased())
         let base = (Variant.base40, baseFare, data.subdata(in: 40..<42).hexString.uppercased())
         let profile = KoreanTransitOperatorFieldProfile.forRecord(data)
-        let candidates = profile?.usesOpaqueCounters == true
+        let candidates = profile?.usesMybiFieldLayout == true
             ? [base, regional, primary]
             : [primary, base, regional]
         let selection = candidates.first { isPlausibleFare($0.1) }

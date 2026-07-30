@@ -210,6 +210,18 @@ Transaction dispatch:
 - 14-byte NAMANE records are parsed by the NAMANE-specific parser.
 - Other KS X 6924 records are parsed as single stored-value transactions.
 
+Transit-history time decoding is profile-scoped by the inferred KOTRIS code in
+bytes `09..10`. Standard rows use the observed 33-bit packed clock and regional
+rows may use strict seven-byte BCD. The corpus-validated Mybi Busan and Busan
+subway profiles use a 24-bit big-endian value with `day = value >> 11`,
+`hour = (value >> 6) & 31`, and `minute = value & 63`, relative to
+2011-11-12 in `Asia/Seoul`. Boarding records select clock A (`11..13`) and
+alighting records select clock B (`14..16`); `FBF000` and invalid clock fields
+are rejected. Non-BCD integrated-Mybi and Gwangju clock blocks remain
+undecoded until their own records validate the same dialect. KORAIL's official mode table supplies
+the code names, while the byte-field application and Mybi clock are explicitly
+CardBal corpus inferences documented by the Korean Trip Atlas.
+
 ## China T-Union
 
 Supported AID: `A000000632010105`.

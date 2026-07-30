@@ -5,17 +5,20 @@ Japan includes every ADM2 municipality in a prefecture with a CardBal-readable
 transit-card system, while visit eligibility remains restricted to the exact
 station-code lookup. Korea uses a non-stacked mixed city layer: metropolitan
 cities use ADM1, other municipalities use ADM2, and Jeju stays whole because
-the exact station evidence does not support splitting its visits between its
-two cities. China's source catalog includes every peer-level city in the
-bundled T-Union registry plus a reference-only Macau outline. The client shows
+the available evidence does not safely split its visits between its two cities.
+Exact Korean station locations win, with reviewed city-specific KOTRIS modes as
+a fallback when a station token is unknown. China's source catalog includes
+every peer-level city in the bundled T-Union registry plus a reference-only
+Macau outline. The client shows
 only the current participation subset, while reviewed historical aliases stay
 decodable; province-wide codes never fabricate a City match.
 Coordinates use GeoJSON order everywhere:
 
 * ``center``: ``[longitude, latitude]``
 * ``bbox``: ``[minLongitude, minLatitude, maxLongitude, maxLatitude]``
-* ``polygons``: an array of outer rings, with each point represented as
-  ``[longitude, latitude]``. Polygon holes are intentionally omitted.
+* ``components``: an array of polygon components. Each component stores one
+  ``outer`` ring and zero or more interior ``holes``; every point is represented
+  as ``[longitude, latitude]``.
 
 The geoBoundaries and Natural Earth inputs are pinned to commits and verified
 by SHA-256. Chinese administrative relations are fixed in a reviewed manifest,
@@ -49,6 +52,7 @@ DEFAULT_CHINA_CITY_REGISTRY = REPO_ROOT / "CardBal/Resources/TUnionCityCodes.jso
 DEFAULT_CHINA_COVERAGE = REPO_ROOT / "CardBal/Resources/ChinaTransitCoverage.json"
 DEFAULT_CHINA_RELATION_MANIFEST = REPO_ROOT / "scripts/data/china_tunion_osm_relations.json"
 DEFAULT_KOREA_STATIONS = REPO_ROOT / "CardBal/Resources/korean_stations.tsv"
+DEFAULT_KOREA_MODES = REPO_ROOT / "CardBal/Resources/KOTRISTransportModes.json"
 DEFAULT_OUTPUT = REPO_ROOT / "CardBal/Resources/EastAsiaCityBoundaries.json"
 
 GEBOUNDARIES_COMMIT = "9469f09592ced973a3448cf66b6100b741b64c0d"
@@ -144,13 +148,16 @@ CHINA_RDP_TOLERANCE = 0.001
 KOREA_RDP_TOLERANCE = 0.0015
 JAPAN_GRID_SIZE = 0.5
 JAPAN_NEAREST_FALLBACK_DEGREES = 0.02
-MAX_OUTPUT_BYTES = 8 * 1024 * 1024
+MAX_OUTPUT_BYTES = 10 * 1024 * 1024
 
 KOREA_AREA_SPECS = {
     "서울특별시": {"name": "Seoul", "level": "ADM1", "shapeName": "Seoul"},
     "인천광역시": {"name": "Incheon", "level": "ADM1", "shapeName": "Incheon"},
     "부산광역시": {"name": "Busan", "level": "ADM1", "shapeName": "Busan"},
     "대구광역시": {"name": "Daegu", "level": "ADM1", "shapeName": "Daegu"},
+    "대전광역시": {"name": "Daejeon", "level": "ADM1", "shapeName": "Daejeon"},
+    "광주광역시": {"name": "Gwangju", "level": "ADM1", "shapeName": "Gwangju"},
+    "울산광역시": {"name": "Ulsan", "level": "ADM1", "shapeName": "Ulsan"},
     "제주특별자치도": {"name": "Jeju", "level": "ADM1", "shapeName": "Jeju"},
     "경기도|포천시": {"name": "Pocheon", "level": "ADM2", "shapeName": "Pocheon-si"},
     "경기도|안양시": {"name": "Anyang", "level": "ADM2", "shapeName": "Anyang-si"},
@@ -167,6 +174,28 @@ KOREA_AREA_SPECS = {
     "경기도|용인시": {"name": "Yongin", "level": "ADM2", "shapeName": "Yongin-si"},
     "경기도|고양시": {"name": "Goyang", "level": "ADM2", "shapeName": "Goyang-si"},
     "경기도|이천시": {"name": "Icheon", "level": "ADM2", "shapeName": "Icheon-si"},
+    "경상남도|창원시": {"name": "Changwon", "level": "ADM2", "shapeName": "Changwon-si"},
+    "경상남도|양산시": {"name": "Yangsan", "level": "ADM2", "shapeName": "Yangsan-si"},
+    "경상남도|진주시": {"name": "Jinju", "level": "ADM2", "shapeName": "Jinju-si"},
+    "경상남도|김해시": {"name": "Gimhae", "level": "ADM2", "shapeName": "Gimhae-si"},
+    "경상남도|밀양시": {"name": "Miryang", "level": "ADM2", "shapeName": "Miryang-si"},
+    "경상남도|함안군": {"name": "Haman", "level": "ADM2", "shapeName": "Haman-gun"},
+    "경상남도|통영시": {"name": "Tongyeong", "level": "ADM2", "shapeName": "Tongyeong-si"},
+    "경상남도|거제시": {"name": "Geoje", "level": "ADM2", "shapeName": "Geoje-si"},
+    "경상남도|사천시": {"name": "Sacheon", "level": "ADM2", "shapeName": "Sacheon-si"},
+    "경상북도|포항시": {"name": "Pohang", "level": "ADM2", "shapeName": "Pohang-si"},
+    "경상북도|안동시": {"name": "Andong", "level": "ADM2", "shapeName": "Andong-si"},
+    "충청남도|천안시": {"name": "Cheonan", "level": "ADM2", "shapeName": "Cheonan-si"},
+    "충청남도|아산시": {"name": "Asan", "level": "ADM2", "shapeName": "Asan-si"},
+    "강원특별자치도|원주시": {"name": "Wonju", "level": "ADM2", "shapeName": "Wonju-si"},
+    "강원특별자치도|횡성군": {"name": "Hoengseong", "level": "ADM2", "shapeName": "Hoengseong-gun"},
+    "강원특별자치도|춘천시": {"name": "Chuncheon", "level": "ADM2", "shapeName": "Chuncheon-si"},
+    "강원특별자치도|강릉시": {"name": "Gangneung", "level": "ADM2", "shapeName": "Gangneung-si"},
+    "전라남도|순천시": {"name": "Suncheon", "level": "ADM2", "shapeName": "Suncheon-si"},
+    "전라남도|목포시": {"name": "Mokpo", "level": "ADM2", "shapeName": "Mokpo-si"},
+    "전라남도|광양시": {"name": "Gwangyang", "level": "ADM2", "shapeName": "Gwangyang-si"},
+    "전라남도|여수시": {"name": "Yeosu", "level": "ADM2", "shapeName": "Yeosu-si"},
+    "전라남도|나주시": {"name": "Naju", "level": "ADM2", "shapeName": "Naju-si"},
 }
 
 # The pinned KOR ADM2 snapshot predates Gunwi-gun's transfer to Daegu. Its 74
@@ -200,11 +229,115 @@ KOREA_CITY_REFERENCE_EXCLUDED_ADM2_SHAPE_NAMES = frozenset({
 EXPECTED_KOREA_ADM2_FEATURE_COUNT = 228
 EXPECTED_KOREA_METROPOLITAN_ADM2_FEATURE_COUNT = 74
 EXPECTED_KOREA_CITY_REFERENCE_BOUNDARY_COUNT = 160
-EXPECTED_KOREA_VISIT_BOUNDARY_COUNT = 20
+EXPECTED_KOREA_VISIT_BOUNDARY_COUNT = 45
+EXPECTED_KOREA_MODE_MAPPING_COUNT = 198
+EXPECTED_KOREA_MODE_AREA_COUNT = 32
 
-# Exact alias administrative evidence is authoritative for the atlas. A mode
-# code alone is not: several KOTRIS modes span multiple capital-area cities.
-KOREA_MODE_TO_AREA: dict[str, str] = {}
+# Exact station aliases remain authoritative. These reviewed KOTRIS groups are
+# used only when a 52-byte record's station token is unknown. Broad or
+# multi-city modes (KORAIL, Airport Railroad/limousine, capital-area and
+# province-wide services) are deliberately absent. Jeju and Seogwipo modes both
+# use the whole-Jeju boundary so the city layer never stacks nested masks.
+KOREA_MODE_CODES_BY_AREA: dict[str, frozenset[int]] = {
+    "서울특별시": frozenset({105, 115, 120, 121, 131, 142, 201, 203, 205, 235, 237}),
+    "인천광역시": frozenset(
+        {204, 400, 402, 403, 404, 406, 408, 430, 431, 496}
+        | set(range(450, 468))
+        | {470, 471, 472, 474, 475, 476, 477}
+        | set(range(480, 492))
+    ),
+    "부산광역시": frozenset(set(range(601, 619)) | {870}),
+    "울산광역시": frozenset(range(621, 627)),
+    "경상남도|창원시": frozenset(range(627, 632)),
+    "경상남도|양산시": frozenset(range(632, 637)),
+    "경상남도|진주시": frozenset(range(637, 641)),
+    "경상남도|김해시": frozenset(range(641, 645)),
+    "경상남도|밀양시": frozenset(range(645, 648)),
+    "경상남도|함안군": frozenset(range(648, 651)),
+    "충청남도|천안시": frozenset(range(651, 656)),
+    "충청남도|아산시": frozenset(range(656, 661)),
+    "대전광역시": frozenset(set(range(672, 684)) | {853}),
+    "광주광역시": frozenset({691, 871} | set(range(770, 776))),
+    "경상북도|포항시": frozenset(range(701, 704)),
+    "경상남도|통영시": frozenset(range(704, 706)),
+    "경상북도|안동시": frozenset(range(706, 709)),
+    "경상남도|거제시": frozenset(range(709, 711)),
+    "강원특별자치도|원주시": frozenset({321} | set(range(711, 714))),
+    "강원특별자치도|횡성군": frozenset(range(714, 717)),
+    "강원특별자치도|춘천시": frozenset(range(717, 720)),
+    "강원특별자치도|강릉시": frozenset(range(720, 722)),
+    "전라남도|순천시": frozenset(range(776, 780)),
+    "전라남도|목포시": frozenset(range(780, 784)),
+    "전라남도|광양시": frozenset(range(784, 788)),
+    "전라남도|여수시": frozenset(range(788, 792)),
+    "전라남도|나주시": frozenset(range(792, 796)),
+    "경상남도|사천시": frozenset(range(796, 800)),
+    "경기도|용인시": frozenset({231, 851}),
+    "경기도|의정부시": frozenset({232}),
+    "대구광역시": frozenset({872}),
+    "제주특별자치도": frozenset(range(990, 1000)),
+}
+KOREA_MODE_TO_AREA = {
+    str(code): area_key
+    for area_key, codes in KOREA_MODE_CODES_BY_AREA.items()
+    for code in codes
+}
+KOREA_MODE_EXPLICIT_AREA_BY_CODE: dict[int, str | None] = {
+    **{code: "서울특별시" for code in (105, 115, 120, 121, 131, 142, 201, 203, 205, 235, 237)},
+    202: None,
+    204: "인천광역시",
+    206: None,
+    207: None,
+    208: None,
+    231: "경기도|용인시",
+    232: "경기도|의정부시",
+    699: None,
+    811: None,
+    812: None,
+    816: None,
+    818: None,
+    820: None,
+    850: None,
+    851: "경기도|용인시",
+    853: "대전광역시",
+    870: "부산광역시",
+    871: "광주광역시",
+    872: "대구광역시",
+}
+KOREA_MODE_AREA_NAME_MARKERS: tuple[tuple[str, str | None], ...] = (
+    ("인천", "인천광역시"),
+    ("경기", None),
+    ("부산", "부산광역시"),
+    ("울산", "울산광역시"),
+    ("마산/창원/진해", "경상남도|창원시"),
+    ("양산", "경상남도|양산시"),
+    ("진주", "경상남도|진주시"),
+    ("김해", "경상남도|김해시"),
+    ("밀양", "경상남도|밀양시"),
+    ("함안", "경상남도|함안군"),
+    ("천안", "충청남도|천안시"),
+    ("아산", "충청남도|아산시"),
+    ("충남", None),
+    ("대전", "대전광역시"),
+    ("포항", "경상북도|포항시"),
+    ("통영", "경상남도|통영시"),
+    ("안동", "경상북도|안동시"),
+    ("거제", "경상남도|거제시"),
+    ("원주", "강원특별자치도|원주시"),
+    ("횡성", "강원특별자치도|횡성군"),
+    ("춘천", "강원특별자치도|춘천시"),
+    ("강릉", "강원특별자치도|강릉시"),
+    ("강원", None),
+    ("광주", "광주광역시"),
+    ("순천", "전라남도|순천시"),
+    ("목포", "전라남도|목포시"),
+    ("광양", "전라남도|광양시"),
+    ("여수", "전라남도|여수시"),
+    ("나주", "전라남도|나주시"),
+    ("사천", "경상남도|사천시"),
+    ("제주", "제주특별자치도"),
+    ("서귀포", "제주특별자치도"),
+)
 
 
 Point = list[float]
@@ -499,18 +632,46 @@ def make_boundary(
     coordinate_decimals: int = COORDINATE_DECIMALS,
 ) -> dict[str, Any]:
     bbox = parts_bbox(parts)
-    rings = []
-    for outer, _holes in parts:
+    components: list[dict[str, Any]] = []
+    for outer, holes in parts:
         try:
-            rings.append(simplify_ring(outer, tolerance, coordinate_decimals))
+            simplified_outer = simplify_ring(outer, tolerance, coordinate_decimals)
         except ValueError:
             # Some source multipolygons include microscopic slivers that become
             # fewer than three distinct points at the output quantization.
             # Omitting only those degenerate pieces preserves useful parts.
             continue
-    if not rings:
-        raise ValueError(f"Boundary {boundary_id} contains no usable rings after simplification")
-    rings.sort(key=lambda ring: abs(ring_signed_area(ring)), reverse=True)
+        simplified_holes: list[Ring] = []
+        for hole in holes:
+            try:
+                simplified_holes.append(
+                    simplify_ring(hole, tolerance, coordinate_decimals)
+                )
+            except ValueError:
+                # A hole that collapses at the selected output precision has no
+                # representable interior area and can be omitted independently.
+                continue
+        simplified_holes.sort(
+            key=lambda ring: (
+                -abs(ring_signed_area(ring)),
+                tuple(tuple(point) for point in ring),
+            )
+        )
+        components.append({"outer": simplified_outer, "holes": simplified_holes})
+    if not components:
+        raise ValueError(
+            f"Boundary {boundary_id} contains no usable components after simplification"
+        )
+    components.sort(
+        key=lambda component: (
+            -abs(ring_signed_area(component["outer"])),
+            tuple(tuple(point) for point in component["outer"]),
+            tuple(
+                tuple(tuple(point) for point in hole)
+                for hole in component["holes"]
+            ),
+        )
+    )
     return {
         "id": boundary_id,
         "countryCode": country_code,
@@ -518,7 +679,7 @@ def make_boundary(
         "nativeName": normalized_boundary_name(native_name),
         "center": parts_centroid(parts),
         "bbox": [round(value, COORDINATE_DECIMALS) for value in bbox],
-        "polygons": rings,
+        "components": components,
     }
 
 
@@ -1168,9 +1329,9 @@ def load_natural_earth_land(destination: Path) -> tuple[Any, Any, Any, Any, Any,
     land = polygonal_shapely_geometry(unary_union(land_parts), make_valid, unary_union)
     if land.is_empty:
         raise RuntimeError("Natural Earth land union is empty")
-    # The bundled catalog intentionally stores outer rings only, so inland lake
-    # holes are filled at runtime. This second mask fills those holes as well and
-    # is used only to measure/assert marine containment after output quantization.
+    # Marine containment deliberately fills inland-lake holes so this mask
+    # measures only coastal overshoot after quantization. Catalog components
+    # preserve the source holes independently.
     land_outer_parts = geometry_parts(mapping(land))
     marine_containment_mask = polygonal_shapely_geometry(
         shape(
@@ -1223,13 +1384,26 @@ def boundary_shapely_geometry(
     make_valid: Any,
     unary_union: Any,
 ) -> Any:
+    components = boundary.get("components")
+    if components is None:
+        # Retain helper compatibility with version-1 catalogs while generators
+        # and clients migrate to the component-preserving version-2 schema.
+        components = [
+            {"outer": ring, "holes": []}
+            for ring in boundary.get("polygons", [])
+        ]
     polygons = [
         polygonal_shapely_geometry(
-            shape({"type": "Polygon", "coordinates": [ring]}),
+            shape(
+                {
+                    "type": "Polygon",
+                    "coordinates": [component["outer"], *component.get("holes", [])],
+                }
+            ),
             make_valid,
             unary_union,
         )
-        for ring in boundary["polygons"]
+        for component in components
     ]
     return polygonal_shapely_geometry(unary_union(polygons), make_valid, unary_union)
 
@@ -1407,7 +1581,7 @@ def build_china_boundaries(
             for part in clipped_parts
             if any(size >= 10.0 for size in polygon_part_size_kilometers(part))
         )
-        if len(boundary["polygons"]) < large_component_count:
+        if len(boundary["components"]) < large_component_count:
             raise RuntimeError(
                 f"China relation {relation_id} lost a land component at least 10 km in one dimension"
             )
@@ -1421,7 +1595,7 @@ def build_china_boundaries(
         clipped_area_total += clipped_area
         raw_component_count += len(raw_parts)
         clipped_component_count += len(clipped_parts)
-        final_component_count += len(boundary["polygons"])
+        final_component_count += len(boundary["components"])
         preserved_large_component_count += large_component_count
         maximum_post_quantization_marine_residual_square_kilometers = max(
             maximum_post_quantization_marine_residual_square_kilometers,
@@ -1542,11 +1716,63 @@ def korea_reference_display_name(shape_name: str) -> str:
     return shape_name
 
 
+def reviewed_korea_mode_area(code: int, name: str) -> str | None:
+    if code in KOREA_MODE_EXPLICIT_AREA_BY_CODE:
+        return KOREA_MODE_EXPLICIT_AREA_BY_CODE[code]
+    for marker, area_key in KOREA_MODE_AREA_NAME_MARKERS:
+        if marker in name:
+            return area_key
+    return None
+
+
 def build_korea_boundaries(
     adm1: dict[str, Any],
     adm2: dict[str, Any],
     stations_path: Path,
+    modes_path: Path,
 ) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, str], dict[str, int]]:
+    modes_payload = load_json(modes_path)
+    if modes_payload.get("schemaVersion") != 1:
+        raise RuntimeError("Unsupported Korean transport-mode catalog")
+    mode_rows = list(modes_payload.get("modes") or []) + list(
+        modes_payload.get("supplementaryModes") or []
+    )
+    available_mode_codes: set[str] = set()
+    classified_mode_mapping: dict[str, str] = {}
+    for row in mode_rows:
+        code = row.get("code")
+        name = str(row.get("nameKo") or "").strip()
+        if not isinstance(code, int) or not name:
+            raise RuntimeError("Malformed Korean transport-mode row")
+        code_key = str(code)
+        if code_key in available_mode_codes:
+            raise RuntimeError(f"Duplicate Korean transport-mode code {code}")
+        available_mode_codes.add(code_key)
+        if area_key := reviewed_korea_mode_area(code, name):
+            classified_mode_mapping[code_key] = area_key
+    if len(KOREA_MODE_TO_AREA) != EXPECTED_KOREA_MODE_MAPPING_COUNT:
+        raise RuntimeError(
+            "Reviewed Korean mode mapping count changed: "
+            f"expected {EXPECTED_KOREA_MODE_MAPPING_COUNT}, found {len(KOREA_MODE_TO_AREA)}"
+        )
+    if len(set(KOREA_MODE_TO_AREA.values())) != EXPECTED_KOREA_MODE_AREA_COUNT:
+        raise RuntimeError(
+            "Reviewed Korean mode-area count changed: "
+            f"expected {EXPECTED_KOREA_MODE_AREA_COUNT}, "
+            f"found {len(set(KOREA_MODE_TO_AREA.values()))}"
+        )
+    missing_mode_codes = set(KOREA_MODE_TO_AREA) - available_mode_codes
+    if missing_mode_codes:
+        raise RuntimeError(
+            f"Reviewed Korean mode codes are absent from the bundled catalog: "
+            f"{sorted(missing_mode_codes, key=int)}"
+        )
+    if classified_mode_mapping != KOREA_MODE_TO_AREA:
+        raise RuntimeError(
+            "Bundled Korean transport-mode names no longer match the reviewed exact-city "
+            "crosswalk"
+        )
+
     boundary_ids_by_area: dict[str, str] = {}
     boundaries: list[dict[str, Any]] = []
     emitted_boundary_ids: set[str] = set()
@@ -1697,6 +1923,11 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError(
             f"Unsupported Japan transit coverage version {japan_coverage.get('version')!r}"
         )
+    china_coverage = json.loads(args.china_coverage.read_text(encoding="utf-8"))
+    if china_coverage.get("version") != 1:
+        raise RuntimeError(
+            f"Unsupported China transit coverage version {china_coverage.get('version')!r}"
+        )
     with tempfile.TemporaryDirectory(prefix="cardbal-east-asia-boundaries-") as temporary_directory:
         temporary_path = Path(temporary_directory)
         source_cache_directory = args.source_cache_directory or temporary_path / "source-cache"
@@ -1719,6 +1950,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             geo["KOR_ADM1"],
             geo["KOR_ADM2"],
             args.korea_stations,
+            args.korea_modes,
         )
         (
             china_boundaries,
@@ -1759,8 +1991,8 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             f"missingReferenceOnlyChina={sorted(missing_reference_only_china_ids)}"
         )
 
-    return {
-        "version": 1,
+    catalog = {
+        "version": 2,
         "generatedAt": generated_at,
         "attribution": [
             "geoBoundaries (www.geoboundaries.org)",
@@ -1822,7 +2054,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         },
         "generation": {
             "coordinateOrder": "longitude,latitude",
-            "polygonRepresentation": "outer rings only; holes omitted",
+            "polygonRepresentation": "polygon components with one outer ring and zero or more interior hole rings",
             "quantizationDecimals": {
                 "JP": COORDINATE_DECIMALS,
                 "CN": CHINA_COORDINATE_DECIMALS,
@@ -1850,7 +2082,8 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             },
             "koreaCityReference": {
                 "source": "pinned mixed KOR ADM1 and ADM2 polygons",
-                "referenceScope": "eight metropolitan or special cities at ADM1, other municipalities at ADM2, and whole Jeju at ADM1; only exact mapped location codes are visit-eligible",
+                "referenceScope": "eight metropolitan or special cities at ADM1, other municipalities at ADM2, and whole Jeju at ADM1; exact station locations win, then reviewed exact-city KOTRIS modes provide fallback evidence",
+                "modeFallbackScope": "city-specific KOTRIS modes only; national, airport, capital-region, province-wide, and other multi-city modes are excluded",
                 "excludedNestedMetropolitanADM2Count": EXPECTED_KOREA_METROPOLITAN_ADM2_FEATURE_COUNT,
                 "excludedWholeAreaADM2ShapeNames": sorted(
                     KOREA_CITY_REFERENCE_EXCLUDED_ADM2_SHAPE_NAMES
@@ -1861,7 +2094,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 "visitEligibility": "current exact T-Union boundaries and 53 explicitly reviewed non-stacked historical aliases; nine province-wide, historical multi-city, or composite codes resolve only at Province level",
                 "landClipOrder": "Nominatim administrative geometry intersected with pinned Natural Earth land before local RDP, then intersected again after RDP before final quantization",
                 "postQuantizationContainment": "every output ring must stay within a 0.000008-degree land envelope; this bounds coordinate-rounding drift to about 0.9 meters at the equator",
-                "smallIslandRendering": "all source land components are retained in the catalog; the client hides only detached components smaller than 10 km in both dimensions",
+                "smallIslandRendering": "generated geometry removes detached secondary components smaller than 10 km in both dimensions; the client performs no component filtering",
                 "coastalValidation": {
                     CHINA_COASTAL_VALIDATION_CITY_CODES[city_code]: metrics
                     for city_code, metrics in sorted(china_coastal_validation.items())
@@ -1880,6 +2113,13 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         "koreaModeToBoundary": korea_mode_mapping,
         "koreaLocationToBoundary": korea_location_mapping,
     }
+    from optimize_east_asia_boundary_catalogs import (
+        optimize_catalog,
+        prune_city_catalog_to_supported_boundaries,
+    )
+
+    catalog = prune_city_catalog_to_supported_boundaries(catalog, china_coverage)
+    return optimize_catalog(catalog, "city", generated_at=generated_at)
 
 
 def parse_args() -> argparse.Namespace:
@@ -1890,6 +2130,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--china-coverage", type=Path, default=DEFAULT_CHINA_COVERAGE)
     parser.add_argument("--china-relation-manifest", type=Path, default=DEFAULT_CHINA_RELATION_MANIFEST)
     parser.add_argument("--korea-stations", type=Path, default=DEFAULT_KOREA_STATIONS)
+    parser.add_argument("--korea-modes", type=Path, default=DEFAULT_KOREA_MODES)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--source-cache-directory",
@@ -1918,6 +2159,7 @@ def main() -> None:
         args.china_coverage,
         args.china_relation_manifest,
         args.korea_stations,
+        args.korea_modes,
     ):
         if not input_path.is_file():
             raise FileNotFoundError(input_path)
@@ -1929,11 +2171,14 @@ def main() -> None:
         )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(encoded)
-    counts = catalog["generation"]["counts"]
+    source_counts = catalog["generation"]["sourceCounts"]
+    optimized_counts = catalog["generation"]["boundaryOptimization"]["counts"]
     print(
-        f"Wrote {args.output} ({len(encoded):,} bytes; {counts['boundaries']} boundaries; "
-        f"JP hex codes {counts['JP']['mappedUniqueHexCodes']}/{counts['JP']['inputUniqueHexCodes']}; "
-        f"CN cities {counts['CN']['mappedCityCount']}; KR modes {counts['KR']['mappedModeCodeCount']})"
+        f"Wrote {args.output} ({len(encoded):,} bytes; "
+        f"{optimized_counts['boundaries']} supported boundaries; "
+        f"JP hex codes {source_counts['JP']['mappedUniqueHexCodes']}/{source_counts['JP']['inputUniqueHexCodes']}; "
+        f"CN cities {source_counts['CN']['mappedCityCount']}; "
+        f"KR modes {source_counts['KR']['mappedModeCodeCount']})"
     )
 
 

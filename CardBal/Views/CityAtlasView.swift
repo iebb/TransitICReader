@@ -17,6 +17,8 @@ private struct CityAtlasView: View {
     @State private var cityBoundaries: [CityAtlasBoundary] = []
     @State private var provinceBoundaries: [CityAtlasBoundary] = []
     @State private var countryExtentBoundaries: [CityAtlasBoundary] = []
+    @State private var cityReferenceLines: [CityAtlasReferenceLineBatch] = []
+    @State private var provinceReferenceLines: [CityAtlasReferenceLineBatch] = []
     @State private var scope: CityAtlasScope = .all
     @State private var boundaryLevel: CityAtlasBoundaryLevel = .province
     @State private var selectedCityID: String?
@@ -57,6 +59,14 @@ private struct CityAtlasView: View {
         case .province: return visibleProvinceBoundaries
         case .city: return visibleCityBoundaries
         }
+    }
+
+    private var visibleReferenceLines: [CityAtlasReferenceLineBatch] {
+        let batches = boundaryLevel == .province
+            ? provinceReferenceLines
+            : cityReferenceLines
+        guard let country = scope.country else { return batches }
+        return batches.filter { $0.countryCode == country }
     }
 
     private var recordCount: Int {
@@ -115,6 +125,7 @@ private struct CityAtlasView: View {
             CityAtlasMapRepresentable(
                 visits: visibleDisplayVisits,
                 referenceBoundaries: visibleReferenceBoundaries,
+                referenceLines: visibleReferenceLines,
                 countryExtentBoundaries: countryExtentBoundaries,
                 scope: scope,
                 boundaryLevel: boundaryLevel,
@@ -432,6 +443,8 @@ private struct CityAtlasView: View {
             cityBoundaries = resolution.cityBoundaries
             provinceBoundaries = resolution.provinceBoundaries
             countryExtentBoundaries = resolution.countryExtentBoundaries
+            cityReferenceLines = resolution.cityReferenceLines
+            provinceReferenceLines = resolution.provinceReferenceLines
             let placeIDs = Set(
                 resolution.visits.map(\.id) + resolution.provinceVisits.map(\.id)
             )
@@ -447,6 +460,8 @@ private struct CityAtlasView: View {
             cityBoundaries = []
             provinceBoundaries = []
             countryExtentBoundaries = []
+            cityReferenceLines = []
+            provinceReferenceLines = []
             loadError = error.localizedDescription
         }
         isLoading = false
@@ -585,6 +600,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
     let visits: [CityAtlasVisit]
     let referenceBoundaries: [CityAtlasBoundary]
+    let referenceLines: [CityAtlasReferenceLineBatch]
     let countryExtentBoundaries: [CityAtlasBoundary]
     let scope: CityAtlasScope
     let boundaryLevel: CityAtlasBoundaryLevel
@@ -657,6 +673,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         private var lastResetCameraRevision = -1
         private var styles: [ObjectIdentifier: CityAtlasOverlayStyle] = [:]
         private var visitByID: [String: CityAtlasVisit] = [:]
+        private var selectedOverlay: MKMultiPolygon?
+        private var selectedBoundaryID: String?
 
         init(parent: CityAtlasMapRepresentable) {
             self.parent = parent
@@ -666,13 +684,17 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             let visitSignature = parent.visits
                 .map { "\($0.id):\($0.recordCount):\($0.cards.count)" }
                 .joined(separator: "|")
-            let referenceSignature = parent.referenceBoundaries.map(\.id).sorted().joined(separator: "|")
-            let signature = "scope=\(parent.scope.id)|level=\(parent.boundaryLevel.id)|references=\(referenceSignature)|visits=\(visitSignature)|selected=\(parent.selectedCityID ?? "")"
+            let referenceSignature = parent.referenceLines
+                .map(\.signature)
+                .sorted()
+                .joined(separator: "|")
+            let signature = "scope=\(parent.scope.id)|level=\(parent.boundaryLevel.id)|references=\(referenceSignature)|visits=\(visitSignature)"
 
             if signature != renderedSignature {
                 renderedSignature = signature
                 rebuildOverlays(on: mapView)
             }
+            updateSelectedOverlay(on: mapView)
 
             guard parent.cameraRevision != lastCameraRevision else { return }
             lastCameraRevision = parent.cameraRevision
@@ -690,7 +712,6 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 }
                 focus(
                     on: countryExtent.isEmpty ? parent.referenceBoundaries : countryExtent,
-                    detail: .province,
                     mapView: mapView
                 )
             } else {
@@ -701,7 +722,6 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         private func focusOnAllCountries(mapView: MKMapView) {
             focus(
                 on: parent.countryExtentBoundaries,
-                detail: .province,
                 extraCoordinates: CityAtlasMapRepresentable.allScopeAnchors,
                 mapView: mapView
             )
@@ -712,29 +732,19 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             mapView.removeAnnotations(mapView.annotations)
             styles.removeAll(keepingCapacity: true)
             visitByID = Dictionary(uniqueKeysWithValues: parent.visits.map { ($0.id, $0) })
+            selectedOverlay = nil
+            selectedBoundaryID = nil
 
-            var referencePolygons: [CityAtlasCountry: [MKPolygon]] = [:]
-            var referenceOverlays: [MKMultiPolygon] = []
-            var glowOverlays: [MKPolygon] = []
+            var referenceOverlays: [MKMultiPolyline] = []
+            var glowPolygons: [CityAtlasCountry: [MKPolygon]] = [:]
+            var glowOverlays: [MKMultiPolygon] = []
             var fillOverlays: [MKPolygon] = []
             var annotations: [CityAtlasAnnotation] = []
 
-            for boundary in parent.referenceBoundaries.sorted(by: { $0.id < $1.id }) {
-                let polygons = boundary.renderCoordinateRings(
-                    detail: parent.boundaryLevel.renderDetail
-                ).compactMap { ring -> MKPolygon? in
-                    guard ring.count >= 3 else { return nil }
-                    var coordinates = ring
-                    return MKPolygon(coordinates: &coordinates, count: coordinates.count)
-                }
-                referencePolygons[boundary.countryCode, default: []].append(contentsOf: polygons)
-            }
-
-            for country in CityAtlasCountry.allCases {
-                guard let polygons = referencePolygons[country], !polygons.isEmpty else { continue }
-                let referenceOverlay = MKMultiPolygon(polygons)
+            for batch in parent.referenceLines.sorted(by: { $0.sortKey < $1.sortKey }) {
+                let referenceOverlay = MKMultiPolyline(batch.makeMapPolylines())
                 styles[ObjectIdentifier(referenceOverlay)] = referenceStyle(
-                    for: country,
+                    for: batch.countryCode,
                     level: parent.boundaryLevel
                 )
                 referenceOverlays.append(referenceOverlay)
@@ -746,14 +756,12 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
                 if var mask = visitedMasks[boundary.id] {
                     mask.evidenceIDs.formUnion(visit.evidenceIDs)
-                    mask.isSelected = mask.isSelected || visit.id == parent.selectedCityID
                     visitedMasks[boundary.id] = mask
                 } else {
                     visitedMasks[boundary.id] = CityAtlasVisitedMask(
                         boundary: boundary,
                         country: visit.country,
-                        evidenceIDs: visit.evidenceIDs,
-                        isSelected: visit.id == parent.selectedCityID
+                        evidenceIDs: visit.evidenceIDs
                     )
                 }
             }
@@ -771,62 +779,77 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 case (.province, .korea): visibleAlpha = max(0.40, baseAlpha)
                 case (.city, .korea): visibleAlpha = max(0.44, baseAlpha)
                 }
-                let fillAlpha = mask.isSelected ? min(visibleAlpha + 0.10, 0.66) : visibleAlpha
-                let strokeAlpha: CGFloat
-                let lineWidth: CGFloat
-                switch (parent.boundaryLevel, mask.country) {
-                case (_, .china):
-                    strokeAlpha = 0.96
-                    lineWidth = mask.isSelected ? 4 : 2.4
-                case (.province, .japan):
-                    strokeAlpha = 0.92
-                    lineWidth = mask.isSelected ? 2.6 : 1.8
-                case (.city, .japan):
-                    strokeAlpha = 0.92
-                    lineWidth = mask.isSelected ? 2.4 : 1.6
-                case (.province, .korea):
-                    strokeAlpha = 0.96
-                    lineWidth = mask.isSelected ? 2.8 : 2.2
-                case (.city, .korea):
-                    strokeAlpha = 0.96
-                    lineWidth = mask.isSelected ? 2.4 : 1.8
-                }
+                let fillAlpha = visibleAlpha
 
-                for ring in mask.boundary.renderCoordinateRings(
-                    detail: parent.boundaryLevel.renderDetail
-                ) where ring.count >= 3 {
-                    var coordinates = ring
-                    let glow = MKPolygon(coordinates: &coordinates, count: coordinates.count)
-                    styles[ObjectIdentifier(glow)] = CityAtlasOverlayStyle(
-                        color: mask.country.uiTint,
-                        fillAlpha: 0,
-                        strokeAlpha: mask.isSelected ? 0.28 : 0.16,
-                        lineWidth: glowLineWidth(
-                            for: mask.country,
-                            level: parent.boundaryLevel
-                        )
-                    )
-                    glowOverlays.append(glow)
-
-                    let fill = MKPolygon(coordinates: &coordinates, count: coordinates.count)
+                for fill in mask.boundary.makeMapPolygons() {
                     styles[ObjectIdentifier(fill)] = CityAtlasOverlayStyle(
                         color: mask.country.uiTint,
                         fillAlpha: fillAlpha,
-                        strokeAlpha: strokeAlpha,
-                        lineWidth: lineWidth
+                        strokeAlpha: 0,
+                        lineWidth: 0
                     )
                     fillOverlays.append(fill)
                 }
+                glowPolygons[mask.country, default: []].append(
+                    contentsOf: mask.boundary.makeMapPolygons()
+                )
+            }
+
+            for country in CityAtlasCountry.allCases {
+                guard let polygons = glowPolygons[country], !polygons.isEmpty else { continue }
+                let glow = MKMultiPolygon(polygons)
+                styles[ObjectIdentifier(glow)] = CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.24,
+                    lineWidth: glowLineWidth(
+                        for: country,
+                        level: parent.boundaryLevel
+                    ),
+                    overviewLineWidth: overviewGlowLineWidth(
+                        for: country,
+                        level: parent.boundaryLevel
+                    )
+                )
+                glowOverlays.append(glow)
             }
 
             for visit in parent.visits {
                 annotations.append(CityAtlasAnnotation(visit: visit))
             }
 
+            mapView.addOverlays(glowOverlays, level: .aboveRoads)
             mapView.addOverlays(fillOverlays, level: .aboveRoads)
-            mapView.addOverlays(referenceOverlays, level: .aboveRoads)
-            mapView.addOverlays(glowOverlays, level: .aboveLabels)
+            // Keep the generated, de-duplicated linework above map labels so it
+            // remains legible at close zoom without rebuilding overlays.
+            mapView.addOverlays(referenceOverlays, level: .aboveLabels)
             mapView.addAnnotations(annotations)
+        }
+
+        private func updateSelectedOverlay(on mapView: MKMapView) {
+            guard selectedBoundaryID != parent.selectedCityID else { return }
+            if let selectedOverlay {
+                mapView.removeOverlay(selectedOverlay)
+                styles.removeValue(forKey: ObjectIdentifier(selectedOverlay))
+            }
+            selectedOverlay = nil
+            selectedBoundaryID = parent.selectedCityID
+
+            guard let selectedBoundaryID,
+                  let visit = visitByID[selectedBoundaryID] else { return }
+            let polygons = visit.boundary.makeMapPolygons()
+            guard !polygons.isEmpty else { return }
+
+            let overlay = MKMultiPolygon(polygons)
+            styles[ObjectIdentifier(overlay)] = CityAtlasOverlayStyle(
+                color: visit.country.uiTint,
+                fillAlpha: 0,
+                strokeAlpha: 0.40,
+                lineWidth: parent.boundaryLevel == .province ? 8 : 6.5,
+                overviewLineWidth: parent.boundaryLevel == .province ? 1.8 : 1.5
+            )
+            selectedOverlay = overlay
+            mapView.addOverlay(overlay, level: .aboveLabels)
         }
 
         private func glowLineWidth(
@@ -836,7 +859,18 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             switch (level, country) {
             case (.province, .china): return 7
             case (.province, .japan), (.province, .korea): return 6
-            case (.city, .china), (.city, .japan), (.city, .korea): return 5
+            case (.city, .china), (.city, .japan), (.city, .korea): return 5.5
+            }
+        }
+
+        private func overviewGlowLineWidth(
+            for country: CityAtlasCountry,
+            level: CityAtlasBoundaryLevel
+        ) -> CGFloat {
+            switch (level, country) {
+            case (.province, .china): return 1.5
+            case (.province, .japan), (.province, .korea): return 1.4
+            case (.city, .china), (.city, .japan), (.city, .korea): return 1.25
             }
         }
 
@@ -848,69 +882,82 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             case (.province, .china):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
-                    fillAlpha: 0.03,
-                    strokeAlpha: 0.66,
-                    lineWidth: 1.35,
-                    zoomLineWidthBoost: 0.55
+                    fillAlpha: 0,
+                    strokeAlpha: 0.88,
+                    lineWidth: 2.2,
+                    overviewLineWidth: 0.85
                 )
             case (.province, .japan):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.58,
-                    lineWidth: 1.15,
-                    zoomLineWidthBoost: 0.60
+                    strokeAlpha: 0.82,
+                    lineWidth: 2.0,
+                    overviewLineWidth: 0.75
                 )
             case (.province, .korea):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.68,
-                    lineWidth: 1.25,
-                    zoomLineWidthBoost: 0.55
+                    strokeAlpha: 0.90,
+                    lineWidth: 2.1,
+                    overviewLineWidth: 0.80
                 )
             case (.city, .china):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
-                    fillAlpha: 0.012,
-                    strokeAlpha: 0.54,
-                    lineWidth: 0.90,
-                    zoomLineWidthBoost: 0.75
+                    fillAlpha: 0,
+                    strokeAlpha: 0.82,
+                    lineWidth: 1.75,
+                    overviewLineWidth: 0.55
                 )
             case (.city, .japan):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.50,
-                    lineWidth: 0.78,
-                    zoomLineWidthBoost: 0.80
+                    strokeAlpha: 0.78,
+                    lineWidth: 1.6,
+                    overviewLineWidth: 0.50
                 )
             case (.city, .korea):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
-                    strokeAlpha: 0.62,
-                    lineWidth: 1.0,
-                    zoomLineWidthBoost: 0.70
+                    strokeAlpha: 0.88,
+                    lineWidth: 1.8,
+                    overviewLineWidth: 0.60
                 )
             }
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let multiPolyline = overlay as? MKMultiPolyline,
+               let style = styles[ObjectIdentifier(multiPolyline)] {
+                return configured(
+                    CityAtlasAdaptiveMultiPolylineRenderer(
+                        multiPolyline: multiPolyline,
+                        overviewLineWidth: style.overviewLineWidth,
+                        detailLineWidth: style.lineWidth
+                    ),
+                    style: style
+                )
+            }
             if let multiPolygon = overlay as? MKMultiPolygon,
                let style = styles[ObjectIdentifier(multiPolygon)] {
                 return configured(
-                    MKMultiPolygonRenderer(multiPolygon: multiPolygon),
-                    style: style,
-                    mapView: mapView
+                    CityAtlasAdaptiveMultiPolygonRenderer(
+                        multiPolygon: multiPolygon,
+                        overviewLineWidth: style.overviewLineWidth,
+                        detailLineWidth: style.lineWidth
+                    ),
+                    style: style
                 )
             }
             if let polygon = overlay as? MKPolygon,
                let style = styles[ObjectIdentifier(polygon)] {
                 return configured(
                     MKPolygonRenderer(polygon: polygon),
-                    style: style,
-                    mapView: mapView
+                    style: style
                 )
             }
             return MKOverlayRenderer(overlay: overlay)
@@ -918,47 +965,14 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
         private func configured(
             _ renderer: MKOverlayPathRenderer,
-            style: CityAtlasOverlayStyle,
-            mapView: MKMapView
+            style: CityAtlasOverlayStyle
         ) -> MKOverlayRenderer {
             renderer.fillColor = style.color.withAlphaComponent(style.fillAlpha)
             renderer.strokeColor = style.color.withAlphaComponent(style.strokeAlpha)
-            renderer.lineWidth = visibleLineWidth(for: style, on: mapView)
+            renderer.lineWidth = style.lineWidth
             renderer.lineJoin = .round
             renderer.lineCap = .round
             return renderer
-        }
-
-        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-            for overlay in mapView.overlays {
-                guard let style = styles[ObjectIdentifier(overlay)],
-                      style.zoomLineWidthBoost > 0,
-                      let renderer = mapView.renderer(for: overlay) as? MKOverlayPathRenderer else {
-                    continue
-                }
-                let lineWidth = visibleLineWidth(for: style, on: mapView)
-                guard abs(renderer.lineWidth - lineWidth) > 0.05 else { continue }
-                renderer.lineWidth = lineWidth
-                renderer.setNeedsDisplay()
-            }
-        }
-
-        private func visibleLineWidth(
-            for style: CityAtlasOverlayStyle,
-            on mapView: MKMapView
-        ) -> CGFloat {
-            guard style.zoomLineWidthBoost > 0 else { return style.lineWidth }
-            let farDistance: CLLocationDistance = 3_000_000
-            let closeDistance: CLLocationDistance = 180_000
-            let progress = max(
-                0,
-                min(
-                    1,
-                    (farDistance - mapView.camera.centerCoordinateDistance)
-                        / (farDistance - closeDistance)
-                )
-            )
-            return style.lineWidth * (1 + CGFloat(progress) * style.zoomLineWidthBoost)
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -983,13 +997,12 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             if parent.boundaryLevel == .province {
                 focus(
                     on: [visit.boundary],
-                    detail: .province,
                     mapView: mapView
                 )
                 return
             }
 
-            let renderedCoordinates = visit.boundary.renderCoordinateRings(detail: .city).flatMap { $0 }
+            let renderedCoordinates = visit.boundary.outerCoordinatesForBounds
             let renderedBounds = renderedCoordinates.dropFirst().reduce(
                 into: (
                     minLongitude: renderedCoordinates.first?.longitude ?? visit.boundary.minLongitude,
@@ -1020,15 +1033,12 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
         private func focus(
             on boundaries: [CityAtlasBoundary],
-            detail: CityAtlasBoundaryDetail,
             extraCoordinates: [CLLocationCoordinate2D] = [],
             mapView: MKMapView
         ) {
             var visibleRect = MKMapRect.null
             for boundary in boundaries {
-                for ring in boundary.renderCoordinateRings(detail: detail) where ring.count >= 3 {
-                    var coordinates = ring
-                    let polygon = MKPolygon(coordinates: &coordinates, count: coordinates.count)
+                for polygon in boundary.makeMapPolygons() {
                     visibleRect = visibleRect.isNull
                         ? polygon.boundingMapRect
                         : visibleRect.union(polygon.boundingMapRect)
@@ -1095,14 +1105,113 @@ private struct CityAtlasOverlayStyle {
     let fillAlpha: CGFloat
     let strokeAlpha: CGFloat
     let lineWidth: CGFloat
-    var zoomLineWidthBoost: CGFloat = 0
+    let overviewLineWidth: CGFloat
+
+    init(
+        color: UIColor,
+        fillAlpha: CGFloat,
+        strokeAlpha: CGFloat,
+        lineWidth: CGFloat,
+        overviewLineWidth: CGFloat? = nil
+    ) {
+        self.color = color
+        self.fillAlpha = fillAlpha
+        self.strokeAlpha = strokeAlpha
+        self.lineWidth = lineWidth
+        self.overviewLineWidth = overviewLineWidth ?? lineWidth
+    }
+}
+
+private enum CityAtlasAdaptiveStroke {
+    // MapKit's conventional zoom level is log2(zoomScale) + 20. Interpolate
+    // inside the renderer so zooming never rebuilds or invalidates overlays.
+    private static let overviewZoomLevel = 3.0
+    private static let detailZoomLevel = 5.2
+
+    static func apply(
+        to context: CGContext,
+        zoomScale: MKZoomScale,
+        overviewLineWidth: CGFloat,
+        detailLineWidth: CGFloat
+    ) {
+        let zoomLevel = log2(max(Double(zoomScale), Double.leastNormalMagnitude)) + 20
+        let linearProgress = max(
+            0,
+            min(1, (zoomLevel - overviewZoomLevel) / (detailZoomLevel - overviewZoomLevel))
+        )
+        let progress = linearProgress * linearProgress * (3 - 2 * linearProgress)
+        let screenLineWidth = overviewLineWidth
+            + (detailLineWidth - overviewLineWidth) * CGFloat(progress)
+        context.setLineWidth(screenLineWidth / max(CGFloat(zoomScale), .leastNonzeroMagnitude))
+    }
+}
+
+private final class CityAtlasAdaptiveMultiPolylineRenderer: MKMultiPolylineRenderer {
+    private let overviewLineWidth: CGFloat
+    private let detailLineWidth: CGFloat
+
+    init(
+        multiPolyline: MKMultiPolyline,
+        overviewLineWidth: CGFloat,
+        detailLineWidth: CGFloat
+    ) {
+        self.overviewLineWidth = overviewLineWidth
+        self.detailLineWidth = detailLineWidth
+        super.init(overlay: multiPolyline)
+    }
+
+    override init(overlay: any MKOverlay) {
+        overviewLineWidth = 0
+        detailLineWidth = 0
+        super.init(overlay: overlay)
+    }
+
+    override func applyStrokeProperties(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        super.applyStrokeProperties(to: context, atZoomScale: zoomScale)
+        CityAtlasAdaptiveStroke.apply(
+            to: context,
+            zoomScale: zoomScale,
+            overviewLineWidth: overviewLineWidth,
+            detailLineWidth: detailLineWidth
+        )
+    }
+}
+
+private final class CityAtlasAdaptiveMultiPolygonRenderer: MKMultiPolygonRenderer {
+    private let overviewLineWidth: CGFloat
+    private let detailLineWidth: CGFloat
+
+    init(
+        multiPolygon: MKMultiPolygon,
+        overviewLineWidth: CGFloat,
+        detailLineWidth: CGFloat
+    ) {
+        self.overviewLineWidth = overviewLineWidth
+        self.detailLineWidth = detailLineWidth
+        super.init(overlay: multiPolygon)
+    }
+
+    override init(overlay: any MKOverlay) {
+        overviewLineWidth = 0
+        detailLineWidth = 0
+        super.init(overlay: overlay)
+    }
+
+    override func applyStrokeProperties(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        super.applyStrokeProperties(to: context, atZoomScale: zoomScale)
+        CityAtlasAdaptiveStroke.apply(
+            to: context,
+            zoomScale: zoomScale,
+            overviewLineWidth: overviewLineWidth,
+            detailLineWidth: detailLineWidth
+        )
+    }
 }
 
 private struct CityAtlasVisitedMask {
     let boundary: CityAtlasBoundary
     let country: CityAtlasCountry
     var evidenceIDs: Set<String>
-    var isSelected: Bool
 
     var recordCount: Int { evidenceIDs.count }
 }
@@ -1200,7 +1309,7 @@ private final class CityAtlasAnnotationView: MKAnnotationView {
 
 // MARK: - Visit resolution
 
-private enum CityAtlasCountry: String, Decodable, CaseIterable {
+private enum CityAtlasCountry: String, Decodable, CaseIterable, Hashable {
     case china = "CN"
     case japan = "JP"
     case korea = "KR"
@@ -1274,12 +1383,6 @@ private enum CityAtlasBoundaryLevel: String, CaseIterable, Identifiable {
         }
     }
 
-    var renderDetail: CityAtlasBoundaryDetail {
-        switch self {
-        case .province: return .province
-        case .city: return .city
-        }
-    }
 }
 
 private struct CityAtlasVisit: Identifiable {
@@ -1320,6 +1423,66 @@ private struct CityAtlasCardVisit: Identifiable {
     let recordCount: Int
 }
 
+private struct CityAtlasReferenceLineBatch: Decodable {
+    let countryCode: CityAtlasCountry
+    let bucket: String
+    let lines: [[[Double]]]
+
+    private enum CodingKeys: String, CodingKey {
+        case countryCode
+        case bucket
+        case lines
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        countryCode = try container.decode(CityAtlasCountry.self, forKey: .countryCode)
+        bucket = try container.decode(String.self, forKey: .bucket)
+        lines = try container.decode([[[Double]]].self, forKey: .lines)
+
+        guard !bucket.isEmpty,
+              !lines.isEmpty,
+              lines.allSatisfy({ line in
+                  line.count >= 2 && line.allSatisfy { point in
+                      point.count == 2 && point.allSatisfy(\.isFinite)
+                  }
+              }) else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Reference-line batches require a bucket and valid two-point lines."
+                )
+            )
+        }
+    }
+
+    var sortKey: String { "\(countryCode.rawValue):\(bucket)" }
+
+    var signature: String {
+        let vertexCount = lines.reduce(0) { $0 + $1.count }
+        return "\(sortKey):\(lines.count):\(vertexCount)"
+    }
+
+    func makeMapPolylines() -> [MKPolyline] {
+        lines.map { line in
+            var coordinates = line.map {
+                CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0])
+            }
+            return MKPolyline(coordinates: &coordinates, count: coordinates.count)
+        }
+    }
+}
+
+private struct CityAtlasBoundaryComponent: Decodable {
+    let outer: [[Double]]
+    let holes: [[[Double]]]
+}
+
+private struct CityAtlasCoordinateComponent {
+    let outer: [CLLocationCoordinate2D]
+    let holes: [[CLLocationCoordinate2D]]
+}
+
 private struct CityAtlasBoundary: Decodable {
     let id: String
     let countryCode: CityAtlasCountry
@@ -1328,7 +1491,41 @@ private struct CityAtlasBoundary: Decodable {
     let nativeName: String
     let center: [Double]
     let bbox: [Double]
-    let polygons: [[[Double]]]
+    let components: [CityAtlasBoundaryComponent]
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case countryCode
+        case subdivisionCode
+        case name
+        case nativeName
+        case center
+        case bbox
+        case components
+        case polygons
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        countryCode = try container.decode(CityAtlasCountry.self, forKey: .countryCode)
+        subdivisionCode = try container.decodeIfPresent(String.self, forKey: .subdivisionCode)
+        name = try container.decode(String.self, forKey: .name)
+        nativeName = try container.decode(String.self, forKey: .nativeName)
+        center = try container.decode([Double].self, forKey: .center)
+        bbox = try container.decode([Double].self, forKey: .bbox)
+        if let decodedComponents = try container.decodeIfPresent(
+            [CityAtlasBoundaryComponent].self,
+            forKey: .components
+        ) {
+            components = decodedComponents
+        } else {
+            let legacyPolygons = try container.decode([[[Double]]].self, forKey: .polygons)
+            components = legacyPolygons.map {
+                CityAtlasBoundaryComponent(outer: $0, holes: [])
+            }
+        }
+    }
 
     var centerCoordinate: CLLocationCoordinate2D {
         guard center.count >= 2 else {
@@ -1337,12 +1534,35 @@ private struct CityAtlasBoundary: Decodable {
         return CLLocationCoordinate2D(latitude: center[1], longitude: center[0])
     }
 
-    var coordinateRings: [[CLLocationCoordinate2D]] {
-        polygons.map { ring in
-            ring.compactMap { point in
-                guard point.count >= 2 else { return nil }
-                return CLLocationCoordinate2D(latitude: point[1], longitude: point[0])
+    private var coordinateComponents: [CityAtlasCoordinateComponent] {
+        components.compactMap { component in
+            let outer = Self.coordinates(from: component.outer)
+            guard outer.count >= 3 else { return nil }
+            return CityAtlasCoordinateComponent(
+                outer: outer,
+                holes: component.holes
+                    .map(Self.coordinates(from:))
+                    .filter { $0.count >= 3 }
+            )
+        }
+    }
+
+    var outerCoordinatesForBounds: [CLLocationCoordinate2D] {
+        coordinateComponents.flatMap(\.outer)
+    }
+
+    func makeMapPolygons() -> [MKPolygon] {
+        coordinateComponents.map { component in
+            let holes = component.holes.map { ring -> MKPolygon in
+                var coordinates = ring
+                return MKPolygon(coordinates: &coordinates, count: coordinates.count)
             }
+            var coordinates = component.outer
+            return MKPolygon(
+                coordinates: &coordinates,
+                count: coordinates.count,
+                interiorPolygons: holes.isEmpty ? nil : holes
+            )
         }
     }
 
@@ -1382,34 +1602,6 @@ private struct CityAtlasBoundary: Decodable {
         return trimmedNativeName.isEmpty ? String(localized: "City") : trimmedNativeName
     }
 
-    func renderCoordinateRings(detail: CityAtlasBoundaryDetail) -> [[CLLocationCoordinate2D]] {
-        let rings = coordinateRings.filter { $0.count >= 3 }
-        guard !rings.isEmpty else { return [] }
-
-        let measured = rings.map { ring in
-            (
-                ring: ring,
-                area: Self.approximateAreaSquareKilometers(of: ring),
-                size: Self.approximateBoundingBoxSizeKilometers(of: ring)
-            )
-        }
-        guard let principalIndex = measured.indices.max(by: {
-            measured[$0].area < measured[$1].area
-        }) else { return [] }
-        let tolerance = detail.simplificationTolerance(for: countryCode)
-
-        return measured.enumerated().compactMap { index, item in
-            let isPrincipal = index == principalIndex
-            // The bundled catalog contains outer rings only. Keep the principal
-            // landmass, then discard every tiny secondary island/exclave.
-            let isSmallSecondaryComponent = !isPrincipal
-                && item.size.width < 10
-                && item.size.height < 10
-            guard !isSmallSecondaryComponent else { return nil }
-            return Self.simplify(item.ring, tolerance: tolerance)
-        }
-    }
-
     func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
         let bounds = bounds
         guard coordinate.longitude >= bounds.minLongitude,
@@ -1418,24 +1610,42 @@ private struct CityAtlasBoundary: Decodable {
               coordinate.latitude <= bounds.maxLatitude else {
             return false
         }
-        return coordinateRings.contains { Self.contains(coordinate, in: $0) }
+        return coordinateComponents.contains { component in
+            Self.contains(coordinate, in: component.outer)
+                && !component.holes.contains { Self.contains(coordinate, in: $0) }
+        }
     }
 
     func distance(to coordinate: CLLocationCoordinate2D) -> Double {
         if contains(coordinate) { return 0 }
-        return coordinateRings.reduce(Double.infinity) { nearest, ring in
-            guard ring.count >= 2 else { return nearest }
-            return min(
-                nearest,
-                zip(ring, ring.dropFirst()).reduce(Double.infinity) { distance, segment in
-                    min(distance, Self.segmentDistance(from: coordinate, to: segment.0, and: segment.1))
-                }
-            )
+        return coordinateComponents.reduce(Double.infinity) { componentNearest, component in
+            ([component.outer] + component.holes).reduce(componentNearest) { ringNearest, ring in
+                guard ring.count >= 2 else { return ringNearest }
+                return min(
+                    ringNearest,
+                    zip(ring, ring.dropFirst()).reduce(Double.infinity) { distance, segment in
+                        min(
+                            distance,
+                            Self.segmentDistance(
+                                from: coordinate,
+                                to: segment.0,
+                                and: segment.1
+                            )
+                        )
+                    }
+                )
+            }
         }
     }
 
     var approximateAreaSquareKilometers: Double {
-        coordinateRings.reduce(0) { $0 + Self.approximateAreaSquareKilometers(of: $1) }
+        coordinateComponents.reduce(0) { total, component in
+            let outerArea = Self.approximateAreaSquareKilometers(of: component.outer)
+            let holeArea = component.holes.reduce(0) {
+                $0 + Self.approximateAreaSquareKilometers(of: $1)
+            }
+            return total + max(0, outerArea - holeArea)
+        }
     }
 
     var bounds: (minLongitude: Double, minLatitude: Double, maxLongitude: Double, maxLatitude: Double) {
@@ -1456,6 +1666,13 @@ private struct CityAtlasBoundary: Decodable {
     var maxLongitude: Double { bounds.maxLongitude }
     var maxLatitude: Double { bounds.maxLatitude }
 
+    private static func coordinates(from points: [[Double]]) -> [CLLocationCoordinate2D] {
+        points.compactMap { point in
+            guard point.count >= 2 else { return nil }
+            return CLLocationCoordinate2D(latitude: point[1], longitude: point[0])
+        }
+    }
+
     private static func approximateAreaSquareKilometers(
         of ring: [CLLocationCoordinate2D]
     ) -> Double {
@@ -1465,36 +1682,15 @@ private struct CityAtlasBoundary: Decodable {
         let latitudeScale = 110.574
         var twiceArea = 0.0
         for index in ring.indices {
-            let nextIndex = ring.index(after: index) == ring.endIndex ? ring.startIndex : ring.index(after: index)
+            let nextIndex = ring.index(after: index) == ring.endIndex
+                ? ring.startIndex
+                : ring.index(after: index)
             let left = ring[index]
             let right = ring[nextIndex]
             twiceArea += (left.longitude * longitudeScale) * (right.latitude * latitudeScale)
                 - (right.longitude * longitudeScale) * (left.latitude * latitudeScale)
         }
         return abs(twiceArea) / 2
-    }
-
-    private static func approximateBoundingBoxSizeKilometers(
-        of ring: [CLLocationCoordinate2D]
-    ) -> (width: Double, height: Double) {
-        guard let first = ring.first else { return (0, 0) }
-        var minimumLatitude = first.latitude
-        var maximumLatitude = first.latitude
-        var minimumLongitude = first.longitude
-        var maximumLongitude = first.longitude
-        for coordinate in ring.dropFirst() {
-            minimumLatitude = min(minimumLatitude, coordinate.latitude)
-            maximumLatitude = max(maximumLatitude, coordinate.latitude)
-            minimumLongitude = min(minimumLongitude, coordinate.longitude)
-            maximumLongitude = max(maximumLongitude, coordinate.longitude)
-        }
-
-        let meanLatitude = (minimumLatitude + maximumLatitude) / 2
-        let longitudeScale = 111.32 * abs(cos(meanLatitude * .pi / 180))
-        return (
-            width: (maximumLongitude - minimumLongitude) * longitudeScale,
-            height: (maximumLatitude - minimumLatitude) * 110.574
-        )
     }
 
     private static func contains(
@@ -1534,73 +1730,11 @@ private struct CityAtlasBoundary: Decodable {
         let dx = bx - ax
         let dy = by - ay
         guard dx != 0 || dy != 0 else { return hypot(px - ax, py - ay) }
-        let projection = max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+        let projection = max(
+            0,
+            min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))
+        )
         return hypot(px - (ax + projection * dx), py - (ay + projection * dy))
-    }
-
-    private static func simplify(
-        _ ring: [CLLocationCoordinate2D],
-        tolerance: Double
-    ) -> [CLLocationCoordinate2D] {
-        guard tolerance > 0 else { return ring }
-        var points = ring
-        if let first = points.first, let last = points.last,
-           first.latitude == last.latitude, first.longitude == last.longitude {
-            points.removeLast()
-        }
-        points = points.reduce(into: []) { result, point in
-            guard let last = result.last,
-                  last.latitude == point.latitude,
-                  last.longitude == point.longitude else {
-                result.append(point)
-                return
-            }
-        }
-        guard points.count > 3 else { return points }
-
-        let toleranceSquared = tolerance * tolerance
-        var kept = Set([0, points.count - 1])
-        var pending = [(0, points.count - 1)]
-        while let segment = pending.popLast() {
-            let (start, end) = segment
-            guard end > start + 1 else { continue }
-            var furthestIndex: Int?
-            var furthestDistance = -1.0
-            for index in (start + 1)..<end {
-                let distance = perpendicularDistanceSquared(
-                    from: points[index],
-                    to: points[start],
-                    and: points[end]
-                )
-                if distance > furthestDistance {
-                    furthestDistance = distance
-                    furthestIndex = index
-                }
-            }
-            if let furthestIndex, furthestDistance > toleranceSquared {
-                kept.insert(furthestIndex)
-                pending.append((start, furthestIndex))
-                pending.append((furthestIndex, end))
-            }
-        }
-
-        let simplified = kept.sorted().map { points[$0] }
-        return simplified.count >= 3 ? simplified : points
-    }
-
-    private static func perpendicularDistanceSquared(
-        from point: CLLocationCoordinate2D,
-        to left: CLLocationCoordinate2D,
-        and right: CLLocationCoordinate2D
-    ) -> Double {
-        let dx = right.longitude - left.longitude
-        let dy = right.latitude - left.latitude
-        guard dx != 0 || dy != 0 else {
-            return pow(point.longitude - left.longitude, 2) + pow(point.latitude - left.latitude, 2)
-        }
-        let numerator = dy * point.longitude - dx * point.latitude
-            + right.longitude * left.latitude - right.latitude * left.longitude
-        return numerator * numerator / (dx * dx + dy * dy)
     }
 }
 
@@ -1617,25 +1751,10 @@ private extension String {
     }
 }
 
-private enum CityAtlasBoundaryDetail {
-    case city
-    case province
-
-    func simplificationTolerance(for country: CityAtlasCountry) -> Double {
-        switch (self, country) {
-        case (.province, .japan): return 0.022
-        case (.province, .korea): return 0.0125
-        case (.city, .japan): return 0.005
-        case (.city, .korea): return 0.0075
-        case (_, .china): return 0
-        }
-    }
-
-}
-
 private struct CityAtlasBoundaryCatalog: Decodable {
     let version: Int
     let boundaries: [CityAtlasBoundary]
+    let referenceLines: [CityAtlasReferenceLineBatch]
     let japanStationToBoundary: [String: String]
     let chinaCityToBoundary: [String: String]
     let koreaModeToBoundary: [String: String]
@@ -1645,6 +1764,7 @@ private struct CityAtlasBoundaryCatalog: Decodable {
 private struct CityAtlasProvinceCatalog: Decodable {
     let version: Int
     let boundaries: [CityAtlasBoundary]
+    let referenceLines: [CityAtlasReferenceLineBatch]
 }
 
 private struct ChinaTransitCoverageCatalog: Decodable {
@@ -1683,6 +1803,8 @@ private struct CityAtlasResolution {
     let cityBoundaries: [CityAtlasBoundary]
     let provinceBoundaries: [CityAtlasBoundary]
     let countryExtentBoundaries: [CityAtlasBoundary]
+    let cityReferenceLines: [CityAtlasReferenceLineBatch]
+    let provinceReferenceLines: [CityAtlasReferenceLineBatch]
 }
 
 private struct CityAtlasProvinceResolution {
@@ -1763,10 +1885,10 @@ private struct CityAtlasVisitResolver {
               ) else {
             throw CityAtlasResolverError.unreadableCatalog
         }
-        guard catalog.version == 1 else {
+        guard catalog.version == 2 else {
             throw CityAtlasResolverError.unsupportedCatalog(catalog.version)
         }
-        guard provinceCatalog.version == 1 else {
+        guard provinceCatalog.version == 2 else {
             throw CityAtlasResolverError.unsupportedCatalog(provinceCatalog.version)
         }
         guard chinaCoverage.version == 1 else {
@@ -1787,16 +1909,33 @@ private struct CityAtlasVisitResolver {
         )
         let supportedKoreaCityBoundaryIDs = Set(
             catalog.koreaLocationToBoundary.values
+        ).union(catalog.koreaModeToBoundary.values)
+        let catalogBoundaryIDs = Set(catalog.boundaries.map(\.id))
+        let retainedChinaBoundaryIDs = Set(
+            catalog.boundaries.lazy
+                .filter { $0.countryCode == .china }
+                .map(\.id)
         )
         let excludedChinaCityBoundaryCodes = Set(
             chinaCoverage.tUnion.excludedCityBoundaryCodes
         )
-        let supportedChinaCityCodes = Set(catalog.chinaCityToBoundary.keys)
+        let retainedChinaCityToBoundary = Dictionary(
+            uniqueKeysWithValues: catalog.chinaCityToBoundary.compactMap { entry in
+                retainedChinaBoundaryIDs.contains(entry.value)
+                    ? (entry.key, entry.value)
+                    : nil
+            }
+        )
+        let supportedChinaCityCodes = Set(retainedChinaCityToBoundary.keys)
             .subtracting(excludedChinaCityBoundaryCodes)
+        let retainedChinaReferenceBoundaryIDs = Set(
+            chinaCoverage.referenceBoundaryToProvince.keys.filter(
+                retainedChinaBoundaryIDs.contains
+            )
+        )
         let supportedChinaBoundaryIDs = Set(
-            supportedChinaCityCodes.compactMap { catalog.chinaCityToBoundary[$0] }
-        ).union(chinaCoverage.referenceBoundaryToProvince.keys)
-        let catalogBoundaryIDs = Set(catalog.boundaries.map(\.id))
+            supportedChinaCityCodes.compactMap { retainedChinaCityToBoundary[$0] }
+        ).union(retainedChinaReferenceBoundaryIDs)
         guard !supportedChinaCityCodes.isEmpty,
               !supportedJapanCityBoundaryIDs.isEmpty,
               !supportedKoreaCityBoundaryIDs.isEmpty,
@@ -1805,9 +1944,7 @@ private struct CityAtlasVisitResolver {
               excludedChinaCityBoundaryCodes.allSatisfy({
                   catalog.chinaCityToBoundary[$0] != nil
               }),
-              supportedChinaBoundaryIDs.count
-                == supportedChinaCityCodes.count
-                    + chinaCoverage.referenceBoundaryToProvince.count else {
+              supportedChinaBoundaryIDs == retainedChinaBoundaryIDs else {
             throw CityAtlasResolverError.unreadableCatalog
         }
         let supportedCityBoundaries = catalog.boundaries.filter { boundary in
@@ -1882,7 +2019,7 @@ private struct CityAtlasVisitResolver {
                 )
             }
             if brand == .octopus,
-               let hongKongBoundaryID = catalog.chinaCityToBoundary["9101"] {
+               let hongKongBoundaryID = retainedChinaCityToBoundary["9101"] {
                 addOctopusEvidence(
                     from: card,
                     boundaryID: hongKongBoundaryID,
@@ -1895,7 +2032,7 @@ private struct CityAtlasVisitResolver {
             if hasChinaTransitApplication {
                 addChineseEvidence(
                     from: card,
-                    lookup: catalog.chinaCityToBoundary,
+                    lookup: retainedChinaCityToBoundary,
                     coverage: isCityUnion ? chinaCoverage.cityUnion : chinaCoverage.tUnion,
                     provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
                     provinceBoundaryByName: chinaProvinceBoundaryByName,
@@ -1907,6 +2044,7 @@ private struct CityAtlasVisitResolver {
                 addKoreanEvidence(
                     from: card,
                     locationLookup: catalog.koreaLocationToBoundary,
+                    modeLookup: catalog.koreaModeToBoundary,
                     provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
                     accumulators: &accumulators,
                     provinceAccumulators: &provinceAccumulators
@@ -1939,7 +2077,9 @@ private struct CityAtlasVisitResolver {
             provinceVisits: provinceVisits,
             cityBoundaries: supportedCityBoundaries,
             provinceBoundaries: provinceResolution.boundaries,
-            countryExtentBoundaries: provinceResolution.boundaries
+            countryExtentBoundaries: provinceResolution.boundaries,
+            cityReferenceLines: catalog.referenceLines,
+            provinceReferenceLines: provinceCatalog.referenceLines
         )
     }
 
@@ -1952,11 +2092,13 @@ private struct CityAtlasVisitResolver {
                 .filter { $0.countryCode == .china }
                 .map(\.id)
         )
-        var provinceNameByBoundaryID = coverage.referenceBoundaryToProvince
-
-        guard Set(provinceNameByBoundaryID.keys).isSubset(of: chinaBoundaryIDs) else {
-            throw CityAtlasResolverError.unreadableCatalog
-        }
+        var provinceNameByBoundaryID = Dictionary(
+            uniqueKeysWithValues: coverage.referenceBoundaryToProvince.compactMap { entry in
+                chinaBoundaryIDs.contains(entry.key)
+                    ? (entry.key, entry.value)
+                    : nil
+            }
+        )
 
         for namespace in [coverage.tUnion, coverage.cityUnion] {
             let provinceOnlyCityCodes = Set(namespace.provinceOnlyCityCodes)
@@ -1976,6 +2118,7 @@ private struct CityAtlasVisitResolver {
                 guard let boundaryID = catalog.chinaCityToBoundary[boundaryCode] else {
                     throw CityAtlasResolverError.unreadableCatalog
                 }
+                guard chinaBoundaryIDs.contains(boundaryID) else { continue }
                 if let existingProvinceName = provinceNameByBoundaryID[boundaryID],
                    existingProvinceName != provinceName {
                     throw CityAtlasResolverError.unreadableCatalog
@@ -2326,6 +2469,7 @@ private struct CityAtlasVisitResolver {
     private func addKoreanEvidence(
         from card: SavedCardRecord,
         locationLookup: [String: String],
+        modeLookup: [String: String],
         provinceBoundaryByCityID: [String: String],
         accumulators: inout [String: CityAtlasVisitAccumulator],
         provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
@@ -2338,7 +2482,10 @@ private struct CityAtlasVisitResolver {
             }
 
             let locationCode = data.subdata(in: 5..<11).hexString.uppercased()
-            guard let boundaryID = locationLookup[locationCode] else { continue }
+            let modeCode = String((Int(data[9]) << 8) | Int(data[10]))
+            guard let boundaryID = locationLookup[locationCode] ?? modeLookup[modeCode] else {
+                continue
+            }
 
             let evidenceID = "\(card.id)|\(raw)"
             addEvidence(

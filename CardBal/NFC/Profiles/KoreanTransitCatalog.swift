@@ -362,7 +362,7 @@ enum KoreanTransitOperatorFieldProfile: String, Codable {
     case mybiTotal = "mybi_total"
     case mybiGwangju = "mybi_gwangju"
 
-    var usesOpaqueCounters: Bool {
+    var usesMybiFieldLayout: Bool {
         switch self {
         case .mybiBusanSubway, .mybiBusan, .mybiTotal, .mybiGwangju:
             return true
@@ -418,6 +418,7 @@ struct KoreanTransitTimestamp: Equatable {
     enum Layout: String, Codable {
         case packed33
         case bcd14
+        case mybi24
     }
 
     let date: Date
@@ -444,22 +445,93 @@ struct KoreanTransitTimestamp: Equatable {
 
 /// Strict timestamp decoder for the 52-byte T-money/EZL transit-history layout.
 ///
-/// Seven-byte `yyyyMMddHHmmss` BCD must be attempted first because many BCD
-/// rows also form a superficially valid packed date. The standard clock is 33
-/// bits: a 16-bit date, a 16-bit time word, and the high bit of byte 15 as the
-/// seconds low bit. Mybi-family profiles use this block as opaque counters and
-/// deliberately return `nil` rather than manufacturing a calendar timestamp.
+/// For standard/regional profiles, seven-byte `yyyyMMddHHmmss` BCD must be
+/// attempted before the 33-bit packed clock because many BCD rows also form a
+/// superficially valid packed date. Evidence-backed Mybi Busan profiles use
+/// two 24-bit day/hour/minute clocks relative to 2011-11-12 in Asia/Seoul:
+/// boarding uses bytes 11-13 and alighting uses bytes 14-16. Integrated-Mybi
+/// and Gwangju 24-bit profiles remain opaque until their own rows validate a
+/// dialect; independently valid seven-byte BCD is still accepted first.
 enum KoreanTransitTimestampDecoder {
     static let recordLength = 52
     private static let timestampOffset = 11
+    private static let mybiSentinel: UInt32 = 0xFBF000
 
     static func decode(_ record: Data) -> KoreanTransitTimestamp? {
         guard record.count == recordLength else { return nil }
-        if let bcd = decodeBCD14(record) { return bcd }
-        guard KoreanTransitOperatorFieldProfile.forRecord(record)?.usesOpaqueCounters == false else {
+        guard let profile = KoreanTransitOperatorFieldProfile.forRecord(record) else { return nil }
+        switch profile {
+        case .mybiBusan, .mybiBusanSubway:
+            return decodeMybi24(record)
+        case .mybiTotal, .mybiGwangju:
+            return decodeBCD14(record)
+        case .standardPacked33, .bcd14Regional:
+            if let bcd = decodeBCD14(record) { return bcd }
+            return decodePacked33(record)
+        }
+    }
+
+    private static func decodeMybi24(_ record: Data) -> KoreanTransitTimestamp? {
+        let clockOffset: Int
+        switch record[2] {
+        case 0:
+            clockOffset = timestampOffset
+        case 1:
+            clockOffset = timestampOffset + 3
+        default:
             return nil
         }
-        return decodePacked33(record)
+
+        let value = (UInt32(record[clockOffset]) << 16)
+            | (UInt32(record[clockOffset + 1]) << 8)
+            | UInt32(record[clockOffset + 2])
+        guard value != 0, value != mybiSentinel else { return nil }
+
+        let day = Int(value >> 11)
+        let hour = Int((value >> 6) & 0x1F)
+        let minute = Int(value & 0x3F)
+        guard (0...23).contains(hour), (0...59).contains(minute) else { return nil }
+
+        let calendar = seoulCalendar
+        var epochComponents = DateComponents()
+        epochComponents.calendar = calendar
+        epochComponents.timeZone = calendar.timeZone
+        epochComponents.year = 2011
+        epochComponents.month = 11
+        epochComponents.day = 12
+        guard let epoch = calendar.date(from: epochComponents),
+              let date = calendar.date(
+                byAdding: DateComponents(day: day, hour: hour, minute: minute),
+                to: epoch
+              ) else {
+            return nil
+        }
+
+        let components = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: date
+        )
+        guard let year = components.year,
+              let month = components.month,
+              let calendarDay = components.day,
+              let decodedHour = components.hour,
+              let decodedMinute = components.minute else {
+            return nil
+        }
+
+        return KoreanTransitTimestamp(
+            date: date,
+            layout: .mybi24,
+            rawHex: record[clockOffset..<(clockOffset + 3)]
+                .map { String(format: "%02X", $0) }
+                .joined(),
+            year: year,
+            month: month,
+            day: calendarDay,
+            hour: decodedHour,
+            minute: decodedMinute,
+            second: components.second ?? 0
+        )
     }
 
     private static func decodeBCD14(_ record: Data) -> KoreanTransitTimestamp? {
@@ -525,9 +597,7 @@ enum KoreanTransitTimestampDecoder {
             return nil
         }
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(secondsFromGMT: 9 * 60 * 60)!
+        let calendar = seoulCalendar
 
         var components = DateComponents()
         components.calendar = calendar
@@ -564,5 +634,13 @@ enum KoreanTransitTimestampDecoder {
             minute: minute,
             second: second
         )
+    }
+
+    private static var seoulCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")
+            ?? TimeZone(secondsFromGMT: 9 * 60 * 60)!
+        return calendar
     }
 }
