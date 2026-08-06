@@ -1,0 +1,49 @@
+name: Update UB Smart Bus data
+
+on:
+  schedule:
+    - cron: "15 21 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ub-smart-bus-master
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Test downloader
+        run: python -m unittest discover -s scripts/tests -p 'test_download_ub_smart_bus.py'
+
+      - name: Refresh Ulaanbaatar data
+        run: >-
+          python scripts/build_cross_platform_station_assets.py
+          --target ulaanbaatar
+          --no-sync-android
+
+      - name: Commit current state when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- StationAssets/ulaanbaatar_\* CardBal/Resources/ulaanbaatar_transit.sqlite; then
+            git restore StationAssets/manifest.json
+            echo "UB Smart Bus data is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add StationAssets/manifest.json StationAssets/ulaanbaatar_\* CardBal/Resources/ulaanbaatar_transit.sqlite
+          git commit -m "Update UB Smart Bus data"
+          git push origin HEAD:master

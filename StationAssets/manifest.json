@@ -1,6 +1,6 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-07-27T17:15:56.269406+00:00",
+  "generatedAt": "2026-08-06T14:11:03.838437+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
       "bytes": 2730199,
@@ -27,8 +27,8 @@
       "sha256": "676438b35c4f2662f108e87d8d38d75ff6b49cd40b3dcfd883250783950b9d6f"
     },
     "README.md": {
-      "bytes": 629,
-      "sha256": "ecaa61e52aeec34502031aa716858ba10f64d0e7626ca18359561ea3fe47edec"
+      "bytes": 1189,
+      "sha256": "49d4b9e60369cbe56c40b8659df852a7f98ebfef1f031e22d9a532b89dda7b9b"
     },
     "TUnionCardNames.json": {
       "bytes": 16629,
@@ -65,12 +65,31 @@
     "tunion_tripreader_source.json": {
       "bytes": 538416,
       "sha256": "67bc27742e2614f040460a2761feaeb1c7f5eb88e62df2bb7f53c5c8ec4ca5e5"
+    },
+    "ulaanbaatar_route_stations.tsv": {
+      "bytes": 80999,
+      "sha256": "edfa411791037529299c8c6959749977d6328d6b4d9039e014107eabce122587"
+    },
+    "ulaanbaatar_routes.tsv": {
+      "bytes": 15386,
+      "sha256": "17785d3f0ddfdbf9c27e9a56f83739d6ecc2bcf1dd8c0aaec6026de71dc3ad4d"
+    },
+    "ulaanbaatar_stations.tsv": {
+      "bytes": 108705,
+      "sha256": "d758d74674d5841f182ff7cd3993360085d2d9fa641b3a6b366c7ef937d9d699"
+    },
+    "ulaanbaatar_transit.sqlite": {
+      "bytes": 368640,
+      "sha256": "5d6c576b90527cbf4e20c1350605780b962ef85665f7182bd99488524cf7685e"
     }
   },
   "sqlite": {
     "jp_stations": 8550,
     "jp_station_edges": 13141,
     "tunion_stations": 5586,
-    "tunion_station_edges": 4975
+    "tunion_station_edges": 4975,
+    "ulaanbaatar_stations": 1499,
+    "ulaanbaatar_routes": 139,
+    "ulaanbaatar_route_stations": 4925
   }
 }

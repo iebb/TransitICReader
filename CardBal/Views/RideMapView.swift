@@ -1014,6 +1014,7 @@ private final class StationGraphDatabase {
         // Korean aliases are intentionally loaded after the persisted base graph so
         // catalog updates take effect immediately without relying on a cache-version bump.
         loadKoreanCatalog()
+        loadUlaanbaatarCatalog()
         isReady = !stationsByLookupCode.isEmpty
     }
 
@@ -1190,6 +1191,38 @@ private final class StationGraphDatabase {
             }
             stationsByStationCode[stationCode] = station
         }
+    }
+
+    private func loadUlaanbaatarCatalog() {
+        guard let db = openBundledDatabase(named: "ulaanbaatar_transit") else { return }
+        defer { sqlite3_close(db) }
+
+        let useMongolian = Locale.preferredLanguages.first?.lowercased().hasPrefix("mn") == true
+        var statement: OpaquePointer?
+        let query = "SELECT station_id, station_name_mn, station_name_en, latitude, longitude FROM stations;"
+        if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard
+                    let mongolianNameText = sqlite3_column_text(statement, 1),
+                    let englishNameText = sqlite3_column_text(statement, 2)
+                else {
+                    continue
+                }
+                let stationID = String(sqlite3_column_int64(statement, 0))
+                let lookupCode = "MN:\(stationID)"
+                let station = StationGraphStation(
+                    hexCode: lookupCode,
+                    stationCode: lookupCode,
+                    stationName: String(cString: useMongolian ? mongolianNameText : englishNameText),
+                    latitude: sqlite3_column_double(statement, 3),
+                    longitude: sqlite3_column_double(statement, 4),
+                    isPseudo: false
+                )
+                stationsByLookupCode[lookupCode] = station
+                stationsByStationCode[lookupCode] = station
+            }
+        }
+        sqlite3_finalize(statement)
     }
 
     private func loadCachedGraph() -> Bool {

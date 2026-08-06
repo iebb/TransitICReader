@@ -15,6 +15,14 @@ Native SwiftUI iPhone app for scanning physical transit IC cards with CoreNFC.
 - Implemented: KS X 6924 ISO7816 cards such as T-money and EZL/Cashbee
 - The app now shows structured raw payloads alongside the parsed balance
 
+## Station data
+
+Portable station catalogs live in `StationAssets`. The Ulaanbaatar catalog is
+generated from the service used by `com.uscc.ubbus` and contains Mongolian and
+English station names, coordinates, routes, and ordered route-stop relations.
+See [UB Smart Bus data](docs/ub-smart-bus.md) for the protocol and refresh
+process.
+
 ## Run notes
 
 - NFC scanning requires a real iPhone. The simulator can build the app but cannot read cards.

@@ -42,6 +42,17 @@ KOREAN_ASSETS = [
     "KOTRISTransportModes.json",
 ]
 
+ULAANBAATAR_ASSETS = [
+    "ulaanbaatar_stations.tsv",
+    "ulaanbaatar_routes.tsv",
+    "ulaanbaatar_route_stations.tsv",
+    "ulaanbaatar_transit.sqlite",
+]
+
+ULAANBAATAR_PLATFORM_ASSETS = [
+    "ulaanbaatar_transit.sqlite",
+]
+
 # CardBal iOS vendors korean_stations.tsv and its derived East Asia boundary
 # catalog directly. They are intentionally not copied into Android or portable
 # asset trees.
@@ -55,6 +66,8 @@ def asset_names(target: str) -> list[str]:
         names.extend(TUNION_ASSETS + TUNION_SOURCE_ASSETS)
     if target in ("all", "korean"):
         names.extend(KOREAN_ASSETS)
+    if target in ("all", "ulaanbaatar"):
+        names.extend(ULAANBAATAR_ASSETS)
     return names
 
 
@@ -66,6 +79,8 @@ def platform_asset_names(target: str) -> list[str]:
         names.extend(TUNION_ASSETS)
     if target in ("all", "korean"):
         names.extend(KOREAN_ASSETS)
+    if target in ("all", "ulaanbaatar"):
+        names.extend(ULAANBAATAR_PLATFORM_ASSETS)
     return names
 
 
@@ -128,6 +143,12 @@ def write_manifest(portable_assets: Path) -> None:
             "jp_station_edges": sqlite_count(portable_assets / "jp_stations.sqlite", "station_edges"),
             "tunion_stations": sqlite_count(portable_assets / "tunion_stations.sqlite", "tunion_stations"),
             "tunion_station_edges": sqlite_count(portable_assets / "tunion_stations.sqlite", "station_edges"),
+            "ulaanbaatar_stations": sqlite_count(portable_assets / "ulaanbaatar_transit.sqlite", "stations"),
+            "ulaanbaatar_routes": sqlite_count(portable_assets / "ulaanbaatar_transit.sqlite", "routes"),
+            "ulaanbaatar_route_stations": sqlite_count(
+                portable_assets / "ulaanbaatar_transit.sqlite",
+                "route_stations",
+            ),
         },
     }
     (portable_assets / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -181,11 +202,28 @@ def build_tunion(python: str, portable_assets: Path, delay_seconds: float, skip_
     )
 
 
+def build_ulaanbaatar(python: str, portable_assets: Path, delay_seconds: float) -> None:
+    run(
+        [
+            python,
+            str(SCRIPTS_DIR / "download_ub_smart_bus.py"),
+            "--output-dir",
+            str(portable_assets),
+            "--delay-seconds",
+            str(delay_seconds),
+        ]
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build portable CardBal station assets once, then sync the same outputs to iOS resources and Android assets.",
     )
-    parser.add_argument("--target", choices=["all", "japanese", "tunion", "korean"], default="all")
+    parser.add_argument(
+        "--target",
+        choices=["all", "japanese", "tunion", "korean", "ulaanbaatar"],
+        default="all",
+    )
     parser.add_argument("--portable-assets", type=Path, default=PORTABLE_ASSETS)
     parser.add_argument("--ios-resources", type=Path, default=IOS_RESOURCES)
     parser.add_argument("--android-assets", type=Path, default=ANDROID_ASSETS)
@@ -196,6 +234,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-tunion-osm", action="store_true", help="Skip the OSM T-Union generator and only run source enrichment.")
     parser.add_argument("--offline-tunion-source", action="store_true", help="Use the checked-in T-Union source cache instead of fetching tripreader-data.")
     parser.add_argument("--tunion-delay-seconds", type=float, default=3.0)
+    parser.add_argument("--ulaanbaatar-delay-seconds", type=float, default=0.05)
     return parser.parse_args()
 
 
@@ -209,6 +248,8 @@ def main() -> None:
             build_japanese(args.python, args.portable_assets)
         if args.target in ("all", "tunion"):
             build_tunion(args.python, args.portable_assets, args.tunion_delay_seconds, args.skip_tunion_osm, args.offline_tunion_source)
+        if args.target in ("all", "ulaanbaatar"):
+            build_ulaanbaatar(args.python, args.portable_assets, args.ulaanbaatar_delay_seconds)
 
     write_manifest(args.portable_assets)
     if not args.no_sync_ios:
