@@ -6,8 +6,9 @@ transit-card system, while visit eligibility remains restricted to the exact
 station-code lookup. Korea uses a non-stacked mixed city layer: metropolitan
 cities use ADM1, other municipalities use ADM2, and Jeju stays whole because
 the available evidence does not safely split its visits between its two cities.
-Mongolia contributes Ulaanbaatar's ADM1 municipality and maps every station in
-the bundled UB Smart Bus snapshot to that boundary.
+Mongolia contributes Ulaanbaatar's ADM1 municipality and maps only stations
+spatially contained by it; routes extending into neighboring Töv remain
+province-level evidence instead of being mislabeled as Ulaanbaatar city visits.
 Exact Korean station locations win, with reviewed city-specific KOTRIS modes as
 a fallback when a station token is unknown. China's source catalog includes
 every peer-level city in the bundled T-Union registry plus a reference-only
@@ -1953,12 +1954,13 @@ def build_mongolia_boundary(
     if not shape_id:
         raise RuntimeError("Ulaanbaatar ADM1 feature has no shapeID")
     boundary_id = f"mn:adm1:{shape_id}"
+    boundary_parts = geometry_parts(feature["geometry"])
     boundary = make_boundary(
         boundary_id=boundary_id,
         country_code="MN",
         name="Ulaanbaatar",
         native_name="Улаанбаатар",
-        parts=geometry_parts(feature["geometry"]),
+        parts=boundary_parts,
         tolerance=MONGOLIA_RDP_TOLERANCE,
         coordinate_decimals=COORDINATE_DECIMALS,
     )
@@ -1975,8 +1977,8 @@ def build_mongolia_boundary(
         ).fetchall()
     if not rows:
         raise RuntimeError("The Ulaanbaatar transit database contains no stations")
-    station_mapping = {str(row[0]): boundary_id for row in rows}
-    if len(station_mapping) != len(rows):
+    unique_station_ids = {str(row[0]) for row in rows}
+    if len(unique_station_ids) != len(rows):
         raise RuntimeError("The Ulaanbaatar transit database contains duplicate station IDs")
     invalid_coordinate_count = sum(
         not (-90.0 <= float(latitude) <= 90.0 and -180.0 <= float(longitude) <= 180.0)
@@ -1986,8 +1988,16 @@ def build_mongolia_boundary(
         raise RuntimeError(
             f"The Ulaanbaatar transit database has {invalid_coordinate_count} invalid coordinates"
         )
+    station_mapping = {
+        str(station_id): boundary_id
+        for station_id, latitude, longitude in rows
+        if point_in_parts((float(longitude), float(latitude)), boundary_parts)
+    }
+    outside_station_count = len(rows) - len(station_mapping)
     stats = {
+        "inputStationCount": len(rows),
         "mappedStationCount": len(station_mapping),
+        "outsideUlaanbaatarStationCount": outside_station_count,
         "referenceBoundaryCount": 1,
         "usedBoundaryCount": 1,
     }
@@ -2182,7 +2192,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             },
             "mongoliaCityReference": {
                 "source": "pinned MNG ADM1 Ulaanbaatar municipality",
-                "referenceScope": "Ulaanbaatar, matching the bundled UB Smart Bus station snapshot",
+                "referenceScope": "stations contained by Ulaanbaatar municipality; outlying UB Smart Bus stops remain province-only evidence",
                 "lookupKey": "decimal station_id from CardBal/Resources/ulaanbaatar_transit.sqlite",
             },
             "chinaCityReference": {

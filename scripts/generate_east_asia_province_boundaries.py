@@ -4,14 +4,15 @@
 Province geometry is kept separate from the city catalog so it can remain a
 quiet cartographic layer beneath visited-city highlights. Taiwan is excluded:
 CardBal has no supported Taiwanese transit-card path, so drawing it as part of
-the China overlay would imply coverage the app does not provide. Mongolia's
-full ADM1 outline is retained so the country is visible around Ulaanbaatar.
+the China overlay would imply coverage the app does not provide. Mongolia is
+likewise pruned to ADM1 regions containing stations in the bundled bus snapshot.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -29,10 +30,14 @@ from generate_east_asia_city_boundaries import (
     OUTPUT_QUANTIZATION_CONTAINMENT_BUFFER_DEGREES,
     approximate_geometry_area_square_kilometers,
     boundary_shapely_geometry,
+    bbox_contains,
     download_verified_json,
     geometry_parts,
     load_natural_earth_land,
     make_boundary,
+    parts_area,
+    parts_bbox,
+    point_in_parts,
     polygonal_shapely_geometry,
     utc_now,
 )
@@ -42,6 +47,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = REPO_ROOT / "CardBal/Resources/EastAsiaProvinceBoundaries.json"
 DEFAULT_CITY_CATALOG = REPO_ROOT / "CardBal/Resources/EastAsiaCityBoundaries.json"
 DEFAULT_CHINA_COVERAGE = REPO_ROOT / "CardBal/Resources/ChinaTransitCoverage.json"
+DEFAULT_MONGOLIA_DATABASE = REPO_ROOT / "CardBal/Resources/ulaanbaatar_transit.sqlite"
 RDP_TOLERANCE_DEGREES = 0.005
 MAX_OUTPUT_BYTES = 1_200 * 1024
 
@@ -263,6 +269,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
     generated_at = args.generated_at or utc_now()
     boundaries: list[dict[str, Any]] = []
     china_validation: dict[str, dict[str, float]] = {}
+    mongolia_spatial_features: list[dict[str, Any]] = []
     with tempfile.TemporaryDirectory(prefix="cardbal-east-asia-provinces-") as directory:
         temporary_path = Path(directory)
         source_cache_directory = args.source_cache_directory or temporary_path / "source-cache"
@@ -315,17 +322,58 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                     )
                     china_validation[display_name] = metrics
                 else:
+                    parts = geometry_parts(feature["geometry"])
                     boundary = make_boundary(
                         boundary_id=boundary_id,
                         country_code=country_code,
                         name=display_name,
                         native_name=display_name,
-                        parts=geometry_parts(feature["geometry"]),
+                        parts=parts,
                         tolerance=RDP_TOLERANCE_DEGREES,
                     )
+                    if country_code == "MN":
+                        mongolia_spatial_features.append(
+                            {
+                                "id": boundary_id,
+                                "name": display_name,
+                                "parts": parts,
+                                "bbox": parts_bbox(parts),
+                                "area": parts_area(parts),
+                            }
+                        )
                 if subdivision_code and country_code != "CN":
                     boundary["subdivisionCode"] = subdivision_code
                 boundaries.append(boundary)
+
+    with sqlite3.connect(args.mongolia_database) as connection:
+        mongolia_station_rows = connection.execute(
+            """
+            SELECT station_id, latitude, longitude
+            FROM stations
+            ORDER BY station_id
+            """
+        ).fetchall()
+    if not mongolia_station_rows:
+        raise RuntimeError("The Ulaanbaatar transit database contains no stations")
+    mongolia_station_mapping: dict[str, str] = {}
+    mongolia_station_counts: Counter[str] = Counter()
+    for station_id, latitude, longitude in mongolia_station_rows:
+        point = (float(longitude), float(latitude))
+        matches = [
+            feature
+            for feature in mongolia_spatial_features
+            if bbox_contains(feature["bbox"], point)
+            and point_in_parts(point, feature["parts"])
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"Mongolia station {station_id} matched {len(matches)} ADM1 boundaries"
+            )
+        selected = min(matches, key=lambda feature: (feature["area"], feature["id"]))
+        mongolia_station_mapping[str(station_id)] = str(selected["id"])
+        mongolia_station_counts[str(selected["name"])] += 1
+    if len(mongolia_station_mapping) != len(mongolia_station_rows):
+        raise RuntimeError("Mongolia stations do not have unique station IDs")
 
     boundaries.sort(key=lambda boundary: (boundary["countryCode"], boundary["name"], boundary["id"]))
     counts = Counter(boundary["countryCode"] for boundary in boundaries)
@@ -417,8 +465,17 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 for (country_code, source_name), display_name in sorted(NAME_OVERRIDES.items())
             ],
             "counts": dict(sorted(counts.items())),
+            "mongoliaStationSpatialJoin": {
+                "source": "pinned MNG ADM1 polygons",
+                "lookupKey": "decimal station_id from CardBal/Resources/ulaanbaatar_transit.sqlite",
+                "inputStationCount": len(mongolia_station_rows),
+                "mappedStationCount": len(mongolia_station_mapping),
+                "stationCountsByProvince": dict(sorted(mongolia_station_counts.items())),
+                "usedProvinceCount": len(mongolia_station_counts),
+            },
         },
         "boundaries": boundaries,
+        "mongoliaStationToBoundary": mongolia_station_mapping,
     }
     from optimize_east_asia_boundary_catalogs import (
         load_json,
@@ -449,6 +506,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--city-catalog", type=Path, default=DEFAULT_CITY_CATALOG)
     parser.add_argument("--china-coverage", type=Path, default=DEFAULT_CHINA_COVERAGE)
+    parser.add_argument("--mongolia-database", type=Path, default=DEFAULT_MONGOLIA_DATABASE)
     parser.add_argument(
         "--source-cache-directory",
         type=Path,
@@ -463,7 +521,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    for input_path in (args.city_catalog, args.china_coverage):
+    for input_path in (args.city_catalog, args.china_coverage, args.mongolia_database):
         if not input_path.is_file():
             raise FileNotFoundError(input_path)
     catalog = build_catalog(args)

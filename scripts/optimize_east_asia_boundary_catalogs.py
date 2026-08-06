@@ -300,22 +300,28 @@ def prune_province_catalog_to_supported_boundaries(
     if not supported_korea_ids:
         raise RuntimeError("Supported Korea city boundaries resolved to no provinces")
 
-    supported_mongolia_ids = {
+    mongolia_province_ids = {
         str(boundary["id"])
         for boundary in province_boundaries
         if boundary.get("countryCode") == "MN"
     }
+    supported_mongolia_ids = set(
+        str(boundary_id)
+        for boundary_id in (output.get("mongoliaStationToBoundary") or {}).values()
+    )
     supported_mongolia_city_ids = {
         str(boundary["id"])
         for boundary in city_boundaries
         if boundary.get("countryCode") == "MN"
     }
-    if not supported_mongolia_ids or not supported_mongolia_city_ids:
+    if not mongolia_province_ids or not supported_mongolia_ids or not supported_mongolia_city_ids:
         raise RuntimeError("Mongolia province pruning requires Ulaanbaatar city data")
-    if not supported_mongolia_city_ids.issubset(supported_mongolia_ids):
+    if not supported_mongolia_ids.issubset(mongolia_province_ids):
         raise RuntimeError(
-            "Mongolia city boundary does not match its ADM1 province boundary"
+            "Mongolia station mappings reference an unknown ADM1 province boundary"
         )
+    if not supported_mongolia_city_ids.issubset(supported_mongolia_ids):
+        raise RuntimeError("Ulaanbaatar has no mapped stations in the province catalog")
 
     retained_boundaries = []
     for boundary in province_boundaries:
@@ -365,7 +371,7 @@ def prune_province_catalog_to_supported_boundaries(
         "inputBoundaryCount": len(province_boundaries),
         "outputBoundaryCount": len(retained_boundaries),
         **retained_counts,
-        "scope": "transit-supported provinces, plus Mongolia's full ADM1 country outline",
+        "scope": "only provinces containing current T-Union or station-mapped transit coverage",
     }
     output["generation"] = generation
     return output
