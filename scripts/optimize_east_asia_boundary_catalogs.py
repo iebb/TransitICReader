@@ -39,7 +39,7 @@ ALGORITHM_VERSION = 2
 EARTH_RADIUS_KM = 6_371.0088
 KM_PER_LATITUDE_DEGREE = 110.574
 KM_PER_LONGITUDE_DEGREE_AT_EQUATOR = 111.320
-DEFAULT_QUANTIZATION_DECIMALS = {"CN": 5, "JP": 4, "KR": 4}
+DEFAULT_QUANTIZATION_DECIMALS = {"CN": 5, "JP": 4, "KR": 4, "MN": 4}
 REFERENCE_LINE_TOLERANCE_MULTIPLIER = 2.0
 REFERENCE_LINE_MAX_PATHS_PER_BATCH = 256
 REFERENCE_LINE_MAX_VERTICES_PER_BATCH = 2_000
@@ -48,16 +48,16 @@ DEFAULT_MAXIMUM_OVERLAP_AREA_SQUARE_DEGREES = 2e-7
 MAXIMUM_SERIALIZED_POLYGON_VERTEX_INCREASE_RATIO = 1.10
 MINIMUM_BOUNDARY_RETAINED_SOURCE_AREA_RATIO = 0.90
 REFERENCE_LINE_GRID_DEGREES = {
-    "city": {"CN": 4.0, "JP": 2.0, "KR": 1.0},
-    "province": {"CN": 10.0, "JP": 5.0, "KR": 3.0},
+    "city": {"CN": 4.0, "JP": 2.0, "KR": 1.0, "MN": 2.0},
+    "province": {"CN": 10.0, "JP": 5.0, "KR": 3.0, "MN": 5.0},
 }
 MAXIMUM_REFERENCE_LINE_VERTICES = {
-    "city": {"CN": 55_000, "JP": 30_000, "KR": 2_000},
-    "province": {"CN": 6_000, "JP": 5_000, "KR": 2_000},
+    "city": {"CN": 55_000, "JP": 30_000, "KR": 2_000, "MN": 2_000},
+    "province": {"CN": 6_000, "JP": 5_000, "KR": 2_000, "MN": 4_000},
 }
 DEFAULT_TOLERANCE_DEGREES = {
-    "city": {"CN": 0.02, "JP": 0.01, "KR": 0.009},
-    "province": {"CN": 0.025, "JP": 0.015, "KR": 0.012},
+    "city": {"CN": 0.02, "JP": 0.01, "KR": 0.009, "MN": 0.015},
+    "province": {"CN": 0.025, "JP": 0.015, "KR": 0.012, "MN": 0.02},
 }
 
 
@@ -160,6 +160,7 @@ def prune_city_catalog_to_supported_boundaries(
         | set((output.get("japanStationToBoundary") or {}).values())
         | set((output.get("koreaModeToBoundary") or {}).values())
         | set((output.get("koreaLocationToBoundary") or {}).values())
+        | set((output.get("mongoliaStationToBoundary") or {}).values())
     )
     original_boundaries = output.get("boundaries") or []
     output["boundaries"] = [
@@ -202,6 +203,7 @@ def prune_city_catalog_to_supported_boundaries(
             set((output.get("koreaModeToBoundary") or {}).values())
             | set((output.get("koreaLocationToBoundary") or {}).values())
         ),
+        "MN": len(set((output.get("mongoliaStationToBoundary") or {}).values())),
         "intentionalDanglingChinaMappingTargetCount": len(dangling_china_targets),
         "intentionalDanglingChinaCityCodes": sorted(
             excluded_china_codes,
@@ -298,6 +300,23 @@ def prune_province_catalog_to_supported_boundaries(
     if not supported_korea_ids:
         raise RuntimeError("Supported Korea city boundaries resolved to no provinces")
 
+    supported_mongolia_ids = {
+        str(boundary["id"])
+        for boundary in province_boundaries
+        if boundary.get("countryCode") == "MN"
+    }
+    supported_mongolia_city_ids = {
+        str(boundary["id"])
+        for boundary in city_boundaries
+        if boundary.get("countryCode") == "MN"
+    }
+    if not supported_mongolia_ids or not supported_mongolia_city_ids:
+        raise RuntimeError("Mongolia province pruning requires Ulaanbaatar city data")
+    if not supported_mongolia_city_ids.issubset(supported_mongolia_ids):
+        raise RuntimeError(
+            "Mongolia city boundary does not match its ADM1 province boundary"
+        )
+
     retained_boundaries = []
     for boundary in province_boundaries:
         country_code = boundary.get("countryCode")
@@ -307,6 +326,8 @@ def prune_province_catalog_to_supported_boundaries(
             keep = boundary.get("subdivisionCode") in supported_japan_codes
         elif country_code == "KR":
             keep = boundary.get("id") in supported_korea_ids
+        elif country_code == "MN":
+            keep = boundary.get("id") in supported_mongolia_ids
         else:
             keep = False
         if keep:
@@ -316,12 +337,13 @@ def prune_province_catalog_to_supported_boundaries(
         country_code: sum(
             boundary.get("countryCode") == country_code for boundary in retained_boundaries
         )
-        for country_code in ("CN", "JP", "KR")
+        for country_code in ("CN", "JP", "KR", "MN")
     }
     expected_counts = {
         "CN": len(supported_china_names),
         "JP": len(supported_japan_codes),
         "KR": len(supported_korea_ids),
+        "MN": len(supported_mongolia_ids),
     }
     if retained_counts != expected_counts:
         raise RuntimeError(
@@ -343,7 +365,7 @@ def prune_province_catalog_to_supported_boundaries(
         "inputBoundaryCount": len(province_boundaries),
         "outputBoundaryCount": len(retained_boundaries),
         **retained_counts,
-        "scope": "only provinces containing a current T-Union or station-mapped city boundary",
+        "scope": "transit-supported provinces, plus Mongolia's full ADM1 country outline",
     }
     output["generation"] = generation
     return output
@@ -1591,7 +1613,7 @@ def parse_args() -> argparse.Namespace:
         type=float,
         help=(
             "Override every country city tolerance; defaults are "
-            "CN=0.02, JP=0.01, KR=0.009"
+            "CN=0.02, JP=0.01, KR=0.009, MN=0.015"
         ),
     )
     parser.add_argument(
@@ -1599,7 +1621,7 @@ def parse_args() -> argparse.Namespace:
         type=float,
         help=(
             "Override every country province tolerance; defaults are "
-            "CN=0.025, JP=0.015, KR=0.012"
+            "CN=0.025, JP=0.015, KR=0.012, MN=0.02"
         ),
     )
     parser.add_argument(

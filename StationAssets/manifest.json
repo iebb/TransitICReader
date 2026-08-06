@@ -1,10 +1,10 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-08-06T14:11:03.838437+00:00",
+  "generatedAt": "2026-08-06T15:37:58+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
-      "bytes": 2730199,
-      "sha256": "7a65c152f328946f751a6a287ba8cc85c8de8fac7e77c1f3d868ba449e2d6812"
+      "bytes": 2794852,
+      "sha256": "b662fd084dba31b5877494ca3b15d6852d422cb9c80920c4db2a0a17cda8480b"
     },
     "JPBusCodes.csv": {
       "bytes": 2914,

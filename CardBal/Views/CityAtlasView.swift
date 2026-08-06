@@ -625,8 +625,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         mapView.showsCompass = true
 
         let eastAsia = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 32, longitude: 110),
-            span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 90)
+            center: CLLocationCoordinate2D(latitude: 32, longitude: 109),
+            span: MKCoordinateSpan(latitudeDelta: 52, longitudeDelta: 92)
         )
         mapView.cameraBoundary = MKMapView.CameraBoundary(coordinateRegion: eastAsia)
         mapView.cameraZoomRange = MKMapView.CameraZoomRange(
@@ -656,6 +656,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         CLLocationCoordinate2D(latitude: 43.0618, longitude: 141.3545), // Sapporo
         CLLocationCoordinate2D(latitude: 34.3416, longitude: 108.9398), // Xi'an
         CLLocationCoordinate2D(latitude: 45.8038, longitude: 126.5340), // Harbin
+        CLLocationCoordinate2D(latitude: 47.9189, longitude: 106.9176), // Ulaanbaatar
         CLLocationCoordinate2D(latitude: 10.8231, longitude: 106.6297), // Ho Chi Minh City
     ]
 
@@ -778,6 +779,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                 case (.city, .japan): visibleAlpha = max(0.36, baseAlpha)
                 case (.province, .korea): visibleAlpha = max(0.40, baseAlpha)
                 case (.city, .korea): visibleAlpha = max(0.44, baseAlpha)
+                case (.province, .mongolia): visibleAlpha = max(0.40, baseAlpha)
+                case (.city, .mongolia): visibleAlpha = max(0.44, baseAlpha)
                 }
                 let fillAlpha = visibleAlpha
 
@@ -858,8 +861,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         ) -> CGFloat {
             switch (level, country) {
             case (.province, .china): return 7
-            case (.province, .japan), (.province, .korea): return 6
-            case (.city, .china), (.city, .japan), (.city, .korea): return 5.5
+            case (.province, .japan), (.province, .korea), (.province, .mongolia): return 6
+            case (.city, .china), (.city, .japan), (.city, .korea), (.city, .mongolia): return 5.5
             }
         }
 
@@ -869,8 +872,8 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         ) -> CGFloat {
             switch (level, country) {
             case (.province, .china): return 1.5
-            case (.province, .japan), (.province, .korea): return 1.4
-            case (.city, .china), (.city, .japan), (.city, .korea): return 1.25
+            case (.province, .japan), (.province, .korea), (.province, .mongolia): return 1.4
+            case (.city, .china), (.city, .japan), (.city, .korea), (.city, .mongolia): return 1.25
             }
         }
 
@@ -903,6 +906,14 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                     lineWidth: 2.1,
                     overviewLineWidth: 0.80
                 )
+            case (.province, .mongolia):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.90,
+                    lineWidth: 2.1,
+                    overviewLineWidth: 0.80
+                )
             case (.city, .china):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
@@ -920,6 +931,14 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
                     overviewLineWidth: 0.50
                 )
             case (.city, .korea):
+                return CityAtlasOverlayStyle(
+                    color: country.uiTint,
+                    fillAlpha: 0,
+                    strokeAlpha: 0.88,
+                    lineWidth: 1.8,
+                    overviewLineWidth: 0.60
+                )
+            case (.city, .mongolia):
                 return CityAtlasOverlayStyle(
                     color: country.uiTint,
                     fillAlpha: 0,
@@ -1065,6 +1084,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             switch country {
             case .china: expansionRatio = 0.08
             case nil: expansionRatio = 0.06
+            case .mongolia: expansionRatio = 0.04
             case .japan, .korea: expansionRatio = 0
             }
             if expansionRatio > 0 {
@@ -1279,6 +1299,8 @@ private final class CityAtlasAnnotationView: MKAnnotationView {
         let placesLabelOnLeft: Bool
         if annotation.country == .china {
             placesLabelOnLeft = annotation.coordinate.longitude >= 110
+        } else if annotation.country == .mongolia {
+            placesLabelOnLeft = annotation.coordinate.longitude >= 107
         } else {
             placesLabelOnLeft = annotation.coordinate.longitude >= 132
         }
@@ -1313,12 +1335,14 @@ private enum CityAtlasCountry: String, Decodable, CaseIterable, Hashable {
     case china = "CN"
     case japan = "JP"
     case korea = "KR"
+    case mongolia = "MN"
 
     var title: String {
         switch self {
         case .china: return String(localized: "China")
         case .japan: return String(localized: "Japan")
         case .korea: return String(localized: "South Korea")
+        case .mongolia: return String(localized: "Mongolia")
         }
     }
 
@@ -1327,6 +1351,7 @@ private enum CityAtlasCountry: String, Decodable, CaseIterable, Hashable {
         case .china: return Color(red: 1.0, green: 0.38, blue: 0.25)
         case .japan: return Color(red: 0.25, green: 0.78, blue: 1.0)
         case .korea: return Color(red: 0.65, green: 0.55, blue: 1.0)
+        case .mongolia: return Color(red: 0.95, green: 0.68, blue: 0.24)
         }
     }
 
@@ -1339,6 +1364,7 @@ private enum CityAtlasCountry: String, Decodable, CaseIterable, Hashable {
         case .china: return .tUnion
         case .japan: return .suica
         case .korea: return .tmoney
+        case .mongolia: return .tmoney
         }
     }
 }
@@ -1348,6 +1374,7 @@ private enum CityAtlasScope: String, CaseIterable, Identifiable {
     case china
     case japan
     case korea
+    case mongolia
 
     var id: String { rawValue }
 
@@ -1357,6 +1384,7 @@ private enum CityAtlasScope: String, CaseIterable, Identifiable {
         case .china: return .china
         case .japan: return .japan
         case .korea: return .korea
+        case .mongolia: return .mongolia
         }
     }
 
@@ -1366,6 +1394,7 @@ private enum CityAtlasScope: String, CaseIterable, Identifiable {
         case .china: return String(localized: "China")
         case .japan: return String(localized: "Japan")
         case .korea: return String(localized: "Korea")
+        case .mongolia: return String(localized: "Mongolia")
         }
     }
 }
@@ -1588,7 +1617,7 @@ private struct CityAtlasBoundary: Decodable {
             return "\(cityName) City"
         case .china where province.preferredDisplayName.hasCityAtlasSuffix(" Province"):
             return "\(cityName) City"
-        case .china, .korea:
+        case .china, .korea, .mongolia:
             return cityName
         }
     }
@@ -1759,6 +1788,7 @@ private struct CityAtlasBoundaryCatalog: Decodable {
     let chinaCityToBoundary: [String: String]
     let koreaModeToBoundary: [String: String]
     let koreaLocationToBoundary: [String: String]
+    let mongoliaStationToBoundary: [String: String]
 }
 
 private struct CityAtlasProvinceCatalog: Decodable {
@@ -1910,6 +1940,9 @@ private struct CityAtlasVisitResolver {
         let supportedKoreaCityBoundaryIDs = Set(
             catalog.koreaLocationToBoundary.values
         ).union(catalog.koreaModeToBoundary.values)
+        let supportedMongoliaCityBoundaryIDs = Set(
+            catalog.mongoliaStationToBoundary.values
+        )
         let catalogBoundaryIDs = Set(catalog.boundaries.map(\.id))
         let retainedChinaBoundaryIDs = Set(
             catalog.boundaries.lazy
@@ -1939,8 +1972,10 @@ private struct CityAtlasVisitResolver {
         guard !supportedChinaCityCodes.isEmpty,
               !supportedJapanCityBoundaryIDs.isEmpty,
               !supportedKoreaCityBoundaryIDs.isEmpty,
+              !supportedMongoliaCityBoundaryIDs.isEmpty,
               supportedJapanCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
               supportedKoreaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
+              supportedMongoliaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
               excludedChinaCityBoundaryCodes.allSatisfy({
                   catalog.chinaCityToBoundary[$0] != nil
               }),
@@ -1956,6 +1991,8 @@ private struct CityAtlasVisitResolver {
                     && boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
             case .korea:
                 return supportedKoreaCityBoundaryIDs.contains(boundary.id)
+            case .mongolia:
+                return supportedMongoliaCityBoundaryIDs.contains(boundary.id)
             }
         }
         let chinaProvinceNameByCityBoundaryID = try chinaProvinceNameByCityBoundaryID(
@@ -1969,6 +2006,8 @@ private struct CityAtlasVisitResolver {
             case .japan:
                 return boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
             case .korea:
+                return true
+            case .mongolia:
                 return true
             }
         }
@@ -2198,6 +2237,11 @@ private struct CityAtlasVisitResolver {
                     $0.countryCode == .japan
                         && $0.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
                 }
+                .map(\.id)
+        )
+        supportedIDs.formUnion(
+            provinces.lazy
+                .filter { $0.countryCode == .mongolia }
                 .map(\.id)
         )
         var provinceBoundaryByCityID: [String: String] = [:]

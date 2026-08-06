@@ -4,7 +4,8 @@
 Province geometry is kept separate from the city catalog so it can remain a
 quiet cartographic layer beneath visited-city highlights. Taiwan is excluded:
 CardBal has no supported Taiwanese transit-card path, so drawing it as part of
-the China overlay would imply coverage the app does not provide.
+the China overlay would imply coverage the app does not provide. Mongolia's
+full ADM1 outline is retained so the country is visible around Ulaanbaatar.
 """
 
 from __future__ import annotations
@@ -66,6 +67,13 @@ ASSETS: dict[str, dict[str, Any]] = {
         "sourceFeatureCount": 17,
         "license": "Public Domain",
     },
+    "MNG_ADM1": {
+        "countryCode": "MN",
+        "relativePath": "MNG/ADM1/geoBoundaries-MNG-ADM1_simplified.geojson",
+        "sha256": "4e692ea5cff967b716e59975768d1560ade8c9844fbe6831bd4d9e6a7123f7aa",
+        "sourceFeatureCount": 22,
+        "license": "Open Data Commons Open Database License 1.0",
+    },
 }
 
 EXCLUDED_NAMES = {("CN", "Taiwan Province")}
@@ -73,7 +81,7 @@ NAME_OVERRIDES = {
     ("CN", "Guangzhou Province"): "Guangdong Province",
     ("CN", "Ningxia Ningxia Hui Autonomous Region"): "Ningxia Hui Autonomous Region",
 }
-EXPECTED_OUTPUT_COUNTS = {"CN": 33, "JP": 47, "KR": 17}
+EXPECTED_OUTPUT_COUNTS = {"CN": 33, "JP": 47, "KR": 17, "MN": 22}
 CHINA_COASTAL_VALIDATION_PROVINCES = frozenset(
     {
         "Fujian Province",
@@ -385,6 +393,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 "CN": CHINA_COORDINATE_DECIMALS,
                 "JP": COORDINATE_DECIMALS,
                 "KR": COORDINATE_DECIMALS,
+                "MN": COORDINATE_DECIMALS,
             },
             "chinaProvinceLandClip": {
                 "order": "geoBoundaries ADM1 intersected with pinned Natural Earth land before local RDP, then intersected again after RDP before final quantization",

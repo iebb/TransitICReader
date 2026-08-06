@@ -6,6 +6,8 @@ transit-card system, while visit eligibility remains restricted to the exact
 station-code lookup. Korea uses a non-stacked mixed city layer: metropolitan
 cities use ADM1, other municipalities use ADM2, and Jeju stays whole because
 the available evidence does not safely split its visits between its two cities.
+Mongolia contributes Ulaanbaatar's ADM1 municipality and maps every station in
+the bundled UB Smart Bus snapshot to that boundary.
 Exact Korean station locations win, with reviewed city-specific KOTRIS modes as
 a fallback when a station token is unknown. China's source catalog includes
 every peer-level city in the bundled T-Union registry plus a reference-only
@@ -53,6 +55,7 @@ DEFAULT_CHINA_COVERAGE = REPO_ROOT / "CardBal/Resources/ChinaTransitCoverage.jso
 DEFAULT_CHINA_RELATION_MANIFEST = REPO_ROOT / "scripts/data/china_tunion_osm_relations.json"
 DEFAULT_KOREA_STATIONS = REPO_ROOT / "CardBal/Resources/korean_stations.tsv"
 DEFAULT_KOREA_MODES = REPO_ROOT / "CardBal/Resources/KOTRISTransportModes.json"
+DEFAULT_MONGOLIA_DATABASE = REPO_ROOT / "CardBal/Resources/ulaanbaatar_transit.sqlite"
 DEFAULT_OUTPUT = REPO_ROOT / "CardBal/Resources/EastAsiaCityBoundaries.json"
 
 GEBOUNDARIES_COMMIT = "9469f09592ced973a3448cf66b6100b741b64c0d"
@@ -77,6 +80,10 @@ GEBOUNDARIES_ASSETS = {
     "KOR_ADM2": {
         "relativePath": "KOR/ADM2/geoBoundaries-KOR-ADM2_simplified.geojson",
         "sha256": "06d1b604a843b5cc8b7adb6483ca0e2fbf4fe5cbbd8d3633ebe0c6e1df01119f",
+    },
+    "MNG_ADM1": {
+        "relativePath": "MNG/ADM1/geoBoundaries-MNG-ADM1_simplified.geojson",
+        "sha256": "4e692ea5cff967b716e59975768d1560ade8c9844fbe6831bd4d9e6a7123f7aa",
     },
 }
 
@@ -146,6 +153,7 @@ OUTPUT_QUANTIZATION_CONTAINMENT_BUFFER_DEGREES = 0.000008
 JAPAN_RDP_TOLERANCE = 0.002
 CHINA_RDP_TOLERANCE = 0.001
 KOREA_RDP_TOLERANCE = 0.0015
+MONGOLIA_RDP_TOLERANCE = 0.002
 JAPAN_GRID_SIZE = 0.5
 JAPAN_NEAREST_FALLBACK_DEGREES = 0.02
 MAX_OUTPUT_BYTES = 10 * 1024 * 1024
@@ -1916,6 +1924,76 @@ def build_korea_boundaries(
     return boundaries, mode_mapping, location_mapping, stats
 
 
+def build_mongolia_boundary(
+    adm1_payload: dict[str, Any],
+    station_database: Path,
+) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, Any]]:
+    """Build the city-atlas boundary and station lookup for Ulaanbaatar."""
+
+    features = adm1_payload.get("features")
+    if not isinstance(features, list) or len(features) != 22:
+        raise RuntimeError(
+            "Unexpected MNG_ADM1 feature count: "
+            f"expected 22, got {len(features) if isinstance(features, list) else 'invalid'}"
+        )
+    matches = [
+        feature
+        for feature in features
+        if str((feature.get("properties") or {}).get("shapeName") or "").strip()
+        == "Ulaanbaatar"
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"Expected one Ulaanbaatar ADM1 feature, found {len(matches)}"
+        )
+    feature = matches[0]
+    properties = feature.get("properties") or {}
+    shape_id = str(properties.get("shapeID") or "").strip()
+    subdivision_code = str(properties.get("shapeISO") or "").strip()
+    if not shape_id:
+        raise RuntimeError("Ulaanbaatar ADM1 feature has no shapeID")
+    boundary_id = f"mn:adm1:{shape_id}"
+    boundary = make_boundary(
+        boundary_id=boundary_id,
+        country_code="MN",
+        name="Ulaanbaatar",
+        native_name="Улаанбаатар",
+        parts=geometry_parts(feature["geometry"]),
+        tolerance=MONGOLIA_RDP_TOLERANCE,
+        coordinate_decimals=COORDINATE_DECIMALS,
+    )
+    if subdivision_code:
+        boundary["subdivisionCode"] = subdivision_code
+
+    with sqlite3.connect(station_database) as connection:
+        rows = connection.execute(
+            """
+            SELECT station_id, latitude, longitude
+            FROM stations
+            ORDER BY station_id
+            """
+        ).fetchall()
+    if not rows:
+        raise RuntimeError("The Ulaanbaatar transit database contains no stations")
+    station_mapping = {str(row[0]): boundary_id for row in rows}
+    if len(station_mapping) != len(rows):
+        raise RuntimeError("The Ulaanbaatar transit database contains duplicate station IDs")
+    invalid_coordinate_count = sum(
+        not (-90.0 <= float(latitude) <= 90.0 and -180.0 <= float(longitude) <= 180.0)
+        for _, latitude, longitude in rows
+    )
+    if invalid_coordinate_count:
+        raise RuntimeError(
+            f"The Ulaanbaatar transit database has {invalid_coordinate_count} invalid coordinates"
+        )
+    stats = {
+        "mappedStationCount": len(station_mapping),
+        "referenceBoundaryCount": 1,
+        "usedBoundaryCount": 1,
+    }
+    return [boundary], station_mapping, stats
+
+
 def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
     generated_at = args.generated_at or utc_now()
     japan_coverage = json.loads(args.japan_coverage.read_text(encoding="utf-8"))
@@ -1953,6 +2031,14 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             args.korea_modes,
         )
         (
+            mongolia_boundaries,
+            mongolia_station_mapping,
+            mongolia_stats,
+        ) = build_mongolia_boundary(
+            geo["MNG_ADM1"],
+            args.mongolia_database,
+        )
+        (
             china_boundaries,
             china_mapping,
             china_stats,
@@ -1967,13 +2053,14 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
             args.nominatim_delay,
         )
 
-    boundaries = japan_boundaries + china_boundaries + korea_boundaries
+    boundaries = japan_boundaries + china_boundaries + korea_boundaries + mongolia_boundaries
     boundaries.sort(key=lambda boundary: (boundary["countryCode"], boundary["id"]))
     referenced_ids = (
         set(japan_mapping.values())
         | set(china_mapping.values())
         | set(korea_mode_mapping.values())
         | set(korea_location_mapping.values())
+        | set(mongolia_station_mapping.values())
     )
     emitted_ids = {boundary["id"] for boundary in boundaries}
     missing_ids = referenced_ids - emitted_ids
@@ -2018,6 +2105,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                     "JPN_ADM2": "OpenStreetMap/Wambacher, CC BY-SA 2.0",
                     "KOR_ADM1": "Natural Earth, Public Domain",
                     "KOR_ADM2": "citypopulation.de, CC BY 3.0",
+                    "MNG_ADM1": "OpenStreetMap/Wambacher, Open Data Commons Open Database License 1.0",
                 },
             },
             "openStreetMapChina": {
@@ -2050,6 +2138,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 "japan": "CardBal/Resources/jp_stations.sqlite exact non-pseudo coordinates, scoped by CardBal/Resources/JapanTransitCoverage.json",
                 "china": "CardBal/Resources/TUnionCityCodes.json exact peer-level city codes, filtered at runtime by ChinaTransitCoverage.json participation status, plus reviewed aliases and reference-only Macau",
                 "korea": "CardBal/Resources/korean_stations.tsv from iebb/korean-stations plus explicit verified transport-mode codes",
+                "mongolia": "CardBal/Resources/ulaanbaatar_transit.sqlite generated from the service used by com.uscc.ubbus",
             },
         },
         "generation": {
@@ -2059,11 +2148,13 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 "JP": COORDINATE_DECIMALS,
                 "CN": CHINA_COORDINATE_DECIMALS,
                 "KR": COORDINATE_DECIMALS,
+                "MN": COORDINATE_DECIMALS,
             },
             "rdpToleranceDegrees": {
                 "JP": JAPAN_RDP_TOLERANCE,
                 "CN": CHINA_RDP_TOLERANCE,
                 "KR": KOREA_RDP_TOLERANCE,
+                "MN": MONGOLIA_RDP_TOLERANCE,
             },
             "japanSpatialJoin": {
                 "source": "pinned simplified JPN ADM2 polygons",
@@ -2089,6 +2180,11 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                     KOREA_CITY_REFERENCE_EXCLUDED_ADM2_SHAPE_NAMES
                 ),
             },
+            "mongoliaCityReference": {
+                "source": "pinned MNG ADM1 Ulaanbaatar municipality",
+                "referenceScope": "Ulaanbaatar, matching the bundled UB Smart Bus station snapshot",
+                "lookupKey": "decimal station_id from CardBal/Resources/ulaanbaatar_transit.sqlite",
+            },
             "chinaCityReference": {
                 "referenceScope": "the source catalog retains all 368 exact bundled T-Union peer-level cities plus reference-only Macau; CardBal displays the 352 current independent participation boundaries plus Macau, and Taiwan is outside scope",
                 "visitEligibility": "current exact T-Union boundaries and 53 explicitly reviewed non-stacked historical aliases; nine province-wide, historical multi-city, or composite codes resolve only at Province level",
@@ -2105,6 +2201,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 "JP": japan_stats,
                 "CN": china_stats,
                 "KR": korea_stats,
+                "MN": mongolia_stats,
             },
         },
         "boundaries": boundaries,
@@ -2112,6 +2209,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         "chinaCityToBoundary": dict(sorted(china_mapping.items(), key=lambda item: int(item[0]))),
         "koreaModeToBoundary": korea_mode_mapping,
         "koreaLocationToBoundary": korea_location_mapping,
+        "mongoliaStationToBoundary": mongolia_station_mapping,
     }
     from optimize_east_asia_boundary_catalogs import (
         optimize_catalog,
@@ -2131,6 +2229,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--china-relation-manifest", type=Path, default=DEFAULT_CHINA_RELATION_MANIFEST)
     parser.add_argument("--korea-stations", type=Path, default=DEFAULT_KOREA_STATIONS)
     parser.add_argument("--korea-modes", type=Path, default=DEFAULT_KOREA_MODES)
+    parser.add_argument("--mongolia-database", type=Path, default=DEFAULT_MONGOLIA_DATABASE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--source-cache-directory",
@@ -2160,6 +2259,7 @@ def main() -> None:
         args.china_relation_manifest,
         args.korea_stations,
         args.korea_modes,
+        args.mongolia_database,
     ):
         if not input_path.is_file():
             raise FileNotFoundError(input_path)
@@ -2178,7 +2278,8 @@ def main() -> None:
         f"{optimized_counts['boundaries']} supported boundaries; "
         f"JP hex codes {source_counts['JP']['mappedUniqueHexCodes']}/{source_counts['JP']['inputUniqueHexCodes']}; "
         f"CN cities {source_counts['CN']['mappedCityCount']}; "
-        f"KR modes {source_counts['KR']['mappedModeCodeCount']})"
+        f"KR modes {source_counts['KR']['mappedModeCodeCount']}; "
+        f"MN stations {source_counts['MN']['mappedStationCount']})"
     )
 
 
