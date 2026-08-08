@@ -252,8 +252,18 @@ class CardWalletStore: ObservableObject {
         NSLog("[CardWalletStoreDebug] Auto-applying preset: family=%@, sn=%@", family, sn)
         
         let allPresets = presets()
-        // Try family name match
-        if let match = allPresets.first(where: { family.contains($0.name.lowercased()) }) {
+        let normalizedFamily = family.replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: " ", with: "")
+
+        // Keep the bundled card faces as deterministic defaults for both
+        // punctuation variants, then fall back to the general family match.
+        if normalizedFamily.contains("umoney"),
+           let match = allPresets.first(where: { $0.id == "UMONEY" }) {
+            applyPreset(match, to: id)
+        } else if normalizedFamily.contains("tmoney"),
+                  let match = allPresets.first(where: { $0.id == "TM" }) {
+            applyPreset(match, to: id)
+        } else if let match = allPresets.first(where: { family.contains($0.name.lowercased()) }) {
             applyPreset(match, to: id)
         } 
         // Fallback for Climate Card to its dedicated preset
