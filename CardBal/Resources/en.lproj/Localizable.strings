@@ -77,7 +77,7 @@
 "Settings" = "Settings";
 "Map" = "Map";
 "Scan Your Transit Card" = "Scan Your Transit Card";
-"Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco." = "Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.";
+"Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco." = "Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.";
 "Card Preview" = "Card Preview";
 "Result" = "Result";
 "Card Family" = "Card Family";
@@ -112,7 +112,7 @@
 "Card Time Zone" = "Card Time Zone";
 "Card Issuer's Time Zone" = "Card Issuer's Time Zone";
 "Current Time Zone" = "Current Time Zone";
-"China T-Union defaults to China Standard Time and Korean cards default to Korea Standard Time when issuer time is selected." = "China T-Union defaults to China Standard Time and Korean cards default to Korea Standard Time when issuer time is selected.";
+"China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected." = "China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected.";
 "Privacy" = "Privacy";
 "Serial Number Display" = "Serial Number Display";
 "Full" = "Full";
@@ -302,3 +302,8 @@
 "Scan a supported Chinese, Japanese, or Korean transit card." = "Scan a supported Chinese, Japanese, or Korean transit card.";
 "No cities in %@" = "No cities in %@";
 "No saved transit records appear here yet." = "No saved transit records appear here yet.";
+"Developer" = "Developer";
+"Developer Mode" = "Developer Mode";
+"When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer." = "When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer.";
+"Developer Readable Blocks" = "Developer Readable Blocks";
+"Readable Block Count" = "Readable Block Count";

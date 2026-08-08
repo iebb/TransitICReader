@@ -5,7 +5,7 @@
 "Settings" = "설정";
 "Map" = "지도";
 "Scan Your Transit Card" = "교통카드를 스캔하세요";
-"Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco." = "Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union, Lignes d'Azur 같은 실물 교통카드나 Edy, waon, nanaco 같은 일본 SV 카드를 스캔하세요.";
+"Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco." = "Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union, Lignes d'Azur 같은 실물 교통카드나 Edy, waon, nanaco 같은 일본 SV 카드를 스캔하세요.";
 "Card Preview" = "카드 미리보기";
 "Result" = "결과";
 "Card Family" = "카드 종류";
@@ -42,7 +42,7 @@
 "Card Time Zone" = "카드 시간대";
 "Card Issuer's Time Zone" = "카드 발급처 시간대";
 "Current Time Zone" = "현재 시간대";
-"China T-Union defaults to China Standard Time and Korean cards default to Korea Standard Time when issuer time is selected." = "발급처 시간대를 선택하면 China T-Union은 중국 표준시, 한국 카드는 한국 표준시를 기본값으로 사용합니다.";
+"China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected." = "발급처 시간대를 선택하면 China T-Union은 중국 표준시, 한국 카드는 한국 표준시, U-Money는 울란바토르 시간을 사용합니다.";
 "Privacy" = "개인정보";
 "Serial Number Display" = "일련번호 표시";
 "Full" = "전체";
@@ -306,3 +306,8 @@
 "Scan a supported Chinese, Japanese, or Korean transit card." = "지원되는 중국·일본·한국 교통카드를 스캔하세요.";
 "No cities in %@" = "%@에 표시할 도시가 없습니다";
 "No saved transit records appear here yet." = "이 지역에는 아직 저장된 교통 기록이 없습니다.";
+"Developer" = "개발자";
+"Developer Mode" = "개발자 모드";
+"When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer." = "활성화하면 KS X 6924 스캔이 읽기 전용 APDU로 모든 SFI를 탐색하고 읽을 수 있는 모든 레코드와 short-EF 바이너리 블록을 Raw Data에 보관합니다. 스캔 시간이 길어집니다.";
+"Developer Readable Blocks" = "개발자용 읽기 가능 블록";
+"Readable Block Count" = "읽기 가능 블록 수";

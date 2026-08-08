@@ -257,7 +257,7 @@ struct ScanHomeView: View {
                                 Spacer()
                                 Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
                             }
-                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
                         }.padding(.vertical, 6)
                     }
                 }
@@ -634,6 +634,7 @@ struct SettingsView: View {
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
     @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
     @AppStorage(KoreanTripCrowdsourcingPreferences.promptedKey) private var koreanTripCrowdsourcingPrompted = false
+    @AppStorage(DeveloperModePreferences.enabledKey) private var developerModeEnabled = false
     @State private var backupDocument = CardBalBackupDocument()
     @State private var isExportingBackup = false
     @State private var isImportingBackup = false
@@ -697,7 +698,7 @@ struct SettingsView: View {
                         Text("Card Issuer's Time Zone").tag(CardTimeZonePreference.issuer.rawValue)
                         Text("Current Time Zone").tag(CardTimeZonePreference.current.rawValue)
                     }
-                    Text("China T-Union defaults to China Standard Time and Korean cards default to Korea Standard Time when issuer time is selected.")
+                    Text("China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -720,6 +721,12 @@ struct SettingsView: View {
                         }
                     ))
                     Text("When enabled, eligible T-money and EZL/Cashbee scans upload anonymized raw trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Developer") {
+                    Toggle("Developer Mode", isOn: $developerModeEnabled)
+                    Text("When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

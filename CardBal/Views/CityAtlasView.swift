@@ -1364,7 +1364,7 @@ private enum CityAtlasCountry: String, Decodable, CaseIterable, Hashable {
         case .china: return .tUnion
         case .japan: return .suica
         case .korea: return .tmoney
-        case .mongolia: return .tmoney
+        case .mongolia: return .umoney
         }
     }
 }

@@ -4,11 +4,12 @@ import os
 import SwiftUI
 
 public enum ICCardRegion: String, Codable, CaseIterable {
-    case japan, korea, hongkong, china, europe, other
+    case japan, korea, mongolia, hongkong, china, europe, other
     public var currencyCode: String {
         switch self {
         case .japan: return "JPY"
         case .korea: return "KRW"
+        case .mongolia: return "MNT"
         case .hongkong: return "HKD"
         case .china: return "CNY"
         default: return "USD"
@@ -20,7 +21,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     public var id: String { rawValue }
     case suica, pasmo, icoca, manaca, sugoca, hayakaken, kitaca, nimoca, toica, pitapa
     case edy, waon, nanaco
-    case tmoney, ezl, namane, climateCard, moiba, kCash
+    case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
     case tUnion
     case other
@@ -28,6 +29,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .edy, .waon, .nanaco: return .japan
         case .tmoney, .ezl, .namane, .climateCard, .moiba, .kCash: return .korea
+        case .umoney: return .mongolia
         case .octopus: return .hongkong
         case .tUnion: return .china
         case .other: return .other
@@ -41,7 +43,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     public var decoderType: DecoderType {
         switch self {
         case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .edy, .waon, .nanaco: return .japanIC
-        case .tmoney, .ezl, .climateCard, .moiba, .kCash: return .ksx6924
+        case .tmoney, .umoney, .ezl, .climateCard, .moiba, .kCash: return .ksx6924
         case .namane: return .namane
         case .octopus: return .octopus
         case .tUnion: return .tUnion
@@ -59,6 +61,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "suica": .suica, "pasmo": .pasmo, "icoca": .icoca, "manaca": .manaca,
             "sugoca": .sugoca, "hayakaken": .hayakaken, "kitaca": .kitaca, "nimoca": .nimoca,
             "toica": .toica, "pitapa": .pitapa, "t-money": .tmoney, "tmoney": .tmoney,
+            "u-money": .umoney, "umoney": .umoney,
             "ezl": .ezl, "cashbee": .ezl, "namane": .namane, "climate card": .climateCard,
             "moiba": .moiba, "k-cash": .kCash, "kcash": .kCash, "octopus": .octopus,
             "rakuten edy": .edy, "edy": .edy, "waon": .waon, "nanaco": .nanaco,
@@ -71,6 +74,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         if f.hasPrefix("suica") { return .suica }
         if f.hasPrefix("pasmo") { return .pasmo }
         if f.hasPrefix("icoca") { return .icoca }
+        if f.hasPrefix("u-money") || f.hasPrefix("umoney") { return .umoney }
         if f.hasPrefix("t-money") { return .tmoney }
         if f.hasPrefix("ezl") { return .ezl }
         if f.hasPrefix("cashbee") { return .ezl }
@@ -87,6 +91,10 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         
         return .other
     }
+}
+
+enum DeveloperModePreferences {
+    static let enabledKey = "developerModeEnabled"
 }
 
 // MARK: - Models
@@ -203,14 +211,14 @@ struct TransactionDecoderRegistry {
         if technology == "FeliCa" {
             return JapaneseICDecoder.decodeTransaction(block: data, context: contextData, index: index, family: family, kind: kind, relatedContext: relatedContextData)
         } else if technology == "ISO7816" {
-            // KS X 6924 (Korean T-money/EZL/NAMANE)
+            // KS X 6924 (T-money-compatible T-money/U-Money/EZL/NAMANE)
             let brand = ICCardBrand.from(family: family)
             if family.localizedCaseInsensitiveContains("City Union"), data.count == 23 {
                 return CityUnionDecoder.decodeTransitRecord(data: data, index: index)
             } else if brand == .tUnion && data.count >= 48 {
                 return TUnionDecoder.decodeTravelRecord(data: data, index: index)
             } else if data.count == 52 {
-                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, isNAMANE: brand == .namane, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+                return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, brand: brand, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
             } else if data.count == 23 {
                 return TUnionDecoder.decodePBOC(data: data, index: index)
             } else {
@@ -218,7 +226,7 @@ struct TransactionDecoderRegistry {
                 if isNAMANE && data.count == 14 {
                     return NAMANEDecoder.parseNAMANELog(data, sfi: 14, recordIndex: index + 1, isNAMANE: true, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "NAMANE"))
                 }
-                return KSX6924Decoder.parseSingleTransaction(data, sfi: 4, recordIndex: index + 1, isNAMANE: isNAMANE, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
+                return KSX6924Decoder.parseSingleTransaction(data, sfi: 4, recordIndex: index + 1, brand: brand, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
             }
         }
         return nil
@@ -1455,7 +1463,7 @@ func formatUTF8OrHex(_ data: Data) -> String {
 
 func defaultFractionDigits(for currencyCode: String) -> Int {
     switch currencyCode {
-    case "JPY", "KRW":
+    case "JPY", "KRW", "MNT":
         return 0
     case "HKD":
         return 1

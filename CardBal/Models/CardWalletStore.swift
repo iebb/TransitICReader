@@ -1000,6 +1000,7 @@ class CardWalletStore: ObservableObject {
         case "Transit IC": return SavedCardColor(red: 0.11, green: 0.53, blue: 0.76)
         case "Octopus": return SavedCardColor(red: 0.80, green: 0.16, blue: 0.16)
         case "T-money": return SavedCardColor(red: 0.12, green: 0.61, blue: 0.49)
+        case "U-Money": return SavedCardColor(red: 0.12, green: 0.43, blue: 0.78)
         case "EZL / Cashbee": return SavedCardColor(red: 0.94, green: 0.58, blue: 0.18)
         case "Lignes d'Azur card": return SavedCardColor(red: 0.05, green: 0.36, blue: 0.73)
         default: return SavedCardColor(red: 0.24, green: 0.27, blue: 0.35)

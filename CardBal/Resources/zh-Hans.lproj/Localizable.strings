@@ -77,7 +77,7 @@
 "Settings" = "设置";
 "Map" = "地图";
 "Scan Your Transit Card" = "扫描你的交通卡";
-"Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco." = "扫描 Suica、ICOCA、Hayakaken、Octopus、T-money、EZL/Cashbee、City Union、China T-Union、Lignes d'Azur 等实体交通卡，或 Edy、waon、nanaco 等日本 SV 卡。";
+"Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco." = "扫描 Suica、ICOCA、Hayakaken、Octopus、T-money、U-Money、EZL/Cashbee、City Union、China T-Union、Lignes d'Azur 等实体交通卡，或 Edy、waon、nanaco 等日本 SV 卡。";
 "Card Preview" = "卡片预览";
 "Result" = "结果";
 "Card Family" = "卡片类型";
@@ -112,7 +112,7 @@
 "Card Time Zone" = "卡片时区";
 "Card Issuer's Time Zone" = "发卡方时区";
 "Current Time Zone" = "当前时区";
-"China T-Union defaults to China Standard Time and Korean cards default to Korea Standard Time when issuer time is selected." = "选择发卡方时区时，China T-Union 默认使用中国标准时间，韩国卡默认使用韩国标准时间。";
+"China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected." = "选择发卡方时区时，China T-Union 使用中国标准时间，韩国卡使用韩国标准时间，U-Money 使用乌兰巴托时间。";
 "Privacy" = "隐私";
 "Serial Number Display" = "序列号显示";
 "Full" = "完整";
@@ -302,3 +302,8 @@
 "Scan a supported Chinese, Japanese, or Korean transit card." = "扫描支持的中国、日本或韩国交通卡。";
 "No cities in %@" = "%@暂无城市";
 "No saved transit records appear here yet." = "此处尚无已保存的交通记录。";
+"Developer" = "开发者";
+"Developer Mode" = "开发者模式";
+"When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer." = "启用后，KS X 6924 扫描会使用只读 APDU 探测所有 SFI，并在 Raw Data 中保留每条可读记录和 short-EF 二进制块。扫描耗时会更长。";
+"Developer Readable Blocks" = "开发者可读块";
+"Readable Block Count" = "可读块数量";

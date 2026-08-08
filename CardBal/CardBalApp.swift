@@ -18,6 +18,7 @@ struct CardBalApp: App {
             "scanOnLaunch": true,
             "dateFormat": "yyyy-MM-dd",
             "cardTimeZonePreference": CardTimeZonePreference.issuer.rawValue,
+            DeveloperModePreferences.enabledKey: false,
             KoreanTripCrowdsourcingPreferences.enabledKey: false,
             KoreanTripCrowdsourcingPreferences.promptedKey: false,
             KoreanTripCrowdsourcingPreferences.endpointKey: "https://korean-trip-crowdsourcing.ieb.app/ingest/korean-trip-records"

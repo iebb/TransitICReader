@@ -12,8 +12,9 @@ Native SwiftUI iPhone app for scanning physical transit IC cards with CoreNFC.
 
 - Implemented: Japanese transit FeliCa cards on system code `0003` such as Suica, PASMO, and ICOCA
 - Implemented: Octopus on FeliCa system code `8008`
-- Implemented: KS X 6924 ISO7816 cards such as T-money and EZL/Cashbee
+- Implemented: KS X 6924 ISO7816 cards such as T-money, U-Money, and EZL/Cashbee. U-Money is distinguished from the shared T-money-compatible application by a normalized card number beginning with `16`.
 - The app now shows structured raw payloads alongside the parsed balance
+- An opt-in Developer Mode probes SFIs 1-30 with read-only APDUs and keeps every readable record and short-EF binary block in Raw Data.
 
 ## Station data
 

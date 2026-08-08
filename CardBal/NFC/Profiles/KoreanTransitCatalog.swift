@@ -457,21 +457,22 @@ enum KoreanTransitTimestampDecoder {
     private static let timestampOffset = 11
     private static let mybiSentinel: UInt32 = 0xFBF000
 
-    static func decode(_ record: Data) -> KoreanTransitTimestamp? {
+    static func decode(_ record: Data, brand: ICCardBrand = .tmoney) -> KoreanTransitTimestamp? {
         guard record.count == recordLength else { return nil }
         guard let profile = KoreanTransitOperatorFieldProfile.forRecord(record) else { return nil }
+        let calendar = issuerCalendar(for: brand)
         switch profile {
         case .mybiBusan, .mybiBusanSubway:
-            return decodeMybi24(record)
+            return decodeMybi24(record, calendar: calendar)
         case .mybiTotal, .mybiGwangju:
-            return decodeBCD14(record)
+            return decodeBCD14(record, calendar: calendar)
         case .standardPacked33, .bcd14Regional:
-            if let bcd = decodeBCD14(record) { return bcd }
-            return decodePacked33(record)
+            if let bcd = decodeBCD14(record, calendar: calendar) { return bcd }
+            return decodePacked33(record, calendar: calendar)
         }
     }
 
-    private static func decodeMybi24(_ record: Data) -> KoreanTransitTimestamp? {
+    private static func decodeMybi24(_ record: Data, calendar: Calendar) -> KoreanTransitTimestamp? {
         let clockOffset: Int
         switch record[2] {
         case 0:
@@ -492,7 +493,6 @@ enum KoreanTransitTimestampDecoder {
         let minute = Int(value & 0x3F)
         guard (0...23).contains(hour), (0...59).contains(minute) else { return nil }
 
-        let calendar = seoulCalendar
         var epochComponents = DateComponents()
         epochComponents.calendar = calendar
         epochComponents.timeZone = calendar.timeZone
@@ -534,7 +534,7 @@ enum KoreanTransitTimestampDecoder {
         )
     }
 
-    private static func decodeBCD14(_ record: Data) -> KoreanTransitTimestamp? {
+    private static func decodeBCD14(_ record: Data, calendar: Calendar) -> KoreanTransitTimestamp? {
         let bytes = record[timestampOffset..<(timestampOffset + 7)]
         var digits: [Int] = []
         digits.reserveCapacity(14)
@@ -558,11 +558,12 @@ enum KoreanTransitTimestampDecoder {
             day: digits[6] * 10 + digits[7],
             hour: digits[8] * 10 + digits[9],
             minute: digits[10] * 10 + digits[11],
-            second: digits[12] * 10 + digits[13]
+            second: digits[12] * 10 + digits[13],
+            calendar: calendar
         )
     }
 
-    private static func decodePacked33(_ record: Data) -> KoreanTransitTimestamp? {
+    private static func decodePacked33(_ record: Data, calendar: Calendar) -> KoreanTransitTimestamp? {
         let rawDateWord = (UInt16(record[timestampOffset]) << 8) | UInt16(record[timestampOffset + 1])
         let timeWord = (UInt16(record[timestampOffset + 2]) << 8) | UInt16(record[timestampOffset + 3])
         let year = 2000 + Int(rawDateWord >> 9)
@@ -575,7 +576,8 @@ enum KoreanTransitTimestampDecoder {
             day: Int(rawDateWord & 0x1F),
             hour: Int(timeWord >> 11),
             minute: Int((timeWord >> 5) & 0x3F),
-            second: (Int(timeWord & 0x1F) << 1) | Int(record[timestampOffset + 4] >> 7)
+            second: (Int(timeWord & 0x1F) << 1) | Int(record[timestampOffset + 4] >> 7),
+            calendar: calendar
         )
     }
 
@@ -587,7 +589,8 @@ enum KoreanTransitTimestampDecoder {
         day: Int,
         hour: Int,
         minute: Int,
-        second: Int
+        second: Int,
+        calendar: Calendar
     ) -> KoreanTransitTimestamp? {
         guard (1...12).contains(month),
               (1...31).contains(day),
@@ -596,8 +599,6 @@ enum KoreanTransitTimestampDecoder {
               (0...59).contains(second) else {
             return nil
         }
-
-        let calendar = seoulCalendar
 
         var components = DateComponents()
         components.calendar = calendar
@@ -636,11 +637,9 @@ enum KoreanTransitTimestampDecoder {
         )
     }
 
-    private static var seoulCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
+    private static func issuerCalendar(for brand: ICCardBrand) -> Calendar {
+        var calendar = CardDateFormatting.calendar(for: brand)
         calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")
-            ?? TimeZone(secondsFromGMT: 9 * 60 * 60)!
         return calendar
     }
 }

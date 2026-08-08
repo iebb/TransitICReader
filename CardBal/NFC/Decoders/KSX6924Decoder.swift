@@ -51,8 +51,11 @@ struct KSX6924Decoder: TransitCardDecoder {
         let profile = KSX6924CardProfile.matching(aid: applicationAID)
         let purseInfo = KSX6924PurseInfo(fciPayload: initialSelectResponse.payload ?? Data())
         let parsedCardInfo = KSX6924CardInfo(payload: infoResponse?.0 ?? Data(), purseInfo: purseInfo, configInfo: configInfo)
-        
-        let parsedBalance = profile.parseBalance(balanceResponse.0)
+        let isUMoney = isUMoneyCardNumber(parsedCardInfo.cardNumber)
+        let developerModeEnabled = UserDefaults.standard.bool(forKey: DeveloperModePreferences.enabledKey)
+        let parsedBalance = isUMoney
+            ? ksx6924BalanceParser(data: balanceResponse.0, currencyCode: "MNT")
+            : profile.parseBalance(balanceResponse.0)
         
         var transactions: [String] = []
         var transitHistory: [String] = []
@@ -117,6 +120,13 @@ struct KSX6924Decoder: TransitCardDecoder {
                 }
             }
         }
+
+        let developerBlocks: [RawDataField]
+        if developerModeEnabled {
+            developerBlocks = await readAllReadableBlocks(from: iso, logger: logger)
+        } else {
+            developerBlocks = []
+        }
         
         var rawSections: [RawDataSection] = [
             RawDataSection(title: "Tag", fields: [
@@ -134,12 +144,22 @@ struct KSX6924Decoder: TransitCardDecoder {
             rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseRaw))
         }
 
+        if developerModeEnabled {
+            rawSections.append(RawDataSection(
+                title: "Developer Readable Blocks",
+                fields: [RawDataField(title: "Readable Block Count", value: String(developerBlocks.count))] + developerBlocks
+            ))
+        }
+
         var familyName = profile.displayName // e.g. "T-money", "EZL / Cashbee"
         var brandName = familyName
         var balanceText = parsedBalance.formatted
         var balanceDetail = parsedBalance.detail
         
-        if let type = parsedCardInfo.purseInfo?.cardType, (type & 0xB0) == 0xB0 {
+        if isUMoney {
+            familyName = "U-Money"
+            brandName = "U-Money"
+        } else if let type = parsedCardInfo.purseInfo?.cardType, (type & 0xB0) == 0xB0 {
             familyName = "T-money" 
             brandName = "Climate Card"
             balanceText = "N/A"
@@ -167,8 +187,129 @@ struct KSX6924Decoder: TransitCardDecoder {
         )
     }
 
+    static func isUMoneyCardNumber(_ cardNumber: String?) -> Bool {
+        guard let cardNumber else { return false }
+        return cardNumber.filter(\.isNumber).hasPrefix("16")
+    }
+
+    private static func readAllReadableBlocks(
+        from tag: NFCISO7816Tag,
+        logger: os.Logger
+    ) async -> [RawDataField] {
+        var blocks: [RawDataField] = []
+
+        for sfi in UInt8(1)...UInt8(30) {
+            let p2 = (sfi << 3) | 0x04
+
+            // ISO 7816 record EFs are sequential. Stop at the first unreadable
+            // record in each SFI, while allowing the full UInt8 record range.
+            for recordValue in 1...255 {
+                let recordNumber = UInt8(recordValue)
+                guard let response = await readRecord(
+                    recordNumber: recordNumber,
+                    p2: p2,
+                    from: tag
+                ) else {
+                    break
+                }
+                guard isReadable(response) else { break }
+                blocks.append(RawDataField(
+                    title: String(format: "SFI %02d Record %03d", sfi, recordNumber),
+                    value: response.data.hexString.uppercased()
+                ))
+            }
+
+            // Short-EF addressing exposes the first binary block for an SFI.
+            // This is read-only and complements record-oriented EFs above.
+            if let response = await readBinary(sfi: sfi, from: tag), isReadable(response) {
+                blocks.append(RawDataField(
+                    title: String(format: "SFI %02d Binary 0000", sfi),
+                    value: response.data.hexString.uppercased()
+                ))
+            }
+        }
+
+        logger.error("[KSX6924_DEV] Captured \(blocks.count) readable blocks across SFIs 1-30")
+        return blocks
+    }
+
+    private static func readRecord(
+        recordNumber: UInt8,
+        p2: UInt8,
+        from tag: NFCISO7816Tag
+    ) async -> (data: Data, sw1: UInt8, sw2: UInt8)? {
+        let apdu = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xB2,
+            p1Parameter: recordNumber,
+            p2Parameter: p2,
+            data: Data(),
+            expectedResponseLength: 256
+        )
+        guard var response = try? await tag.sendCommand(apdu: apdu) else { return nil }
+        if response.1 == 0x6C {
+            let expectedLength = response.2 == 0 ? 256 : Int(response.2)
+            let retry = NFCISO7816APDU(
+                instructionClass: 0x00,
+                instructionCode: 0xB2,
+                p1Parameter: recordNumber,
+                p2Parameter: p2,
+                data: Data(),
+                expectedResponseLength: expectedLength
+            )
+            guard let retried = try? await tag.sendCommand(apdu: retry) else { return nil }
+            response = retried
+        }
+        return (response.0, response.1, response.2)
+    }
+
+    private static func readBinary(
+        sfi: UInt8,
+        from tag: NFCISO7816Tag
+    ) async -> (data: Data, sw1: UInt8, sw2: UInt8)? {
+        let apdu = NFCISO7816APDU(
+            instructionClass: 0x00,
+            instructionCode: 0xB0,
+            p1Parameter: sfi | 0x80,
+            p2Parameter: 0x00,
+            data: Data(),
+            expectedResponseLength: 256
+        )
+        guard var response = try? await tag.sendCommand(apdu: apdu) else { return nil }
+        if response.1 == 0x6C {
+            let expectedLength = response.2 == 0 ? 256 : Int(response.2)
+            let retry = NFCISO7816APDU(
+                instructionClass: 0x00,
+                instructionCode: 0xB0,
+                p1Parameter: sfi | 0x80,
+                p2Parameter: 0x00,
+                data: Data(),
+                expectedResponseLength: expectedLength
+            )
+            guard let retried = try? await tag.sendCommand(apdu: retry) else { return nil }
+            response = retried
+        }
+        return (response.0, response.1, response.2)
+    }
+
+    private static func isReadable(_ response: (data: Data, sw1: UInt8, sw2: UInt8)) -> Bool {
+        (response.sw1 == 0x90 && response.sw2 == 0x00)
+            || (response.sw1 == 0x62 && response.sw2 == 0x82 && !response.data.isEmpty)
+    }
+
     static func parseSingleTransaction(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
+        parseSingleTransaction(
+            block,
+            sfi: sfi,
+            recordIndex: recordIndex,
+            brand: isNAMANE ? .namane : .tmoney,
+            logger: logger
+        )
+    }
+
+    static func parseSingleTransaction(_ block: Data, sfi: UInt8, recordIndex: Int, brand: ICCardBrand, logger: os.Logger) -> TransitTransaction? {
         if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { return nil }
+        let isNAMANE = brand == .namane
         
         if block.count >= 14 {
             // New Layout (40+) or Compact (14+ bytes)
@@ -223,7 +364,7 @@ struct KSX6924Decoder: TransitCardDecoder {
                             hour: components.hour,
                             minute: components.minute,
                             second: components.second,
-                            brand: .tmoney
+                            brand: brand
                         )
                         displayTime = String(format: "%02d:%02d:%02d", components.hour ?? 0, components.minute ?? 0, components.second ?? 0)
                     }
@@ -236,6 +377,16 @@ struct KSX6924Decoder: TransitCardDecoder {
     }
 
     static func parseTransitHistory(_ block: Data, sfi: UInt8, recordIndex: Int, isNAMANE: Bool, logger: os.Logger) -> TransitTransaction? {
+        parseTransitHistory(
+            block,
+            sfi: sfi,
+            recordIndex: recordIndex,
+            brand: isNAMANE ? .namane : .tmoney,
+            logger: logger
+        )
+    }
+
+    static func parseTransitHistory(_ block: Data, sfi: UInt8, recordIndex: Int, brand: ICCardBrand, logger: os.Logger) -> TransitTransaction? {
         logger.error("[KSX6924_TH] Parsing Record \(recordIndex) from SFI \(sfi): \(block.hexString)")
         if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { 
             return nil 
@@ -245,17 +396,21 @@ struct KSX6924Decoder: TransitCardDecoder {
             let record = block.count == 52 ? block : block.subdata(in: 0..<52)
             let tripState = record[2]
             let fareLayout = KoreanTransitHistoryFareLayout.decode(record)
-            let timestamp = KoreanTransitTimestampDecoder.decode(record)
+            let timestamp = KoreanTransitTimestampDecoder.decode(record, brand: brand)
             let distanceM = record.bigEndianInt(start: 19, length: 2)
             let stationToken = record.subdata(in: 5..<9).hexString.uppercased()
             let transportModeHex = record.subdata(in: 9..<11).hexString.uppercased()
             let transportModeCode = record.bigEndianInt(start: 9, length: 2)
             let locationCode = stationToken + transportModeHex
-            let transportMode = KOTRISTransportModeCatalog.bundled?.mode(for: transportModeCode)
-            let stationAlias = KoreanStationAliasCatalog.bundled?.location(
-                for: locationCode,
-                eventRaw: Int(tripState)
-            )
+            let transportMode = brand.isKorean
+                ? KOTRISTransportModeCatalog.bundled?.mode(for: transportModeCode)
+                : nil
+            let stationAlias = brand.isKorean
+                ? KoreanStationAliasCatalog.bundled?.location(
+                    for: locationCode,
+                    eventRaw: Int(tripState)
+                )
+                : nil
             let stationDisplay = stationAlias?.localizedDisplayName ?? String(
                 format: NSLocalizedString("korean_station_token_format", comment: "Unknown Korean station-token display"),
                 stationToken
@@ -346,7 +501,7 @@ struct KSX6924Decoder: TransitCardDecoder {
                             hour: components.hour,
                             minute: components.minute,
                             second: components.second,
-                            brand: .tmoney
+                            brand: brand
                         )
                         displayTime = String(format: "%02d:%02d:%02d", components.hour ?? 0, components.minute ?? 0, components.second ?? 0)
                     }
@@ -449,10 +604,14 @@ private struct KSX6924CardProfile {
 }
 
 private func ksx6924BalanceParser(data: Data) -> ParsedBalance {
+    ksx6924BalanceParser(data: data, currencyCode: "KRW")
+}
+
+private func ksx6924BalanceParser(data: Data, currencyCode: String) -> ParsedBalance {
     guard data.count >= 4 else { return ParsedBalance(formatted: "Error", detail: "Short data", rawFields: []) }
     let balance = data.bigEndianInt(start: 0, length: 4)
     return ParsedBalance(
-        formatted: formatCurrency(amount: Decimal(balance), code: "KRW", fractionDigits: 0),
+        formatted: formatCurrency(amount: Decimal(balance), code: currencyCode, fractionDigits: 0),
         detail: "Parsed as a 4-byte big-endian integer.",
         rawFields: [RawDataField(title: "Stored Value", value: String(balance))]
     )
