@@ -482,6 +482,15 @@ struct TransactionDetailView: View {
         return TUnionTravelRecordDetails(raw: raw)
     }
 
+    private var isKSX6924Card: Bool {
+        switch brand.decoderType {
+        case .ksx6924, .namane:
+            return true
+        default:
+            return false
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -499,7 +508,7 @@ struct TransactionDetailView: View {
                         }
                     }
                     
-                    if let term = tx.terminalID, !isKorean {
+                    if let term = tx.terminalID, !isKorean, !isKSX6924Card {
                         LabeledContent {
                             Text(term)
                         } label: {
@@ -659,7 +668,7 @@ struct TransactionDetailView: View {
                         }
                     }
 
-                    if isKorean {
+                    if isKSX6924Card {
                         let is52 = (tx.rawData?.count ?? 0) >= 104
                         
                         if let dist = tx.distance {
@@ -725,8 +734,8 @@ struct TransactionDetailView: View {
                              }
                         } else if brand == .tUnion {
                              TUnionRawBreakdownView(raw: raw, tx: tx)
-                        } else if f.contains("t-money") || f.contains("ezl") || f.contains("namane") || f.contains("ks x") || f.contains("climate") {
-                             KoreanRawBreakdownView(raw: raw)
+                        } else if isKSX6924Card {
+                             KoreanRawBreakdownView(raw: raw, brand: brand)
                         }
                     }
                 }
@@ -764,6 +773,7 @@ struct TransactionDetailView: View {
 
 struct KoreanRawBreakdownView: View {
     let raw: String
+    let brand: ICCardBrand
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -772,7 +782,7 @@ struct KoreanRawBreakdownView: View {
                 // T-Money Transit Record (52 bytes)
                 let record = data.count == 52 ? data : data.subdata(in: 0..<52)
                 let fareLayout = KoreanTransitHistoryFareLayout.decode(record)
-                let timestamp = KoreanTransitTimestampDecoder.decode(record)
+                let timestamp = KoreanTransitTimestampDecoder.decode(record, brand: brand)
                 let recType = record.subdata(in: 0..<2).hexString
                 let tripState = record[2]
                 let tripStateDisplay = tripState == 0x00
@@ -784,17 +794,23 @@ struct KoreanRawBreakdownView: View {
                     String(format: "%04d-%02d-%02d %02d:%02d:%02d", $0.year, $0.month, $0.day, $0.hour, $0.minute, $0.second)
                 } ?? NSLocalizedString("Unresolved", comment: "A raw value could not be decoded")
                 let distM = record.bigEndianInt(start: 19, length: 2)
-                let selectedAmount = fareLayout?.selectedAmount.map { "₩\($0)" }
+                let selectedAmount = fareLayout?.selectedAmount.map {
+                    formatCurrency(amount: Decimal($0), code: brand.region.currencyCode)
+                }
                     ?? NSLocalizedString("Fare unknown", comment: "Korean transit fare could not be resolved")
                 let stationToken = record.subdata(in: 5..<9).hexString.uppercased()
                 let transportModeHex = record.subdata(in: 9..<11).hexString.uppercased()
                 let transportModeCode = record.bigEndianInt(start: 9, length: 2)
-                let transportMode = KOTRISTransportModeCatalog.bundled?.mode(for: transportModeCode)
+                let transportMode = brand.isKorean
+                    ? KOTRISTransportModeCatalog.bundled?.mode(for: transportModeCode)
+                    : nil
                 let locationCode = stationToken + transportModeHex
-                let stationAlias = KoreanStationAliasCatalog.bundled?.location(
-                    for: locationCode,
-                    eventRaw: Int(tripState)
-                )
+                let stationAlias = brand.isKorean
+                    ? KoreanStationAliasCatalog.bundled?.location(
+                        for: locationCode,
+                        eventRaw: Int(tripState)
+                    )
+                    : nil
                 let transportModeDisplay = transportMode.map {
                     "\($0.nameKo) · \($0.transportClass.displayName)"
                 } ?? NSLocalizedString("Unmapped", comment: "No data-source match")
@@ -816,15 +832,21 @@ struct KoreanRawBreakdownView: View {
                 let idsam = data.subdata(in: 14..<22).hexString
                 let ntsam = data.bigEndianInt(start: 22, length: 4)
                 let bcdTime = data.subdata(in: 26..<33).hexString
+                let logType = type == 0x02 ? "Top-up" : (fare == 0 ? "Entry" : "Payment / Trip")
+                let currencyCode = brand.region.currencyCode
                 
                 Group {
-                    DetailRawRow(title: "Log Type", value: type == 0x02 ? "Top-up" : "Payment / Trip", hex: String(format: "0x%02X", type), color: .red)
-                    DetailRawRow(title: "New Balance", value: "₩\(balance)", hex: data.subdata(in: 2..<6).hexString, color: .green)
+                    DetailRawRow(title: "Log Type", value: logType, hex: String(format: "0x%02X", type), color: .red)
+                    DetailRawRow(title: "Record Subtype", value: String(format: "0x%02X", data[1]), hex: "", color: .purple)
+                    DetailRawRow(title: "New Balance", value: formatCurrency(amount: Decimal(balance), code: currencyCode), hex: data.subdata(in: 2..<6).hexString, color: .green)
                     DetailRawRow(title: "NTEP (Tx Number)", value: "\(ntep)", hex: data.subdata(in: 6..<10).hexString, color: .blue)
-                    DetailRawRow(title: "Fare", value: "₩\(fare)", hex: data.subdata(in: 10..<14).hexString, color: .orange)
+                    DetailRawRow(title: "Amount", value: formatCurrency(amount: Decimal(fare), code: currencyCode), hex: data.subdata(in: 10..<14).hexString, color: .orange)
                     DetailRawRow(title: "IDSAM (Terminal)", value: idsam, hex: "", color: .cyan)
                     DetailRawRow(title: "NTSAM (Terminal Count)", value: "\(ntsam)", hex: data.subdata(in: 22..<26).hexString, color: .indigo)
                     DetailRawRow(title: "BCD Timestamp", value: formatBCDDate(bcdTime), hex: bcdTime, color: .brown)
+                    if data.count > 33 {
+                        DetailRawRow(title: "Trailing Data", value: data.subdata(in: 33..<data.count).hexString, hex: "", color: .gray)
+                    }
                 }
             } else if data.count >= 18 {
                 let cost = data.bigEndianInt(start: 10, length: 4)
@@ -842,6 +864,9 @@ struct KoreanRawBreakdownView: View {
 
     private func formatBCDDate(_ bcd: String) -> String {
         guard bcd.count >= 12 else { return bcd }
+        if bcd.allSatisfy({ $0 == "0" }) {
+            return "Not recorded"
+        }
         return "\(bcd.prefix(4))-\(bcd.dropFirst(4).prefix(2))-\(bcd.dropFirst(6).prefix(2)) \(bcd.dropFirst(8).prefix(2)):\(bcd.dropFirst(10).prefix(2)):\(bcd.suffix(2))"
     }
 }
@@ -1449,6 +1474,9 @@ func formatCurrency(amount: Decimal, code: String, fractionDigits: Int = 0) -> S
     let formatter = NumberFormatter()
     formatter.numberStyle = .currency
     formatter.currencyCode = code
+    if code == "MNT" {
+        formatter.currencySymbol = "\u{20AE}"
+    }
     formatter.minimumFractionDigits = fractionDigits
     formatter.maximumFractionDigits = fractionDigits
     return formatter.string(from: amount as NSDecimalNumber) ?? "\(code) \(amount)"

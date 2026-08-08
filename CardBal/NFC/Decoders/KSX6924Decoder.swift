@@ -47,9 +47,20 @@ struct KSX6924Decoder: TransitCardDecoder {
         if let infoRes = infoResponse {
             logger.error("[KSX6924_APDU] RX Get Info: SW=\(String(format: "%02X%02X", infoRes.1, infoRes.2)), Data=\(infoRes.0.hexString)")
         }
+
+        let purseRecordResponse = await readRecord(
+            recordNumber: 1,
+            p2: (UInt8(2) << 3) | 0x04,
+            from: iso
+        )
+        let purseRecordPayload = purseRecordResponse.flatMap { response in
+            isReadable(response) ? response.data : nil
+        }
         
         let profile = KSX6924CardProfile.matching(aid: applicationAID)
-        let purseInfo = KSX6924PurseInfo(fciPayload: initialSelectResponse.payload ?? Data())
+        let selectedPurseInfo = KSX6924PurseInfo(fciPayload: initialSelectResponse.payload ?? Data())
+        let recordPurseInfo = purseRecordPayload.flatMap { KSX6924PurseInfo(fciPayload: $0) }
+        let purseInfo = recordPurseInfo ?? selectedPurseInfo
         let parsedCardInfo = KSX6924CardInfo(payload: infoResponse?.0 ?? Data(), purseInfo: purseInfo, configInfo: configInfo)
         let isUMoney = isUMoneyCardNumber(parsedCardInfo.cardNumber)
         let developerModeEnabled = UserDefaults.standard.bool(forKey: DeveloperModePreferences.enabledKey)
@@ -140,8 +151,15 @@ struct KSX6924Decoder: TransitCardDecoder {
             ])
         ]
         
-        if let purseRaw = parsedCardInfo.purseInfoRawFields {
-            rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseRaw))
+        if let purseInfo = parsedCardInfo.purseInfo {
+            var purseFields = purseInfo.rawFields(currencyCode: isUMoney ? "MNT" : "KRW", isUMoney: isUMoney)
+            if let purseRecordPayload {
+                purseFields.insert(
+                    RawDataField(title: "SFI 02 Record 1", value: purseRecordPayload.hexString.uppercased()),
+                    at: 0
+                )
+            }
+            rawSections.append(RawDataSection(title: "Purse Info (Tag B0)", fields: purseFields))
         }
 
         if developerModeEnabled {
@@ -179,7 +197,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             balanceDetail: balanceDetail,
             realSerialNumber: parsedCardInfo.cardNumber,
             region: brandName,
-            resultFields: parsedCardInfo.resultFields,
+            resultFields: parsedCardInfo.resultFields(brand: isUMoney ? .umoney : ICCardBrand.from(family: familyName)),
             rawSections: rawSections,
             rawTransactions: transactions,
             rawTransitHistory: transitHistory,
@@ -330,6 +348,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             let signedAmount = isTopup ? fare : -fare
             var typeStr = isTopup ? "Top-up" : "Payment"
             if fareVal == 0 { typeStr = "Entry" }
+            let category: TransactionCategory = isTopup ? .topUp : (fareVal == 0 ? .tapOn : .payment)
             
             var foundDate: Date?
             var displayTime = (isNAMANE || (!isNAMANE && (sfi == 4 || sfi == 14))) ? "Record #\(ntep)" : "N/A"
@@ -371,7 +390,7 @@ struct KSX6924Decoder: TransitCardDecoder {
                 }
             }
             
-            return TransitTransaction(date: foundDate, time: displayTime, amount: signedAmount, terminalID: idsam ?? block.prefix(2).hexString, type: typeStr, balanceAfter: balance, rawData: block.hexString, recordNumber: Int(ntep), ntsam: ntsam)
+            return TransitTransaction(date: foundDate, time: displayTime, amount: signedAmount, terminalID: idsam ?? block.prefix(2).hexString, type: typeStr, category: category, balanceAfter: balance, rawData: block.hexString, recordNumber: Int(ntep), ntsam: ntsam)
         }
         return nil
     }
@@ -630,21 +649,19 @@ private struct KSX6924ConfigDFInfo {
 private struct KSX6924CardInfo {
     let cardNumber: String?
     let issueDate: String?
-    let purseInfoFields: [ResultField]?
-    let purseInfoRawFields: [RawDataField]?
     let purseInfo: KSX6924PurseInfo?
     init(payload: Data, purseInfo: KSX6924PurseInfo?, configInfo: KSX6924ConfigDFInfo?) {
         self.purseInfo = purseInfo
         self.cardNumber = purseInfo?.serial ?? configInfo?.serial ?? (payload.count >= 16 ? formatKoreanCardNumber(payload.sliceHexString(start: 8, length: 8)) : nil)
         self.issueDate = purseInfo?.issueDate ?? (payload.count >= 25 ? Self.formatIssueDate(payload.subdata(in: 21..<25)) : nil)
-        self.purseInfoFields = purseInfo?.resultFields
-        self.purseInfoRawFields = purseInfo?.purseInfoRawFields
     }
-    var resultFields: [ResultField] {
+    func resultFields(brand: ICCardBrand) -> [ResultField] {
         var fields: [ResultField] = []
         if let cardNumber { fields.append(ResultField(title: "Card Number", value: cardNumber)) }
         if let issueDate { fields.append(ResultField(title: "Issue Date", value: KSX6924DateFormatting.formatBCDDateForDisplay(issueDate) ?? issueDate)) }
-        if let purseInfoFields { fields.append(contentsOf: purseInfoFields) }
+        if let purseInfo {
+            fields.append(contentsOf: purseInfo.resultFields(brand: brand))
+        }
         return fields
     }
     private static func formatIssueDate(_ bytes: Data) -> String? {
@@ -657,22 +674,122 @@ private struct KSX6924CardInfo {
 private struct KSX6924PurseInfo {
     let rawData: Data
     let serial: String
-    let cardType: UInt8?
+    let cardType: UInt8
+    let algorithm: UInt8
+    let keyVersion: UInt8
+    let issuerID: UInt8
+    let usageAuthenticationID: String
     let issueDate: String?
+    let expiryDate: String?
+    let userCode: UInt8
+    let discountRate: UInt8
+    let maximumBalance: Int
+    let branchCode: String
+    let singleTransactionLimit: Int
+    let telecomCode: UInt8
+    let creditCompanyCode: UInt8
+    let reserved: Data
+
     init?(fciPayload: Data) {
-        guard let purseData = findTLVValue(tag: [0xB0], in: fciPayload), purseData.count >= 21 else { return nil }
+        guard let purseData = findTLVValue(tag: [0xB0], in: fciPayload), purseData.count >= 47 else { return nil }
         self.rawData = purseData
         self.cardType = purseData[0]
+        self.algorithm = purseData[1]
+        self.keyVersion = purseData[2]
+        self.issuerID = purseData[3]
         self.serial = formatKoreanCardNumber(purseData.sliceHexString(start: 4, length: 8))
-        let dateHex = purseData.subdata(in: 17..<21).hexString
-        self.issueDate = "\(dateHex.prefix(4))-\(dateHex.dropFirst(4).prefix(2))-\(dateHex.suffix(2))"
+        self.usageAuthenticationID = purseData.subdata(in: 12..<17).hexString.uppercased()
+        self.issueDate = Self.bcdDate(purseData.subdata(in: 17..<21))
+        self.expiryDate = Self.bcdDate(purseData.subdata(in: 21..<25))
+        self.userCode = purseData[25]
+        self.discountRate = purseData[26]
+        self.maximumBalance = purseData.bigEndianInt(start: 27, length: 4)
+        self.branchCode = purseData.subdata(in: 31..<33).hexString.uppercased()
+        self.singleTransactionLimit = purseData.bigEndianInt(start: 33, length: 4)
+        self.telecomCode = purseData[37]
+        self.creditCompanyCode = purseData[38]
+        self.reserved = purseData.subdata(in: 39..<47)
     }
-    var resultFields: [ResultField] {
-        var fields: [ResultField] = []
-        if let cardType { fields.append(ResultField(title: "Card Type", value: KSX6924CardType.lookup(cardType))) }
+
+    func resultFields(brand: ICCardBrand) -> [ResultField] {
+        let currencyCode = brand.region.currencyCode
+        var fields = [
+            ResultField(title: "Card Type", value: KSX6924CardType.lookup(cardType)),
+            ResultField(title: "Encryption Algorithm", value: KSX6924Algorithm.lookup(algorithm)),
+            ResultField(title: "Key Version", value: String(keyVersion)),
+            ResultField(title: "Issuer ID", value: issuerDisplay(isUMoney: brand == .umoney)),
+            ResultField(title: "Card Usage Authentication ID", value: usageAuthenticationID)
+        ]
+        if let expiryDate {
+            fields.append(ResultField(
+                title: "Expiry Date",
+                value: KSX6924DateFormatting.formatBCDDateForDisplay(expiryDate) ?? expiryDate
+            ))
+        }
+        fields.append(contentsOf: [
+            ResultField(title: "User Category", value: KSX6924UserCode.lookup(userCode)),
+            ResultField(title: "Discount Type", value: KSX6924DisRate.lookup(discountRate)),
+            ResultField(title: "Maximum Balance", value: formatCurrency(amount: Decimal(maximumBalance), code: currencyCode)),
+            ResultField(title: "Branch Code", value: branchCode),
+            ResultField(title: "Single Transaction Limit", value: formatCurrency(amount: Decimal(singleTransactionLimit), code: currencyCode)),
+            ResultField(title: "Telecom Code", value: auxiliaryCodeDisplay(telecomCode, isUMoney: brand == .umoney, koreanLookup: KSX6924TCode.lookup)),
+            ResultField(title: "Credit Company Code", value: auxiliaryCodeDisplay(creditCompanyCode, isUMoney: brand == .umoney, koreanLookup: KSX6924CCode.lookup))
+        ])
         return fields
     }
-    var purseInfoRawFields: [RawDataField]? { [RawDataField(title: "Raw Payload", value: rawData.hexString)] }
+
+    func rawFields(currencyCode: String, isUMoney: Bool) -> [RawDataField] {
+        [
+            RawDataField(title: "Raw Payload", value: rawData.hexString.uppercased()),
+            RawDataField(title: "Card Type", value: "\(KSX6924CardType.lookup(cardType)) · \(hexByte(cardType))"),
+            RawDataField(title: "Encryption Algorithm", value: "\(KSX6924Algorithm.lookup(algorithm)) · \(hexByte(algorithm))"),
+            RawDataField(title: "Key Version", value: "\(keyVersion) · \(hexByte(keyVersion))"),
+            RawDataField(title: "Issuer ID", value: issuerDisplay(isUMoney: isUMoney)),
+            RawDataField(title: "Card Number", value: serial),
+            RawDataField(title: "Card Usage Authentication ID", value: usageAuthenticationID),
+            RawDataField(title: "Issue Date", value: issueDate ?? "Invalid BCD date"),
+            RawDataField(title: "Expiry Date", value: expiryDate ?? "Invalid BCD date"),
+            RawDataField(title: "User Category", value: "\(KSX6924UserCode.lookup(userCode)) · \(hexByte(userCode))"),
+            RawDataField(title: "Discount Type", value: "\(KSX6924DisRate.lookup(discountRate)) · \(hexByte(discountRate))"),
+            RawDataField(title: "Maximum Balance", value: "\(formatCurrency(amount: Decimal(maximumBalance), code: currencyCode)) · \(rawData.subdata(in: 27..<31).hexString.uppercased())"),
+            RawDataField(title: "Branch Code", value: branchCode),
+            RawDataField(title: "Single Transaction Limit", value: "\(formatCurrency(amount: Decimal(singleTransactionLimit), code: currencyCode)) · \(rawData.subdata(in: 33..<37).hexString.uppercased())"),
+            RawDataField(title: "Telecom Code", value: auxiliaryCodeDisplay(telecomCode, isUMoney: isUMoney, koreanLookup: KSX6924TCode.lookup)),
+            RawDataField(title: "Credit Company Code", value: auxiliaryCodeDisplay(creditCompanyCode, isUMoney: isUMoney, koreanLookup: KSX6924CCode.lookup)),
+            RawDataField(title: "Reserved", value: reserved.hexString.uppercased())
+        ]
+    }
+
+    private func issuerDisplay(isUMoney: Bool) -> String {
+        if isUMoney {
+            return hexByte(issuerID)
+        }
+        return "\(KSX6924IDCenter.lookup(issuerID)) · \(hexByte(issuerID))"
+    }
+
+    private func auxiliaryCodeDisplay(
+        _ value: UInt8,
+        isUMoney: Bool,
+        koreanLookup: (UInt8) -> String
+    ) -> String {
+        if isUMoney, value != 0 {
+            return hexByte(value)
+        }
+        return "\(koreanLookup(value)) · \(hexByte(value))"
+    }
+
+    private func hexByte(_ value: UInt8) -> String {
+        String(format: "0x%02X", value)
+    }
+
+    private static func bcdDate(_ data: Data) -> String? {
+        guard data.count == 4,
+              data.allSatisfy({ ($0 >> 4) <= 9 && ($0 & 0x0F) <= 9 }) else {
+            return nil
+        }
+        let hex = data.hexString
+        return "\(hex.prefix(4))-\(hex.dropFirst(4).prefix(2))-\(hex.suffix(2))"
+    }
 }
 
 private func formatKoreanCardNumber(_ hex: String) -> String {
