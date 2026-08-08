@@ -461,7 +461,8 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "CLIMATE", name: "Climate Card", fileName: "climate-card"),
             CardPreset(id: "LA_CARTE", name: "La Carte", fileName: "la-carte"),
             CardPreset(id: "LA_CARTE_BLUE", name: "La Carte Blue", fileName: "la-carte-blue"),
-            CardPreset(id: "TM", name: "T-money", fileName: "tmoney")
+            CardPreset(id: "TM", name: "T-money", fileName: "tmoney"),
+            CardPreset(id: "UMONEY", name: "U-Money", fileName: "umoney")
         ]
     }
 

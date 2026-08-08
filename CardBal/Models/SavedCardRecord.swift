@@ -532,6 +532,7 @@ extension SavedCardRecord {
         if f.contains("hayakaken") { return SavedCardColor(red: 0.0, green: 0.68, blue: 0.94) } // Hayakaken Cyan
         if f.contains("sugoca") { return SavedCardColor(red: 0.82, green: 0.1, blue: 0.12) } // SUGOCA Red
         if f.contains("manaca") { return SavedCardColor(red: 0.96, green: 0.53, blue: 0.14) } // Manaca Orange/Yellow
+        if f.contains("u-money") || f.contains("umoney") { return SavedCardColor(red: 0.64, green: 0.04, blue: 0.45) } // U-Money Magenta
         if f.contains("t-money") || f.contains("ezl") { return SavedCardColor(red: 0.94, green: 0.5, blue: 0.0) } // Transit Orange
         if f.contains("octopus") { return SavedCardColor(red: 0.92, green: 0.48, blue: 0.1) } // Octopus Amber
         if f.contains("china") || f.contains("union") { return SavedCardColor(red: 0.75, green: 0.1, blue: 0.12) } // T-Union Red

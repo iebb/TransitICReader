@@ -62,7 +62,10 @@ struct KSX6924Decoder: TransitCardDecoder {
         let recordPurseInfo = purseRecordPayload.flatMap { KSX6924PurseInfo(fciPayload: $0) }
         let purseInfo = recordPurseInfo ?? selectedPurseInfo
         let parsedCardInfo = KSX6924CardInfo(payload: infoResponse?.0 ?? Data(), purseInfo: purseInfo, configInfo: configInfo)
-        let isUMoney = isUMoneyCardNumber(parsedCardInfo.cardNumber)
+        let isUMoney = isUMoneyCard(
+            cardNumber: parsedCardInfo.cardNumber,
+            issuerID: purseInfo?.issuerID
+        )
         let developerModeEnabled = UserDefaults.standard.bool(forKey: DeveloperModePreferences.enabledKey)
         let parsedBalance = isUMoney
             ? ksx6924BalanceParser(data: balanceResponse.0, currencyCode: "MNT")
@@ -205,8 +208,8 @@ struct KSX6924Decoder: TransitCardDecoder {
         )
     }
 
-    static func isUMoneyCardNumber(_ cardNumber: String?) -> Bool {
-        guard let cardNumber else { return false }
+    static func isUMoneyCard(cardNumber: String?, issuerID: UInt8?) -> Bool {
+        guard issuerID == 0x01, let cardNumber else { return false }
         return cardNumber.filter(\.isNumber).hasPrefix("16")
     }
 

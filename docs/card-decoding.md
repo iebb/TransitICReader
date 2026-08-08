@@ -30,6 +30,7 @@ presentation logic.
 | WAON | FeliCa | FeliCa | Balance, WAON number, points, and paired-block history. |
 | nanaco | FeliCa | FeliCa | Balance, points where available, metadata, and history. |
 | T-money | ISO 7816 | ISO 7816 | KS X 6924 transaction records. |
+| U-Money | ISO 7816 | ISO 7816 partial | iOS uses issuer `0x01` plus a `16` card-number prefix for MNT display; Android currently treats the shared application as T-money. |
 | EZL / Cashbee | ISO 7816 | ISO 7816 | KS X 6924 transaction records. |
 | NAMANE | ISO 7816 | ISO 7816 | NAMANE-specific records on iOS; Android captures ISO records under the same AID. |
 | China T-Union | ISO 7816 | ISO 7816 | PBOC transaction records plus travel records on both platforms. |
