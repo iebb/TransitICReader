@@ -1,6 +1,6 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-08-06T15:57:44+00:00",
+  "generatedAt": "2026-08-09T21:49:11.820751+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
       "bytes": 2794077,
@@ -80,7 +80,7 @@
     },
     "ulaanbaatar_transit.sqlite": {
       "bytes": 368640,
-      "sha256": "5d6c576b90527cbf4e20c1350605780b962ef85665f7182bd99488524cf7685e"
+      "sha256": "4a84fd43918fca2b9b1d84a14daa6dfb212b9c9fc0a46b7a73663598836dcd00"
     }
   },
   "sqlite": {
