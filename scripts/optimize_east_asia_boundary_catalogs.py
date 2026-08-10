@@ -305,7 +305,7 @@ def prune_province_catalog_to_supported_boundaries(
         for boundary in province_boundaries
         if boundary.get("countryCode") == "MN"
     }
-    supported_mongolia_ids = set(
+    station_mapped_mongolia_ids = set(
         str(boundary_id)
         for boundary_id in (output.get("mongoliaStationToBoundary") or {}).values()
     )
@@ -314,14 +314,32 @@ def prune_province_catalog_to_supported_boundaries(
         for boundary in city_boundaries
         if boundary.get("countryCode") == "MN"
     }
-    if not mongolia_province_ids or not supported_mongolia_ids or not supported_mongolia_city_ids:
-        raise RuntimeError("Mongolia province pruning requires Ulaanbaatar city data")
-    if not supported_mongolia_ids.issubset(mongolia_province_ids):
+    mongolia_city_to_province = {
+        str(city_id): str(province_id)
+        for city_id, province_id in (
+            city_catalog.get("mongoliaCityToProvince") or {}
+        ).items()
+    }
+    supported_mongolia_ids = set(mongolia_city_to_province.values())
+    if (
+        not mongolia_province_ids
+        or not station_mapped_mongolia_ids
+        or not supported_mongolia_city_ids
+        or not supported_mongolia_ids
+    ):
+        raise RuntimeError("Mongolia province pruning requires mapped city data")
+    if not station_mapped_mongolia_ids.issubset(mongolia_province_ids):
         raise RuntimeError(
             "Mongolia station mappings reference an unknown ADM1 province boundary"
         )
-    if not supported_mongolia_city_ids.issubset(supported_mongolia_ids):
-        raise RuntimeError("Ulaanbaatar has no mapped stations in the province catalog")
+    if set(mongolia_city_to_province) != supported_mongolia_city_ids:
+        raise RuntimeError(
+            "Mongolia city-to-province mapping does not cover every emitted city"
+        )
+    if not supported_mongolia_ids.issubset(mongolia_province_ids):
+        raise RuntimeError(
+            "Mongolia city-to-province mapping references an unknown province"
+        )
 
     retained_boundaries = []
     for boundary in province_boundaries:

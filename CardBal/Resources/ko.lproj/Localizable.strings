@@ -304,6 +304,7 @@
 "Your provinces will glow here" = "방문한 시·도가 여기에 빛납니다";
 "No provinces in %@" = "%@에 표시할 시·도가 없습니다";
 "Scan a supported Chinese, Japanese, or Korean transit card." = "지원되는 중국·일본·한국 교통카드를 스캔하세요.";
+"Scan a supported transit card." = "지원되는 교통카드를 스캔하세요.";
 "No cities in %@" = "%@에 표시할 도시가 없습니다";
 "No saved transit records appear here yet." = "이 지역에는 아직 저장된 교통 기록이 없습니다.";
 "Developer" = "개발자";

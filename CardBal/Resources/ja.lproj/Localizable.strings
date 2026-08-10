@@ -300,6 +300,7 @@
 "Your provinces will glow here" = "訪れた都道府県がここで輝きます";
 "No provinces in %@" = "%@には都道府県がありません";
 "Scan a supported Chinese, Japanese, or Korean transit card." = "対応する中国・日本・韓国の交通系ICカードをスキャンしてください。";
+"Scan a supported transit card." = "対応する交通系ICカードをスキャンしてください。";
 "No cities in %@" = "%@には都市がありません";
 "No saved transit records appear here yet." = "この地域には保存済みの交通履歴がまだありません。";
 "Developer" = "開発者";

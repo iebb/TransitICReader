@@ -320,7 +320,7 @@ private struct CityAtlasView: View {
                 Label(emptyPlaceLabel, systemImage: "sparkles")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Text("Scan a supported Chinese, Japanese, or Korean transit card.")
+                Text("Scan a supported transit card.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.68))
                     .fixedSize(horizontal: false, vertical: true)
@@ -1789,6 +1789,7 @@ private struct CityAtlasBoundaryCatalog: Decodable {
     let koreaModeToBoundary: [String: String]
     let koreaLocationToBoundary: [String: String]
     let mongoliaStationToBoundary: [String: String]
+    let mongoliaCityToProvince: [String: String]
 }
 
 private struct CityAtlasProvinceCatalog: Decodable {
@@ -1976,6 +1977,7 @@ private struct CityAtlasVisitResolver {
               supportedJapanCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
               supportedKoreaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
               supportedMongoliaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
+              Set(catalog.mongoliaCityToProvince.keys) == supportedMongoliaCityBoundaryIDs,
               excludedChinaCityBoundaryCodes.allSatisfy({
                   catalog.chinaCityToBoundary[$0] != nil
               }),
@@ -2018,7 +2020,8 @@ private struct CityAtlasVisitResolver {
             supportedChinaProvinceNames: Set(
                 chinaCoverage.supportedProvinceNames.map { $0.lowercased() }
             ),
-            supportedJapanSubdivisionCodes: supportedJapanSubdivisionCodes
+            supportedJapanSubdivisionCodes: supportedJapanSubdivisionCodes,
+            mongoliaCityToProvince: catalog.mongoliaCityToProvince
         )
 
         let boundaries = Dictionary(
@@ -2034,6 +2037,10 @@ private struct CityAtlasVisitResolver {
             }
         )
         let cardsByID = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+        let ulaanbaatarBoundaryID = supportedCityBoundaries.first {
+            $0.countryCode == .mongolia
+                && $0.name.caseInsensitiveCompare("Ulaanbaatar") == .orderedSame
+        }?.id
         var accumulators: [String: CityAtlasVisitAccumulator] = [:]
         var provinceAccumulators: [String: CityAtlasVisitAccumulator] = [:]
 
@@ -2062,6 +2069,15 @@ private struct CityAtlasVisitResolver {
                 addOctopusEvidence(
                     from: card,
                     boundaryID: hongKongBoundaryID,
+                    provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
+                    accumulators: &accumulators,
+                    provinceAccumulators: &provinceAccumulators
+                )
+            }
+            if brand == .umoney, let ulaanbaatarBoundaryID {
+                addUMoneyEvidence(
+                    from: card,
+                    boundaryID: ulaanbaatarBoundaryID,
                     provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
                     accumulators: &accumulators,
                     provinceAccumulators: &provinceAccumulators
@@ -2225,7 +2241,8 @@ private struct CityAtlasVisitResolver {
         cityBoundaries: [CityAtlasBoundary],
         chinaProvinceNameByCityBoundaryID: [String: String],
         supportedChinaProvinceNames: Set<String>,
-        supportedJapanSubdivisionCodes: Set<String>
+        supportedJapanSubdivisionCodes: Set<String>,
+        mongoliaCityToProvince: [String: String]
     ) throws -> CityAtlasProvinceResolution {
         let provincesByCountry = Dictionary(grouping: provinces, by: \.countryCode)
         let provinceAreas = Dictionary(
@@ -2273,6 +2290,17 @@ private struct CityAtlasVisitResolver {
             if city.countryCode == .japan,
                let subdivisionCode = city.subdivisionCode,
                let provinceID = japaneseProvinceIDBySubdivisionCode[subdivisionCode] {
+                provinceBoundaryByCityID[city.id] = provinceID
+                continue
+            }
+            if city.countryCode == .mongolia {
+                guard let provinceID = mongoliaCityToProvince[city.id],
+                      provincesByCountry[.mongolia]?.contains(where: {
+                          $0.id == provinceID
+                      }) == true else {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+                supportedIDs.insert(provinceID)
                 provinceBoundaryByCityID[city.id] = provinceID
                 continue
             }
@@ -2501,6 +2529,29 @@ private struct CityAtlasVisitResolver {
         addEvidence(
             boundaryID: boundaryID,
             evidenceID: "\(card.id)|octopus-card",
+            cardID: card.id,
+            date: nil,
+            countsAsRecord: false,
+            provinceBoundaryByCityID: provinceBoundaryByCityID,
+            accumulators: &accumulators,
+            provinceAccumulators: &provinceAccumulators
+        )
+    }
+
+    private func addUMoneyEvidence(
+        from card: SavedCardRecord,
+        boundaryID: String,
+        provinceBoundaryByCityID: [String: String],
+        accumulators: inout [String: CityAtlasVisitAccumulator],
+        provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
+    ) {
+        // A U-Money card proves Ulaanbaatar network use, but the card's
+        // seven-digit BCD stop token does not yet have a verified crosswalk to
+        // the eight- and nine-digit UB Smart Bus station IDs. Keep this at
+        // card-level evidence rather than fabricating a Töv municipality visit.
+        addEvidence(
+            boundaryID: boundaryID,
+            evidenceID: "\(card.id)|umoney-card",
             cardID: card.id,
             date: nil,
             countsAsRecord: false,

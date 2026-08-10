@@ -300,6 +300,7 @@
 "Your provinces will glow here" = "你去过的省级区域将在这里点亮";
 "No provinces in %@" = "%@暂无省级区域";
 "Scan a supported Chinese, Japanese, or Korean transit card." = "扫描支持的中国、日本或韩国交通卡。";
+"Scan a supported transit card." = "扫描支持的交通卡。";
 "No cities in %@" = "%@暂无城市";
 "No saved transit records appear here yet." = "此处尚无已保存的交通记录。";
 "Developer" = "开发者";

@@ -55,6 +55,9 @@
 		A0000CB5D9D53022E4B40B45 /* CalypsoProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */; };
 		AAEEA38E1C01D912373060D4 /* manaca.png in Resources */ = {isa = PBXBuildFile; fileRef = 74B3BF2807E457CDC85FCEF1 /* manaca.png */; };
 		B4A120012F6F2ACB0071B6C4 /* ulaanbaatar_transit.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = B4A120002F6F2ACB0071B6C4 /* ulaanbaatar_transit.sqlite */; };
+		E5A100012F6F2ACB0071B6C4 /* cardbal_stations.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = E5A100002F6F2ACB0071B6C4 /* cardbal_stations.sqlite */; };
+		E5A100032F6F2ACB0071B6C4 /* cardbal_cities.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = E5A100022F6F2ACB0071B6C4 /* cardbal_cities.sqlite */; };
+		E5A100052F6F2ACB0071B6C4 /* cardbal_provinces.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = E5A100042F6F2ACB0071B6C4 /* cardbal_provinces.sqlite */; };
 		B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11B0256184978348338611A /* FeliCaProfiles.swift */; };
 		C8B201E5325832FA793E6AC8 /* nimoca.png in Resources */ = {isa = PBXBuildFile; fileRef = 3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */; };
 		CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */; };
@@ -120,6 +123,9 @@
 		A00000000000000000000106 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoProfiles.swift; sourceTree = "<group>"; };
 		B4A120002F6F2ACB0071B6C4 /* ulaanbaatar_transit.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = ulaanbaatar_transit.sqlite; sourceTree = "<group>"; };
+		E5A100002F6F2ACB0071B6C4 /* cardbal_stations.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = cardbal_stations.sqlite; sourceTree = "<group>"; };
+		E5A100022F6F2ACB0071B6C4 /* cardbal_cities.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = cardbal_cities.sqlite; sourceTree = "<group>"; };
+		E5A100042F6F2ACB0071B6C4 /* cardbal_provinces.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = cardbal_provinces.sqlite; sourceTree = "<group>"; };
 		B11B0256184978348338611A /* FeliCaProfiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeliCaProfiles.swift; sourceTree = "<group>"; };
 		C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPBusCodes.csv; sourceTree = "<group>"; };
 		D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanTransitCatalog.swift; sourceTree = "<group>"; };
@@ -236,6 +242,9 @@
 				8C4692162F6F2ACB0071B6C4 /* TUnionLineStations.json */,
 				8E6F12002F6F2ACB0071B6C4 /* tunion_stations.sqlite */,
 				B4A120002F6F2ACB0071B6C4 /* ulaanbaatar_transit.sqlite */,
+				E5A100002F6F2ACB0071B6C4 /* cardbal_stations.sqlite */,
+				E5A100022F6F2ACB0071B6C4 /* cardbal_cities.sqlite */,
+				E5A100042F6F2ACB0071B6C4 /* cardbal_provinces.sqlite */,
 				A00000000000000000000106 /* GoogleService-Info.plist */,
 				EC38266AABB2DF946A942826 /* JPStationCodes.csv */,
 				FD27111B8E07C4D1E9C71213 /* JPStationCodes.json */,
@@ -410,6 +419,9 @@
 				D4A120092F6F2ACB0071B6C4 /* JapanTransitCoverage.json in Resources */,
 				8E6F12012F6F2ACB0071B6C4 /* tunion_stations.sqlite in Resources */,
 				B4A120012F6F2ACB0071B6C4 /* ulaanbaatar_transit.sqlite in Resources */,
+				E5A100012F6F2ACB0071B6C4 /* cardbal_stations.sqlite in Resources */,
+				E5A100032F6F2ACB0071B6C4 /* cardbal_cities.sqlite in Resources */,
+				E5A100052F6F2ACB0071B6C4 /* cardbal_provinces.sqlite in Resources */,
 				A00000000000000000000105 /* GoogleService-Info.plist in Resources */,
 				2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */,
 				984347E534E49A3231B42A2E /* JPStationCodes.json in Resources */,

@@ -8,6 +8,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -53,9 +54,40 @@ ULAANBAATAR_PLATFORM_ASSETS = [
     "ulaanbaatar_transit.sqlite",
 ]
 
+UNIFIED_ASSETS = [
+    "cardbal_stations.sqlite",
+    "cardbal_cities.sqlite",
+    "cardbal_provinces.sqlite",
+]
+
+UNIFIED_INPUT_ASSETS = [
+    "EastAsiaCityBoundaries.json",
+    "EastAsiaProvinceBoundaries.json",
+    "ChinaTransitCoverage.json",
+    "JapanTransitCoverage.json",
+    "jp_stations.sqlite",
+    "tunion_stations.sqlite",
+    "korean_stations.tsv",
+    "ulaanbaatar_transit.sqlite",
+    "KOTRISTransportModes.json",
+    "TUnionCityCodes.json",
+    "TUnionLineStations.json",
+    "JPStationCodes.csv",
+]
+
+UNIFIED_PORTABLE_INPUT_ASSETS = {
+    "jp_stations.sqlite",
+    "tunion_stations.sqlite",
+    "ulaanbaatar_transit.sqlite",
+    "KOTRISTransportModes.json",
+    "TUnionCityCodes.json",
+    "TUnionLineStations.json",
+    "JPStationCodes.csv",
+}
+
 # CardBal iOS vendors korean_stations.tsv and its derived East Asia boundary
-# catalog directly. They are intentionally not copied into Android or portable
-# asset trees.
+# catalogs directly. The unified databases package those iOS sources into
+# portable runtime files, but are intentionally never copied into Android.
 
 
 def asset_names(target: str) -> list[str]:
@@ -68,6 +100,8 @@ def asset_names(target: str) -> list[str]:
         names.extend(KOREAN_ASSETS)
     if target in ("all", "ulaanbaatar"):
         names.extend(ULAANBAATAR_ASSETS)
+    if target == "all":
+        names.extend(UNIFIED_ASSETS)
     return names
 
 
@@ -81,6 +115,13 @@ def platform_asset_names(target: str) -> list[str]:
         names.extend(KOREAN_ASSETS)
     if target in ("all", "ulaanbaatar"):
         names.extend(ULAANBAATAR_PLATFORM_ASSETS)
+    return names
+
+
+def ios_asset_names(target: str) -> list[str]:
+    names = platform_asset_names(target)
+    if target == "all":
+        names.extend(UNIFIED_ASSETS)
     return names
 
 
@@ -149,6 +190,18 @@ def write_manifest(portable_assets: Path) -> None:
                 portable_assets / "ulaanbaatar_transit.sqlite",
                 "route_stations",
             ),
+            "cardbal_stations": sqlite_count(
+                portable_assets / "cardbal_stations.sqlite",
+                "stations",
+            ),
+            "cardbal_cities": sqlite_count(
+                portable_assets / "cardbal_cities.sqlite",
+                "cities",
+            ),
+            "cardbal_provinces": sqlite_count(
+                portable_assets / "cardbal_provinces.sqlite",
+                "provinces",
+            ),
         },
     }
     (portable_assets / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -215,9 +268,45 @@ def build_ulaanbaatar(python: str, portable_assets: Path, delay_seconds: float) 
     )
 
 
+def build_unified_databases(
+    python: str,
+    portable_assets: Path,
+    ios_resources: Path,
+) -> None:
+    with tempfile.TemporaryDirectory(prefix="cardbal-unified-inputs-") as temporary_directory:
+        staging = Path(temporary_directory)
+        for name in UNIFIED_INPUT_ASSETS:
+            portable_source = portable_assets / name
+            ios_source = ios_resources / name
+            source = (
+                portable_source
+                if name in UNIFIED_PORTABLE_INPUT_ASSETS and portable_source.is_file()
+                else ios_source
+            )
+            if not source.is_file():
+                raise FileNotFoundError(
+                    f"Unified database input {name} is missing from both "
+                    f"{portable_assets} and {ios_resources}"
+                )
+            shutil.copy2(source, staging / name)
+        run(
+            [
+                python,
+                str(SCRIPTS_DIR / "generate_unified_transit_databases.py"),
+                "--resources",
+                str(staging),
+                "--output-directory",
+                str(portable_assets),
+            ]
+        )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build portable CardBal station assets once, then sync the same outputs to iOS resources and Android assets.",
+        description=(
+            "Build portable CardBal station assets, sync all outputs to iOS, "
+            "and sync only country-specific legacy assets to Android."
+        ),
     )
     parser.add_argument(
         "--target",
@@ -228,7 +317,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ios-resources", type=Path, default=IOS_RESOURCES)
     parser.add_argument("--android-assets", type=Path, default=ANDROID_ASSETS)
     parser.add_argument("--python", default=sys.executable)
-    parser.add_argument("--copy-only", action="store_true", help="Only sync existing portable assets into iOS and Android.")
+    parser.add_argument(
+        "--copy-only",
+        action="store_true",
+        help="Only sync existing portable assets to their eligible platform destinations.",
+    )
     parser.add_argument("--no-sync-ios", action="store_true", help="Do not copy portable outputs into CardBal/Resources.")
     parser.add_argument("--no-sync-android", action="store_true", help="Do not copy portable outputs into android/app/src/main/assets.")
     parser.add_argument("--skip-tunion-osm", action="store_true", help="Skip the OSM T-Union generator and only run source enrichment.")
@@ -241,7 +334,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     names = asset_names(args.target)
-    platform_names = platform_asset_names(args.target)
+    ios_names = ios_asset_names(args.target)
+    android_names = platform_asset_names(args.target)
     seed_portable_assets(names, args.portable_assets, args.ios_resources)
     if not args.copy_only:
         if args.target in ("all", "japanese"):
@@ -250,12 +344,18 @@ def main() -> None:
             build_tunion(args.python, args.portable_assets, args.tunion_delay_seconds, args.skip_tunion_osm, args.offline_tunion_source)
         if args.target in ("all", "ulaanbaatar"):
             build_ulaanbaatar(args.python, args.portable_assets, args.ulaanbaatar_delay_seconds)
+        if args.target == "all":
+            build_unified_databases(
+                args.python,
+                args.portable_assets,
+                args.ios_resources,
+            )
 
     write_manifest(args.portable_assets)
     if not args.no_sync_ios:
-        copy_assets(platform_names, args.portable_assets, args.ios_resources)
+        copy_assets(ios_names, args.portable_assets, args.ios_resources)
     if not args.no_sync_android:
-        copy_assets(platform_names + ["manifest.json"], args.portable_assets, args.android_assets)
+        copy_assets(android_names + ["manifest.json"], args.portable_assets, args.android_assets)
 
     print(
         {

@@ -1,10 +1,14 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-08-09T21:49:11.820751+00:00",
+  "generatedAt": "2026-08-10T18:00:09.102159+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
-      "bytes": 2794077,
-      "sha256": "f7e769e3bc6bc85f4310a5999c829f1f7421f5ec9b6eb82c0f9d496e127b4a46"
+      "bytes": 8773312,
+      "sha256": "9691752a4324b722b353611da04f4b7a7f73e8a43d3686115538db16aa98a8db"
+    },
+    "EastAsiaProvinceBoundaries.json": {
+      "bytes": 758473,
+      "sha256": "c4fecbd50656b9a91e311def921edcb192d08ce374dd4f98e3cef7da5108a4c8"
     },
     "JPBusCodes.csv": {
       "bytes": 2914,
@@ -27,8 +31,8 @@
       "sha256": "676438b35c4f2662f108e87d8d38d75ff6b49cd40b3dcfd883250783950b9d6f"
     },
     "README.md": {
-      "bytes": 1189,
-      "sha256": "49d4b9e60369cbe56c40b8659df852a7f98ebfef1f031e22d9a532b89dda7b9b"
+      "bytes": 1998,
+      "sha256": "ab981f308db0c2cad598533226526c82a79672521eba53e62aac6c534f9a3d02"
     },
     "TUnionCardNames.json": {
       "bytes": 16629,
@@ -41,6 +45,18 @@
     "TUnionLineStations.json": {
       "bytes": 168061,
       "sha256": "6bea7edda03caef3aa52bee80f8f9d048319f3bab0facbfe799e452e5c6c7296"
+    },
+    "cardbal_cities.sqlite": {
+      "bytes": 11059200,
+      "sha256": "7d51960162833855ca961c86e6eedb3fcbdd1d12a53cad633ad57667c2901aa9"
+    },
+    "cardbal_provinces.sqlite": {
+      "bytes": 1073152,
+      "sha256": "810ea581e497c34994b15e6c8c8d6ebee3f5bbb7679619c9359ef2b81e272f3b"
+    },
+    "cardbal_stations.sqlite": {
+      "bytes": 10510336,
+      "sha256": "7b06aa35257a79fc7edcc2b8610f361c3a918f25080bf3dc19e6ad437dcb39c9"
     },
     "jp_stations.sqlite": {
       "bytes": 2797568,
@@ -90,6 +106,9 @@
     "tunion_station_edges": 4975,
     "ulaanbaatar_stations": 1499,
     "ulaanbaatar_routes": 139,
-    "ulaanbaatar_route_stations": 4925
+    "ulaanbaatar_route_stations": 4925,
+    "cardbal_stations": 14600,
+    "cardbal_cities": 1576,
+    "cardbal_provinces": 95
   }
 }

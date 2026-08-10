@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Build CardBal's compact, offline East Asia city-boundary catalog.
 
-Japan includes every ADM2 municipality in a prefecture with a CardBal-readable
-transit-card system, while visit eligibility remains restricted to the exact
-station-code lookup. Korea uses a non-stacked mixed city layer: metropolitan
+Japan includes only ADM2 municipalities referenced by a non-pseudo station in
+the bundled station database. Korea uses a non-stacked mixed city layer: metropolitan
 cities use ADM1, other municipalities use ADM2, and Jeju stays whole because
 the available evidence does not safely split its visits between its two cities.
-Mongolia contributes Ulaanbaatar's ADM1 municipality and maps only stations
-spatially contained by it; routes extending into neighboring Töv remain
-province-level evidence instead of being mislabeled as Ulaanbaatar city visits.
+Mongolia keeps Ulaanbaatar as one ADM1 city to avoid stacked district outlines,
+and adds the station-backed Sergelen, Erdene, and Bayandelger ADM2 municipalities
+in neighboring Töv. Exact U-Money station-token conversion remains intentionally
+unasserted until a real-card crosswalk is available.
 Exact Korean station locations win, with reviewed city-specific KOTRIS modes as
 a fallback when a station token is unknown. China's source catalog includes
 every peer-level city in the bundled T-Union registry plus a reference-only
@@ -85,6 +85,10 @@ GEBOUNDARIES_ASSETS = {
     "MNG_ADM1": {
         "relativePath": "MNG/ADM1/geoBoundaries-MNG-ADM1_simplified.geojson",
         "sha256": "4e692ea5cff967b716e59975768d1560ade8c9844fbe6831bd4d9e6a7123f7aa",
+    },
+    "MNG_ADM2": {
+        "relativePath": "MNG/ADM2/geoBoundaries-MNG-ADM2_simplified.geojson",
+        "sha256": "c1b915d68f353cd8844cb8d70120cc97d76f1620200506b6b6fe7b892bf04e47",
     },
 }
 
@@ -241,6 +245,27 @@ EXPECTED_KOREA_CITY_REFERENCE_BOUNDARY_COUNT = 160
 EXPECTED_KOREA_VISIT_BOUNDARY_COUNT = 45
 EXPECTED_KOREA_MODE_MAPPING_COUNT = 198
 EXPECTED_KOREA_MODE_AREA_COUNT = 32
+
+EXPECTED_MONGOLIA_ADM1_FEATURE_COUNT = 22
+EXPECTED_MONGOLIA_ADM2_FEATURE_COUNT = 339
+EXPECTED_MONGOLIA_CITY_BOUNDARY_COUNT = 4
+EXPECTED_MONGOLIA_MAPPED_STATION_COUNT = 1_499
+EXPECTED_MONGOLIA_NEAREST_FALLBACK_STATION_COUNT = 12
+MONGOLIA_NEAREST_FALLBACK_DEGREES = 0.02
+MONGOLIA_CITY_SPECS = {
+    "93677404B51496043907868": {
+        "name": "Sergelen",
+        "nativeName": "Сэргэлэн",
+    },
+    "93677404B44653121732783": {
+        "name": "Erdene",
+        "nativeName": "Эрдэнэ",
+    },
+    "93677404B81168831538061": {
+        "name": "Bayandelger",
+        "nativeName": "Баяндэлгэр",
+    },
+}
 
 # Exact station aliases remain authoritative. These reviewed KOTRIS groups are
 # used only when a 52-byte record's station token is unknown. Broad or
@@ -938,7 +963,7 @@ def join_japanese_stations(
     used_ids = set(station_mapping.values())
     boundary_records = []
     for feature in features:
-        if feature["prefectureCode"] not in supported_codes:
+        if feature["id"] not in used_ids:
             continue
         native_name = feature["name"]
         if native_names[feature["id"]]:
@@ -957,6 +982,14 @@ def join_japanese_stations(
         boundary["subdivisionCode"] = feature["prefectureCode"]
         boundary_records.append(boundary)
 
+    emitted_ids = {boundary["id"] for boundary in boundary_records}
+    if emitted_ids != used_ids:
+        raise RuntimeError(
+            "Japanese station-backed boundary mismatch: "
+            f"missing={sorted(used_ids - emitted_ids)}, "
+            f"unexpected={sorted(emitted_ids - used_ids)}"
+        )
+
     station_mapping = dict(sorted(station_mapping.items()))
     expected_counts = coverage.get("expectedCounts") or {}
     actual_counts = {
@@ -964,8 +997,12 @@ def join_japanese_stations(
         "supportedStationRows": len(supported_input_hex_codes),
         "excludedStationRows": excluded_rows,
         "sourceADM2Boundaries": len(features),
-        "supportedADM2Boundaries": len(boundary_records),
-        "excludedADM2Boundaries": len(features) - len(boundary_records),
+        "supportedADM2Boundaries": sum(
+            feature["prefectureCode"] in supported_codes for feature in features
+        ),
+        "excludedADM2Boundaries": sum(
+            feature["prefectureCode"] not in supported_codes for feature in features
+        ),
     }
     for key, actual_value in actual_counts.items():
         expected_value = expected_counts.get(key)
@@ -989,7 +1026,12 @@ def join_japanese_stations(
         "ambiguousUniqueHexCodes": ambiguous_hex_codes,
         "usedBoundaryCount": len(used_ids),
         "referenceBoundaryCount": len(boundary_records),
-        "unreferencedReferenceBoundaryCount": len(boundary_records) - len(used_ids),
+        "unreferencedReferenceBoundaryCount": 0,
+        "supportedPrefectureBoundaryCount": actual_counts["supportedADM2Boundaries"],
+        "stationBackedBoundaryCount": len(boundary_records),
+        "stationlessSupportedPrefectureBoundaryCount": (
+            actual_counts["supportedADM2Boundaries"] - len(boundary_records)
+        ),
     }
     return boundary_records, station_mapping, stats
 
@@ -1925,47 +1967,95 @@ def build_korea_boundaries(
     return boundaries, mode_mapping, location_mapping, stats
 
 
-def build_mongolia_boundary(
+def build_mongolia_boundaries(
     adm1_payload: dict[str, Any],
+    adm2_payload: dict[str, Any],
     station_database: Path,
-) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, Any]]:
-    """Build the city-atlas boundary and station lookup for Ulaanbaatar."""
+) -> tuple[
+    list[dict[str, Any]],
+    dict[str, str],
+    dict[str, str],
+    dict[str, Any],
+]:
+    """Build one Ulaanbaatar outline plus station-backed Töv municipalities."""
 
-    features = adm1_payload.get("features")
-    if not isinstance(features, list) or len(features) != 22:
+    adm1_features = adm1_payload.get("features")
+    if not isinstance(adm1_features, list) or len(adm1_features) != EXPECTED_MONGOLIA_ADM1_FEATURE_COUNT:
         raise RuntimeError(
             "Unexpected MNG_ADM1 feature count: "
-            f"expected 22, got {len(features) if isinstance(features, list) else 'invalid'}"
+            f"expected {EXPECTED_MONGOLIA_ADM1_FEATURE_COUNT}, "
+            f"got {len(adm1_features) if isinstance(adm1_features, list) else 'invalid'}"
         )
-    matches = [
-        feature
-        for feature in features
-        if str((feature.get("properties") or {}).get("shapeName") or "").strip()
-        == "Ulaanbaatar"
-    ]
-    if len(matches) != 1:
+    adm2_features = adm2_payload.get("features")
+    if not isinstance(adm2_features, list) or len(adm2_features) != EXPECTED_MONGOLIA_ADM2_FEATURE_COUNT:
         raise RuntimeError(
-            f"Expected one Ulaanbaatar ADM1 feature, found {len(matches)}"
+            "Unexpected MNG_ADM2 feature count: "
+            f"expected {EXPECTED_MONGOLIA_ADM2_FEATURE_COUNT}, "
+            f"got {len(adm2_features) if isinstance(adm2_features, list) else 'invalid'}"
         )
-    feature = matches[0]
-    properties = feature.get("properties") or {}
-    shape_id = str(properties.get("shapeID") or "").strip()
-    subdivision_code = str(properties.get("shapeISO") or "").strip()
-    if not shape_id:
-        raise RuntimeError("Ulaanbaatar ADM1 feature has no shapeID")
-    boundary_id = f"mn:adm1:{shape_id}"
-    boundary_parts = geometry_parts(feature["geometry"])
-    boundary = make_boundary(
-        boundary_id=boundary_id,
+
+    adm1_by_name = {
+        str((feature.get("properties") or {}).get("shapeName") or "").strip(): feature
+        for feature in adm1_features
+    }
+    try:
+        ulaanbaatar_feature = adm1_by_name["Ulaanbaatar"]
+        tov_feature = adm1_by_name["Töv"]
+    except KeyError as error:
+        raise RuntimeError(f"MNG_ADM1 is missing {error.args[0]}") from error
+
+    ulaanbaatar_properties = ulaanbaatar_feature.get("properties") or {}
+    ulaanbaatar_shape_id = str(ulaanbaatar_properties.get("shapeID") or "").strip()
+    tov_shape_id = str((tov_feature.get("properties") or {}).get("shapeID") or "").strip()
+    if not ulaanbaatar_shape_id or not tov_shape_id:
+        raise RuntimeError("Mongolia city parents require stable ADM1 shape IDs")
+    ulaanbaatar_boundary_id = f"mn:adm1:{ulaanbaatar_shape_id}"
+    tov_boundary_id = f"mn:adm1:{tov_shape_id}"
+    ulaanbaatar_parts = geometry_parts(ulaanbaatar_feature["geometry"])
+    tov_parts = geometry_parts(tov_feature["geometry"])
+    ulaanbaatar_boundary = make_boundary(
+        boundary_id=ulaanbaatar_boundary_id,
         country_code="MN",
         name="Ulaanbaatar",
         native_name="Улаанбаатар",
-        parts=boundary_parts,
+        parts=ulaanbaatar_parts,
         tolerance=MONGOLIA_RDP_TOLERANCE,
         coordinate_decimals=COORDINATE_DECIMALS,
     )
+    subdivision_code = str(ulaanbaatar_properties.get("shapeISO") or "").strip()
     if subdivision_code:
-        boundary["subdivisionCode"] = subdivision_code
+        ulaanbaatar_boundary["subdivisionCode"] = subdivision_code
+
+    adm2_by_id = {
+        str((feature.get("properties") or {}).get("shapeID") or "").strip(): feature
+        for feature in adm2_features
+    }
+    missing_shape_ids = set(MONGOLIA_CITY_SPECS) - set(adm2_by_id)
+    if missing_shape_ids:
+        raise RuntimeError(
+            f"MNG_ADM2 is missing reviewed Töv municipalities: {sorted(missing_shape_ids)}"
+        )
+
+    boundaries = [ulaanbaatar_boundary]
+    city_parts_by_id = {ulaanbaatar_boundary_id: ulaanbaatar_parts}
+    city_to_province = {ulaanbaatar_boundary_id: ulaanbaatar_boundary_id}
+    for shape_id, spec in sorted(MONGOLIA_CITY_SPECS.items()):
+        feature = adm2_by_id[shape_id]
+        parts = geometry_parts(feature["geometry"])
+        boundary_id = f"mn:adm2:{shape_id}"
+        boundaries.append(
+            make_boundary(
+                boundary_id=boundary_id,
+                country_code="MN",
+                name=spec["name"],
+                native_name=spec["nativeName"],
+                parts=parts,
+                tolerance=MONGOLIA_RDP_TOLERANCE,
+                coordinate_decimals=COORDINATE_DECIMALS,
+            )
+        )
+        city_parts_by_id[boundary_id] = parts
+        city_to_province[boundary_id] = tov_boundary_id
 
     with sqlite3.connect(station_database) as connection:
         rows = connection.execute(
@@ -1988,20 +2078,81 @@ def build_mongolia_boundary(
         raise RuntimeError(
             f"The Ulaanbaatar transit database has {invalid_coordinate_count} invalid coordinates"
         )
-    station_mapping = {
-        str(station_id): boundary_id
-        for station_id, latitude, longitude in rows
-        if point_in_parts((float(longitude), float(latitude)), boundary_parts)
-    }
-    outside_station_count = len(rows) - len(station_mapping)
+
+    station_mapping: dict[str, str] = {}
+    station_counts: Counter[str] = Counter()
+    nearest_fallback_count = 0
+    for station_id, latitude, longitude in rows:
+        point = (float(longitude), float(latitude))
+        matches = [
+            boundary_id
+            for boundary_id, parts in city_parts_by_id.items()
+            if point_in_parts(point, parts)
+        ]
+        if len(matches) > 1:
+            raise RuntimeError(
+                f"Mongolia station {station_id} overlaps city boundaries {sorted(matches)}"
+            )
+        if matches:
+            selected_id = matches[0]
+        else:
+            # The pinned ADM1 and ADM2 vintages disagree narrowly around
+            # Terelj. Only stations that the ADM1 layer places in Töv may use
+            # the reviewed nearest-soum repair.
+            if not point_in_parts(point, tov_parts):
+                continue
+            nearest = min(
+                (
+                    (point_to_parts_distance(point, parts), boundary_id)
+                    for boundary_id, parts in city_parts_by_id.items()
+                    if city_to_province[boundary_id] == tov_boundary_id
+                ),
+                key=lambda value: (value[0], value[1]),
+            )
+            if nearest[0] > MONGOLIA_NEAREST_FALLBACK_DEGREES:
+                continue
+            selected_id = nearest[1]
+            nearest_fallback_count += 1
+        station_mapping[str(station_id)] = selected_id
+        station_counts[selected_id] += 1
+
+    mapped_boundary_ids = set(station_mapping.values())
+    expected_boundary_ids = {boundary["id"] for boundary in boundaries}
+    unresolved_station_count = len(rows) - len(station_mapping)
+    if len(boundaries) != EXPECTED_MONGOLIA_CITY_BOUNDARY_COUNT:
+        raise RuntimeError("Mongolia city boundary count changed")
+    if mapped_boundary_ids != expected_boundary_ids:
+        raise RuntimeError(
+            "Every emitted Mongolia city must contain a bundled station: "
+            f"missing={sorted(expected_boundary_ids - mapped_boundary_ids)}"
+        )
+    if len(station_mapping) != EXPECTED_MONGOLIA_MAPPED_STATION_COUNT:
+        raise RuntimeError(
+            "Mongolia mapped station count changed: "
+            f"expected {EXPECTED_MONGOLIA_MAPPED_STATION_COUNT}, got {len(station_mapping)}"
+        )
+    if nearest_fallback_count != EXPECTED_MONGOLIA_NEAREST_FALLBACK_STATION_COUNT:
+        raise RuntimeError(
+            "Mongolia nearest-boundary fallback count changed: "
+            f"expected {EXPECTED_MONGOLIA_NEAREST_FALLBACK_STATION_COUNT}, "
+            f"got {nearest_fallback_count}"
+        )
+    if unresolved_station_count:
+        raise RuntimeError(
+            f"Mongolia has {unresolved_station_count} stations without a city"
+        )
+
     stats = {
         "inputStationCount": len(rows),
         "mappedStationCount": len(station_mapping),
-        "outsideUlaanbaatarStationCount": outside_station_count,
-        "referenceBoundaryCount": 1,
-        "usedBoundaryCount": 1,
+        "nearestBoundaryFallbackStationCount": nearest_fallback_count,
+        "nearestBoundaryFallbackMaximumDegrees": MONGOLIA_NEAREST_FALLBACK_DEGREES,
+        "unresolvedCityStationCount": 0,
+        "referenceBoundaryCount": len(boundaries),
+        "usedBoundaryCount": len(mapped_boundary_ids),
+        "stationCountsByBoundary": dict(sorted(station_counts.items())),
     }
-    return [boundary], station_mapping, stats
+    return boundaries, dict(sorted(station_mapping.items())), city_to_province, stats
 
 
 def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
@@ -2043,9 +2194,11 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         (
             mongolia_boundaries,
             mongolia_station_mapping,
+            mongolia_city_to_province,
             mongolia_stats,
-        ) = build_mongolia_boundary(
+        ) = build_mongolia_boundaries(
             geo["MNG_ADM1"],
+            geo["MNG_ADM2"],
             args.mongolia_database,
         )
         (
@@ -2116,6 +2269,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                     "KOR_ADM1": "Natural Earth, Public Domain",
                     "KOR_ADM2": "citypopulation.de, CC BY 3.0",
                     "MNG_ADM1": "OpenStreetMap/Wambacher, Open Data Commons Open Database License 1.0",
+                    "MNG_ADM2": "National Statistical Office of Mongolia/OCHA ROAP, CC BY 3.0 IGO",
                 },
             },
             "openStreetMapChina": {
@@ -2170,7 +2324,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 "source": "pinned simplified JPN ADM2 polygons",
                 "lookupKey": "uppercase five-character jp_stations.hex_code without 0x prefix",
                 "nearestFallbackMaximumDegrees": JAPAN_NEAREST_FALLBACK_DEGREES,
-                "referenceScope": "all ADM2 municipalities within supported prefectures; only exact mapped station codes are visit-eligible",
+                "referenceScope": "only ADM2 municipalities referenced by a bundled non-pseudo station code; stationless municipalities are not emitted",
                 "coverageEvaluatedAt": japan_coverage.get("evaluatedAt"),
                 "supportedPrefectureCodes": [
                     prefecture["code"]
@@ -2191,9 +2345,11 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
                 ),
             },
             "mongoliaCityReference": {
-                "source": "pinned MNG ADM1 Ulaanbaatar municipality",
-                "referenceScope": "stations contained by Ulaanbaatar municipality; outlying UB Smart Bus stops remain province-only evidence",
+                "source": "pinned MNG ADM1 Ulaanbaatar municipality plus reviewed station-backed MNG ADM2 Töv municipalities",
+                "referenceScope": "one non-stacked Ulaanbaatar outline plus Sergelen, Erdene, and Bayandelger; every emitted city contains a bundled station",
                 "lookupKey": "decimal station_id from CardBal/Resources/ulaanbaatar_transit.sqlite",
+                "nearestFallback": "Töv-classified Terelj stops within 0.02 degrees of Erdene are assigned to Erdene across the pinned ADM1/ADM2 seam",
+                "cardCrosswalk": "U-Money's seven-digit BCD station field is not transformed into eight- or nine-digit UB Smart Bus IDs without verified real-card evidence",
             },
             "chinaCityReference": {
                 "referenceScope": "the source catalog retains all 368 exact bundled T-Union peer-level cities plus reference-only Macau; CardBal displays the 352 current independent participation boundaries plus Macau, and Taiwan is outside scope",
@@ -2220,6 +2376,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, Any]:
         "koreaModeToBoundary": korea_mode_mapping,
         "koreaLocationToBoundary": korea_location_mapping,
         "mongoliaStationToBoundary": mongolia_station_mapping,
+        "mongoliaCityToProvince": dict(sorted(mongolia_city_to_province.items())),
     }
     from optimize_east_asia_boundary_catalogs import (
         optimize_catalog,
