@@ -582,7 +582,7 @@ struct KoreanTransitHistoryFareLayout {
     }
 
     private static func isPlausibleFare(_ value: Int) -> Bool {
-        (1...10_000).contains(value)
+        (100...10_000).contains(value)
     }
 
 }
