@@ -72,6 +72,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
              let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x8F, 0x10])) // 108F
              let entryExit = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0xCB, 0x10]))   // 10CB
              transitHistory = gateHistory + entryExit
+        } else if profile.displayName == "OKICA" {
+             transactions = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x8F, 0x02]))   // 028F
+             let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0F, 0x05]), maxBlocks: 3, stopAtEmptyPrefix: false) // 050F
+             let sfEntry = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0B, 0x06]), maxBlocks: 2, stopAtEmptyPrefix: false)     // 060B
+             transitHistory = gateHistory + sfEntry
         } else if profile.displayName == "Octopus" {
              transactions = await readOctopusRawTransactions(feliCa: feliCa)
         }
@@ -98,14 +103,19 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     /// Generic reader for a FeliCa service — reads up to 20 blocks, stops at empty.
-    private static func readServiceRecords(feliCa: NFCFeliCaTag, serviceCode: Data) async -> [String] {
+    private static func readServiceRecords(
+        feliCa: NFCFeliCaTag,
+        serviceCode: Data,
+        maxBlocks: Int = 20,
+        stopAtEmptyPrefix: Bool = true
+    ) async -> [String] {
         var results: [String] = []
-        for i in 0..<20 {
+        for i in 0..<maxBlocks {
             let blockList = [Data([0x80, UInt8(i)])]
             guard let readResult = try? await feliCa.readWithoutEncryption(serviceCodeList: [serviceCode], blockList: blockList),
                   let block = readResult.2.first else { break }
             guard block.count >= 16 else { break }
-            if block[0] == 0 && block[1] == 0 { break }
+            if stopAtEmptyPrefix && block[0] == 0 && block[1] == 0 { break }
             results.append(block.hexString.uppercased())
         }
         return results
@@ -139,6 +149,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
         }
 
         guard block.count >= 16 else { return nil }
+
+        if brand == .okica {
+            guard kind == .transactions else { return nil }
+            return decodeOKICAHistory(block: block, context: context, index: index)
+        }
 
         if brand == .octopus {
             // Octopus Transaction Record (16-byte block from 0x0117)
@@ -282,6 +297,87 @@ struct JapaneseICDecoder: TransitCardDecoder {
             rawData: block.hexString.uppercased(),
             recordNumber: Int(block[13]) << 8 | Int(block[14])
         )
+    }
+
+    private static func decodeOKICAHistory(block: Data, context: [Data], index: Int) -> TransitTransaction? {
+        guard block.count >= 16 else { return nil }
+
+        let usageCode = UInt32(block[0]) << 24
+            | UInt32(block[1]) << 16
+            | UInt32(block[2]) << 8
+            | UInt32(block[3])
+        let rawDate = Int(block[4]) << 8 | Int(block[5])
+        let year = 2000 + ((rawDate >> 9) & 0x7F)
+        let month = (rawDate >> 5) & 0x0F
+        let day = rawDate & 0x1F
+        let date = makeJSTDate(year: year, month: month, day: day, hour: 0, minute: 0)
+
+        let balance = Int(block[10]) | (Int(block[11]) << 8)
+        let previousBalance: Int? = {
+            guard index + 1 < context.count, context[index + 1].count >= 12 else { return nil }
+            let previous = context[index + 1]
+            return Int(previous[10]) | (Int(previous[11]) << 8)
+        }()
+        let amount = previousBalance.map { abs(balance - $0) } ?? 0
+        let recordNumber = Int(block[13]) << 8 | Int(block[14])
+
+        let (type, category): (String, TransactionCategory) = switch usageCode {
+        case 0x16010002: ("Yui Rail", .train)
+        case 0x08020000: ("Yui Rail Top-up", .topUp)
+        case 0x08480000, 0x08480400: ("Point Top-up", .topUp)
+        case 0x051F0000: ("Bus Top-up", .topUp)
+        case 0x050F000F: ("Bus", .bus)
+        case 0x08070000: ("New Card Issuance", .adjustment)
+        case 0x1F1F0000: ("Top-up Machine", .topUp)
+        default: (String(format: "OKICA Transaction %08X", usageCode), .unknown)
+        }
+
+        let entryCode = Int(block[6]) << 8 | Int(block[7])
+        let exitCode = Int(block[8]) << 8 | Int(block[9])
+        let entry = okicaLocation(code: entryCode)
+        let exit = okicaLocation(code: exitCode)
+        let location = [entry?.name, exit?.name]
+            .compactMap { $0 }
+            .joined(separator: " → ")
+
+        return TransitTransaction(
+            date: date,
+            amount: Decimal(amount),
+            terminalID: nil,
+            type: type,
+            category: category,
+            balanceAfter: Decimal(balance),
+            location: location.isEmpty ? nil : location,
+            entryStation: entry?.name,
+            exitStation: exit?.name,
+            entryStationCode: entry?.stationCode,
+            exitStationCode: exit?.stationCode,
+            regionCode: entry?.stationCode == nil && exit?.stationCode == nil ? nil : 3,
+            rawData: block.hexString.uppercased(),
+            recordNumber: recordNumber
+        )
+    }
+
+    private static func okicaLocation(code: Int) -> (name: String, stationCode: String?)? {
+        guard code != 0 else { return nil }
+
+        if (code & 0xFF00) == 0xDC00 {
+            let fullCode = 0x30000 | code
+            let name = StationResolver.shared.resolve(fullCode) ?? "Station \(String(format: "%04X", code))"
+            return (name, String(format: "0x%05X", fullCode))
+        }
+
+        let busOperators = [
+            0x0B01: "Naha Bus",
+            0x0B02: "Ryukyu Bus Kotsu",
+            0x0B03: "Okinawa Bus",
+            0x0B04: "Toyo Bus"
+        ]
+        if let operatorName = busOperators[code] {
+            return (operatorName, nil)
+        }
+
+        return ("Location \(String(format: "%04X", code))", nil)
     }
 
     private enum JapaneseStationFieldMode {

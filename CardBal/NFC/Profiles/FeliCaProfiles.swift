@@ -163,6 +163,22 @@ public struct FeliCaProfile {
                     rawFields: [RawDataField(title: "Value", value: "\(balance)")]
                 )
             }
+        ),
+        FeliCaProfile(
+            displayName: "OKICA",
+            systemCode: "8FC1",
+            serviceCode: "028F",
+            serviceCodeLittleEndian: Data([0x8F, 0x02]),
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard block.count >= 12 else { return nil }
+                let balance = Int(block[10]) | (Int(block[11]) << 8)
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance), code: "JPY"),
+                    detail: "Parsed from the latest OKICA transaction record, bytes 10-11 in little-endian order.",
+                    rawFields: [RawDataField(title: "Value", value: "\(balance)")]
+                )
+            }
         )
     ]
 }

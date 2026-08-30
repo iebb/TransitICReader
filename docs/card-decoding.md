@@ -52,6 +52,7 @@ FeliCa cards are read by polling known system codes and services.
 | IruCa | `80DE` | `8B00` | `0F09` | iOS profile; Suica-style balance and history path. |
 | PASPY | `8592` | `8B00` | `0F09` | iOS profile; Suica-style balance and history path. |
 | SAPICA | `865E` | `8B00` | `0F09` | iOS profile; Suica-style balance and history path. |
+| OKICA | `8FC1` | `8F02` | `8F02` | Gate activity `0F05`; SF entry `0B06`. |
 | Edy | `FE00` | `1713` | `0F17` | Card number service on iOS. |
 | WAON | `FE00` | `1768` | `0B68` | WAON number `4F68`, points `4B68`; history is read as paired blocks. |
 | nanaco | `FE00` | `9755` | `4F56` | Number, points, and metadata services on iOS. |
@@ -64,6 +65,10 @@ record layout later.
 
 Supported cards include Suica, PASMO, ICOCA, TOICA, manaca, Kitaca, SUGOCA,
 nimoca, Hayakaken, and related compatible cards.
+
+OKICA is polled separately on system `8FC1`. Its newest `8F02` transaction
+record supplies the balance, and its transaction layout resolves Yui Rail
+stations and Okinawa bus operators independently of the `0003` layout.
 
 Read process:
 

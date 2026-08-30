@@ -19,7 +19,7 @@ public enum ICCardRegion: String, Codable, CaseIterable {
 
 public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     public var id: String { rawValue }
-    case suica, pasmo, icoca, manaca, sugoca, hayakaken, kitaca, nimoca, toica, pitapa
+    case suica, pasmo, icoca, manaca, sugoca, hayakaken, kitaca, nimoca, toica, pitapa, okica
     case edy, waon, nanaco
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
@@ -27,7 +27,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case other
     public var region: ICCardRegion {
         switch self {
-        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .edy, .waon, .nanaco: return .japan
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .okica, .edy, .waon, .nanaco: return .japan
         case .tmoney, .ezl, .namane, .climateCard, .moiba, .kCash: return .korea
         case .umoney: return .mongolia
         case .octopus: return .hongkong
@@ -42,7 +42,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
 
     public var decoderType: DecoderType {
         switch self {
-        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .edy, .waon, .nanaco: return .japanIC
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .okica, .edy, .waon, .nanaco: return .japanIC
         case .tmoney, .umoney, .ezl, .climateCard, .moiba, .kCash: return .ksx6924
         case .namane: return .namane
         case .octopus: return .octopus
@@ -65,6 +65,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "ezl": .ezl, "cashbee": .ezl, "namane": .namane, "climate card": .climateCard,
             "moiba": .moiba, "k-cash": .kCash, "kcash": .kCash, "octopus": .octopus,
             "rakuten edy": .edy, "edy": .edy, "waon": .waon, "nanaco": .nanaco,
+            "okica": .okica,
             "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion
         ]
         
@@ -84,6 +85,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         if f.hasPrefix("rakuten edy") || f == "edy" { return .edy }
         if f.hasPrefix("waon") { return .waon }
         if f.hasPrefix("nanaco") { return .nanaco }
+        if f.hasPrefix("okica") { return .okica }
         if f.hasPrefix("t-union") || f.hasPrefix("china") || f.contains("city union") { return .tUnion }
         
         // Generic Fallbacks

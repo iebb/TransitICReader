@@ -257,7 +257,7 @@ struct ScanHomeView: View {
                                 Spacer()
                                 Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
                             }
-                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, OKICA, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
                         }.padding(.vertical, 6)
                     }
                 }
