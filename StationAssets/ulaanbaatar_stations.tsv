@@ -377,6 +377,7 @@ station_id	station_name_mn	station_name_en	latitude	longitude
 404	БЗД 6-р хороо	Bayanzurkh district 6th committee	47.912799	106.936560
 405	Шөнийн зах	Shuniin zakh	47.909810	106.943560
 406	Улаанбаатар их сургууль	University of Ulaanbaatar	47.911679	106.943520
+407	Нарантуул зах	Narantuul zakh	47.908119	106.946870
 408	Нарантуул зах	Narantuul zakh	47.907850	106.952879
 409	Ахмадын хороолол	Akhmad apartment	47.908059	106.959230
 410	Ахмадын хороолол	Akhmad apartment	47.907840	106.960099
@@ -538,7 +539,6 @@ station_id	station_name_mn	station_name_en	latitude	longitude
 583	Генерал худалдааны төв	General trade canter	47.919400	106.973889
 584	Алдар спорт хороо	Aldar sport committee	47.917859	106.973449
 585	МУБИС	Mongolian national university of education	47.918109	106.925960
-586	120 мянгат	National Sports Stadium	47.901269	106.909980
 590	Дарь эх Завсар 2	Dari ekh zavsar 2	47.977479	106.937759
 591	Дарь эх Завсар 2	Dari ekh zavsar 2	47.977670	106.938029
 592	71-р Сургууль	71st school	47.998860	106.972970
@@ -831,7 +831,6 @@ station_id	station_name_mn	station_name_en	latitude	longitude
 974	Шар дэлгүүр	Shar market	47.934969	106.811250
 976	Чингис хаан ОУНБ	Chinggis khan airport	47.652189	106.821740
 977	Чингис хаан ОУНБ	Chinggis khan airport	47.659329	106.803460
-979	Нарантуул зах	Narantuul zakh	47.908729	106.949969
 1001	Модны 2	Modny 2	47.919049	106.890630
 1002	Сүхбаатарын талбай	Sukhbaatar square	47.916699	106.917709
 1012	Сансар /Тунель/	Sansar /Tunnel/	47.924210	106.941280
@@ -1236,6 +1235,7 @@ station_id	station_name_mn	station_name_en	latitude	longitude
 100000125	Товчооны зам 6-р зогсоол	Tovchoony Road Stop 6	47.900809	106.715699
 100000126	Товчооны зам 6-р зогсоол	Tovchoony Road Stop 6	47.900620	106.716300
 100000131	Сүхбаатарын талбай	Sukhbaatar Square	47.917029	106.917460
+100000132	Дүнжингарав Худалдааны төв	Dunjingarav Shopping Center	47.904690	106.948689
 100000133	Сүхбаатарын талбайн төв зогсоол	Sukhbaatar Square Central Stop	47.917839	106.917010
 100000134	Чингэлтэйн 1-р зогсоол	Chingeltein Stop 1	47.965609	106.914320
 100000135	Чингэлтэйн 1-р зогсоол	Chingeltein Stop 1	47.967959	106.913030
@@ -1503,69 +1503,3 @@ station_id	station_name_mn	station_name_en	latitude	longitude
 100000480	361 гарам	361 Crossing	47.997639	106.549980
 100000481	Баруун түрүү завсар 3	Baruun Turuu Intermediate Stop 3	47.899720	106.650409
 100000482	Баруун түрүү завсар 3	Baruun Turuu Intermediate Stop 3	47.899580	106.651889
-100000483	Kentavr Hotel	Kentavr Hotel	47.925780	106.895359
-100000484	Premium hotel	Premium hotel	47.924750	106.901449
-100000485	Holiday inn	Holiday inn	47.922370	106.901150
-100000486	Ramada hotel	Ramada hotel	47.915359	106.891570
-100000487	Narantuul hotel	Narantuul hotel	47.915469	106.895600
-100000488	Aurora hotel	Aurora hotel	47.912640	106.857249
-100000490	CRUX HOTEL	CRUX HOTEL	47.921579	106.860209
-100000491	Grand hill hotel	Grand hill hotel	47.918280	106.883560
-100000492	Kempiski hotel	Kempiski hotel	47.919679	106.943330
-100000493	Hunnu hotel	Hunnu hotel	47.929940	106.930530
-100000494	City tower, Puma hotel	City tower, Puma hotel	47.920090	106.919749
-100000495	Blue sky hotel	Blue sky hotel	47.916879	106.918890
-100000496	Sant asar hotel	Sant asar hotel	47.914149	106.908929
-100000497	Bayngol hotel	Bayngol hotel	47.911850	106.914280
-100000499	Platinum Hotel	Platinum Hotel	47.916600	106.926670
-100000500	Kaiser Hotel	Kaiser Hotel	47.916449	106.927310
-100000501	New world hotel	New world hotel	47.929760	106.924430
-100000502	Novotel hotel	Novotel hotel	47.926229	106.916889
-100000503	Tsetsen khangai hotel	Tsetsen khangai hotel	47.918250	106.930580
-100000504	Tsetsen khangai hotel	Tsetsen khangai hotel	47.918269	106.931070
-100000506	Flower hotel	Flower hotel	47.924129	106.938040
-100000507	International hotel	International hotel	47.917290	106.943420
-100000508	Bojon hotel, Alpha hotel	Bojon hotel, Alpha hotel	47.908299	106.930539
-100000509	Alpha hotel, Bojon hotel	Alpha hotel, Bojon hotel	47.908299	106.930109
-100000510	BG Hotel	BG Hotel	47.916829	106.963269
-100000511	World Mongolia Hotel	World Mongolia Hotel	47.916049	106.975070
-100000512	Amar hotel	Amar hotel	47.916159	106.960579
-100000513	Oriental Hotel	Oriental Hotel	47.907679	106.965369
-100000514	Happiness Hotel	Happiness Hotel	47.901519	106.901679
-100000515	Zuchi hotel	Zuchi hotel	47.900480	106.909379
-100000516	Diplomat hotel	Diplomat hotel	47.923520	106.906400
-100000517	Ibis hotel	Ibis hotel	47.895260	106.883170
-100000518	The Corporate Hotel -2	The Corporate Hotel -2	47.903719	106.922269
-100000519	Shangri-La hotel	Shangri-La hotel	47.913660	106.921999
-100000520	Ulaanbaatar Hotel	Ulaanbaatar Hotel	47.918610	106.923450
-100000521	COP17	COP17	47.904179	106.973299
-100000523	Holiday inn Буух	Holiday inn Buukh	47.921739	106.901380
-100000524	Kentavr hotel	Kentavr hotel	47.925699	106.895570
-100000525	Ramada hotel	Ramada hotel	47.915309	106.892030
-100000526	Narantuul Hotel	Narantuul Hotel	47.916040	106.895099
-100000527	Aurora hotel	Aurora hotel	47.912730	106.857709
-100000528	Castella hotel	Castella hotel	47.918109	106.877790
-100000529	CRUX HOTEL	CRUX HOTEL	47.921509	106.859930
-100000530	Grand hill hotel	Grand hill hotel	47.918449	106.883740
-100000531	Kempiski hotel	Kempiski hotel	47.919660	106.943680
-100000533	City tower, Puma hotel	City tower, Puma hotel	47.920009	106.920220
-100000534	Sant asar hotel	Sant asar hotel	47.914540	106.909180
-100000536	New world hotel	New world hotel	47.929810	106.924959
-100000537	Flower hotel	Flower hotel	47.924230	106.938040
-100000538	International hotel	International hotel	47.916609	106.943910
-100000540	World Mongolia Hotel	World Mongolia Hotel	47.916040	106.975290
-100000541	Amar hotel	Amar hotel	47.916119	106.960809
-100000542	Oriental Hotel	Oriental Hotel	47.907930	106.967219
-100000543	Zuchi hotel	Zuchi hotel	47.900399	106.909250
-100000544	Ulaanbaatar hotel	Ulaanbaatar hotel	47.918799	106.923460
-100000545	Diplomat hotel	Diplomat hotel	47.923760	106.906369
-100000546	Millenium hotel	Millenium hotel	47.918729	106.935940
-100000548	The Corporate Hotel -2	The Corporate Hotel -2	47.904589	106.924130
-100000549	Shangri-La hotel	Shangri-La hotel	47.913760	106.920270
-100000550	Blue sky hotel	Blue sky hotel	47.916849	106.918629
-100000551	Ibis hotel	Ibis hotel	47.895069	106.883340
-100000552	Нарантуул захын зогсоол	Narantuul Market Stop	47.908529	106.947029
-100000553	Premium hotel	Premium hotel	47.925069	106.901640
-100000555	Дүнжингарав худалдааны төв	Dunjingarav Trade Center	47.905310	106.949979
-100000556	Түр зогсоол	Temporary Stop	47.905180	106.959819
-100000557	Түр зогсоол	Temporary Stop	47.905340	106.959639

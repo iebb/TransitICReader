@@ -31,6 +31,7 @@ route_id	route_name_mn	route_name_en	endpoint_name_mn	endpoint_name_en
 11100260	Ч:26	Ch:26	Тоосгоны Үйлдвэр Эцэс-Жанжин Клуб	Toosgonii uildver final station-Janjin club
 11100270	Ч:27	Ch:27	Өвөр согоот-Вокзал	Uvur sogoot-Railway station
 11100280	Ч:28	Ch:28	Сэлх -7 БУУДАЛ	Selkh-7th station
+11100300	Ч:30	Ch:30	Жанжин Клуб-Сүхбаатарын талбайн төв зогсоол	Janjin club-ㅗㅗ
 11100310	Ч:31	Ch:31	УЛИАСТАЙН ШИНЭ ЭЦЭС-Дэнжийн 1000-ын 4-р зогсоол	Uliastai new final station-Zam guuriin avto baaz
 11100330	Ч:33	Ch:33	Хайрхан хөгжлийн төв-Сансар ШТС	-Sansar gas station
 11100340	Ч:34	Ch:34	ШАР ХАДНЫ ЭЦЭС-ТЭЦ-3	Shar khad final station-3rd power plant
@@ -77,6 +78,8 @@ route_id	route_name_mn	route_name_en	endpoint_name_mn	endpoint_name_en
 11100801	М:1	M:1	5 Шар-Офицеруудын ордон	5 Shar-Officer station
 11100802	М:2	M:2	Зунжин худалдааны төв-МУБИС	Zunjin trade center-Mongolian national university of education
 11100803	М:4	M:4	ШАР ХАДНЫ ЭЦЭС-Цамбагарав	Shar khad final station-Tsambagarav
+11100804	М:5	M:5	Ботаник-10-р хороолол	Botanik-10th section
+11100805	М:6	M:6	ТЭЦ-3-Монгол тэмүүлэл сургууль	3rd power plant-
 11100806	М:3	M:3	Архивын ерөнхий газар-Сүхбаатарын талбайн төв зогсоол	General Office of Archives-ㅗㅗ
 11100815	Х:1	Kh:1	Санзайн эцэс-7 БУУДАЛ	Baga bayan camp-7th station
 11100816	Х:2	Kh:2	ШАРГА МОРЬТЫН ЭЦЭС-зуслан-7 БУУДАЛ	Sharga morit final station-7th station
@@ -125,29 +128,6 @@ route_id	route_name_mn	route_name_en	endpoint_name_mn	endpoint_name_en
 11101012	Ч:85	Ch:85	Орбитын шинэ эцэс-5 Шар	Orbit new final station-5 Shar
 11101013	Ч:83	Ch:83	Ургах наран хороолол эцэс-Офицеруудын ордон	Urgakh naran final station-Officer station
 11101014	Ч:86	Ch:86	ЗАЙСАН-Цамбагарав	Zaisan-Tsambagarav
-11101028	COP:1	COP:1	Kentavr Hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101029	COP:2	COP:2	Ramada hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101030	COP:3	COP:3	Aurora hotel-Үндэсний Цэцэр-хүр	-National park
-11101031	COP:4	COP:4	CRUX HOTEL-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101032	COP:5	COP:5	Kempiski hotel -Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101033	COP:6	COP:6	Diplomat hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101034	COP:7	COP:7	Sant asar hotel-COP17	-
-11101035	COP:8	COP:8	Platinum Hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101036	COP:9	COP:9	New world hotel -Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101037	COP:10	COP:10	Tsetsen khangai hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101038	COP:11	COP:11	Flower hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101039	COP:12	COP:12	Alpha hotel, Bojon hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101040	COP:13	COP:13	World Mongolia Hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101041	COP:14	COP:14	Amar hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101042	COP:15	COP:15	Zuchi hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101043	COP:16	COP:16	Blue sky hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101044	COP:17	COP:17	Ibis hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11101045	БЭ:8	BE:8	Офицеруудын ордон-Их монгол хороолол	Officer station-Ikh mongol apartment
-11101046	БЭ:9	BE:9	120 мянгат-Нарантуул зах	National Sports Stadium-Narantuul zakh
-11101047	Ч:30-КОП	Ch:30-KOP	Жанжин Клуб-Сүхбаатарын талбайн төв зогсоол	Janjin club-ㅗㅗ
-11101048	М:5-КОП	M:5-KOP	Ботаник-10-р хороолол	Botanik-10th section
-11101049	БЭ:10	BE:10	Дүнжингарав Худалдааны төв-COP17	Dunjingarav trade center-
-11101050	М:6-КОП	M:6-KOP	ТЭЦ-3-Монгол тэмүүлэл сургууль	3rd power plant-
 11300010	ЗҮ:1	ZÜ:1	ГҮНТИЙН ЭЦЭС-зуслан-Сүхбаатарын талбай	Gunt final station-
 11300020	ЗҮ:2	ZÜ:2	Гоодойн Ам-Сүхбаатарын талбай	Goodoin am-
 11300030	ЗҮ:3	ZÜ:3	БАЯНБУЛАГ ЗУСЛАН-Сүхбаатарын талбай	Bayanbulag camp-
