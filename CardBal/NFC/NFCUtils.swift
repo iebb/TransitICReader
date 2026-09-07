@@ -21,13 +21,14 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     public var id: String { rawValue }
     case suica, pasmo, icoca, manaca, sugoca, hayakaken, kitaca, nimoca, toica, pitapa, okica
     case edy, waon, nanaco
+    case japaneseFeliCa
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
     case tUnion
     case other
     public var region: ICCardRegion {
         switch self {
-        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .okica, .edy, .waon, .nanaco: return .japan
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .okica, .edy, .waon, .nanaco, .japaneseFeliCa: return .japan
         case .tmoney, .ezl, .namane, .climateCard, .moiba, .kCash: return .korea
         case .umoney: return .mongolia
         case .octopus: return .hongkong
@@ -42,7 +43,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
 
     public var decoderType: DecoderType {
         switch self {
-        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .okica, .edy, .waon, .nanaco: return .japanIC
+        case .suica, .pasmo, .icoca, .manaca, .sugoca, .hayakaken, .kitaca, .nimoca, .toica, .pitapa, .okica, .edy, .waon, .nanaco, .japaneseFeliCa: return .japanIC
         case .tmoney, .umoney, .ezl, .climateCard, .moiba, .kCash: return .ksx6924
         case .namane: return .namane
         case .octopus: return .octopus
@@ -53,6 +54,19 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
 
     public var isKorean: Bool { region == .korea }
     public var isJapan: Bool { region == .japan }
+
+    /// Family labels returned by `FeliCaProfile.detectedBrand` for Japanese
+    /// cards that do not have a dedicated `ICCardBrand` case.
+    private static let japaneseFeliCaFamilies: Set<String> = [
+        "ayuca", "ci-ca", "desuca / ic e-card", "ex-ic", "fcf",
+        "felica lite", "hanica", "hareca", "himawari bus", "ica",
+        "iruca", "itappy", "kitami bus / luluca", "kumamoto ic",
+        "nagasaki smart", "nicepass", "nicopa", "noruca",
+        "ntasu t-card", "ohmi railway bus", "paspy", "passca / ecomyca",
+        "quicpay", "randen", "rapica", "ryuto", "sapica",
+        "univ coop"
+    ]
+
     public static func from(family: String) -> ICCardBrand {
         let f = family.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -70,6 +84,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         ]
         
         if let directMatch = exactMap[f] { return directMatch }
+        if japaneseFeliCaFamilies.contains(f) { return .japaneseFeliCa }
         
         // Brand-specific prefixes/patterns if exact match fails
         if f.hasPrefix("suica") { return .suica }
