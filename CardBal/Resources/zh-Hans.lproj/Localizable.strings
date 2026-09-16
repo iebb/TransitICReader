@@ -308,3 +308,11 @@
 "When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer." = "启用后，KS X 6924 扫描会使用只读 APDU 探测所有 SFI，并在 Raw Data 中保留每条可读记录和 short-EF 二进制块。扫描耗时会更长。";
 "Developer Readable Blocks" = "开发者可读块";
 "Readable Block Count" = "可读块数量";
+
+// Wallet persistence and iCloud sync
+"Unable to save cards. Please try again." = "无法保存卡片，请重试。";
+"Unable to prepare iCloud backup." = "无法准备 iCloud 备份。";
+"iCloud is unavailable. Your cards are saved on this device." = "iCloud 不可用。卡片已保存在此设备上。";
+"This backup is too large for iCloud sync. Please export a backup file." = "备份过大，无法同步到 iCloud。请导出备份文件。";
+"iCloud backup failed. Your cards are saved on this device." = "iCloud 备份失败。卡片已保存在此设备上。";
+"Backup queued for iCloud." = "备份已加入 iCloud 上传队列。";

@@ -308,3 +308,11 @@
 "When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer." = "When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer.";
 "Developer Readable Blocks" = "Developer Readable Blocks";
 "Readable Block Count" = "Readable Block Count";
+
+// Wallet persistence and iCloud sync
+"Unable to save cards. Please try again." = "Unable to save cards. Please try again.";
+"Unable to prepare iCloud backup." = "Unable to prepare iCloud backup.";
+"iCloud is unavailable. Your cards are saved on this device." = "iCloud is unavailable. Your cards are saved on this device.";
+"This backup is too large for iCloud sync. Please export a backup file." = "This backup is too large for iCloud sync. Please export a backup file.";
+"iCloud backup failed. Your cards are saved on this device." = "iCloud backup failed. Your cards are saved on this device.";
+"Backup queued for iCloud." = "Backup queued for iCloud.";

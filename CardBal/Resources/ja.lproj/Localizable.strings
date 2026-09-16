@@ -308,3 +308,11 @@
 "When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer." = "有効にすると、KS X 6924 のスキャンは読み取り専用 APDU ですべての SFI を調べ、読み取り可能な全レコードと short-EF バイナリブロックを Raw Data に保存します。スキャンには時間がかかります。";
 "Developer Readable Blocks" = "開発者向け読み取り可能ブロック";
 "Readable Block Count" = "読み取り可能ブロック数";
+
+// Wallet persistence and iCloud sync
+"Unable to save cards. Please try again." = "カードを保存できません。もう一度お試しください。";
+"Unable to prepare iCloud backup." = "iCloud バックアップを準備できません。";
+"iCloud is unavailable. Your cards are saved on this device." = "iCloud を利用できません。カードはこのデバイスに保存されています。";
+"This backup is too large for iCloud sync. Please export a backup file." = "バックアップが大きすぎるため iCloud に同期できません。バックアップファイルをエクスポートしてください。";
+"iCloud backup failed. Your cards are saved on this device." = "iCloud バックアップに失敗しました。カードはこのデバイスに保存されています。";
+"Backup queued for iCloud." = "バックアップを iCloud のアップロード待ちに追加しました。";

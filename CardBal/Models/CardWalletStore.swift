@@ -30,7 +30,7 @@ class CardWalletStore: ObservableObject {
     }()
 
     private let userDefaultsKey = "savedTransitCards"
-    private var saveTask: Task<Void, Never>?
+    private var deletedCards: [String: Date] = [:]
     private var automaticCloudSyncTask: Task<Void, Never>?
     private var iCloudChangeObserver: NSObjectProtocol?
     private var isApplyingCloudSync = false
@@ -51,6 +51,7 @@ class CardWalletStore: ObservableObject {
 
     deinit {
         automaticCloudSyncTask?.cancel()
+        sqlite3_close(db)
         if let iCloudChangeObserver {
             NotificationCenter.default.removeObserver(iCloudChangeObserver)
         }
@@ -61,7 +62,10 @@ class CardWalletStore: ObservableObject {
             print("Error opening database at \(dbPath)")
             return
         }
-        let createTable = "CREATE TABLE IF NOT EXISTS cards (id TEXT PRIMARY KEY, json_data TEXT);"
+        let createTable = """
+        CREATE TABLE IF NOT EXISTS cards (id TEXT PRIMARY KEY, json_data TEXT);
+        CREATE TABLE IF NOT EXISTS deleted_cards (id TEXT PRIMARY KEY, deleted_at REAL NOT NULL);
+        """
         if sqlite3_exec(db, createTable, nil, nil, nil) != SQLITE_OK {
             print("Error creating cards table")
         }
@@ -72,24 +76,50 @@ class CardWalletStore: ObservableObject {
               let oldCards = try? JSONDecoder().decode([SavedCardRecord].self, from: data) else { return }
         
         for card in oldCards {
-            saveCardToSQLite(card)
+            guard saveCardToSQLite(card) else { return }
         }
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
     }
 
-    private func saveCardToSQLite(_ card: SavedCardRecord) {
-        let insert = "INSERT OR REPLACE INTO cards (id, json_data) VALUES (?, ?);"
+    @discardableResult
+    private func saveCardToSQLite(_ card: SavedCardRecord) -> Bool {
+        guard let data = try? JSONEncoder().encode(card),
+              let json = String(data: data, encoding: .utf8) else { return false }
         var stmt: OpaquePointer?
-        if sqlite3_prepare_v2(db, insert, -1, &stmt, nil) == SQLITE_OK {
-            sqlite3_bind_text(stmt, 1, (card.id as NSString).utf8String, -1, nil)
-            if let data = try? JSONEncoder().encode(card), let json = String(data: data, encoding: .utf8) {
-                sqlite3_bind_text(stmt, 2, (json as NSString).utf8String, -1, nil)
-                if sqlite3_step(stmt) != SQLITE_DONE {
-                    print("Error saving card \(card.id)")
-                }
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO cards (id, json_data) VALUES (?, ?);", -1, &stmt, nil) == SQLITE_OK else { return false }
+        let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, card.id, -1, transient)
+        sqlite3_bind_text(stmt, 2, json, -1, transient)
+        return sqlite3_step(stmt) == SQLITE_DONE
+    }
+
+    private func readDeletedCards(from database: OpaquePointer?) -> [String: Date] {
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+        // Older backups do not have this table.
+        guard sqlite3_prepare_v2(database, "SELECT id, deleted_at FROM deleted_cards;", -1, &stmt, nil) == SQLITE_OK else { return [:] }
+        var result: [String: Date] = [:]
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let id = sqlite3_column_text(stmt, 0) {
+                result[String(cString: id)] = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 1))
             }
         }
-        sqlite3_finalize(stmt)
+        return result
+    }
+
+    private func mergeDeletions(_ incoming: [String: Date]) -> Bool {
+        var changed = false
+        for (id, date) in incoming where date > (deletedCards[id] ?? .distantPast) {
+            deletedCards[id] = date
+            changed = true
+        }
+        let previousCount = cards.count
+        cards.removeAll { card in
+            guard let deletedAt = deletedCards[card.id] else { return false }
+            return card.scannedAt <= deletedAt
+        }
+        return changed || cards.count != previousCount
     }
 
     func upsert(snapshot: TransitCardSnapshot) {
@@ -440,6 +470,7 @@ class CardWalletStore: ObservableObject {
 
     func deleteCard(_ id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        deletedCards[id] = Date()
         cards.remove(at: index)
         markMapDataChanged()
         save()
@@ -570,8 +601,8 @@ class CardWalletStore: ObservableObject {
         NSUbiquitousKeyValueStore.default.synchronize()
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 750_000_000)
-            let changed = await runiCloudRestore(showProgress: false, force: cards.isEmpty)
-            if changed || !cards.isEmpty {
+            let changed = await runiCloudRestore(showProgress: false, force: false)
+            if changed || !cards.isEmpty || !deletedCards.isEmpty {
                 scheduleAutomaticiCloudBackup(delay: 2_000_000_000)
             }
         }
@@ -589,9 +620,19 @@ class CardWalletStore: ObservableObject {
 
     @MainActor
     private func runiCloudBackup(showProgress: Bool) async {
-        save(force: true, scheduleCloudSync: false)
+        guard save(scheduleCloudSync: false) else { return }
         guard let data = exportBackup(includeFaceAssets: false) else {
-            print("[iCloud] Failed to export metadata")
+            syncMessage = "Unable to prepare iCloud backup."
+            return
+        }
+        guard let remoteDir = ubiquityDocumentsURL else {
+            syncMessage = "iCloud is unavailable. Your cards are saved on this device."
+            return
+        }
+        // KVS has a 1 MB total quota. Do not report success for a payload it
+        // cannot accept, or replace a valid backup with incomplete metadata.
+        guard data.count < 900_000 else {
+            syncMessage = "This backup is too large for iCloud sync. Please export a backup file."
             return
         }
 
@@ -600,69 +641,57 @@ class CardWalletStore: ObservableObject {
             syncProgress = 0.1
             syncMessage = "Preparing backup..."
         }
+        defer { if showProgress { isSyncing = false } }
 
-        print("[iCloud] Starting backup...")
+        do {
+            try FileManager.default.createDirectory(at: remoteDir, withIntermediateDirectories: true)
+            let localDB = URL(fileURLWithPath: dbPath)
+            try writeCloudFile(Data(contentsOf: localDB), to: remoteDir.appendingPathComponent("cards.sqlite"))
+            if showProgress { syncProgress = 0.6 }
+            let assets = faceAssets()
+            for (index, asset) in assets.enumerated() {
+                let imageData = try Data(contentsOf: cardFaceFileURL(fileName: asset.fileName))
+                try writeCloudFile(imageData, to: remoteDir.appendingPathComponent(asset.fileName))
+                if showProgress {
+                    syncProgress = 0.6 + Double(index + 1) / Double(assets.count) * 0.4
+                }
+            }
+        } catch {
+            print("[iCloud] Backup failed: \(error)")
+            syncMessage = "iCloud backup failed. Your cards are saved on this device."
+            return
+        }
+
         let cloudUpdatedAt = Date().timeIntervalSince1970
         let store = NSUbiquitousKeyValueStore.default
         store.set(data, forKey: iCloudBackupKey)
         store.set(cloudUpdatedAt, forKey: iCloudBackupUpdatedAtKey)
-        store.synchronize()
+        guard store.synchronize() else {
+            syncMessage = "iCloud backup failed. Your cards are saved on this device."
+            return
+        }
         UserDefaults.standard.set(cloudUpdatedAt, forKey: lastAppliedCloudUpdateKey)
         UserDefaults.standard.set(cloudUpdatedAt, forKey: lastUploadedCloudUpdateKey)
-
         if showProgress {
-            syncProgress = 0.3
-            syncMessage = "Metadata synced..."
+            syncProgress = 1
+            // iCloud uploads asynchronously; synchronize() is not a server receipt.
+            syncMessage = "Backup queued for iCloud."
         }
-        print("[iCloud] Card metadata synced to KVS")
+    }
 
-        if let remoteDir = ubiquityDocumentsURL {
-            print("[iCloud] Ubiquity container URL: \(remoteDir.path)")
-            if showProgress { syncMessage = "Uploading database..." }
+    private func writeCloudFile(_ data: Data, to url: URL) throws {
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        var writeError: Error?
+        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { coordinatedURL in
             do {
-                try FileManager.default.createDirectory(at: remoteDir, withIntermediateDirectories: true)
-                let localDB = URL(fileURLWithPath: dbPath)
-                let remoteDB = remoteDir.appendingPathComponent("cards.sqlite")
-                if FileManager.default.fileExists(atPath: remoteDB.path) {
-                    try FileManager.default.removeItem(at: remoteDB)
-                }
-                try FileManager.default.copyItem(at: localDB, to: remoteDB)
-                print("[iCloud] Database uploaded successfully")
+                try data.write(to: coordinatedURL, options: .atomic)
             } catch {
-                print("[iCloud] Database upload failed: \(error)")
+                writeError = error
             }
-            if showProgress { syncProgress = 0.6 }
-
-            let assets = faceAssets()
-            print("[iCloud] Found \(assets.count) images to upload")
-            for (index, asset) in assets.enumerated() {
-                let local = cardFaceFileURL(fileName: asset.fileName)
-                let remote = remoteDir.appendingPathComponent(asset.fileName)
-                if showProgress { syncMessage = "Uploading images (\(index + 1)/\(assets.count))..." }
-                do {
-                    if FileManager.default.fileExists(atPath: remote.path) {
-                        try FileManager.default.removeItem(at: remote)
-                    }
-                    try FileManager.default.copyItem(at: local, to: remote)
-                    print("[iCloud] Uploaded image: \(asset.fileName)")
-                } catch {
-                    print("[iCloud] Image upload failed for \(asset.fileName): \(error)")
-                }
-                if showProgress, !assets.isEmpty {
-                    syncProgress = 0.6 + (Double(index + 1) / Double(assets.count) * 0.4)
-                }
-            }
-        } else {
-            print("[iCloud] Ubiquity container is NOT available. Check iCloud settings.")
-            if showProgress { syncMessage = "Error: iCloud Unavailable" }
         }
-
-        if showProgress {
-            syncMessage = "Backup complete"
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            isSyncing = false
-            syncMessage = nil
-        }
+        if let error = coordinationError { throw error }
+        if let error = writeError { throw error }
     }
 
     @MainActor
@@ -679,32 +708,36 @@ class CardWalletStore: ObservableObject {
         let cloudUpdatedAt = store.double(forKey: iCloudBackupUpdatedAtKey)
         let shouldApplyCloud = shouldApplyCloudData(cloudUpdatedAt: cloudUpdatedAt, force: force)
         var changed = false
+        var restoreFailed = false
+        var appliedMetadata = false
 
         isApplyingCloudSync = true
         defer {
             isApplyingCloudSync = false
             if showProgress {
-                Task { @MainActor in
+                isSyncing = false
+                if !restoreFailed {
                     syncMessage = changed ? "Restore complete" : "Already up to date"
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    isSyncing = false
-                    syncMessage = nil
                 }
             }
         }
 
-        if shouldApplyCloud, let remoteDir = ubiquityDocumentsURL {
+        // Prefer one complete metadata snapshot. The file and KVS can arrive at
+        // different times; unioning both can resurrect records from an older file.
+        if shouldApplyCloud, let data = store.data(forKey: iCloudBackupKey),
+           (try? CardBackupData.decoder.decode(CardBackupData.self, from: data)) != nil {
+            appliedMetadata = true
+            changed = mergeBackupData(data, includeAssets: true) || changed
+            if showProgress { syncProgress = 0.6 }
+        } else if shouldApplyCloud, let remoteDir = ubiquityDocumentsURL {
             if showProgress { syncMessage = "Merging database..." }
             let remoteDB = remoteDir.appendingPathComponent("cards.sqlite")
             if FileManager.default.fileExists(atPath: remoteDB.path) {
-                changed = mergeSQLite(from: remoteDB) || changed
+                let databaseChanged = mergeSQLite(from: remoteDB)
+                appliedMetadata = databaseChanged
+                changed = databaseChanged || changed
             }
             if showProgress { syncProgress = 0.4 }
-        }
-
-        if shouldApplyCloud, let data = store.data(forKey: iCloudBackupKey) {
-            changed = mergeBackupData(data, includeAssets: true) || changed
-            if showProgress { syncProgress = 0.6 }
         }
 
         if let remoteDir = ubiquityDocumentsURL {
@@ -712,9 +745,13 @@ class CardWalletStore: ObservableObject {
         }
 
         if changed {
-            load()
+            guard save(scheduleCloudSync: false) else {
+                restoreFailed = true
+                return false
+            }
+            markMapDataChanged()
         }
-        if cloudUpdatedAt > 0, shouldApplyCloud {
+        if cloudUpdatedAt > 0, appliedMetadata {
             UserDefaults.standard.set(cloudUpdatedAt, forKey: lastAppliedCloudUpdateKey)
         }
 
@@ -722,11 +759,12 @@ class CardWalletStore: ObservableObject {
     }
 
     private func shouldApplyCloudData(cloudUpdatedAt: TimeInterval, force: Bool) -> Bool {
-        if force || cards.isEmpty { return true }
-        guard cloudUpdatedAt > 0 else { return false }
+        if force { return true }
         let localUpdatedAt = UserDefaults.standard.double(forKey: localDataUpdatedAtKey)
         let lastApplied = UserDefaults.standard.double(forKey: lastAppliedCloudUpdateKey)
         let newestKnownLocal = max(localUpdatedAt, lastApplied)
+        // An empty wallet can be an intentional deletion, not a fresh install.
+        if newestKnownLocal == 0 && cards.isEmpty && deletedCards.isEmpty { return true }
         return cloudUpdatedAt > newestKnownLocal
     }
 
@@ -740,7 +778,7 @@ class CardWalletStore: ObservableObject {
 
         let query = "SELECT json_data FROM cards;"
         var stmt: OpaquePointer?
-        var changed = false
+        var changed = mergeDeletions(readDeletedCards(from: sourceDB))
         if sqlite3_prepare_v2(sourceDB, query, -1, &stmt, nil) == SQLITE_OK {
             while sqlite3_step(stmt) == SQLITE_ROW {
                 if let json = sqlite3_column_text(stmt, 0) {
@@ -763,7 +801,7 @@ class CardWalletStore: ObservableObject {
             return false
         }
 
-        var changed = false
+        var changed = mergeDeletions(backup.deletedCards ?? [:])
         for card in backup.cards {
             changed = mergeIncomingCard(card) || changed
         }
@@ -787,9 +825,11 @@ class CardWalletStore: ObservableObject {
     }
 
     private func mergeIncomingCard(_ incoming: SavedCardRecord) -> Bool {
+        if let deletedAt = deletedCards[incoming.id], incoming.scannedAt <= deletedAt {
+            return false
+        }
         guard let index = cards.firstIndex(where: { $0.id == incoming.id }) else {
             cards.append(incoming)
-            saveCardToSQLite(incoming)
             return true
         }
 
@@ -797,7 +837,6 @@ class CardWalletStore: ObservableObject {
         let merged = mergedCard(local: local, incoming: incoming)
         guard merged != local else { return false }
         cards[index] = merged
-        saveCardToSQLite(merged)
         return true
     }
 
@@ -871,7 +910,8 @@ class CardWalletStore: ObservableObject {
         for card in backup.cards {
             if byID[card.id] != nil { replaced += 1 }
             byID[card.id] = card
-            saveCardToSQLite(card)
+            // A user-selected file import explicitly restores this card.
+            deletedCards.removeValue(forKey: card.id)
         }
 
         if !backup.faceAssets.isEmpty {
@@ -886,7 +926,9 @@ class CardWalletStore: ObservableObject {
             return $0.scannedAt > $1.scannedAt
         }
         markMapDataChanged()
-        scheduleAutomaticiCloudBackup(delay: 1_000_000_000)
+        guard save() else {
+            throw CocoaError(.fileWriteUnknown)
+        }
         return CardBackupImportResult(imported: backup.cards.count, replaced: replaced)
     }
 
@@ -904,32 +946,48 @@ class CardWalletStore: ObservableObject {
                 }
             }
         }
-        let backup = CardBackupData(version: 1, cards: cards, faceAssets: exportedFaceAssets)
+        let backup = CardBackupData(version: 2, cards: cards, faceAssets: exportedFaceAssets, deletedCards: deletedCards)
         return try? CardBackupData.encoder.encode(backup)
     }
 
-    private func save(force: Bool = false, scheduleCloudSync: Bool = true) {
-        saveTask?.cancel()
-        let currentCards = cards
-        let work = { [weak self] in
-            guard let self = self else { return }
-            for card in currentCards {
-                self.saveCardToSQLite(card)
+    /// Commit the entire wallet before returning, including an intentionally empty
+    /// wallet. A delayed upsert-only save loses deletions and last-minute edits.
+    @discardableResult
+    private func save(scheduleCloudSync: Bool = true) -> Bool {
+        guard sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION;", nil, nil, nil) == SQLITE_OK else {
+            syncMessage = "Unable to save cards. Please try again."
+            return false
+        }
+        var committed = false
+        defer {
+            if !committed {
+                sqlite3_exec(db, "ROLLBACK;", nil, nil, nil)
+                syncMessage = "Unable to save cards. Please try again."
             }
         }
+        guard sqlite3_exec(db, "DELETE FROM cards; DELETE FROM deleted_cards;", nil, nil, nil) == SQLITE_OK else { return false }
+        for card in cards {
+            guard saveCardToSQLite(card) else { return false }
+        }
+        for (id, date) in deletedCards {
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            guard sqlite3_prepare_v2(db, "INSERT INTO deleted_cards (id, deleted_at) VALUES (?, ?);", -1, &stmt, nil) == SQLITE_OK else { return false }
+            sqlite3_bind_text(stmt, 1, id, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            sqlite3_bind_double(stmt, 2, date.timeIntervalSince1970)
+            guard sqlite3_step(stmt) == SQLITE_DONE else { return false }
+        }
+        guard sqlite3_exec(db, "COMMIT;", nil, nil, nil) == SQLITE_OK else { return false }
+        committed = true
         if scheduleCloudSync && !isApplyingCloudSync {
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: localDataUpdatedAtKey)
             scheduleAutomaticiCloudBackup()
         }
-        if force { work(); return }
-        saveTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            guard !Task.isCancelled else { return }
-            work()
-        }
+        return true
     }
 
     private func load() {
+        deletedCards = readDeletedCards(from: db)
         let query = "SELECT json_data FROM cards;"
         var stmt: OpaquePointer?
         var loadedCards: [SavedCardRecord] = []
@@ -1129,6 +1187,8 @@ struct CardBackupData: Codable {
     let version: Int
     let cards: [SavedCardRecord]
     let faceAssets: [String: Data]
+    // Optional so backups written before 2.1.2 remain readable.
+    var deletedCards: [String: Date]? = nil
 
     static var encoder: JSONEncoder {
         let encoder = JSONEncoder()

@@ -245,6 +245,7 @@ struct ScanHomeView: View {
     @State private var detailRoute: CardDetailRoute?
     @State private var calypsoOnlineLookup: CalypsoOnlineLookupState = .idle
     @AppStorage("hideWelcomeMessage") private var hideWelcomeMessage = false
+    @AppStorage("scanOnLaunch") private var scanOnLaunch = true
 
     var body: some View {
         NavigationStack {
@@ -415,11 +416,12 @@ struct ScanHomeView: View {
                 }
             }
             .onAppear { 
-                if !didAutoStartScan {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        reader.startScanning()
-                    }
-                    didAutoStartScan = true 
+                guard !didAutoStartScan else { return }
+                didAutoStartScan = true
+                guard scanOnLaunch else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    guard scanOnLaunch else { return }
+                    reader.startScanning()
                 } 
             }
         }
@@ -678,6 +680,11 @@ struct SettingsView: View {
                             isImportingBackup = true
                         } label: {
                             Label("Import Cross-Platform Backup", systemImage: "square.and.arrow.down")
+                        }
+                        if let syncMessage = store.syncMessage {
+                            Text(LocalizedStringKey(syncMessage))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                         if let backupMessage {
                             Text(backupMessage)
