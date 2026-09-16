@@ -9,6 +9,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from contextlib import closing
 from pathlib import Path
 
 
@@ -55,9 +56,7 @@ ULAANBAATAR_PLATFORM_ASSETS = [
 ]
 
 UNIFIED_ASSETS = [
-    "cardbal_stations.sqlite",
-    "cardbal_cities.sqlite",
-    "cardbal_provinces.sqlite",
+    "cardbal_transit.sqlite",
 ]
 
 UNIFIED_INPUT_ASSETS = [
@@ -86,8 +85,8 @@ UNIFIED_PORTABLE_INPUT_ASSETS = {
 }
 
 # CardBal iOS vendors korean_stations.tsv and its derived East Asia boundary
-# catalogs directly. The unified databases package those iOS sources into
-# portable runtime files, but are intentionally never copied into Android.
+# catalogs directly. The unified database packages those iOS sources into one
+# portable runtime file, but is intentionally never copied into Android.
 
 
 def asset_names(target: str) -> list[str]:
@@ -153,7 +152,7 @@ def seed_portable_assets(names: list[str], portable_assets: Path, ios_resources:
 def sqlite_count(path: Path, table: str) -> int | None:
     if not path.exists():
         return None
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection:
         return int(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
 
 
@@ -190,16 +189,16 @@ def write_manifest(portable_assets: Path) -> None:
                 portable_assets / "ulaanbaatar_transit.sqlite",
                 "route_stations",
             ),
-            "cardbal_stations": sqlite_count(
-                portable_assets / "cardbal_stations.sqlite",
+            "cardbal_transit_stations": sqlite_count(
+                portable_assets / "cardbal_transit.sqlite",
                 "stations",
             ),
-            "cardbal_cities": sqlite_count(
-                portable_assets / "cardbal_cities.sqlite",
+            "cardbal_transit_cities": sqlite_count(
+                portable_assets / "cardbal_transit.sqlite",
                 "cities",
             ),
-            "cardbal_provinces": sqlite_count(
-                portable_assets / "cardbal_provinces.sqlite",
+            "cardbal_transit_provinces": sqlite_count(
+                portable_assets / "cardbal_transit.sqlite",
                 "provinces",
             ),
         },
@@ -268,7 +267,7 @@ def build_ulaanbaatar(python: str, portable_assets: Path, delay_seconds: float) 
     )
 
 
-def build_unified_databases(
+def build_unified_database(
     python: str,
     portable_assets: Path,
     ios_resources: Path,
@@ -322,13 +321,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Only sync existing portable assets to their eligible platform destinations.",
     )
+    parser.add_argument(
+        "--rebuild-unified", action="store_true",
+        help="Also rebuild and sync the iOS unified database after a partial source refresh.",
+    )
     parser.add_argument("--no-sync-ios", action="store_true", help="Do not copy portable outputs into CardBal/Resources.")
     parser.add_argument("--no-sync-android", action="store_true", help="Do not copy portable outputs into android/app/src/main/assets.")
     parser.add_argument("--skip-tunion-osm", action="store_true", help="Skip the OSM T-Union generator and only run source enrichment.")
     parser.add_argument("--offline-tunion-source", action="store_true", help="Use the checked-in T-Union source cache instead of fetching tripreader-data.")
     parser.add_argument("--tunion-delay-seconds", type=float, default=3.0)
     parser.add_argument("--ulaanbaatar-delay-seconds", type=float, default=0.05)
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.rebuild_unified and args.copy_only:
+        parser.error("--rebuild-unified cannot be combined with --copy-only")
+    return args
 
 
 def main() -> None:
@@ -336,6 +342,9 @@ def main() -> None:
     names = asset_names(args.target)
     ios_names = ios_asset_names(args.target)
     android_names = platform_asset_names(args.target)
+    if args.rebuild_unified and args.target != "all":
+        names.extend(UNIFIED_ASSETS)
+        ios_names.extend(UNIFIED_ASSETS)
     seed_portable_assets(names, args.portable_assets, args.ios_resources)
     if not args.copy_only:
         if args.target in ("all", "japanese"):
@@ -344,8 +353,8 @@ def main() -> None:
             build_tunion(args.python, args.portable_assets, args.tunion_delay_seconds, args.skip_tunion_osm, args.offline_tunion_source)
         if args.target in ("all", "ulaanbaatar"):
             build_ulaanbaatar(args.python, args.portable_assets, args.ulaanbaatar_delay_seconds)
-        if args.target == "all":
-            build_unified_databases(
+        if args.target == "all" or args.rebuild_unified:
+            build_unified_database(
                 args.python,
                 args.portable_assets,
                 args.ios_resources,

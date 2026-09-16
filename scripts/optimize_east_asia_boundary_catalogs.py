@@ -136,6 +136,46 @@ def mapping_payload(catalog: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in catalog.items() if key not in metadata_keys}
 
 
+def normalized_province_join_name(value: Any, *, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{label} must be a nonempty string")
+    return value.strip().casefold()
+
+
+def china_province_coverage_name(boundary: dict[str, Any]) -> str:
+    """Return the formal China coverage join name without altering display names.
+
+    Older catalogs and compact test fixtures used ``name`` as both the display
+    value and the ChinaTransitCoverage join key.  New catalogs keep ``name``
+    concise and expose the formal join value as ``coverageName``.
+    """
+
+    join_field = "coverageName" if "coverageName" in boundary else "name"
+    return normalized_province_join_name(
+        boundary.get(join_field),
+        label=f"China province {boundary.get('id')!r} {join_field}",
+    )
+
+
+def unique_china_province_coverage_names(
+    province_boundaries: Sequence[dict[str, Any]],
+) -> set[str]:
+    names_by_key: dict[str, str] = {}
+    for boundary in province_boundaries:
+        if boundary.get("countryCode") != "CN":
+            continue
+        join_name = china_province_coverage_name(boundary)
+        boundary_id = str(boundary.get("id", ""))
+        if join_name in names_by_key:
+            raise RuntimeError(
+                "China province coverage names must be unique: "
+                f"{join_name!r} is shared by {names_by_key[join_name]!r} "
+                f"and {boundary_id!r}"
+            )
+        names_by_key[join_name] = boundary_id
+    return set(names_by_key)
+
+
 def prune_city_catalog_to_supported_boundaries(
     catalog: dict[str, Any],
     china_coverage: dict[str, Any],
@@ -234,14 +274,20 @@ def prune_province_catalog_to_supported_boundaries(
     if not province_boundaries or not city_boundaries:
         raise RuntimeError("Province pruning requires non-empty province and city catalogs")
 
-    supported_china_names = {
-        str(name).casefold() for name in china_coverage.get("supportedProvinceNames", [])
-    }
-    emitted_china_names = {
-        str(boundary.get("name", "")).casefold()
-        for boundary in province_boundaries
-        if boundary.get("countryCode") == "CN"
-    }
+    raw_supported_china_names = china_coverage.get("supportedProvinceNames", [])
+    supported_china_names: set[str] = set()
+    for name in raw_supported_china_names:
+        normalized_name = normalized_province_join_name(
+            name,
+            label="ChinaTransitCoverage supportedProvinceNames entry",
+        )
+        if normalized_name in supported_china_names:
+            raise RuntimeError(
+                "ChinaTransitCoverage supportedProvinceNames must be unique: "
+                f"duplicate {normalized_name!r}"
+            )
+        supported_china_names.add(normalized_name)
+    emitted_china_names = unique_china_province_coverage_names(province_boundaries)
     if supported_china_names != emitted_china_names:
         raise RuntimeError(
             "China supported province names do not match the generated province catalog: "
@@ -345,7 +391,7 @@ def prune_province_catalog_to_supported_boundaries(
     for boundary in province_boundaries:
         country_code = boundary.get("countryCode")
         if country_code == "CN":
-            keep = str(boundary.get("name", "")).casefold() in supported_china_names
+            keep = china_province_coverage_name(boundary) in supported_china_names
         elif country_code == "JP":
             keep = boundary.get("subdivisionCode") in supported_japan_codes
         elif country_code == "KR":

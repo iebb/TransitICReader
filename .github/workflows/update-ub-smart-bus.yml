@@ -32,18 +32,19 @@ jobs:
         run: >-
           python scripts/build_cross_platform_station_assets.py
           --target ulaanbaatar
+          --rebuild-unified
           --no-sync-android
 
       - name: Commit current state when changed
         shell: bash
         run: |
-          if git diff --quiet -- StationAssets/ulaanbaatar_\* CardBal/Resources/ulaanbaatar_transit.sqlite; then
+          if git diff --quiet -- StationAssets/ulaanbaatar_\* CardBal/Resources/ulaanbaatar_transit.sqlite StationAssets/cardbal_transit.sqlite CardBal/Resources/cardbal_transit.sqlite; then
             git restore StationAssets/manifest.json
             echo "UB Smart Bus data is already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add StationAssets/manifest.json StationAssets/ulaanbaatar_\* CardBal/Resources/ulaanbaatar_transit.sqlite
+          git add StationAssets/manifest.json StationAssets/ulaanbaatar_\* CardBal/Resources/ulaanbaatar_transit.sqlite StationAssets/cardbal_transit.sqlite CardBal/Resources/cardbal_transit.sqlite
           git commit -m "Update UB Smart Bus data"
           git push origin HEAD:master

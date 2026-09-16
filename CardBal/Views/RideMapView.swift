@@ -997,7 +997,7 @@ private struct KoreanMapEvent {
 
 private final class StationGraphDatabase {
     static let shared = StationGraphDatabase()
-    private static let cacheVersion = 2
+    private static let cacheVersion = 3
 
     private(set) var isReady = false
     private let pathCacheLock = NSLock()
@@ -1108,11 +1108,24 @@ private final class StationGraphDatabase {
     }
 
     private func loadJPDatabase() {
-        guard let db = openBundledDatabase(named: "jp_stations") else { return }
+        guard let db = openBundledDatabase() else { return }
         defer { sqlite3_close(db) }
 
         var statement: OpaquePointer?
-        if sqlite3_prepare_v2(db, "SELECT hex_code, station_code, station_name, latitude, longitude, is_pseudo FROM jp_stations;", -1, &statement, nil) == SQLITE_OK {
+        let query = """
+            SELECT i.code,
+                   CASE WHEN s.is_pseudo = 1 THEN '0' ELSE s.source_station_id END,
+                   COALESCE(NULLIF(i.lookup_name, ''), s.name),
+                   s.latitude, s.longitude, s.is_pseudo
+            FROM station_identifiers AS i
+            JOIN stations AS s ON s.id = i.station_id
+            WHERE i.namespace = 'jp.felica.hex'
+              AND i.event_kind = 'any'
+              AND s.country_code = 'JP'
+              AND s.latitude IS NOT NULL
+              AND s.longitude IS NOT NULL;
+            """
+        if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard
                     let codeText = sqlite3_column_text(statement, 0),
@@ -1136,28 +1149,40 @@ private final class StationGraphDatabase {
             }
         }
         sqlite3_finalize(statement)
-        loadEdges(db: db)
+        loadEdges(db: db, countryCode: "JP")
     }
 
     private func loadTUnionDatabase() {
-        guard let db = openBundledDatabase(named: "tunion_stations") else { return }
+        guard let db = openBundledDatabase() else { return }
         defer { sqlite3_close(db) }
 
         var statement: OpaquePointer?
-        if sqlite3_prepare_v2(db, "SELECT station_key, station_name, latitude, longitude FROM tunion_stations WHERE latitude IS NOT NULL AND longitude IS NOT NULL;", -1, &statement, nil) == SQLITE_OK {
+        let query = """
+            SELECT i.code, i.code, COALESCE(NULLIF(i.lookup_name, ''), s.name),
+                   s.latitude, s.longitude
+            FROM station_identifiers AS i
+            JOIN stations AS s ON s.id = i.station_id
+            WHERE i.namespace = 'cn.tunion.station_key'
+              AND i.event_kind = 'any'
+              AND s.country_code = 'CN'
+              AND s.latitude IS NOT NULL
+              AND s.longitude IS NOT NULL;
+            """
+        if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard
                     let codeText = sqlite3_column_text(statement, 0),
-                    let stationNameText = sqlite3_column_text(statement, 1)
+                    let stationCodeText = sqlite3_column_text(statement, 1),
+                    let stationNameText = sqlite3_column_text(statement, 2)
                 else {
                     continue
                 }
                 let station = StationGraphStation(
                     hexCode: String(cString: codeText),
-                    stationCode: String(cString: codeText),
+                    stationCode: String(cString: stationCodeText),
                     stationName: String(cString: stationNameText),
-                    latitude: sqlite3_column_double(statement, 2),
-                    longitude: sqlite3_column_double(statement, 3),
+                    latitude: sqlite3_column_double(statement, 3),
+                    longitude: sqlite3_column_double(statement, 4),
                     isPseudo: false
                 )
                 stationsByLookupCode[normalizeLookupCode(station.hexCode)] = station
@@ -1165,7 +1190,7 @@ private final class StationGraphDatabase {
             }
         }
         sqlite3_finalize(statement)
-        loadEdges(db: db)
+        loadEdges(db: db, countryCode: "CN")
     }
 
     private func loadKoreanCatalog() {
@@ -1194,21 +1219,32 @@ private final class StationGraphDatabase {
     }
 
     private func loadUlaanbaatarCatalog() {
-        guard let db = openBundledDatabase(named: "ulaanbaatar_transit") else { return }
+        guard let db = openBundledDatabase() else { return }
         defer { sqlite3_close(db) }
 
         let useMongolian = Locale.preferredLanguages.first?.lowercased().hasPrefix("mn") == true
         var statement: OpaquePointer?
-        let query = "SELECT station_id, station_name_mn, station_name_en, latitude, longitude FROM stations;"
+        let query = """
+            SELECT i.code, COALESCE(NULLIF(s.native_name, ''), s.name), s.name,
+                   s.latitude, s.longitude
+            FROM station_identifiers AS i
+            JOIN stations AS s ON s.id = i.station_id
+            WHERE i.namespace = 'mn.ubsmartbus.station_id'
+              AND i.event_kind = 'any'
+              AND s.country_code = 'MN'
+              AND s.latitude IS NOT NULL
+              AND s.longitude IS NOT NULL;
+            """
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard
+                    let stationIDText = sqlite3_column_text(statement, 0),
                     let mongolianNameText = sqlite3_column_text(statement, 1),
                     let englishNameText = sqlite3_column_text(statement, 2)
                 else {
                     continue
                 }
-                let stationID = String(sqlite3_column_int64(statement, 0))
+                let stationID = String(cString: stationIDText)
                 let lookupCode = "MN:\(stationID)"
                 let station = StationGraphStation(
                     hexCode: lookupCode,
@@ -1262,28 +1298,40 @@ private final class StationGraphDatabase {
         return cacheDir.appendingPathComponent("station-graph-v\(Self.cacheVersion).plist")
     }
 
-    private func loadEdges(db: OpaquePointer?) {
+    private func loadEdges(db: OpaquePointer?, countryCode: String) {
         var statement: OpaquePointer?
-        if sqlite3_prepare_v2(db, "SELECT from_station_code, to_station_code, distance_km FROM station_edges;", -1, &statement, nil) == SQLITE_OK {
-            while sqlite3_step(statement) == SQLITE_ROW {
-                guard
-                    let fromText = sqlite3_column_text(statement, 0),
-                    let toText = sqlite3_column_text(statement, 1)
-                else {
-                    continue
-                }
-                let fromStation = String(cString: fromText)
-                let toStation = String(cString: toText)
-                let distance = sqlite3_column_double(statement, 2)
-                adjacency[fromStation, default: []].append(StationGraphEdge(toStationCode: toStation, distanceKm: distance))
-                adjacency[toStation, default: []].append(StationGraphEdge(toStationCode: fromStation, distanceKm: distance))
-            }
+        let query = """
+            SELECT from_station_code, to_station_code, distance_km
+            FROM station_graph_edges
+            WHERE country_code = ?;
+            """
+        guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+            sqlite3_finalize(statement)
+            return
         }
-        sqlite3_finalize(statement)
+        defer { sqlite3_finalize(statement) }
+        let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        let bindResult = countryCode.withCString {
+            sqlite3_bind_text(statement, 1, $0, -1, transient)
+        }
+        guard bindResult == SQLITE_OK else { return }
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard
+                let fromText = sqlite3_column_text(statement, 0),
+                let toText = sqlite3_column_text(statement, 1)
+            else {
+                continue
+            }
+            let fromStation = String(cString: fromText)
+            let toStation = String(cString: toText)
+            let distance = sqlite3_column_double(statement, 2)
+            adjacency[fromStation, default: []].append(StationGraphEdge(toStationCode: toStation, distanceKm: distance))
+            adjacency[toStation, default: []].append(StationGraphEdge(toStationCode: fromStation, distanceKm: distance))
+        }
     }
 
-    private func openBundledDatabase(named resource: String) -> OpaquePointer? {
-        guard let url = Bundle.main.url(forResource: resource, withExtension: "sqlite") else {
+    private func openBundledDatabase() -> OpaquePointer? {
+        guard let url = Bundle.main.url(forResource: "cardbal_transit", withExtension: "sqlite") else {
             return nil
         }
         let escapedPath = url.path.replacingOccurrences(of: "?", with: "%3F")

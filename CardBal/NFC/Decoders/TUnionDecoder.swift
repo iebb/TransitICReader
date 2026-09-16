@@ -1,5 +1,6 @@
 import Foundation
 import CoreNFC
+import SQLite3
 
 struct CityUnionDecoder: TransitCardDecoder {
     private static let applicationAID = "A00000000386980701"
@@ -884,14 +885,55 @@ struct TUnionCityDatabase {
 
     private static let reviewedCityCodeDisplayNames: [String: String] = {
         guard let url = Bundle.main.url(
-            forResource: "ChinaTransitCoverage",
-            withExtension: "json"
-        ), let data = try? Data(contentsOf: url),
-           let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let tUnion = root["tUnion"] as? [String: Any],
-           let names = tUnion["cityCodeDisplayNames"] as? [String: String] else {
+            forResource: "cardbal_transit",
+            withExtension: "sqlite"
+        ) else {
             return [:]
         }
+        let escapedPath = url.path.replacingOccurrences(of: "?", with: "%3F")
+        let sqliteURI = "file:\(escapedPath)?mode=ro&immutable=1"
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(
+            sqliteURI,
+            &database,
+            SQLITE_OPEN_READONLY | SQLITE_OPEN_URI,
+            nil
+        ) == SQLITE_OK, let database else {
+            if let database { sqlite3_close(database) }
+            return [:]
+        }
+        defer { sqlite3_close(database) }
+
+        let query = """
+            SELECT code, display_name
+            FROM city_identifiers
+            WHERE namespace IN ('cn.tunion.city_code', 'cn.tunion.city_alias')
+              AND display_name IS NOT NULL
+            UNION ALL
+            SELECT code, display_name
+            FROM province_identifiers
+            WHERE namespace = 'cn.tunion.province_only_city_code'
+              AND display_name IS NOT NULL
+            ORDER BY code;
+            """
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK else {
+            sqlite3_finalize(statement)
+            return [:]
+        }
+        defer { sqlite3_finalize(statement) }
+
+        var names: [String: String] = [:]
+        var stepResult = sqlite3_step(statement)
+        while stepResult == SQLITE_ROW {
+            guard let codeText = sqlite3_column_text(statement, 0),
+                  let nameText = sqlite3_column_text(statement, 1) else { return [:] }
+            let code = String(cString: codeText)
+            let name = String(cString: nameText)
+            guard names.updateValue(name, forKey: code) == nil else { return [:] }
+            stepResult = sqlite3_step(statement)
+        }
+        guard stepResult == SQLITE_DONE, names.count == 62 else { return [:] }
         return names
     }()
 

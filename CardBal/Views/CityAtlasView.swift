@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import SQLite3
 
 struct CityAtlasTabView: View {
     @ObservedObject var store: CardWalletStore
@@ -1463,12 +1464,23 @@ private struct CityAtlasReferenceLineBatch: Decodable {
         case lines
     }
 
+    init(countryCode: CityAtlasCountry, bucket: String, lines: [[[Double]]]) throws {
+        self.countryCode = countryCode
+        self.bucket = bucket
+        self.lines = lines
+        try validate()
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         countryCode = try container.decode(CityAtlasCountry.self, forKey: .countryCode)
         bucket = try container.decode(String.self, forKey: .bucket)
         lines = try container.decode([[[Double]]].self, forKey: .lines)
 
+        try validate()
+    }
+
+    private func validate() throws {
         guard !bucket.isEmpty,
               !lines.isEmpty,
               lines.allSatisfy({ line in
@@ -1478,7 +1490,7 @@ private struct CityAtlasReferenceLineBatch: Decodable {
               }) else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
-                    codingPath: decoder.codingPath,
+                    codingPath: [],
                     debugDescription: "Reference-line batches require a bucket and valid two-point lines."
                 )
             )
@@ -1532,6 +1544,26 @@ private struct CityAtlasBoundary: Decodable {
         case bbox
         case components
         case polygons
+    }
+
+    init(
+        id: String,
+        countryCode: CityAtlasCountry,
+        subdivisionCode: String?,
+        name: String,
+        nativeName: String,
+        center: [Double],
+        bbox: [Double],
+        components: [CityAtlasBoundaryComponent]
+    ) {
+        self.id = id
+        self.countryCode = countryCode
+        self.subdivisionCode = subdivisionCode
+        self.name = name
+        self.nativeName = nativeName
+        self.center = center
+        self.bbox = bbox
+        self.components = components
     }
 
     init(from decoder: Decoder) throws {
@@ -1607,20 +1639,58 @@ private struct CityAtlasBoundary: Decodable {
 
     func cityDisplayName(in province: CityAtlasBoundary?) -> String {
         let cityName = preferredDisplayName.strippingCityAtlasSuffixes([" City"])
-        guard let province,
-              cityName.caseInsensitiveCompare(province.provinceDisplayName) == .orderedSame else {
+        guard let province else { return cityName }
+#if DEBUG
+        _ = Self.cityDisplayNamePolicyAssertions
+#endif
+        return Self.disambiguatedCityName(
+            cityName,
+            provinceName: province.provinceDisplayName,
+            countryCode: countryCode
+        )
+    }
+
+    private static let unsuffixedChineseSameNamePlaces = [
+        "Beijing",
+        "Chongqing",
+        "Hong Kong",
+        "Macau",
+        "Shanghai",
+        "Tianjin",
+    ]
+
+    private static func disambiguatedCityName(
+        _ cityName: String,
+        provinceName: String,
+        countryCode: CityAtlasCountry
+    ) -> String {
+        guard cityName.caseInsensitiveCompare(provinceName) == .orderedSame else {
             return cityName
         }
 
         switch countryCode {
         case .japan:
             return "\(cityName) City"
-        case .china where province.preferredDisplayName.hasCityAtlasSuffix(" Province"):
-            return "\(cityName) City"
-        case .china, .korea, .mongolia:
+        case .china:
+            let isDirectAdminOrSpecialRegion = unsuffixedChineseSameNamePlaces.contains {
+                cityName.caseInsensitiveCompare($0) == .orderedSame
+            }
+            return isDirectAdminOrSpecialRegion ? cityName : "\(cityName) City"
+        case .korea, .mongolia:
             return cityName
         }
     }
+
+#if DEBUG
+    private static let cityDisplayNamePolicyAssertions: Void = {
+        assert(disambiguatedCityName("Fukuoka", provinceName: "Fukuoka", countryCode: .japan) == "Fukuoka City")
+        assert(disambiguatedCityName("Jilin", provinceName: "Jilin", countryCode: .china) == "Jilin City")
+        assert(disambiguatedCityName("Guangzhou", provinceName: "Guangdong", countryCode: .china) == "Guangzhou")
+        for name in unsuffixedChineseSameNamePlaces {
+            assert(disambiguatedCityName(name, provinceName: name, countryCode: .china) == name)
+        }
+    }()
+#endif
 
     private var preferredDisplayName: String {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1780,52 +1850,248 @@ private extension String {
     }
 }
 
-private struct CityAtlasBoundaryCatalog: Decodable {
-    let version: Int
-    let boundaries: [CityAtlasBoundary]
-    let referenceLines: [CityAtlasReferenceLineBatch]
-    let japanStationToBoundary: [String: String]
-    let chinaCityToBoundary: [String: String]
-    let koreaModeToBoundary: [String: String]
-    let koreaLocationToBoundary: [String: String]
-    let mongoliaStationToBoundary: [String: String]
-    let mongoliaCityToProvince: [String: String]
+private struct CityAtlasTransitCatalog {
+    let cities: [CityAtlasBoundary]
+    let provinces: [CityAtlasBoundary]
+    let provinceBoundaryByCityID: [String: String]
+    let cityReferenceLines: [CityAtlasReferenceLineBatch]
+    let provinceReferenceLines: [CityAtlasReferenceLineBatch]
+    let cityIdentifiersByNamespace: [String: [String: String]]
+    let provinceIdentifiersByNamespace: [String: [String: String]]
+
+    func cityIdentifiers(namespace: String) -> [String: String] {
+        cityIdentifiersByNamespace[namespace] ?? [:]
+    }
+
+    func provinceIdentifiers(namespace: String) -> [String: String] {
+        provinceIdentifiersByNamespace[namespace] ?? [:]
+    }
 }
 
-private struct CityAtlasProvinceCatalog: Decodable {
-    let version: Int
-    let boundaries: [CityAtlasBoundary]
-    let referenceLines: [CityAtlasReferenceLineBatch]
-}
+private enum CityAtlasTransitCatalogDatabase {
+    static func loadBundled() throws -> CityAtlasTransitCatalog {
+        guard let url = Bundle.main.url(
+            forResource: "cardbal_transit",
+            withExtension: "sqlite"
+        ) else {
+            throw CityAtlasResolverError.missingCatalog
+        }
+        let escapedPath = url.path.replacingOccurrences(of: "?", with: "%3F")
+        let sqliteURI = "file:\(escapedPath)?mode=ro&immutable=1"
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(
+            sqliteURI,
+            &database,
+            SQLITE_OPEN_READONLY | SQLITE_OPEN_URI,
+            nil
+        ) == SQLITE_OK, let database else {
+            if let database { sqlite3_close(database) }
+            throw CityAtlasResolverError.unreadableCatalog
+        }
+        defer { sqlite3_close(database) }
 
-private struct ChinaTransitCoverageCatalog: Decodable {
-    let version: Int
-    let scope: ChinaTransitCoverageScope
-    let supportedProvinceNames: [String]
-    let referenceBoundaryToProvince: [String: String]
-    let tUnion: ChinaTransitCoverageNamespace
-    let cityUnion: ChinaTransitCoverageNamespace
-}
+        let schemaVersions: [Int] = try rows(
+            database,
+            sql: "SELECT value FROM metadata WHERE key = 'schema_version';"
+        ) { statement in
+            guard let value = text(statement, column: 0), let version = Int(value) else {
+                throw CityAtlasResolverError.unreadableCatalog
+            }
+            return version
+        }
+        guard schemaVersions == [1] else {
+            throw CityAtlasResolverError.unsupportedCatalog(schemaVersions.first ?? 0)
+        }
 
-private struct ChinaTransitCoverageScope: Decodable {
-    let excludedProvinceNames: [String]
-}
+        var provinceBoundaryByCityID: [String: String] = [:]
+        let cities = try boundaries(
+            database,
+            table: "cities",
+            parentHandler: { cityID, provinceID in
+                guard provinceBoundaryByCityID.updateValue(provinceID, forKey: cityID) == nil else {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+            }
+        )
+        let provinces = try boundaries(database, table: "provinces", parentHandler: nil)
+        let provinceIDs = Set(provinces.map(\.id))
+        guard cities.count == provinceBoundaryByCityID.count,
+              Set(provinceBoundaryByCityID.values).isSubset(of: provinceIDs) else {
+            throw CityAtlasResolverError.unreadableCatalog
+        }
 
-private struct ChinaTransitCoverageNamespace: Decodable {
-    let excludedCityBoundaryCodes: [String]
-    let cityToProvince: [String: String]
-    let cityToBoundaryAlias: [String: String]
-    let provinceOnlyCityCodes: [String]
-}
+        var cityReferenceLines: [CityAtlasReferenceLineBatch] = []
+        var provinceReferenceLines: [CityAtlasReferenceLineBatch] = []
+        for entry in try rows(
+            database,
+            sql: """
+                SELECT boundary_level, country_code, bucket, lines_json
+                FROM reference_line_batches
+                ORDER BY boundary_level, country_code, bucket;
+                """
+        , transform: { statement -> (String, CityAtlasReferenceLineBatch) in
+            guard let level = text(statement, column: 0),
+                  let countryRaw = text(statement, column: 1),
+                  let country = CityAtlasCountry(rawValue: countryRaw),
+                  let bucket = text(statement, column: 2),
+                  let linesPayload = text(statement, column: 3),
+                  let linesData = linesPayload.data(using: .utf8),
+                  let lines = try? JSONDecoder().decode([[[Double]]].self, from: linesData) else {
+                throw CityAtlasResolverError.unreadableCatalog
+            }
+            return (
+                level,
+                try CityAtlasReferenceLineBatch(
+                    countryCode: country,
+                    bucket: bucket,
+                    lines: lines
+                )
+            )
+        }) {
+            switch entry.0 {
+            case "city": cityReferenceLines.append(entry.1)
+            case "province": provinceReferenceLines.append(entry.1)
+            default: throw CityAtlasResolverError.unreadableCatalog
+            }
+        }
 
-private struct JapanTransitCoverageCatalog: Decodable {
-    let version: Int
-    let supportedPrefectures: [JapanTransitCoveragePrefecture]
-}
+        return CityAtlasTransitCatalog(
+            cities: cities,
+            provinces: provinces,
+            provinceBoundaryByCityID: provinceBoundaryByCityID,
+            cityReferenceLines: cityReferenceLines,
+            provinceReferenceLines: provinceReferenceLines,
+            cityIdentifiersByNamespace: try identifiers(
+                database,
+                table: "city_identifiers",
+                targetColumn: "city_id"
+            ),
+            provinceIdentifiersByNamespace: try identifiers(
+                database,
+                table: "province_identifiers",
+                targetColumn: "province_id"
+            )
+        )
+    }
 
-private struct JapanTransitCoveragePrefecture: Decodable {
-    let code: String
-    let name: String
+    private static func boundaries(
+        _ database: OpaquePointer,
+        table: String,
+        parentHandler: ((String, String) throws -> Void)?
+    ) throws -> [CityAtlasBoundary] {
+        guard table == "cities" || table == "provinces" else {
+            throw CityAtlasResolverError.unreadableCatalog
+        }
+        let parentColumn = table == "cities" ? "province_id," : "NULL,"
+        return try rows(
+            database,
+            sql: """
+                SELECT id, country_code, \(parentColumn) subdivision_code, name, native_name,
+                       center_longitude, center_latitude,
+                       bbox_min_longitude, bbox_min_latitude,
+                       bbox_max_longitude, bbox_max_latitude, components_json
+                FROM \(table)
+                ORDER BY country_code, id;
+                """
+        ) { statement in
+            guard let id = text(statement, column: 0),
+                  let countryRaw = text(statement, column: 1),
+                  let country = CityAtlasCountry(rawValue: countryRaw),
+                  let name = text(statement, column: 4),
+                  let nativeName = text(statement, column: 5),
+                  let componentsPayload = text(statement, column: 12),
+                  let componentsData = componentsPayload.data(using: .utf8),
+                  let components = try? JSONDecoder().decode(
+                      [CityAtlasBoundaryComponent].self,
+                      from: componentsData
+                  ) else {
+                throw CityAtlasResolverError.unreadableCatalog
+            }
+            if let parentHandler {
+                guard let parentID = text(statement, column: 2) else {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+                try parentHandler(id, parentID)
+            }
+            return CityAtlasBoundary(
+                id: id,
+                countryCode: country,
+                subdivisionCode: text(statement, column: 3),
+                name: name,
+                nativeName: nativeName,
+                center: [
+                    sqlite3_column_double(statement, 6),
+                    sqlite3_column_double(statement, 7),
+                ],
+                bbox: [
+                    sqlite3_column_double(statement, 8),
+                    sqlite3_column_double(statement, 9),
+                    sqlite3_column_double(statement, 10),
+                    sqlite3_column_double(statement, 11),
+                ],
+                components: components
+            )
+        }
+    }
+
+    private static func identifiers(
+        _ database: OpaquePointer,
+        table: String,
+        targetColumn: String
+    ) throws -> [String: [String: String]] {
+        let validPair = (table, targetColumn) == ("city_identifiers", "city_id")
+            || (table, targetColumn) == ("province_identifiers", "province_id")
+        guard validPair else { throw CityAtlasResolverError.unreadableCatalog }
+        var result: [String: [String: String]] = [:]
+        for entry in try rows(
+            database,
+            sql: "SELECT namespace, code, \(targetColumn) FROM \(table) ORDER BY namespace, code;",
+            transform: { statement -> (String, String, String) in
+                guard let namespace = text(statement, column: 0),
+                      let code = text(statement, column: 1),
+                      let targetID = text(statement, column: 2) else {
+                    throw CityAtlasResolverError.unreadableCatalog
+                }
+                return (namespace, code, targetID)
+            }
+        ) {
+            guard result[entry.0, default: [:]].updateValue(entry.2, forKey: entry.1) == nil else {
+                throw CityAtlasResolverError.unreadableCatalog
+            }
+        }
+        return result
+    }
+
+    private static func rows<Value>(
+        _ database: OpaquePointer,
+        sql: String,
+        transform: (OpaquePointer) throws -> Value
+    ) throws -> [Value] {
+        var optionalStatement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &optionalStatement, nil) == SQLITE_OK,
+              let statement = optionalStatement else {
+            sqlite3_finalize(optionalStatement)
+            throw CityAtlasResolverError.unreadableCatalog
+        }
+        defer { sqlite3_finalize(statement) }
+        var values: [Value] = []
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW:
+                values.append(try transform(statement))
+            case SQLITE_DONE:
+                return values
+            default:
+                throw CityAtlasResolverError.unreadableCatalog
+            }
+        }
+    }
+
+    private static func text(_ statement: OpaquePointer, column: Int32) -> String? {
+        guard sqlite3_column_type(statement, column) != SQLITE_NULL,
+              let value = sqlite3_column_text(statement, column) else { return nil }
+        return String(cString: value)
+    }
 }
 
 private struct CityAtlasResolution {
@@ -1885,144 +2151,50 @@ private enum CityAtlasResolverError: LocalizedError {
 
 private struct CityAtlasVisitResolver {
     func resolve(cards: [SavedCardRecord]) throws -> CityAtlasResolution {
-        guard let cityURL = Bundle.main.url(
-            forResource: "EastAsiaCityBoundaries",
-            withExtension: "json"
-        ), let provinceURL = Bundle.main.url(
-            forResource: "EastAsiaProvinceBoundaries",
-            withExtension: "json"
-        ), let chinaCoverageURL = Bundle.main.url(
-            forResource: "ChinaTransitCoverage",
-            withExtension: "json"
-        ), let japanCoverageURL = Bundle.main.url(
-            forResource: "JapanTransitCoverage",
-            withExtension: "json"
-        ) else {
-            throw CityAtlasResolverError.missingCatalog
-        }
-        guard let cityData = try? Data(contentsOf: cityURL),
-              let provinceData = try? Data(contentsOf: provinceURL),
-              let chinaCoverageData = try? Data(contentsOf: chinaCoverageURL),
-              let japanCoverageData = try? Data(contentsOf: japanCoverageURL),
-              let catalog = try? JSONDecoder().decode(CityAtlasBoundaryCatalog.self, from: cityData),
-              let provinceCatalog = try? JSONDecoder().decode(CityAtlasProvinceCatalog.self, from: provinceData),
-              let chinaCoverage = try? JSONDecoder().decode(
-                ChinaTransitCoverageCatalog.self,
-                from: chinaCoverageData
-              ),
-              let japanCoverage = try? JSONDecoder().decode(
-                JapanTransitCoverageCatalog.self,
-                from: japanCoverageData
-              ) else {
-            throw CityAtlasResolverError.unreadableCatalog
-        }
-        guard catalog.version == 2 else {
-            throw CityAtlasResolverError.unsupportedCatalog(catalog.version)
-        }
-        guard provinceCatalog.version == 2 else {
-            throw CityAtlasResolverError.unsupportedCatalog(provinceCatalog.version)
-        }
-        guard chinaCoverage.version == 1 else {
-            throw CityAtlasResolverError.unsupportedCatalog(chinaCoverage.version)
-        }
-        guard japanCoverage.version == 1 else {
-            throw CityAtlasResolverError.unsupportedCatalog(japanCoverage.version)
-        }
+        let catalog = try CityAtlasTransitCatalogDatabase.loadBundled()
+        let supportedCityBoundaries = catalog.cities
+        let provinceResolution = CityAtlasProvinceResolution(
+            boundaries: catalog.provinces,
+            provinceBoundaryByCityID: catalog.provinceBoundaryByCityID
+        )
 
-        let excludedChinaProvinceNames = Set(
-            chinaCoverage.scope.excludedProvinceNames.map { $0.lowercased() }
+        let japanStationToBoundary = catalog.cityIdentifiers(
+            namespace: "jp.felica.station_hex"
         )
-        let supportedJapanSubdivisionCodes = Set(
-            japanCoverage.supportedPrefectures.map(\.code)
+        var tUnionCityToBoundary = catalog.cityIdentifiers(
+            namespace: "cn.tunion.city_code"
         )
-        let supportedJapanCityBoundaryIDs = Set(
-            catalog.japanStationToBoundary.values
+        for (code, cityID) in catalog.cityIdentifiers(namespace: "cn.tunion.city_alias") {
+            tUnionCityToBoundary[code] = cityID
+        }
+        let cityUnionCityToBoundary = catalog.cityIdentifiers(
+            namespace: "cn.city_union.city_code"
         )
-        let supportedKoreaCityBoundaryIDs = Set(
-            catalog.koreaLocationToBoundary.values
-        ).union(catalog.koreaModeToBoundary.values)
-        let supportedMongoliaCityBoundaryIDs = Set(
-            catalog.mongoliaStationToBoundary.values
+        let tUnionProvinceByCityCode = catalog.provinceIdentifiers(
+            namespace: "cn.tunion.province_only_city_code"
         )
-        let catalogBoundaryIDs = Set(catalog.boundaries.map(\.id))
-        let retainedChinaBoundaryIDs = Set(
-            catalog.boundaries.lazy
-                .filter { $0.countryCode == .china }
-                .map(\.id)
+        let koreaLocationToBoundary = catalog.cityIdentifiers(namespace: "kr.ksx.location")
+        let koreaModeToBoundary = catalog.cityIdentifiers(namespace: "kr.kotris.mode")
+        let mongoliaStationToBoundary = catalog.cityIdentifiers(
+            namespace: "mn.ubsmartbus.station_id"
         )
-        let excludedChinaCityBoundaryCodes = Set(
-            chinaCoverage.tUnion.excludedCityBoundaryCodes
-        )
-        let retainedChinaCityToBoundary = Dictionary(
-            uniqueKeysWithValues: catalog.chinaCityToBoundary.compactMap { entry in
-                retainedChinaBoundaryIDs.contains(entry.value)
-                    ? (entry.key, entry.value)
-                    : nil
-            }
-        )
-        let supportedChinaCityCodes = Set(retainedChinaCityToBoundary.keys)
-            .subtracting(excludedChinaCityBoundaryCodes)
-        let retainedChinaReferenceBoundaryIDs = Set(
-            chinaCoverage.referenceBoundaryToProvince.keys.filter(
-                retainedChinaBoundaryIDs.contains
-            )
-        )
-        let supportedChinaBoundaryIDs = Set(
-            supportedChinaCityCodes.compactMap { retainedChinaCityToBoundary[$0] }
-        ).union(retainedChinaReferenceBoundaryIDs)
-        guard !supportedChinaCityCodes.isEmpty,
-              !supportedJapanCityBoundaryIDs.isEmpty,
-              !supportedKoreaCityBoundaryIDs.isEmpty,
-              !supportedMongoliaCityBoundaryIDs.isEmpty,
-              supportedJapanCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
-              supportedKoreaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
-              supportedMongoliaCityBoundaryIDs.isSubset(of: catalogBoundaryIDs),
-              Set(catalog.mongoliaCityToProvince.keys) == supportedMongoliaCityBoundaryIDs,
-              excludedChinaCityBoundaryCodes.allSatisfy({
-                  catalog.chinaCityToBoundary[$0] != nil
-              }),
-              supportedChinaBoundaryIDs == retainedChinaBoundaryIDs else {
+        let cityBoundaryIDs = Set(supportedCityBoundaries.map(\.id))
+        let provinceBoundaryIDs = Set(provinceResolution.boundaries.map(\.id))
+        let allCityIdentifierTargets = catalog.cityIdentifiersByNamespace.values
+            .flatMap(\.values)
+        let allProvinceIdentifierTargets = catalog.provinceIdentifiersByNamespace.values
+            .flatMap(\.values)
+        guard !japanStationToBoundary.isEmpty,
+              !tUnionCityToBoundary.isEmpty,
+              !cityUnionCityToBoundary.isEmpty,
+              !tUnionProvinceByCityCode.isEmpty,
+              !koreaLocationToBoundary.isEmpty,
+              !koreaModeToBoundary.isEmpty,
+              !mongoliaStationToBoundary.isEmpty,
+              Set(allCityIdentifierTargets).isSubset(of: cityBoundaryIDs),
+              Set(allProvinceIdentifierTargets).isSubset(of: provinceBoundaryIDs) else {
             throw CityAtlasResolverError.unreadableCatalog
         }
-        let supportedCityBoundaries = catalog.boundaries.filter { boundary in
-            switch boundary.countryCode {
-            case .china:
-                return supportedChinaBoundaryIDs.contains(boundary.id)
-            case .japan:
-                return supportedJapanCityBoundaryIDs.contains(boundary.id)
-                    && boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
-            case .korea:
-                return supportedKoreaCityBoundaryIDs.contains(boundary.id)
-            case .mongolia:
-                return supportedMongoliaCityBoundaryIDs.contains(boundary.id)
-            }
-        }
-        let chinaProvinceNameByCityBoundaryID = try chinaProvinceNameByCityBoundaryID(
-            catalog: catalog,
-            coverage: chinaCoverage
-        )
-        let eligibleProvinceBoundaries = provinceCatalog.boundaries.filter { boundary in
-            switch boundary.countryCode {
-            case .china:
-                return !excludedChinaProvinceNames.contains(boundary.name.lowercased())
-            case .japan:
-                return boundary.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
-            case .korea:
-                return true
-            case .mongolia:
-                return true
-            }
-        }
-        let provinceResolution = try supportedProvinceResolution(
-            eligibleProvinceBoundaries,
-            cityBoundaries: supportedCityBoundaries,
-            chinaProvinceNameByCityBoundaryID: chinaProvinceNameByCityBoundaryID,
-            supportedChinaProvinceNames: Set(
-                chinaCoverage.supportedProvinceNames.map { $0.lowercased() }
-            ),
-            supportedJapanSubdivisionCodes: supportedJapanSubdivisionCodes,
-            mongoliaCityToProvince: catalog.mongoliaCityToProvince
-        )
 
         let boundaries = Dictionary(
             uniqueKeysWithValues: supportedCityBoundaries.map { ($0.id, $0) }
@@ -2030,13 +2202,11 @@ private struct CityAtlasVisitResolver {
         let provinceBoundariesByID = Dictionary(
             uniqueKeysWithValues: provinceResolution.boundaries.map { ($0.id, $0) }
         )
-        let chinaProvinceBoundaryByName: [String: String] = Dictionary(
-            uniqueKeysWithValues: provinceResolution.boundaries.compactMap {
-                guard $0.countryCode == .china else { return nil }
-                return ($0.name, $0.id)
-            }
-        )
         let cardsByID = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+        let hongKongBoundaryID = supportedCityBoundaries.first {
+            $0.countryCode == .china
+                && $0.name.caseInsensitiveCompare("Hong Kong") == .orderedSame
+        }?.id
         let ulaanbaatarBoundaryID = supportedCityBoundaries.first {
             $0.countryCode == .mongolia
                 && $0.name.caseInsensitiveCompare("Ulaanbaatar") == .orderedSame
@@ -2058,14 +2228,13 @@ private struct CityAtlasVisitResolver {
             if isSupportedJapaneseTransitCard(card, region: region) {
                 addJapaneseEvidence(
                     from: card,
-                    lookup: catalog.japanStationToBoundary,
+                    lookup: japanStationToBoundary,
                     provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
                     accumulators: &accumulators,
                     provinceAccumulators: &provinceAccumulators
                 )
             }
-            if brand == .octopus,
-               let hongKongBoundaryID = retainedChinaCityToBoundary["9101"] {
+            if brand == .octopus, let hongKongBoundaryID {
                 addOctopusEvidence(
                     from: card,
                     boundaryID: hongKongBoundaryID,
@@ -2087,10 +2256,11 @@ private struct CityAtlasVisitResolver {
             if hasChinaTransitApplication {
                 addChineseEvidence(
                     from: card,
-                    lookup: retainedChinaCityToBoundary,
-                    coverage: isCityUnion ? chinaCoverage.cityUnion : chinaCoverage.tUnion,
+                    cityLookup: isCityUnion
+                        ? cityUnionCityToBoundary
+                        : tUnionCityToBoundary,
+                    provinceLookup: isCityUnion ? [:] : tUnionProvinceByCityCode,
                     provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
-                    provinceBoundaryByName: chinaProvinceBoundaryByName,
                     accumulators: &accumulators,
                     provinceAccumulators: &provinceAccumulators
                 )
@@ -2098,8 +2268,8 @@ private struct CityAtlasVisitResolver {
             if region == .korea {
                 addKoreanEvidence(
                     from: card,
-                    locationLookup: catalog.koreaLocationToBoundary,
-                    modeLookup: catalog.koreaModeToBoundary,
+                    locationLookup: koreaLocationToBoundary,
+                    modeLookup: koreaModeToBoundary,
                     provinceBoundaryByCityID: provinceResolution.provinceBoundaryByCityID,
                     accumulators: &accumulators,
                     provinceAccumulators: &provinceAccumulators
@@ -2133,66 +2303,9 @@ private struct CityAtlasVisitResolver {
             cityBoundaries: supportedCityBoundaries,
             provinceBoundaries: provinceResolution.boundaries,
             countryExtentBoundaries: provinceResolution.boundaries,
-            cityReferenceLines: catalog.referenceLines,
-            provinceReferenceLines: provinceCatalog.referenceLines
+            cityReferenceLines: catalog.cityReferenceLines,
+            provinceReferenceLines: catalog.provinceReferenceLines
         )
-    }
-
-    private func chinaProvinceNameByCityBoundaryID(
-        catalog: CityAtlasBoundaryCatalog,
-        coverage: ChinaTransitCoverageCatalog
-    ) throws -> [String: String] {
-        let chinaBoundaryIDs = Set(
-            catalog.boundaries.lazy
-                .filter { $0.countryCode == .china }
-                .map(\.id)
-        )
-        var provinceNameByBoundaryID = Dictionary(
-            uniqueKeysWithValues: coverage.referenceBoundaryToProvince.compactMap { entry in
-                chinaBoundaryIDs.contains(entry.key)
-                    ? (entry.key, entry.value)
-                    : nil
-            }
-        )
-
-        for namespace in [coverage.tUnion, coverage.cityUnion] {
-            let provinceOnlyCityCodes = Set(namespace.provinceOnlyCityCodes)
-            let excludedCityBoundaryCodes = Set(namespace.excludedCityBoundaryCodes)
-            guard provinceOnlyCityCodes.isSubset(of: Set(namespace.cityToProvince.keys)),
-                  provinceOnlyCityCodes.isDisjoint(with: Set(namespace.cityToBoundaryAlias.keys)),
-                  excludedCityBoundaryCodes.allSatisfy({
-                      catalog.chinaCityToBoundary[$0] != nil
-                  }) else {
-                throw CityAtlasResolverError.unreadableCatalog
-            }
-            for (cityCode, provinceName) in namespace.cityToProvince {
-                if provinceOnlyCityCodes.contains(cityCode) {
-                    continue
-                }
-                let boundaryCode = namespace.cityToBoundaryAlias[cityCode] ?? cityCode
-                guard let boundaryID = catalog.chinaCityToBoundary[boundaryCode] else {
-                    throw CityAtlasResolverError.unreadableCatalog
-                }
-                guard chinaBoundaryIDs.contains(boundaryID) else { continue }
-                if let existingProvinceName = provinceNameByBoundaryID[boundaryID],
-                   existingProvinceName != provinceName {
-                    throw CityAtlasResolverError.unreadableCatalog
-                }
-                provinceNameByBoundaryID[boundaryID] = provinceName
-            }
-        }
-
-        let supportedProvinceNames = Set(
-            coverage.supportedProvinceNames.map { $0.lowercased() }
-        )
-        let resolvedProvinceNames = Set(
-            provinceNameByBoundaryID.values.map { $0.lowercased() }
-        )
-        guard Set(provinceNameByBoundaryID.keys) == chinaBoundaryIDs,
-              resolvedProvinceNames == supportedProvinceNames else {
-            throw CityAtlasResolverError.unreadableCatalog
-        }
-        return provinceNameByBoundaryID
     }
 
     private func makeVisits(
@@ -2234,121 +2347,6 @@ private struct CityAtlasVisitResolver {
             if $0.recordCount != $1.recordCount { return $0.recordCount > $1.recordCount }
             return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
         }
-    }
-
-    private func supportedProvinceResolution(
-        _ provinces: [CityAtlasBoundary],
-        cityBoundaries: [CityAtlasBoundary],
-        chinaProvinceNameByCityBoundaryID: [String: String],
-        supportedChinaProvinceNames: Set<String>,
-        supportedJapanSubdivisionCodes: Set<String>,
-        mongoliaCityToProvince: [String: String]
-    ) throws -> CityAtlasProvinceResolution {
-        let provincesByCountry = Dictionary(grouping: provinces, by: \.countryCode)
-        let provinceAreas = Dictionary(
-            uniqueKeysWithValues: provinces.map { ($0.id, $0.approximateAreaSquareKilometers) }
-        )
-        var supportedIDs = Set(
-            provinces.lazy
-                .filter {
-                    $0.countryCode == .japan
-                        && $0.subdivisionCode.map(supportedJapanSubdivisionCodes.contains) == true
-                }
-                .map(\.id)
-        )
-        supportedIDs.formUnion(
-            provinces.lazy
-                .filter { $0.countryCode == .mongolia }
-                .map(\.id)
-        )
-        var provinceBoundaryByCityID: [String: String] = [:]
-        let japaneseProvinceIDBySubdivisionCode = Dictionary(
-            uniqueKeysWithValues: provinces.compactMap { province -> (String, String)? in
-                guard province.countryCode == .japan,
-                      let subdivisionCode = province.subdivisionCode else { return nil }
-                return (subdivisionCode, province.id)
-            }
-        )
-        let chinaProvinceIDByName = Dictionary(
-            uniqueKeysWithValues: provinces.compactMap { province -> (String, String)? in
-                guard province.countryCode == .china else { return nil }
-                return (province.name.lowercased(), province.id)
-            }
-        )
-
-        for city in cityBoundaries {
-            if city.countryCode == .china {
-                guard let provinceName = chinaProvinceNameByCityBoundaryID[city.id],
-                      supportedChinaProvinceNames.contains(provinceName.lowercased()),
-                      let provinceID = chinaProvinceIDByName[provinceName.lowercased()] else {
-                    throw CityAtlasResolverError.unreadableCatalog
-                }
-                supportedIDs.insert(provinceID)
-                provinceBoundaryByCityID[city.id] = provinceID
-                continue
-            }
-            if city.countryCode == .japan,
-               let subdivisionCode = city.subdivisionCode,
-               let provinceID = japaneseProvinceIDBySubdivisionCode[subdivisionCode] {
-                provinceBoundaryByCityID[city.id] = provinceID
-                continue
-            }
-            if city.countryCode == .mongolia {
-                guard let provinceID = mongoliaCityToProvince[city.id],
-                      provincesByCountry[.mongolia]?.contains(where: {
-                          $0.id == provinceID
-                      }) == true else {
-                    throw CityAtlasResolverError.unreadableCatalog
-                }
-                supportedIDs.insert(provinceID)
-                provinceBoundaryByCityID[city.id] = provinceID
-                continue
-            }
-            guard let candidates = provincesByCountry[city.countryCode], !candidates.isEmpty else { continue }
-            let center = city.centerCoordinate
-            let containing = candidates.filter { $0.contains(center) }
-            let selected: CityAtlasBoundary?
-            if !containing.isEmpty {
-                selected = containing.min { left, right in
-                    let leftArea = provinceAreas[left.id] ?? 0
-                    let rightArea = provinceAreas[right.id] ?? 0
-                    if leftArea != rightArea {
-                        return leftArea < rightArea
-                    }
-                    return left.id < right.id
-                }
-            } else {
-                selected = candidates.min { left, right in
-                    let leftDistance = left.distance(to: center)
-                    let rightDistance = right.distance(to: center)
-                    if leftDistance != rightDistance { return leftDistance < rightDistance }
-                    let leftArea = provinceAreas[left.id] ?? 0
-                    let rightArea = provinceAreas[right.id] ?? 0
-                    if leftArea != rightArea {
-                        return leftArea < rightArea
-                    }
-                    return left.id < right.id
-                }
-            }
-            if let selected {
-                supportedIDs.insert(selected.id)
-                provinceBoundaryByCityID[city.id] = selected.id
-            }
-        }
-
-        let resolvedChinaProvinceNames = Set(
-            provinces.lazy
-                .filter { $0.countryCode == .china && supportedIDs.contains($0.id) }
-                .map { $0.name.lowercased() }
-        )
-        guard resolvedChinaProvinceNames == supportedChinaProvinceNames else {
-            throw CityAtlasResolverError.unreadableCatalog
-        }
-
-        return CityAtlasProvinceResolution(
-            boundaries: provinces.filter { supportedIDs.contains($0.id) },
-            provinceBoundaryByCityID: provinceBoundaryByCityID
-        )
     }
 
     private func isSupportedJapaneseTransitCard(
@@ -2409,17 +2407,12 @@ private struct CityAtlasVisitResolver {
 
     private func addChineseEvidence(
         from card: SavedCardRecord,
-        lookup: [String: String],
-        coverage: ChinaTransitCoverageNamespace,
+        cityLookup: [String: String],
+        provinceLookup: [String: String],
         provinceBoundaryByCityID: [String: String],
-        provinceBoundaryByName: [String: String],
         accumulators: inout [String: CityAtlasVisitAccumulator],
         provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
     ) {
-        let supportedBoundaryCodes = Set(lookup.keys)
-            .subtracting(coverage.excludedCityBoundaryCodes)
-        let provinceOnlyCodes = Set(coverage.provinceOnlyCityCodes)
-
         for raw in Set(card.rawTransitHistory.map(normalizedRaw)) {
             let data = Data(hexString: raw)
             guard data.count >= 48 else { continue }
@@ -2435,12 +2428,9 @@ private struct CityAtlasVisitResolver {
                     format: "yyyyMMddHHmmss",
                     brand: .tUnion
                 ),
-                lookup: lookup,
-                coverage: coverage,
-                supportedBoundaryCodes: supportedBoundaryCodes,
-                provinceOnlyCodes: provinceOnlyCodes,
+                cityLookup: cityLookup,
+                provinceLookup: provinceLookup,
                 provinceBoundaryByCityID: provinceBoundaryByCityID,
-                provinceBoundaryByName: provinceBoundaryByName,
                 accumulators: &accumulators,
                 provinceAccumulators: &provinceAccumulators
             )
@@ -2462,12 +2452,9 @@ private struct CityAtlasVisitResolver {
                     format: "yyyyMMddHHmmss",
                     brand: .tUnion
                 ),
-                lookup: lookup,
-                coverage: coverage,
-                supportedBoundaryCodes: supportedBoundaryCodes,
-                provinceOnlyCodes: provinceOnlyCodes,
+                cityLookup: cityLookup,
+                provinceLookup: provinceLookup,
                 provinceBoundaryByCityID: provinceBoundaryByCityID,
-                provinceBoundaryByName: provinceBoundaryByName,
                 accumulators: &accumulators,
                 provinceAccumulators: &provinceAccumulators
             )
@@ -2479,20 +2466,14 @@ private struct CityAtlasVisitResolver {
         evidenceID: String,
         cardID: String,
         date: Date?,
-        lookup: [String: String],
-        coverage: ChinaTransitCoverageNamespace,
-        supportedBoundaryCodes: Set<String>,
-        provinceOnlyCodes: Set<String>,
+        cityLookup: [String: String],
+        provinceLookup: [String: String],
         provinceBoundaryByCityID: [String: String],
-        provinceBoundaryByName: [String: String],
         accumulators: inout [String: CityAtlasVisitAccumulator],
         provinceAccumulators: inout [String: CityAtlasVisitAccumulator]
     ) {
         let normalizedCityID = cityID.uppercased()
-        guard let provinceName = coverage.cityToProvince[normalizedCityID] else { return }
-
-        if provinceOnlyCodes.contains(normalizedCityID) {
-            guard let provinceBoundaryID = provinceBoundaryByName[provinceName] else { return }
+        if let provinceBoundaryID = provinceLookup[normalizedCityID] {
             provinceAccumulators[
                 provinceBoundaryID,
                 default: CityAtlasVisitAccumulator()
@@ -2504,10 +2485,7 @@ private struct CityAtlasVisitResolver {
             return
         }
 
-        let cityBoundaryCode = coverage.cityToBoundaryAlias[normalizedCityID]
-            ?? normalizedCityID
-        guard supportedBoundaryCodes.contains(cityBoundaryCode),
-              let boundaryID = lookup[cityBoundaryCode] else { return }
+        guard let boundaryID = cityLookup[normalizedCityID] else { return }
         addEvidence(
             boundaryID: boundaryID,
             evidenceID: evidenceID,

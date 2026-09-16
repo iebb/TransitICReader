@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 
 /// The transport class published by KORAIL's KOTRIS public-transport code table.
 ///
@@ -222,6 +223,7 @@ struct KoreanStationAlias: Equatable {
             .split(whereSeparator: \.isWhitespace)
             .joined(separator: " ")
     }
+
 }
 
 enum KoreanStationAliasCatalogError: Error, Equatable {
@@ -231,6 +233,8 @@ enum KoreanStationAliasCatalogError: Error, Equatable {
     case rowCountMismatch(expected: Int, actual: Int)
     case duplicateLocationCode(String)
     case invalidLocationCode(String)
+    case databaseOpenFailed
+    case databaseQueryFailed(Int32)
 }
 
 /// Reviewed Korean stations from the current-state consumer export published by
@@ -248,10 +252,10 @@ struct KoreanStationAliasCatalog {
     ]
 
     static let bundled: KoreanStationAliasCatalog? = {
-        guard let url = Bundle.main.url(forResource: "korean_stations", withExtension: "tsv") else {
+        guard let url = Bundle.main.url(forResource: "cardbal_transit", withExtension: "sqlite") else {
             return nil
         }
-        return try? KoreanStationAliasCatalog(tsvURL: url)
+        return try? KoreanStationAliasCatalog(databaseURL: url)
     }()
 
     let locations: [KoreanStationAlias]
@@ -259,6 +263,142 @@ struct KoreanStationAliasCatalog {
 
     init(tsvURL: URL) throws {
         try self.init(data: Data(contentsOf: tsvURL))
+    }
+
+    init(databaseURL: URL) throws {
+        let escapedPath = databaseURL.path.replacingOccurrences(of: "?", with: "%3F")
+        let sqliteURI = "file:\(escapedPath)?mode=ro&immutable=1"
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(
+            sqliteURI,
+            &database,
+            SQLITE_OPEN_READONLY | SQLITE_OPEN_URI,
+            nil
+        ) == SQLITE_OK, let database else {
+            if let database { sqlite3_close(database) }
+            throw KoreanStationAliasCatalogError.databaseOpenFailed
+        }
+        defer { sqlite3_close(database) }
+
+        let query = """
+            SELECT identifier.code,
+                   station.source_station_id,
+                   identifier.lookup_name,
+                   station.latitude,
+                   station.longitude,
+                   identifier.map_group_id,
+                   identifier.source_properties_json
+            FROM station_identifiers AS identifier
+            JOIN stations AS station ON station.id = identifier.station_id
+            WHERE identifier.namespace = 'kr.ksx.location'
+              AND station.country_code = 'KR'
+            ORDER BY identifier.code;
+            """
+        var statement: OpaquePointer?
+        let prepareResult = sqlite3_prepare_v2(database, query, -1, &statement, nil)
+        guard prepareResult == SQLITE_OK else {
+            sqlite3_finalize(statement)
+            throw KoreanStationAliasCatalogError.databaseQueryFailed(prepareResult)
+        }
+        defer { sqlite3_finalize(statement) }
+
+        func text(at column: Int32) -> String? {
+            guard sqlite3_column_type(statement, column) != SQLITE_NULL,
+                  let value = sqlite3_column_text(statement, column) else { return nil }
+            return String(cString: value)
+        }
+
+        let expectedSourcePropertyKeys: Set<String> = [
+            "station_name_ko", "canonical_name_ko", "station_name_hanja",
+            "station_name_en", "station_name_ja",
+            "station_name_zh_hans", "station_name_zh_hant",
+            "operator_name", "line_name", "province_code", "district_code",
+            "latitude", "longitude",
+        ]
+        var loaded: [KoreanStationAlias] = []
+        var byCode: [String: KoreanStationAlias] = [:]
+        var stepResult = sqlite3_step(statement)
+        while stepResult == SQLITE_ROW {
+            guard let rawLocationCode = text(at: 0),
+                  let rawStationID = text(at: 1),
+                  let identifierCanonicalNameKorean = text(at: 2),
+                  let mapGroupID = text(at: 5),
+                  !mapGroupID.isEmpty,
+                  let sourcePropertiesPayload = text(at: 6),
+                  let sourcePropertiesData = sourcePropertiesPayload.data(using: .utf8),
+                  let sourceProperties = try? JSONDecoder().decode(
+                      [String: String].self,
+                      from: sourcePropertiesData
+                  ),
+                  Set(sourceProperties.keys) == expectedSourcePropertyKeys,
+                  let nameKorean = sourceProperties["station_name_ko"],
+                  let canonicalNameKorean = sourceProperties["canonical_name_ko"],
+                  canonicalNameKorean == identifierCanonicalNameKorean else {
+                throw KoreanStationAliasCatalogError.databaseQueryFailed(SQLITE_MISMATCH)
+            }
+            let locationCode = rawLocationCode.uppercased()
+            let stationID = rawStationID.uppercased()
+            guard locationCode.count == 12,
+                  locationCode.allSatisfy(\.isHexDigit),
+                  stationID.count == 8,
+                  locationCode.hasPrefix(stationID),
+                  let transportModeCode = Int(locationCode.suffix(4), radix: 16) else {
+                throw KoreanStationAliasCatalogError.invalidLocationCode(locationCode)
+            }
+            // Different location codes can share a station ID but have distinct
+            // names or missing coordinates. Preserve each reviewed alias exactly.
+            let latitudeText = sourceProperties["latitude"] ?? ""
+            let longitudeText = sourceProperties["longitude"] ?? ""
+            let latitude = Double(latitudeText)
+            let longitude = Double(longitudeText)
+            guard (latitudeText.isEmpty && longitudeText.isEmpty)
+                    || (latitude != nil && longitude != nil),
+                  (latitude == nil) == (longitude == nil) else {
+                throw KoreanStationAliasCatalogError.databaseQueryFailed(SQLITE_MISMATCH)
+            }
+            let alias = KoreanStationAlias(
+                locationCode: locationCode,
+                stationID: stationID,
+                transportModeCode: transportModeCode,
+                nameKorean: nameKorean,
+                canonicalNameKorean: canonicalNameKorean,
+                nameEnglish: Self.optionalText(sourceProperties["station_name_en"] ?? ""),
+                nameJapanese: Self.optionalText(sourceProperties["station_name_ja"] ?? ""),
+                nameHanja: Self.optionalText(sourceProperties["station_name_hanja"] ?? ""),
+                nameChineseSimplified: Self.optionalText(
+                    sourceProperties["station_name_zh_hans"] ?? ""
+                ),
+                nameChineseTraditional: Self.optionalText(
+                    sourceProperties["station_name_zh_hant"] ?? ""
+                ),
+                latitude: latitude,
+                longitude: longitude,
+                provinceCode: Self.optionalText(sourceProperties["province_code"] ?? ""),
+                districtCode: Self.optionalText(sourceProperties["district_code"] ?? ""),
+                operatorName: Self.optionalText(sourceProperties["operator_name"] ?? ""),
+                lineName: Self.optionalText(sourceProperties["line_name"] ?? "")
+            )
+            guard alias.mapStationID == mapGroupID else {
+                throw KoreanStationAliasCatalogError.databaseQueryFailed(SQLITE_MISMATCH)
+            }
+            guard byCode.updateValue(alias, forKey: locationCode) == nil else {
+                throw KoreanStationAliasCatalogError.duplicateLocationCode(locationCode)
+            }
+            loaded.append(alias)
+            stepResult = sqlite3_step(statement)
+        }
+        guard stepResult == SQLITE_DONE else {
+            throw KoreanStationAliasCatalogError.databaseQueryFailed(stepResult)
+        }
+        guard loaded.count == Self.expectedRowCount else {
+            throw KoreanStationAliasCatalogError.rowCountMismatch(
+                expected: Self.expectedRowCount,
+                actual: loaded.count
+            )
+        }
+
+        locations = loaded
+        locationsByCode = byCode
     }
 
     init(data: Data) throws {

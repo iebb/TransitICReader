@@ -1,14 +1,14 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-09-13T23:10:53.332626+00:00",
+  "generatedAt": "2026-09-16T16:50:58.226568+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
       "bytes": 8773312,
       "sha256": "9691752a4324b722b353611da04f4b7a7f73e8a43d3686115538db16aa98a8db"
     },
     "EastAsiaProvinceBoundaries.json": {
-      "bytes": 758473,
-      "sha256": "c4fecbd50656b9a91e311def921edcb192d08ce374dd4f98e3cef7da5108a4c8"
+      "bytes": 759581,
+      "sha256": "06c44f852611168861fc048d0ee9bfa8f1241c3f67b5ed6a394bde8e60568874"
     },
     "JPBusCodes.csv": {
       "bytes": 2914,
@@ -31,8 +31,8 @@
       "sha256": "676438b35c4f2662f108e87d8d38d75ff6b49cd40b3dcfd883250783950b9d6f"
     },
     "README.md": {
-      "bytes": 1998,
-      "sha256": "ab981f308db0c2cad598533226526c82a79672521eba53e62aac6c534f9a3d02"
+      "bytes": 2311,
+      "sha256": "3e3f18e3276314b54813d54ac5259d914c4e391c03ebdd082f792ff4baf0f9c7"
     },
     "TUnionCardNames.json": {
       "bytes": 16629,
@@ -46,17 +46,9 @@
       "bytes": 168061,
       "sha256": "6bea7edda03caef3aa52bee80f8f9d048319f3bab0facbfe799e452e5c6c7296"
     },
-    "cardbal_cities.sqlite": {
-      "bytes": 11059200,
-      "sha256": "7d51960162833855ca961c86e6eedb3fcbdd1d12a53cad633ad57667c2901aa9"
-    },
-    "cardbal_provinces.sqlite": {
-      "bytes": 1073152,
-      "sha256": "810ea581e497c34994b15e6c8c8d6ebee3f5bbb7679619c9359ef2b81e272f3b"
-    },
-    "cardbal_stations.sqlite": {
-      "bytes": 10510336,
-      "sha256": "7b06aa35257a79fc7edcc2b8610f361c3a918f25080bf3dc19e6ad437dcb39c9"
+    "cardbal_transit.sqlite": {
+      "bytes": 24629248,
+      "sha256": "cb69bb85100cc1c538d043121e8ff17c33597e35aefaa05dc7a8071da9c2328b"
     },
     "jp_stations.sqlite": {
       "bytes": 2797568,
@@ -107,8 +99,8 @@
     "ulaanbaatar_stations": 1511,
     "ulaanbaatar_routes": 140,
     "ulaanbaatar_route_stations": 4928,
-    "cardbal_stations": 14600,
-    "cardbal_cities": 1576,
-    "cardbal_provinces": 95
+    "cardbal_transit_stations": 14896,
+    "cardbal_transit_cities": 1576,
+    "cardbal_transit_provinces": 94
   }
 }
