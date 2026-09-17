@@ -17,17 +17,6 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private var latestStatusKind: StatusKind = .idle
     private var session: NFCTagReaderSession?
 
-    private let decoders: [TransitCardDecoder.Type] = [
-        CityUnionDecoder.self,
-        TUnionDecoder.self,
-        CalypsoDecoder.self,
-        KSX6924Decoder.self,
-        EdyDecoder.self,
-        WAONDecoder.self,
-        NanacoDecoder.self,
-        JapaneseICDecoder.self
-    ]
-
     var isNFCAvailable: Bool {
         NFCTagReaderSession.readingAvailable
     }
@@ -145,6 +134,18 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
         guard !tags.isEmpty else { return }
 
         Task {
+            // Keep decoder metatypes local to the NFC task instead of crossing
+            // the reader's main-actor boundary for every tag.
+            let decoders: [TransitCardDecoder.Type] = [
+                CityUnionDecoder.self,
+                TUnionDecoder.self,
+                CalypsoDecoder.self,
+                KSX6924Decoder.self,
+                EdyDecoder.self,
+                WAONDecoder.self,
+                NanacoDecoder.self,
+                JapaneseICDecoder.self
+            ]
             var feliCaSnapshot: TransitCardSnapshot?
             var iso7816Snapshot: TransitCardSnapshot?
             var unsupportedTagDetails: [String] = []
