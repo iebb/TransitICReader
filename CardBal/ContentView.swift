@@ -158,7 +158,13 @@ struct ContentView: View {
     @StateObject private var reader = NFCTransitReader()
     @StateObject private var cardStore = CardWalletStore()
 
-    @State private var selectedTab = 0
+    @State private var selectedTab: Int = {
+        #if targetEnvironment(simulator)
+        if let value = ProcessInfo.processInfo.environment["CARDBAL_PREVIEW_TAB"],
+           let tab = Int(value), (0...4).contains(tab) { return tab }
+        #endif
+        return 0
+    }()
     @State private var showKoreanCrowdsourcingPrompt = false
     @State private var pendingKoreanCrowdsourcingSnapshot: TransitCardSnapshot?
     @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
@@ -196,6 +202,7 @@ struct ContentView: View {
                 }
                 .tag(4)
         }
+        .modifier(AdaptiveTabPlacement())
         .tint(Color.accentColor)
         .onChange(of: reader.latestSnapshot?.id) { _ in
             if let snapshot = reader.latestSnapshot {
@@ -236,6 +243,19 @@ struct ContentView: View {
     }
 }
 
+private struct AdaptiveTabPlacement: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 27.0, *) {
+            content.defaultTabBarPlacement(.sidebar)
+        } else if #available(iOS 18.0, *) {
+            content.tabViewStyle(.sidebarAdaptable)
+        } else {
+            content
+        }
+    }
+}
+
 struct ScanHomeView: View {
     @ObservedObject var reader: NFCTransitReader
     @ObservedObject var cardStore: CardWalletStore
@@ -266,21 +286,22 @@ struct ScanHomeView: View {
                 if let snapshot = reader.latestSnapshot {
                     let cardToDisplay = bestDisplayCard(for: snapshot)
                     Section("Card Preview") {
-                        GeometryReader { proxy in
-                            let cardWidth = max(proxy.size.width, 1)
-                            let cardHeight = cardWidth / (27.0 / 17.0)
-                            WalletCardView(
-                                card: cardToDisplay,
-                                isExpanded: true,
-                                cardHeight: cardHeight,
-                                visiblePartHeight: cardHeight,
-                                onVisibleTap: {},
-                                showDetails: { detailRoute = CardDetailRoute(id: cardToDisplay.id) },
-                                showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: cardToDisplay) },
-                                showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: cardToDisplay) }
-                            )
+                        WalletCardLayout {
+                            GeometryReader { proxy in
+                                let cardHeight = proxy.size.height
+                                WalletCardView(
+                                    card: cardToDisplay,
+                                    isExpanded: true,
+                                    cardHeight: cardHeight,
+                                    visiblePartHeight: cardHeight,
+                                    onVisibleTap: {},
+                                    showDetails: { detailRoute = CardDetailRoute(id: cardToDisplay.id) },
+                                    showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: cardToDisplay) },
+                                    showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: cardToDisplay) }
+                                )
+                            }
                         }
-                        .frame(height: (UIScreen.main.bounds.width - 40) / (27.0 / 17.0))
+                        .frame(maxWidth: .infinity)
                         .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                         .sheet(item: $activeHistoryItem) { item in
                             QuickHistorySheet(mode: item.mode, card: item.card, store: cardStore)
@@ -500,6 +521,7 @@ struct CardsView: View {
     @ObservedObject var store: CardWalletStore
     @ObservedObject var reader: NFCTransitReader
     @State private var detailRoute: CardDetailRoute?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var previewCardID: String?
     @State private var activeHistoryItem: HistorySheetItem?
 
@@ -526,40 +548,42 @@ struct CardsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     GeometryReader { proxy in
-                        let cardWidth = max(proxy.size.width - 40, 1)
+                        let availableWidth = max(proxy.size.width - 40, 1)
+                        let usesGrid = availableWidth >= 620 && !dynamicTypeSize.isAccessibilitySize
+                        let cardWidth = min(availableWidth, WalletCardLayout.maximumWidth)
                         let cardHeight = cardWidth / cardAspectRatio
 
                         ScrollView {
-                            ZStack(alignment: .top) {
-                                ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
-                                    WalletCardView(
-                                        card: card,
-                                        isExpanded: previewCardID == card.id,
-                                        cardHeight: cardHeight,
-                                        visiblePartHeight: visibleTapHeight(for: index, cardHeight: cardHeight),
-                                        onVisibleTap: {
-                                            if previewCardID == card.id {
-                                                previewCardID = nil
-                                            } else {
-                                                store.bringToFront(card.id)
-                                                previewCardID = card.id
+                            if usesGrid {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                                    ForEach(store.cards) { card in
+                                        WalletCardLayout {
+                                            GeometryReader { cardProxy in
+                                                walletCard(card, height: cardProxy.size.height, expanded: true, visibleHeight: 0)
                                             }
-                                        },
-                                        showDetails: { detailRoute = CardDetailRoute(id: card.id) },
-                                        showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
-                                        showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
-                                    )
-                                    .padding(.horizontal, 20)
-                                    .zIndex(zIndex(for: index))
-                                    .offset(y: cardOffset(for: index, cardHeight: cardHeight))
+                                        }
+                                    }
                                 }
+                                .frame(maxWidth: WalletCardLayout.maximumWidth * 2 + 20)
+                                .padding(.horizontal, 20)
+                                .frame(maxWidth: .infinity)
+                            } else {
+                                ZStack(alignment: .top) {
+                                    ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
+                                        walletCard(card, height: cardHeight, expanded: previewCardID == card.id,
+                                                   visibleHeight: visibleTapHeight(for: index, cardHeight: cardHeight))
+                                            .zIndex(zIndex(for: index))
+                                            .offset(y: cardOffset(for: index, cardHeight: cardHeight))
+                                    }
+                                }
+                                .frame(width: cardWidth, height: stackHeight(cardHeight: cardHeight), alignment: .top)
+                                .frame(maxWidth: .infinity)
+                                .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
                             }
-                .sheet(item: $activeHistoryItem) { item in
-                    QuickHistorySheet(mode: item.mode, card: item.card, store: store)
-                }
-                            .frame(maxWidth: .infinity, minHeight: stackHeight(cardHeight: cardHeight), alignment: .top)
-                            .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
-                            .padding(.bottom, proxy.safeAreaInsets.bottom + 120)
+                        }
+                        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 20) }
+                        .sheet(item: $activeHistoryItem) { item in
+                            QuickHistorySheet(mode: item.mode, card: item.card, store: store)
                         }
                     }
                 }
@@ -586,6 +610,26 @@ struct CardsView: View {
                 }
             }
         }
+    }
+
+    private func walletCard(_ card: SavedCardRecord, height: CGFloat, expanded: Bool, visibleHeight: CGFloat) -> some View {
+        WalletCardView(
+            card: card,
+            isExpanded: expanded,
+            cardHeight: height,
+            visiblePartHeight: visibleHeight,
+            onVisibleTap: {
+                if previewCardID == card.id {
+                    previewCardID = nil
+                } else {
+                    store.bringToFront(card.id)
+                    previewCardID = card.id
+                }
+            },
+            showDetails: { detailRoute = CardDetailRoute(id: card.id) },
+            showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
+            showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
+        )
     }
 
     private func stackHeight(cardHeight: CGFloat) -> CGFloat {
@@ -645,167 +689,35 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Card Faces") {
-                    NavigationLink {
-                        CardFaceLibraryView(store: store)
-                    } label: {
-                        Label("Manage Card Faces", systemImage: "photo.stack")
-                    }
-                }
-                Section("Backup") {
-                    if store.isSyncing {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ProgressView(value: store.syncProgress)
-                                .tint(.accentColor)
-                            if let msg = store.syncMessage {
-                                Text(msg)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .transition(.opacity)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    } else {
-                        Button { store.backupToiCloud() } label: { Label("Backup to iCloud", systemImage: "icloud.and.arrow.up") }
-                        Button { store.restoreFromiCloud() } label: { Label("Restore from iCloud", systemImage: "icloud.and.arrow.down") }
-                        Button {
-                            if let data = store.exportBackup() {
-                                backupDocument = CardBalBackupDocument(data: data)
-                                isExportingBackup = true
-                            }
-                        } label: {
-                            Label("Export Cross-Platform Backup", systemImage: "square.and.arrow.up")
-                        }
-                        Button {
-                            isImportingBackup = true
-                        } label: {
-                            Label("Import Cross-Platform Backup", systemImage: "square.and.arrow.down")
-                        }
-                        if let syncMessage = store.syncMessage {
-                            Text(LocalizedStringKey(syncMessage))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        if let backupMessage {
-                            Text(backupMessage)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Section("App Settings") {
+                Section {
                     Toggle("Scan on Launch", isOn: $scanOnLaunch)
-                    Picker("Date Format", selection: $dateFormat) {
-                        Text("YYYY-MM-DD").tag("yyyy-MM-dd")
-                        Text("DD/MM/YYYY").tag("dd/MM/yyyy")
-                        Text("MM/DD/YYYY").tag("MM/dd/yyyy")
-                        Text("Abbreviated").tag("MMM d, yyyy")
+                    NavigationLink { displaySettings } label: {
+                        Label("Display", systemImage: "textformat")
                     }
-                    Picker("Card Time Zone", selection: $cardTimeZonePreference) {
-                        Text("Card Issuer's Time Zone").tag(CardTimeZonePreference.issuer.rawValue)
-                        Text("Current Time Zone").tag(CardTimeZonePreference.current.rawValue)
+                    NavigationLink { CardFaceLibraryView(store: store) } label: {
+                        Label("Card Faces", systemImage: "photo.stack")
                     }
-                    Text("China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
-                Section("Privacy") {
-                    Picker("Serial Number Display", selection: $snDisplayMode) {
-                        Text("Full").tag(0)
-                        Text("Masked (Last Digits)").tag(1)
-                        Text("Hidden").tag(2)
+                Section {
+                    NavigationLink { backupSettings } label: {
+                        Label("Backup", systemImage: "icloud")
                     }
-                    Text("CardBal keeps scans on-device unless you explicitly enable optional research uploads. Korean card crowdsourcing sends anonymized trip-record data over HTTPS to a Cloudflare endpoint for format analysis.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Section("Research") {
-                    Toggle("Korean Card Crowdsourcing", isOn: Binding(
-                        get: { koreanTripCrowdsourcingEnabled },
-                        set: { newValue in
-                            koreanTripCrowdsourcingPrompted = true
-                            koreanTripCrowdsourcingEnabled = newValue
-                        }
-                    ))
-                    Text("When enabled, eligible T-money and EZL/Cashbee scans upload anonymized raw trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Section("Developer") {
-                    Toggle("Developer Mode", isOn: $developerModeEnabled)
-                    Text("When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Section("Information") {
-                    HStack {
-                        Text("App Version")
-                        Spacer()
-                        Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
-                            .foregroundStyle(.secondary)
+                    NavigationLink { privacySettings } label: {
+                        Label("Privacy", systemImage: "hand.raised")
                     }
-                    Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
                 }
-                Section("Credits") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Japan station data is based on Seo-4d696b75/station_database with supplemental matching against station20240426.csv.")
-                            .font(.footnote)
-                        Link("Open station_database on GitHub", destination: URL(string: "https://github.com/Seo-4d696b75/station_database")!)
-                            .font(.footnote)
-                        Text("Chinese T-Union station names are based on domosekai/tripreader-data.")
-                            .font(.footnote)
-                        Text("China T-Union station data is based on domosekai/tripreader-data, the original source used by downstream projects.")
-                            .font(.footnote)
-                        Text("Licensed under Creative Commons Attribution 4.0 International.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Link("Open tripreader-data on GitHub", destination: URL(string: "https://github.com/domosekai/tripreader-data")!)
-                            .font(.footnote)
-                        Link("Open CC BY 4.0 License", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
-                            .font(.footnote)
-                        Text("OpenStreetMap geocoding and derived coordinates use OpenStreetMap data.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Link("Open OpenStreetMap Copyright Page", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
-                            .font(.footnote)
-                        Text("East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Link("Open geoBoundaries", destination: URL(string: "https://www.geoboundaries.org/")!)
-                            .font(.footnote)
-                        Text("Korean station names and coordinates use the reviewed iebb/korean-stations export.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        DisclosureGroup("Korean public-data attributions") {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Korean station data uses public datasets from KORAIL, MOLIT, Seoul, Busan, KRIC, Korea National Railway, Seoul Metro, and Daegu Transportation Corporation. Original source terms apply; Seoul open data is attributed under KOGL Type 1.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                Link("Open MOLIT station data", destination: URL(string: "https://www.data.go.kr/data/15128614/fileData.do")!)
-                                Text("Seoul Metropolitan Government · 서울시 역사마스터 정보 (2026) · KOGL Type 1")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                Link("Open 서울시 역사마스터 정보", destination: URL(string: "https://data.seoul.go.kr/dataList/OA-21232/S/1/datasetView.do?tab=A")!)
-                                Text("Seoul Metro · 서울교통공사_역명다국어표기_20260326 (2026) · KOGL Type 1")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                Link("Open 서울교통공사 역명다국어표기", destination: URL(string: "https://www.data.go.kr/data/15044232/fileData.do")!)
-                                Text("Seoul Big Data Campus · 서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv (2017–2026)")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                Link("Open Seoul Big Data station source", destination: URL(string: "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13")!)
-                                Link("Open Busan bus data", destination: URL(string: "https://www.data.go.kr/data/15092750/openapi.do")!)
-                                Link("Open Busan station data", destination: URL(string: "https://www.data.go.kr/data/15043686/fileData.do")!)
-                                Link("Open KRIC station data", destination: URL(string: "https://data.kric.go.kr/rips/M_01_01/detail.do?id=32")!)
-                                Link("Open Daegu station data", destination: URL(string: "https://www.data.go.kr/data/15061835/fileData.do")!)
-                                Link("Open KOGL Type 1 terms", destination: URL(string: "https://www.kogl.or.kr/info/licenseType1.do")!)
+                Section {
+                    NavigationLink { advancedSettings } label: {
+                        HStack {
+                            Label("Advanced", systemImage: "slider.horizontal.3")
+                            if developerModeEnabled {
+                                Spacer()
+                                Text("On").foregroundStyle(.secondary)
                             }
                         }
-                        Text("Korean transport modes use KORAIL's KOTRIS public-transport code table.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Link("Open KORAIL KOTRIS data source", destination: URL(string: "https://www.data.go.kr/data/15121099/fileData.do")!)
-                            .font(.footnote)
+                    }
+                    NavigationLink { aboutSettings } label: {
+                        Label("About", systemImage: "info.circle")
                     }
                 }
             }
@@ -845,6 +757,207 @@ struct SettingsView: View {
                 backupMessage = "Import failed: \(error.localizedDescription)"
             }
         }
+    }
+
+    private var displaySettings: some View {
+        List {
+            Section {
+                Picker("Date Format", selection: $dateFormat) {
+                    Text("YYYY-MM-DD").tag("yyyy-MM-dd")
+                    Text("DD/MM/YYYY").tag("dd/MM/yyyy")
+                    Text("MM/DD/YYYY").tag("MM/dd/yyyy")
+                    Text("Abbreviated").tag("MMM d, yyyy")
+                }
+            }
+            Section {
+                Picker("Card Time Zone", selection: $cardTimeZonePreference) {
+                    Text("Card Issuer's Time Zone").tag(CardTimeZonePreference.issuer.rawValue)
+                    Text("Current Time Zone").tag(CardTimeZonePreference.current.rawValue)
+                }
+            } footer: {
+                Text("China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected.")
+            }
+        }
+        .navigationTitle("Display")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var backupSettings: some View {
+        List {
+            Section("iCloud") {
+                Button { store.backupToiCloud() } label: {
+                    Label("Backup to iCloud", systemImage: "icloud.and.arrow.up")
+                }
+                .disabled(store.isSyncing)
+                Button { store.restoreFromiCloud() } label: {
+                    Label("Restore from iCloud", systemImage: "icloud.and.arrow.down")
+                }
+                .disabled(store.isSyncing)
+                if store.isSyncing {
+                    ProgressView(value: store.syncProgress)
+                        .tint(.accentColor)
+                }
+                if let message = store.syncMessage {
+                    Text(LocalizedStringKey(message))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Section("File Backup") {
+                Button {
+                    if let data = store.exportBackup() {
+                        backupDocument = CardBalBackupDocument(data: data)
+                        isExportingBackup = true
+                    }
+                } label: {
+                    Label("Export Backup", systemImage: "square.and.arrow.up")
+                }
+                .disabled(store.isSyncing)
+                Button { isImportingBackup = true } label: {
+                    Label("Import Backup", systemImage: "square.and.arrow.down")
+                }
+                .disabled(store.isSyncing)
+                if let backupMessage {
+                    Text(backupMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Backup")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var privacySettings: some View {
+        List {
+            Section {
+                Picker("Serial Number Display", selection: $snDisplayMode) {
+                    Text("Full").tag(0)
+                    Text("Masked (Last Digits)").tag(1)
+                    Text("Hidden").tag(2)
+                }
+            }
+            Section {
+                Toggle("Help Improve Korean Cards", isOn: Binding(
+                    get: { koreanTripCrowdsourcingEnabled },
+                    set: { newValue in
+                        koreanTripCrowdsourcingPrompted = true
+                        koreanTripCrowdsourcingEnabled = newValue
+                    }
+                ))
+                DisclosureGroup("What is shared?") {
+                    Text("When enabled, eligible T-money and EZL/Cashbee scans upload anonymized raw trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text("Optional. Share Korean card records to help improve decoding.")
+            }
+        }
+        .navigationTitle("Privacy")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var advancedSettings: some View {
+        List {
+            Section {
+                Toggle("Developer Mode", isOn: $developerModeEnabled)
+            } footer: {
+                Text("When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer.")
+            }
+        }
+        .navigationTitle("Advanced")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var aboutSettings: some View {
+        List {
+            Section("Information") {
+                HStack {
+                    Text("App Version")
+                    Spacer()
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
+                        .foregroundStyle(.secondary)
+                }
+                Text("CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.").font(.footnote).foregroundStyle(.secondary)
+            }
+            Section {
+                NavigationLink { creditsSettings } label: {
+                    Text("Credits")
+                }
+            }
+        }
+        .navigationTitle("About")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var creditsSettings: some View {
+        List {
+            Section("Credits") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Japan station data is based on Seo-4d696b75/station_database with supplemental matching against station20240426.csv.")
+                        .font(.footnote)
+                    Link("Open station_database on GitHub", destination: URL(string: "https://github.com/Seo-4d696b75/station_database")!)
+                        .font(.footnote)
+                    Text("Chinese T-Union station names are based on domosekai/tripreader-data.")
+                        .font(.footnote)
+                    Text("China T-Union station data is based on domosekai/tripreader-data, the original source used by downstream projects.")
+                        .font(.footnote)
+                    Text("Licensed under Creative Commons Attribution 4.0 International.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Link("Open tripreader-data on GitHub", destination: URL(string: "https://github.com/domosekai/tripreader-data")!)
+                        .font(.footnote)
+                    Link("Open CC BY 4.0 License", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                        .font(.footnote)
+                    Text("OpenStreetMap geocoding and derived coordinates use OpenStreetMap data.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Link("Open OpenStreetMap Copyright Page", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
+                        .font(.footnote)
+                    Text("East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Link("Open geoBoundaries", destination: URL(string: "https://www.geoboundaries.org/")!)
+                        .font(.footnote)
+                    Text("Korean station names and coordinates use the reviewed iebb/korean-stations export.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    DisclosureGroup("Korean public-data attributions") {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Korean station data uses public datasets from KORAIL, MOLIT, Seoul, Busan, KRIC, Korea National Railway, Seoul Metro, and Daegu Transportation Corporation. Original source terms apply; Seoul open data is attributed under KOGL Type 1.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Link("Open MOLIT station data", destination: URL(string: "https://www.data.go.kr/data/15128614/fileData.do")!)
+                            Text("Seoul Metropolitan Government · 서울시 역사마스터 정보 (2026) · KOGL Type 1")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Link("Open 서울시 역사마스터 정보", destination: URL(string: "https://data.seoul.go.kr/dataList/OA-21232/S/1/datasetView.do?tab=A")!)
+                            Text("Seoul Metro · 서울교통공사_역명다국어표기_20260326 (2026) · KOGL Type 1")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Link("Open 서울교통공사 역명다국어표기", destination: URL(string: "https://www.data.go.kr/data/15044232/fileData.do")!)
+                            Text("Seoul Big Data Campus · 서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv (2017–2026)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Link("Open Seoul Big Data station source", destination: URL(string: "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13")!)
+                            Link("Open Busan bus data", destination: URL(string: "https://www.data.go.kr/data/15092750/openapi.do")!)
+                            Link("Open Busan station data", destination: URL(string: "https://www.data.go.kr/data/15043686/fileData.do")!)
+                            Link("Open KRIC station data", destination: URL(string: "https://data.kric.go.kr/rips/M_01_01/detail.do?id=32")!)
+                            Link("Open Daegu station data", destination: URL(string: "https://www.data.go.kr/data/15061835/fileData.do")!)
+                            Link("Open KOGL Type 1 terms", destination: URL(string: "https://www.kogl.or.kr/info/licenseType1.do")!)
+                        }
+                    }
+                    Text("Korean transport modes use KORAIL's KOTRIS public-transport code table.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Link("Open KORAIL KOTRIS data source", destination: URL(string: "https://www.data.go.kr/data/15121099/fileData.do")!)
+                        .font(.footnote)
+                }
+            }
+        }
+        .navigationTitle("Credits")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

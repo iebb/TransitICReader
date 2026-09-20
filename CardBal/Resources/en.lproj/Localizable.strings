@@ -316,3 +316,27 @@
 "This backup is too large for iCloud sync. Please export a backup file." = "This backup is too large for iCloud sync. Please export a backup file.";
 "iCloud backup failed. Your cards are saved on this device." = "iCloud backup failed. Your cards are saved on this device.";
 "Backup queued for iCloud." = "Backup queued for iCloud.";
+
+"Filters" = "Filters";
+
+"Display" = "Display";
+
+"Advanced" = "Advanced";
+
+"About" = "About";
+
+"On" = "On";
+
+"iCloud" = "iCloud";
+
+"File Backup" = "File Backup";
+
+"Export Backup" = "Export Backup";
+
+"Import Backup" = "Import Backup";
+
+"Help Improve Korean Cards" = "Help Improve Korean Cards";
+
+"What is shared?" = "What is shared?";
+
+"Optional. Share Korean card records to help improve decoding." = "Optional. Share Korean card records to help improve decoding.";

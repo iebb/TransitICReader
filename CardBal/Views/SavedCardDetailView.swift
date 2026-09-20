@@ -140,16 +140,21 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func cardPreviewSection(card: SavedCardRecord) -> some View {
-        WalletCardView(
-            card: card,
-            isExpanded: true,
-            cardHeight: (UIScreen.main.bounds.width - 32) / (27.0 / 17.0),
-            visiblePartHeight: 92,
-            onVisibleTap: {},
-            showDetails: {},
-            showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
-            showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
-        )
+        WalletCardLayout {
+            GeometryReader { proxy in
+                WalletCardView(
+                    card: card,
+                    isExpanded: true,
+                    cardHeight: proxy.size.height,
+                    visiblePartHeight: 0,
+                    onVisibleTap: {},
+                    showDetails: {},
+                    showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
+                    showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder

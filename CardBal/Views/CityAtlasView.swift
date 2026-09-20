@@ -13,6 +13,7 @@ struct CityAtlasTabView: View {
 private struct CityAtlasView: View {
     @ObservedObject var store: CardWalletStore
 
+    @State private var controlSizes: [String: CGSize] = [:]
     @State private var visits: [CityAtlasVisit] = []
     @State private var provinceVisits: [CityAtlasVisit] = []
     @State private var cityBoundaries: [CityAtlasBoundary] = []
@@ -90,10 +91,6 @@ private struct CityAtlasView: View {
         boundaryLevel == .province ? "Province map unavailable" : "City map unavailable"
     }
 
-    private var emptyPlaceLabel: LocalizedStringKey {
-        boundaryLevel == .province ? "Your provinces will glow here" : "Your cities will glow here"
-    }
-
     private var cityDataRevision: String {
         let cardsRevision = store.cards.map { card in
             [
@@ -118,53 +115,69 @@ private struct CityAtlasView: View {
         )
     }
 
+    private var showsSummary: Bool {
+        isLoading || loadError != nil || !visits.isEmpty || !provinceVisits.isEmpty
+    }
+
     var body: some View {
-        ZStack {
-            Color(red: 0.015, green: 0.035, blue: 0.07)
+        GeometryReader { viewport in
+            let usesSidePanel = viewport.size.width >= 700
+                || (viewport.size.width >= 560 && viewport.size.width > viewport.size.height)
+            let panelWidth = min(320, viewport.size.width * 0.42)
+
+            ZStack {
+                Color(red: 0.015, green: 0.035, blue: 0.07).ignoresSafeArea()
+
+                CityAtlasMapRepresentable(
+                    visits: visibleDisplayVisits,
+                    referenceBoundaries: visibleReferenceBoundaries,
+                    referenceLines: visibleReferenceLines,
+                    countryExtentBoundaries: countryExtentBoundaries,
+                    scope: scope,
+                    boundaryLevel: boundaryLevel,
+                    focusedCityID: focusedCityID,
+                    cameraRevision: cameraRevision,
+                    resetCameraRevision: resetCameraRevision,
+                    contentInsets: UIEdgeInsets(
+                        top: usesSidePanel && showsSummary ? 20 : (controlSizes["header"]?.height ?? 52) + 24,
+                        left: usesSidePanel && showsSummary ? panelWidth + 32 : 20,
+                        bottom: usesSidePanel || !showsSummary ? 20 : (controlSizes["summary"]?.height ?? 100) + 48,
+                        right: 20
+                    ),
+                    selectedCityID: $selectedCityID
+                )
+                // The map fills the display; foreground controls remain in its safe area.
                 .ignoresSafeArea()
 
-            CityAtlasMapRepresentable(
-                visits: visibleDisplayVisits,
-                referenceBoundaries: visibleReferenceBoundaries,
-                referenceLines: visibleReferenceLines,
-                countryExtentBoundaries: countryExtentBoundaries,
-                scope: scope,
-                boundaryLevel: boundaryLevel,
-                focusedCityID: focusedCityID,
-                cameraRevision: cameraRevision,
-                resetCameraRevision: resetCameraRevision,
-                selectedCityID: $selectedCityID
-            )
-            .ignoresSafeArea(edges: .top)
-
-            LinearGradient(
-                stops: [
-                    .init(color: Color.black.opacity(0.68), location: 0),
-                    .init(color: Color.black.opacity(0.15), location: 0.18),
-                    .init(color: .clear, location: 0.42),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
-            .ignoresSafeArea(edges: .top)
-
-            LinearGradient(
-                colors: [.clear, Color.black.opacity(0.18), Color.black.opacity(0.64)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
-            .ignoresSafeArea(edges: .bottom)
-
-            VStack(spacing: 0) {
-                header
-                    .padding(.horizontal, 16)
-                Spacer(minLength: 80)
-                bottomPanel
+                if usesSidePanel {
+                    HStack(alignment: .top) {
+                        ScrollView {
+                            VStack(spacing: 12) {
+                                header
+                                    .atlasMeasure("header")
+                                if showsSummary { bottomPanel }
+                            }
+                        }
+                        .scrollIndicators(.hidden)
+                        .frame(width: panelWidth)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(12)
+                } else {
+                    VStack(spacing: 12) {
+                        header
+                            .atlasMeasure("header")
+                        Spacer(minLength: 24)
+                        if showsSummary {
+                            bottomPanel
+                                .atlasMeasure("summary")
+                                .padding(.bottom, 24) // Keep MapKit attribution visible below the floating panel.
+                        }
+                    }
+                    .padding(12)
+                }
             }
-            .padding(.top, 8)
-            .zIndex(1)
+            .onPreferenceChange(AtlasControlSizeKey.self) { controlSizes = $0 }
         }
         .preferredColorScheme(.dark)
         .task(id: cityDataRevision) {
@@ -178,115 +191,60 @@ private struct CityAtlasView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("EAST ASIA")
-                        .font(.caption2.weight(.bold))
-                        .tracking(1.5)
-                        .foregroundStyle(.white.opacity(0.58))
-                    Text("Transit Atlas")
-                        .font(.system(.title2, design: .default, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
+        HStack(spacing: 4) {
+            Text("Transit Atlas")
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
 
-                Spacer()
-
-                Button {
-                    scope = .all
-                    focusedCityID = nil
-                    selectedCityID = nil
-                    resetCameraRevision &+= 1
-                    cameraRevision &+= 1
-                } label: {
-                    Image(systemName: "scope")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.black.opacity(0.36))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Reset East Asia view")
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
+            Menu {
+                Picker("EAST ASIA", selection: $scope) {
                     ForEach(CityAtlasScope.allCases) { item in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                scope = item
-                            }
-                            focusedCityID = nil
-                            selectedCityID = nil
-                            cameraRevision &+= 1
-                        } label: {
-                            HStack(spacing: 6) {
-                                if let country = item.country {
-                                    Circle()
-                                        .fill(country.tint)
-                                        .frame(width: 7, height: 7)
-                                }
-                                Text(item.title)
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .foregroundStyle(scope == item ? Color.white : Color.white.opacity(0.66))
-                            .padding(.horizontal, 1)
-                            .frame(height: 36)
-                            .overlay(alignment: .bottom) {
-                                Rectangle()
-                                    .fill(scope == item ? Color.white : Color.clear)
-                                    .frame(height: 2)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(scope == item ? .isSelected : [])
+                        Text(item.title).tag(item)
                     }
                 }
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 18) {
-                    Text("BOUNDARIES")
-                        .font(.caption2.weight(.bold))
-                        .tracking(1.1)
-                        .foregroundStyle(.white.opacity(0.46))
-
+                Picker("BOUNDARIES", selection: $boundaryLevel) {
                     ForEach(CityAtlasBoundaryLevel.allCases) { item in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                boundaryLevel = item
-                            }
-                            focusedCityID = nil
-                            selectedCityID = nil
-                            cameraRevision &+= 1
-                        } label: {
-                            Text(item.title)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(
-                                    boundaryLevel == item ? Color.white : Color.white.opacity(0.58)
-                                )
-                                .padding(.horizontal, 6)
-                                .frame(minWidth: 44, minHeight: 28)
-                                .contentShape(Rectangle())
-                                .overlay(alignment: .bottom) {
-                                    Rectangle()
-                                        .fill(boundaryLevel == item ? Color.white : Color.clear)
-                                        .frame(height: 2)
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(boundaryLevel == item ? .isSelected : [])
+                        Text(item.title).tag(item)
                     }
-
-                    Spacer(minLength: 0)
                 }
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .foregroundStyle(scope == .all && boundaryLevel == .province ? Color.white : .cyan)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .accessibilityLabel("Filters")
+            .accessibilityValue(Text(verbatim: "\(scope.title), \(boundaryLevel.title)"))
+
+            Button {
+                scope = .all
+                focusedCityID = nil
+                selectedCityID = nil
+                resetCameraRevision &+= 1
+                cameraRevision &+= 1
+            } label: {
+                Image(systemName: "scope")
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Reset East Asia view")
         }
+        .font(.body.weight(.medium))
+        .foregroundStyle(.white)
+        .padding(.leading, 14)
+        .padding(.trailing, 4)
+        .padding(.vertical, 4)
+        .cityAtlasRail()
+        .onChange(of: scope) { _ in focusSelection() }
+        .onChange(of: boundaryLevel) { _ in focusSelection() }
+    }
+
+    private func focusSelection() {
+        focusedCityID = nil
+        selectedCityID = nil
+        cameraRevision &+= 1
     }
 
     @ViewBuilder
@@ -317,19 +275,7 @@ private struct CityAtlasView: View {
             .padding(.vertical, 15)
             .cityAtlasRail()
         } else if visits.isEmpty && provinceVisits.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Label(emptyPlaceLabel, systemImage: "sparkles")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                Text("Scan a supported transit card.")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.68))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 15)
-            .cityAtlasRail()
+            EmptyView()
         } else if visibleDisplayVisits.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 if boundaryLevel == .province {
@@ -581,18 +527,48 @@ private struct CityAtlasDetailSheet: View {
     }
 }
 
+private struct AtlasControlSizeKey: PreferenceKey {
+    static var defaultValue: [String: CGSize] = [:]
+    static func reduce(value: inout [String: CGSize], nextValue: () -> [String: CGSize]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
 private extension View {
-    func cityAtlasRail() -> some View {
-        background(Color(red: 0.025, green: 0.045, blue: 0.075).opacity(0.94))
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(.white.opacity(0.18))
-                    .frame(height: 0.5)
+    func atlasMeasure(_ name: String) -> some View {
+        background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: AtlasControlSizeKey.self, value: [name: proxy.size])
             }
+        }
+    }
+
+    func cityAtlasRail() -> some View {
+        background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
+            }
+            .shadow(color: .black.opacity(0.18), radius: 18, y: 6)
     }
 }
 
 // MARK: - Map
+
+private final class AtlasMapView: MKMapView {
+    var viewportDidChange: (() -> Void)?
+    private var previousSize: CGSize = .zero
+    private var previousInsets: UIEdgeInsets = .zero
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.size != previousSize || safeAreaInsets != previousInsets else { return }
+        previousSize = bounds.size
+        previousInsets = safeAreaInsets
+        // MapKit must finish laying out before fitting coordinates around the controls.
+        DispatchQueue.main.async { [weak self] in self?.viewportDidChange?() }
+    }
+}
 
 private struct CityAtlasMapRepresentable: UIViewRepresentable {
     // The normal camera stays close; data-derived country extents may zoom out farther.
@@ -608,6 +584,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
     let focusedCityID: String?
     let cameraRevision: Int
     let resetCameraRevision: Int
+    let contentInsets: UIEdgeInsets
     @Binding var selectedCityID: String?
 
     func makeCoordinator() -> Coordinator {
@@ -615,7 +592,11 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> MKMapView {
-        let mapView = MKMapView(frame: .zero)
+        let mapView = AtlasMapView(frame: .zero)
+        mapView.viewportDidChange = { [weak mapView, weak coordinator = context.coordinator] in
+            guard let mapView else { return }
+            coordinator?.updateMap(mapView)
+        }
         mapView.preferredConfiguration = Self.globeConfiguration()
         mapView.overrideUserInterfaceStyle = .dark
         mapView.delegate = context.coordinator
@@ -673,6 +654,9 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
         private var renderedSignature = ""
         private var lastCameraRevision = -1
         private var lastResetCameraRevision = -1
+        private var lastViewportSize: CGSize = .zero
+        private var lastContentInsets: UIEdgeInsets = .zero
+        private var userAdjustedCamera = false
         private var styles: [ObjectIdentifier: CityAtlasOverlayStyle] = [:]
         private var visitByID: [String: CityAtlasVisit] = [:]
         private var selectedOverlay: MKMultiPolygon?
@@ -698,7 +682,13 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             }
             updateSelectedOverlay(on: mapView)
 
-            guard parent.cameraRevision != lastCameraRevision else { return }
+            guard mapView.bounds.width > 0, mapView.bounds.height > 0 else { return }
+            let selectionChanged = parent.cameraRevision != lastCameraRevision
+            let viewportChanged = mapView.bounds.size != lastViewportSize || parent.contentInsets != lastContentInsets
+            lastViewportSize = mapView.bounds.size
+            lastContentInsets = parent.contentInsets
+            guard selectionChanged || (viewportChanged && !userAdjustedCamera) else { return }
+            if selectionChanged { userAdjustedCamera = false }
             lastCameraRevision = parent.cameraRevision
             if parent.resetCameraRevision != lastResetCameraRevision {
                 lastResetCameraRevision = parent.resetCameraRevision
@@ -719,6 +709,15 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             } else {
                 focusOnAllCountries(mapView: mapView)
             }
+        }
+
+        func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            // Keep a manually explored location when the device folds or rotates.
+            func isInteracting(_ view: UIView) -> Bool {
+                (view.gestureRecognizers ?? []).contains { $0.state == .began || $0.state == .changed }
+                    || view.subviews.contains(where: isInteracting)
+            }
+            if isInteracting(mapView) { userAdjustedCamera = true }
         }
 
         private func focusOnAllCountries(mapView: MKMapView) {
@@ -1101,10 +1100,10 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
             let horizontalPadding: CGFloat = country == nil ? 28 : 56
             let edgePadding = UIEdgeInsets(
-                top: mapView.safeAreaInsets.top + 152,
-                left: horizontalPadding,
-                bottom: mapView.safeAreaInsets.bottom + 150,
-                right: horizontalPadding
+                top: mapView.safeAreaInsets.top + parent.contentInsets.top,
+                left: mapView.safeAreaInsets.left + parent.contentInsets.left + horizontalPadding,
+                bottom: mapView.safeAreaInsets.bottom + parent.contentInsets.bottom,
+                right: mapView.safeAreaInsets.right + parent.contentInsets.right + horizontalPadding
             )
             mapView.setVisibleMapRect(
                 visibleRect,

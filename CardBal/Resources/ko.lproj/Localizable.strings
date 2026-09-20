@@ -320,3 +320,27 @@
 "This backup is too large for iCloud sync. Please export a backup file." = "백업이 너무 커서 iCloud에 동기화할 수 없습니다. 백업 파일을 내보내 주세요.";
 "iCloud backup failed. Your cards are saved on this device." = "iCloud 백업에 실패했습니다. 카드는 이 기기에 저장되어 있습니다.";
 "Backup queued for iCloud." = "백업이 iCloud 업로드 대기열에 추가되었습니다.";
+
+"Filters" = "필터";
+
+"Display" = "표시";
+
+"Advanced" = "고급 설정";
+
+"About" = "앱 정보";
+
+"On" = "켬";
+
+"iCloud" = "iCloud";
+
+"File Backup" = "파일 백업";
+
+"Export Backup" = "백업 내보내기";
+
+"Import Backup" = "백업 가져오기";
+
+"Help Improve Korean Cards" = "한국 카드 읽기 개선에 참여";
+
+"What is shared?" = "어떤 데이터가 공유되나요?";
+
+"Optional. Share Korean card records to help improve decoding." = "선택 사항입니다. 한국 카드 기록을 공유하여 데이터 해석 개선에 도움을 줄 수 있습니다.";

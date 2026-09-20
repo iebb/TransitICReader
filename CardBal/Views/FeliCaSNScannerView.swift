@@ -40,63 +40,56 @@ struct FeliCaSNScannerView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                SNCameraView(onRecognized: { sn in
-                    updateWith(sn, xPos: nil)
-                },
-                onFragments: { fragments in
-                    for f in fragments {
-                        updateWith(f.text, xPos: f.rect.midX)
-                    }
-                },
-                onVCReady: { vc in
-                    cameraVC = vc
-                })
-                .ignoresSafeArea()
-
-                // Cutout and Skeleton UI
-                GeometryReader { proxy in
-                    let cardW = proxy.size.width * 0.88
-                    let cardH = cardW / (85.6 / 54.0)
-                    let snBoxW = cardW * (50.0 / 85.6)
-                    let snBoxH = cardH * (7.0 / 54.0)
-
-                    let cardCenterY = proxy.size.height / 2 - 40
-                    let snBoxX = (proxy.size.width + cardW)/2 - snBoxW
-                    let snBoxY = cardCenterY + cardH/2 - snBoxH
-
-                    ZStack {
-                        // Dimmed background
-                        Rectangle().fill(.black.opacity(0.4)).ignoresSafeArea()
-                            .mask(
-                                ZStack {
-                                    Rectangle().ignoresSafeArea()
-                                    // Card outline cutout
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .frame(width: cardW, height: cardH)
-                                        .position(x: proxy.size.width/2, y: cardCenterY)
-                                        .blendMode(.destinationOut)
-                                }
-                            )
-
-                        // Full Card Outline (Ghosted)
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                            .frame(width: cardW, height: cardH)
-                            .position(x: proxy.size.width/2, y: cardCenterY)
-
-                        // SN Focus Box (Active)
-                        Path { path in
-                            let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
-                            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-                            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-                            path.addArc(center: CGPoint(x: rect.maxX - 16, y: rect.maxY - 16), radius: 16, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
-                            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-                            path.closeSubpath()
+            GeometryReader { container in
+                ZStack {
+                    SNCameraView(onRecognized: { sn in
+                        updateWith(sn, xPos: nil)
+                    },
+                    onFragments: { fragments in
+                        for f in fragments {
+                            let cardWidth = guideWidth(in: container.size)
+                            let serialWidth = cardWidth * (50.0 / 85.6)
+                            let serialStart = (container.size.width + cardWidth) / 2 - serialWidth
+                            updateWith(f.text, xPos: (f.rect.midX - serialStart) / serialWidth)
                         }
-                        .stroke(isValid ? .green : .white.opacity(0.5), lineWidth: 2)
-                        .background {
-                             Path { path in
+                    },
+                    onVCReady: { vc in
+                        cameraVC = vc
+                    })
+
+                    // Cutout and Skeleton UI
+                    GeometryReader { proxy in
+                        let cardW = guideWidth(in: proxy.size)
+                        let cardH = cardW / (85.6 / 54.0)
+                        let snBoxW = cardW * (50.0 / 85.6)
+                        let snBoxH = cardH * (7.0 / 54.0)
+
+                        let cardCenterY = proxy.size.height / 2 - 40
+                        let snBoxX = (proxy.size.width + cardW)/2 - snBoxW
+                        let snBoxY = cardCenterY + cardH/2 - snBoxH
+
+                        ZStack {
+                            // Dimmed background
+                            Rectangle().fill(.black.opacity(0.4)).ignoresSafeArea()
+                                .mask(
+                                    ZStack {
+                                        Rectangle().ignoresSafeArea()
+                                        // Card outline cutout
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .frame(width: cardW, height: cardH)
+                                            .position(x: proxy.size.width/2, y: cardCenterY)
+                                            .blendMode(.destinationOut)
+                                    }
+                                )
+
+                            // Full Card Outline (Ghosted)
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                                .frame(width: cardW, height: cardH)
+                                .position(x: proxy.size.width/2, y: cardCenterY)
+
+                            // SN Focus Box (Active)
+                            Path { path in
                                 let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
                                 path.move(to: CGPoint(x: rect.minX, y: rect.minY))
                                 path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
@@ -104,81 +97,93 @@ struct FeliCaSNScannerView: View {
                                 path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
                                 path.closeSubpath()
                             }
-                            .fill(.white.opacity(0.05))
-                        }
-
-                        // Skeleton hint with live filling
-                        HStack(spacing: 0) {
-                            partView(p1, placeholder: "JK233", width: cardW * (14.0 / 85.6), isConfirmed: p1Confirmed) { if !p1.isEmpty { p1Confirmed.toggle(); triggerHaptic() } }
-                            partView(p2, placeholder: "A456", width: cardW * (12.0 / 85.6), isConfirmed: p2Confirmed) { if !p2.isEmpty { p2Confirmed.toggle(); triggerHaptic() } }
-                            partView(p3, placeholder: "1234", width: cardW * (12.0 / 85.6), isConfirmed: p3Confirmed) { if !p3.isEmpty { p3Confirmed.toggle(); triggerHaptic() } }
-                            partView(p4, placeholder: "8888", width: cardW * (12.0 / 85.6), isConfirmed: p4Confirmed) { if !p4.isEmpty { p4Confirmed.toggle(); triggerHaptic() } }
-                        }
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .position(x: snBoxX + snBoxW/2, y: snBoxY + snBoxH/2)
-                        .onChange(of: isValid) { valid in
-                            if valid { withAnimation { wasValidOnce = true } }
-                        }
-
-                        // Bottom buttons
-                        VStack {
-                            Spacer()
-
-                            // Photo capture button (always visible when callback is provided)
-                            if onPhotoTaken != nil {
-                                Button {
-                                    capturePhoto()
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "camera.fill")
-                                        Text("Save as Card Face")
-                                    }
-                                    .font(.subheadline.bold())
-                                    .padding(.horizontal, 20).padding(.vertical, 12)
-                                    .background(.ultraThinMaterial, in: Capsule())
-                                    .foregroundStyle(.white)
+                            .stroke(isValid ? .green : .white.opacity(0.5), lineWidth: 2)
+                            .background {
+                                 Path { path in
+                                    let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
+                                    path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+                                    path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+                                    path.addArc(center: CGPoint(x: rect.maxX - 16, y: rect.maxY - 16), radius: 16, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+                                    path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+                                    path.closeSubpath()
                                 }
-                                .disabled(isCapturing)
-                                .opacity(isCapturing ? 0.5 : 1)
-                                .padding(.bottom, wasValidOnce ? 4 : 24)
+                                .fill(.white.opacity(0.05))
                             }
 
-                            // Confirm S/N Button
-                            if wasValidOnce {
-                                Button {
-                                    if isValid {
-                                        onRecognized(fullSN)
-                                        dismiss()
-                                    } else {
-                                        withAnimation { wasValidOnce = false }
+                            // Skeleton hint with live filling
+                            HStack(spacing: 0) {
+                                partView(p1, placeholder: "JK233", width: cardW * (14.0 / 85.6), isConfirmed: p1Confirmed) { if !p1.isEmpty { p1Confirmed.toggle(); triggerHaptic() } }
+                                partView(p2, placeholder: "A456", width: cardW * (12.0 / 85.6), isConfirmed: p2Confirmed) { if !p2.isEmpty { p2Confirmed.toggle(); triggerHaptic() } }
+                                partView(p3, placeholder: "1234", width: cardW * (12.0 / 85.6), isConfirmed: p3Confirmed) { if !p3.isEmpty { p3Confirmed.toggle(); triggerHaptic() } }
+                                partView(p4, placeholder: "8888", width: cardW * (12.0 / 85.6), isConfirmed: p4Confirmed) { if !p4.isEmpty { p4Confirmed.toggle(); triggerHaptic() } }
+                            }
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .position(x: snBoxX + snBoxW/2, y: snBoxY + snBoxH/2)
+                            .onChange(of: isValid) { valid in
+                                if valid { withAnimation { wasValidOnce = true } }
+                            }
+
+                            // Bottom buttons
+                            VStack {
+                                Spacer()
+
+                                // Photo capture button (always visible when callback is provided)
+                                if onPhotoTaken != nil {
+                                    Button {
+                                        capturePhoto()
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "camera.fill")
+                                            Text("Save as Card Face")
+                                        }
+                                        .font(.subheadline.bold())
+                                        .padding(.horizontal, 20).padding(.vertical, 12)
+                                        .background(.ultraThinMaterial, in: Capsule())
+                                        .foregroundStyle(.white)
                                     }
-                                } label: {
-                                    HStack {
-                                        Text("Confirm S/N")
-                                        Image(systemName: "checkmark.circle.fill")
-                                    }
-                                    .font(.headline)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .background(isValid ? Color.green : Color.gray, in: RoundedRectangle(cornerRadius: 14))
-                                    .foregroundStyle(.white)
+                                    .disabled(isCapturing)
+                                    .opacity(isCapturing ? 0.5 : 1)
+                                    .padding(.bottom, wasValidOnce ? 4 : 24)
                                 }
-                                .padding(.horizontal, 24)
-                                .padding(.bottom, 24)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
+
+                                // Confirm S/N Button
+                                if wasValidOnce {
+                                    Button {
+                                        if isValid {
+                                            onRecognized(fullSN)
+                                            dismiss()
+                                        } else {
+                                            withAnimation { wasValidOnce = false }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text("Confirm S/N")
+                                            Image(systemName: "checkmark.circle.fill")
+                                        }
+                                        .font(.headline)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(isValid ? Color.green : Color.gray, in: RoundedRectangle(cornerRadius: 14))
+                                        .foregroundStyle(.white)
+                                    }
+                                    .padding(.horizontal, 24)
+                                    .padding(.bottom, 24)
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                                }
                             }
                         }
                     }
-                    .onAppear {
-                        // Pass geometry data to VC if needed, but currently handled via X position mapping
-                    }
-                    .onChange(of: proxy.size) { _ in }
                 }
             }
+            .background(.black)
             .navigationTitle("Scan Card S/N")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         }
+    }
+
+    private func guideWidth(in size: CGSize) -> CGFloat {
+        min(size.width * 0.88, max(size.height - 180, 100) * (85.6 / 54.0), 480)
     }
 
     private func capturePhoto() {
@@ -232,12 +237,7 @@ struct FeliCaSNScannerView: View {
         } 
         else if text.count == 4 {
             if let x = xPos {
-                let screenW = UIScreen.main.bounds.width
-                let cardW = screenW * 0.88
-                let snBoxW = cardW * (50.0 / 85.6)
-                let snBoxXStart = (screenW + cardW)/2 - snBoxW
-                
-                let relX = (x - snBoxXStart) / snBoxW
+                let relX = x
                 if relX < 0.35 { // P2 
                     if !p2Confirmed { p2 = text; triggerHaptic() }
                 } else if relX < 0.68 { // P3
@@ -266,7 +266,11 @@ private struct SNCameraView: UIViewControllerRepresentable {
         DispatchQueue.main.async { onVCReady(vc) }
         return vc
     }
-    func updateUIViewController(_ uiViewController: SNScannerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: SNScannerViewController, context: Context) {
+        // Refresh callbacks so OCR uses the current container after resizing.
+        uiViewController.onRecognized = onRecognized
+        uiViewController.onFragments = onFragments
+    }
 }
 
 class SNScannerViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate, AVCapturePhotoCaptureDelegate {

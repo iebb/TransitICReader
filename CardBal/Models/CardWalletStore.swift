@@ -46,6 +46,7 @@ class CardWalletStore: ObservableObject {
         openDatabase()
         migrateIfNeeded()
         load()
+        applyOKICADefaultToExistingCards()
         startAutomaticiCloudSync()
     }
 
@@ -272,6 +273,18 @@ class CardWalletStore: ObservableObject {
         }
     }
 
+    private func applyOKICADefaultToExistingCards() {
+        // Previously scanned OKICA cards had no bundled face. Only upgrade
+        // untouched defaults; an explicit choice to disable images stays intact.
+        let cardIDs = cards.filter {
+            ICCardBrand.from(family: $0.cardFamily) == .okica
+                && $0.faceImageFileName == nil && $0.isUsingImage == nil
+        }.map(\.id)
+        for id in cardIDs {
+            autoApplyPresetIfMatching(id: id)
+        }
+    }
+
     private func autoApplyPresetIfMatching(id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
         let card = cards[index]
@@ -495,6 +508,7 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
             CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
             CardPreset(id: "TOICA", name: "TOICA", fileName: "toica"),
+            CardPreset(id: "OKICA", name: "OKICA", fileName: "okica"),
             CardPreset(id: "EDY", name: "Edy", fileName: "edy"),
             CardPreset(id: "WAON", name: "WAON", fileName: "waon"),
             CardPreset(id: "NANACO", name: "nanaco", fileName: "nanaco"),

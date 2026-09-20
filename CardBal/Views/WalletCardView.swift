@@ -1,5 +1,23 @@
 import SwiftUI
 
+/// Sizes a card from its container, including sheets and resized windows.
+/// Keeping previews bounded also leaves room for their surrounding information.
+struct WalletCardLayout: Layout {
+    static let aspectRatio: CGFloat = 27.0 / 17.0
+    static let maximumWidth: CGFloat = 480
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = min(max(proposal.width ?? Self.maximumWidth, 1), Self.maximumWidth)
+        return CGSize(width: width, height: width / Self.aspectRatio)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for subview in subviews {
+            subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
+        }
+    }
+}
+
 struct WalletCardView: View {
     private let cardCornerRadius: CGFloat = 22
     let card: SavedCardRecord
