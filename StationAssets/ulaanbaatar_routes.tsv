@@ -121,6 +121,7 @@ route_id	route_name_mn	route_name_en	endpoint_name_mn	endpoint_name_en
 11100993	Ч:82	Ch:82	10-р хороолол-Шар дэлгүүр	10th section-Shar market
 11100994	ШҮ:4	ShÜ:4	Сүхбаатарын талбай-Чингис хаан ОУНБ	Sukhbaatar square-Chinggis khan airport
 11101000	Ч:84	Ch:84	Бага тэнгэр сити-120 мянгат	-120 myangat
+11101007	ЗҮ:4	ZÜ:4	ГҮНТИЙН ЭЦЭС-зуслан-7 БУУДАЛ	Gunt final station-7th station
 11101008	Д:11	D:11	Офицеруудын ордон-442-р худаг /микроны эцэс/	Officer station-442-r khudag /mikrony etses/
 11101009	Д:12	D:12	УЛИАСТАЙН ШИНЭ ЭЦЭС-Баатархайрханы эцэс	Uliastai new final station-
 11101010	Д:13	D:13	ШАР ХАДНЫ ЭЦЭС-УЛИАСТАЙН ШИНЭ ЭЦЭС	Shar khad final station-Uliastai new final station
@@ -129,9 +130,6 @@ route_id	route_name_mn	route_name_en	endpoint_name_mn	endpoint_name_en
 11101013	Ч:83	Ch:83	Ургах наран хороолол эцэс-Офицеруудын ордон	Urgakh naran final station-Officer station
 11101014	Ч:86	Ch:86	ЗАЙСАН-Цамбагарав	Zaisan-Tsambagarav
 11101029	COP:2	COP:2	Ramada hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-11300010	ЗҮ:1	ZÜ:1	ГҮНТИЙН ЭЦЭС-зуслан-Сүхбаатарын талбай	Gunt final station-
-11300020	ЗҮ:2	ZÜ:2	Гоодойн Ам-Сүхбаатарын талбай	Goodoin am-
-11300030	ЗҮ:3	ZÜ:3	БАЯНБУЛАГ ЗУСЛАН-Сүхбаатарын талбай	Bayanbulag camp-
 14100116	М:1А	M:1A	Ханын Материалын Комбинат-Ард кино театр	HMK-Ard cinema
 14100117	М:1Б	M:1B	Ботаник-Сүхбаатарын талбай	Botanik-Sukhbaatar square
 14100118	Ч:29А	Ch:29A	Сэлбэ амралт-Чингис зочид буудал	Selbe camp-Chinggis hotel
