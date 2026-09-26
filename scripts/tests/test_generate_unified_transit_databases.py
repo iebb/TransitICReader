@@ -399,6 +399,30 @@ def digest(path: Path) -> str:
 
 
 class UnifiedTransitDatabaseGeneratorTests(unittest.TestCase):
+    def test_terminal_ids_remain_separate_and_runtime_parity_is_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            fixture = Fixture(root)
+            with closing(sqlite3.connect(fixture.resources / "tunion_stations.sqlite")) as source, source:
+                source.execute(
+                    "CREATE TABLE tunion_terminal_stations (record_kind, city_id, terminal_code, "
+                    "station_name, line_name, station_type, station_key, source_json)"
+                )
+                source.execute("INSERT INTO tunion_terminal_stations VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                               ("18", "1000", "413101784816", "中国站", "Line 1", "metro", "10000001", "{}"))
+            database = generator.generate(fixture.resources, root / "output", GENERATED_AT)
+            with closing(sqlite3.connect(database)) as connection, connection:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM tunion_terminal_stations").fetchone()[0], 1)
+                self.assertEqual(connection.execute(
+                    "SELECT code FROM station_identifiers WHERE namespace = 'cn.tunion.station_key'"
+                ).fetchall(), [("10000001",)])
+                connection.execute("UPDATE tunion_terminal_stations SET station_name = 'Wrong Station'")
+                with self.assertRaises(generator.CatalogError):
+                    generator.validate_runtime_source_parity(connection, fixture.resources)
+            (fixture.resources / "TUnionLineStations.json").write_text("{}")
+            with self.assertRaisesRegex(generator.CatalogError, "China decoder station registry"):
+                generator.generate(fixture.resources, root / "missing-registry", GENERATED_AT)
+
     def test_generates_one_deterministic_relational_database(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)

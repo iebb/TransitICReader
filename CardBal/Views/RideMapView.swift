@@ -1513,6 +1513,11 @@ private struct RideMapBuilder {
     }
 
     private func routeCandidates(for card: SavedCardRecord) -> [RideRouteCandidate] {
+        // Decode each protocol with its own family; combined Octopus cards
+        // still contain Chinese entry/exit events that can form routes.
+        if let apps = card.applications, apps.contains(where: { $0.isTUnion || $0.isCityUnion }) {
+            return tUnionRouteCandidates(for: card)
+        }
         let brand = ICCardBrand.from(family: card.cardFamily)
         if brand.isKorean {
             return koreanRouteCandidates(for: card)

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A21867ED31B404BB36291A1 /* TransitApplications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A21867ED31B404BB36291A2 /* TransitApplications.swift */; };
 		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
 		0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */; };
 		0EFAFB50E232381B6246D786 /* icoca.png in Resources */ = {isa = PBXBuildFile; fileRef = DD02F5701AE4C47C4D43B861 /* icoca.png */; };
@@ -66,6 +67,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		7A21867ED31B404BB36291A2 /* TransitApplications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Models/TransitApplications.swift; sourceTree = "<group>"; };
 		0A9B9E8A6B5A4A8E9F001003 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
 		0A9B9E8A6B5A4A8E9F001004 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
 		B0A1C10E0000000000000003 /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = CardBal/Resources/ko.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
@@ -194,6 +196,7 @@
 			children = (
 				8C4691FD2F6F2ACB0071B6C4 /* Profiles */,
 				8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */,
+				7A21867ED31B404BB36291A2 /* TransitApplications.swift */,
 				8C46921F2F6F2ACB0071B6C4 /* Decoders */,
 				D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */,
 			);
@@ -425,6 +428,7 @@
 				8D7A11012F6F2ACB0071B6C4 /* RideMapView.swift in Sources */,
 				8C46920B2F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift in Sources */,
 				8C46920C2F6F2ACB0071B6C4 /* NFCUtils.swift in Sources */,
+				7A21867ED31B404BB36291A1 /* TransitApplications.swift in Sources */,
 				B0A1C10E0000000000000002 /* StationReportView.swift in Sources */,
 				8C46920E2F6F2ACB0071B6C4 /* TUnionDecoder.swift in Sources */,
 				8C4692102F6F2ACB0071B6C4 /* KSX6924Enums.swift in Sources */,
@@ -486,7 +490,7 @@
 				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 36;
+				CURRENT_PROJECT_VERSION = 37;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -496,7 +500,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.3.0;
+				MARKETING_VERSION = 2.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -519,7 +523,7 @@
 				CODE_SIGN_ENTITLEMENTS = CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 36;
+				CURRENT_PROJECT_VERSION = 37;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -529,7 +533,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.3.0;
+				MARKETING_VERSION = 2.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

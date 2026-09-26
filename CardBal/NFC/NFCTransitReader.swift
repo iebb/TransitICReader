@@ -14,12 +14,16 @@ final class NFCTransitReader: NSObject, ObservableObject {
     var isEnhancedFeliCaDecodingEnabled = false
     var checkIfCardAlreadyEnhanced: ((String) -> Bool)?
 
+    private enum ScanPhase { case regular, octopus, mainland }
+    private var phase: ScanPhase = .regular
+    private var pendingOctopus: TransitCardSnapshot?
+    private var restartForMainland = false
+    private var secondSideTimeout: Task<Void, Never>?
+    private var isReadingTag = false
     private var latestStatusKind: StatusKind = .idle
     private var session: NFCTagReaderSession?
 
-    var isNFCAvailable: Bool {
-        NFCTagReaderSession.readingAvailable
-    }
+    var isNFCAvailable: Bool { NFCTagReaderSession.readingAvailable }
 
     var statusSymbol: String {
         switch latestStatusKind {
@@ -38,26 +42,82 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
-        print("[READER] Starting session with options: \(options)")
+        guard !isScanning else { return }
+        phase = .regular
         beginScanning(options: options)
     }
 
-    func beginScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
+    /// Pairing is explicit: RF discovery does not prove that two protocols are
+    /// on the same physical card, nor that they have two independent purses.
+    func startDualOctopusScanning() {
+        guard !isScanning else { return }
+        phase = .octopus
+        beginScanning(options: [.iso18092])
+    }
+
+    private func beginScanning(options: NFCTagReaderSession.PollingOption) {
         guard isNFCAvailable else {
             updateStatus("NFC reading is not available.", kind: .error)
             return
         }
-
-        guard let session = NFCTagReaderSession(pollingOption: options, delegate: self, queue: nil) else {
+        let newSession: NFCTagReaderSession?
+        if #available(iOS 26.4, *), phase != .regular {
+            newSession = NFCTagReaderSession(configuration: dualConfiguration(), delegate: self, queue: nil)
+        } else {
+            newSession = NFCTagReaderSession(pollingOption: options, delegate: self, queue: nil)
+        }
+        guard let newSession else {
+            if let pendingOctopus { latestSnapshot = pendingOctopus }
+            resetScan()
             updateStatus("Unable to start session.", kind: .error)
             return
         }
-
-        session.alertMessage = "Hold your iPhone near a transit card."
-        self.session = session
+        self.session = newSession
         isScanning = true
-        updateStatus("Scanning...", kind: .idle)
-        session.begin()
+        let message = phase == .mainland
+            ? String(localized: "Hold the same Octopus card near your iPhone to read its mainland side.")
+            : phase == .octopus
+                ? String(localized: "Hold one dual Octopus card near your iPhone. Keep the same card for both reads.")
+                : String(localized: "Hold your iPhone near a transit card.")
+        newSession.alertMessage = message
+        updateStatus(message, kind: .idle)
+        newSession.begin()
+        if phase == .mainland { scheduleSecondSideTimeout(for: newSession) }
+    }
+
+    @available(iOS 26.4, *)
+    private func dualConfiguration() -> NFCTagReaderSession.Configuration {
+        NFCTagReaderSession.Configuration(
+            pollingOption: phase == .mainland ? [.iso14443] : [.iso18092],
+            iso7816SelectIdentifiers: [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID],
+            feliCaSystemCodes: ["8008"]
+        )
+    }
+
+    private func restartPolling(_ session: NFCTagReaderSession) {
+        if #available(iOS 26.4, *), phase != .regular {
+            session.restartPolling(configuration: dualConfiguration())
+        } else {
+            session.restartPolling()
+        }
+    }
+
+    private func scheduleSecondSideTimeout(for session: NFCTagReaderSession) {
+        secondSideTimeout?.cancel()
+        secondSideTimeout = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(20)) } catch { return }
+            guard let self, self.session === session, self.phase == .mainland else { return }
+            self.finishPartial(session: session)
+        }
+    }
+
+    private func resetScan() {
+        secondSideTimeout?.cancel()
+        secondSideTimeout = nil
+        pendingOctopus = nil
+        restartForMainland = false
+        phase = .regular
+        isScanning = false
     }
 
     private func updateStatus(_ message: String, kind: StatusKind) {
@@ -67,47 +127,67 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     private func finish(with snapshot: TransitCardSnapshot, session: NFCTagReaderSession) {
+        guard self.session === session else { return }
         latestSnapshot = snapshot
         updateStatus("Read successful: \(snapshot.cardFamily)", kind: .success)
+        self.session = nil
+        resetScan()
         session.invalidate()
-        isScanning = false
+    }
+
+    private func finishPartial(session: NFCTagReaderSession, alreadyInvalidated: Bool = false) {
+        guard self.session === session, let pendingOctopus else { return }
+        latestSnapshot = pendingOctopus
+        updateStatus(String(localized: "Octopus side saved. The mainland side was not read; scan both sides again to add it."), kind: .success)
+        self.session = nil
+        resetScan()
+        if !alreadyInvalidated { session.invalidate() }
     }
 
     private func fail(_ message: String, session: NFCTagReaderSession) {
+        guard self.session === session else { return }
+        if pendingOctopus != nil {
+            finishPartial(session: session)
+            return
+        }
         updateStatus(message, kind: .error)
+        self.session = nil
+        resetScan()
         session.invalidate(errorMessage: message)
-        isScanning = false
     }
 
-    private func mergeDualModeSnapshots(feliCa: TransitCardSnapshot, iso7816: TransitCardSnapshot) -> TransitCardSnapshot {
-        var mergedResults = feliCa.resultFields
-        mergedResults.append(contentsOf: iso7816.resultFields)
-        
-        var mergedRaw = feliCa.rawSections
-        mergedRaw.append(contentsOf: iso7816.rawSections)
-        
-        let dualBalance = "\(feliCa.balanceText ?? "No balance") / \(iso7816.balanceText ?? "No balance")"
-        let dualDetail = "FeliCa: \(feliCa.balanceDetail ?? "")\n\nISO7816: \(iso7816.balanceDetail ?? "")"
-        
-        return TransitCardSnapshot(
-            technology: "Dual Mode",
-            cardFamily: "\(feliCa.cardFamily) + \(iso7816.cardFamily)",
-            identifierLabel: "Dual Mode UID",
-            identifierValue: feliCa.identifierValue,
-            rawIdentifierValue: feliCa.rawIdentifierValue,
-            pmm: feliCa.pmm,
-            systemCode: feliCa.systemCode,
-            selectedAID: iso7816.selectedAID,
-            balanceText: dualBalance,
-            balanceDetail: dualDetail,
-            realSerialNumber: feliCa.realSerialNumber ?? iso7816.realSerialNumber,
-            region: feliCa.region ?? iso7816.region,
-            resultFields: mergedResults,
-            rawSections: mergedRaw,
-            rawTransactions: feliCa.rawTransactions + iso7816.rawTransactions,
-            rawTransitHistory: feliCa.rawTransitHistory + iso7816.rawTransitHistory,
-            scannedAt: feliCa.scannedAt
-        )
+    private func accept(_ snapshot: TransitCardSnapshot, session: NFCTagReaderSession) {
+        guard self.session === session else { return }
+        switch phase {
+        case .regular:
+            finish(with: snapshot, session: session)
+        case .octopus:
+            guard snapshot.applicationSnapshots.contains(where: \.isOctopus) else {
+                fail(String(localized: "This is not a supported Octopus card."), session: session)
+                return
+            }
+            pendingOctopus = snapshot
+            phase = .mainland
+            let message = String(localized: "Hold the same Octopus card near your iPhone to read its mainland side.")
+            updateStatus(message, kind: .idle)
+            session.alertMessage = message
+            if #available(iOS 26.4, *) {
+                restartPolling(session)
+                scheduleSecondSideTimeout(for: session)
+            } else {
+                // Only start the next reader after the old one has invalidated.
+                restartForMainland = true
+                session.invalidate()
+            }
+        case .mainland:
+            guard let pendingOctopus,
+                  snapshot.applicationSnapshots.contains(where: { $0.isTUnion || $0.isCityUnion }),
+                  let combined = TransitCardSnapshot.combining([pendingOctopus, snapshot]) else {
+                finishPartial(session: session)
+                return
+            }
+            finish(with: combined, session: session)
+        }
     }
 }
 
@@ -118,94 +198,66 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
 
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
         Task { @MainActor in
-            self.isScanning = false
-            let nsError = error as NSError
-            if nsError.code != 200 {
-                self.updateStatus("Session invalidated: \(error.localizedDescription)", kind: .error)
-            } else {
+            guard self.session === session else { return }
+            if self.restartForMainland {
+                self.restartForMainland = false
+                self.session = nil
+                self.beginScanning(options: [.iso14443])
+                return
+            }
+            if self.pendingOctopus != nil {
+                self.finishPartial(session: session, alreadyInvalidated: true)
+                return
+            }
+            self.session = nil
+            self.resetScan()
+            if (error as NSError).code == 200 {
                 self.updateStatus("Ready to scan.", kind: .idle)
+            } else {
+                self.updateStatus("Session invalidated: \(error.localizedDescription)", kind: .error)
             }
         }
     }
 
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
-        let msgDet = "[READER] Detected \(tags.count) tag(s)"
-        os_log("%{public}@", msgDet)
-        guard !tags.isEmpty else { return }
-
-        Task {
-            // Keep decoder metatypes local to the NFC task instead of crossing
-            // the reader's main-actor boundary for every tag.
-            let decoders: [TransitCardDecoder.Type] = [
-                CityUnionDecoder.self,
-                TUnionDecoder.self,
-                CalypsoDecoder.self,
-                KSX6924Decoder.self,
-                EdyDecoder.self,
-                WAONDecoder.self,
-                NanacoDecoder.self,
-                JapaneseICDecoder.self
-            ]
-            var feliCaSnapshot: TransitCardSnapshot?
-            var iso7816Snapshot: TransitCardSnapshot?
-            var unsupportedTagDetails: [String] = []
-
-            for (index, tag) in tags.enumerated() {
-                NSLog("[READER] Processing tag [\(index)]: \(tag)")
-                do {
-                    try await session.connect(to: tag)
-
-                    let scannedAt = Date()
-                    var snapshot: TransitCardSnapshot?
-
-                    switch tag {
-                    case .iso7816(let iso):
-                        let aid = iso.initialSelectedAID.uppercased()
-                        let detail = "ISO7816 AID \(aid.isEmpty ? "empty" : aid), UID \(iso.identifier.hexString.uppercased())"
-                        unsupportedTagDetails.append(detail)
-                        NSLog("[READER] \(detail)")
-                    case .feliCa(let feliCa):
-                        let detail = "FeliCa IDm \(feliCa.currentIDm.hexString.uppercased())"
-                        unsupportedTagDetails.append(detail)
-                        NSLog("[READER] \(detail)")
-                    case .miFare(let miFare):
-                        let detail = "MIFARE UID \(miFare.identifier.hexString.uppercased())"
-                        unsupportedTagDetails.append(detail)
-                        NSLog("[READER] \(detail)")
-                    case .iso15693(let iso15693):
-                        let detail = "ISO15693 UID \(iso15693.identifier.hexString.uppercased())"
-                        unsupportedTagDetails.append(detail)
-                        NSLog("[READER] \(detail)")
-                    @unknown default:
-                        unsupportedTagDetails.append("Unknown NFC tag")
-                        NSLog("[READER] Unknown NFC tag")
+        Task { @MainActor in
+            guard self.session === session, self.isScanning, !self.isReadingTag, !tags.isEmpty else { return }
+            // Multiple discoveries may be different physical cards. Never pair
+            // them merely because they arrived in the same delegate callback.
+            guard tags.count == 1, let tag = tags.first else {
+                session.alertMessage = String(localized: "Present only one transit card.")
+                self.restartPolling(session)
+                return
+            }
+            self.isReadingTag = true
+            defer { self.isReadingTag = false }
+            self.secondSideTimeout?.cancel()
+            do {
+                try await session.connect(to: tag)
+                let decoders: [TransitCardDecoder.Type] = phase == .mainland
+                    ? [ChineseTransitDecoder.self]
+                    : phase == .octopus ? [JapaneseICDecoder.self] : [
+                        ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
+                        EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
+                    ]
+                var snapshot: TransitCardSnapshot?
+                for decoder in decoders {
+                    if await decoder.canDecode(tag: tag) {
+                        snapshot = try? await decoder.decode(tag: tag, scannedAt: Date())
+                        if snapshot != nil { break }
                     }
-
-                    for decoder in decoders {
-                        let decoderName = String(describing: decoder)
-                        let canDecode = await decoder.canDecode(tag: tag)
-                        NSLog("[READER] Decoder \(decoderName) canDecode=\(canDecode)")
-                        if canDecode {
-                            snapshot = try? await decoder.decode(tag: tag, scannedAt: scannedAt)
-                            if snapshot != nil {
-                                NSLog("[READER] Decoder \(decoderName) decoded successfully")
-                                break
-                            }
-                            NSLog("[READER] Decoder \(decoderName) matched but decode failed")
-                        }
-                    }
-
+                }
                     if let detectedSnapshot = snapshot,
                        detectedSnapshot.technology == "FeliCa",
                        detectedSnapshot.systemCode == "0003",
                        case .feliCa(let feliCa) = tag {
 
-                        let isEnhanced = await MainActor.run { isEnhancedFeliCaDecodingEnabled }
+                        let isEnhanced = isEnhancedFeliCaDecodingEnabled
                         if isEnhanced {
                             let storageIdentifier = "FeliCa|\(detectedSnapshot.rawIdentifierValue)"
-                            let alreadyDecoded = await MainActor.run { checkIfCardAlreadyEnhanced?(storageIdentifier) ?? false }
+                            let alreadyDecoded = checkIfCardAlreadyEnhanced?(storageIdentifier) ?? false
                             if !alreadyDecoded {
-                                await MainActor.run { self.updateStatus("Retrieving real serial number...", kind: .idle) }
+                                self.updateStatus("Retrieving real serial number...", kind: .idle)
                                 if let sn = try? await performEnhancedFeliCaHandshake(tag: feliCa) {
                                     let systemCodes = (try? await feliCa.requestSystemCode().map { $0.hexString.uppercased() }) ?? [detectedSnapshot.systemCode ?? "0003"]
                                     let detectedBrand = FeliCaProfile.all[0].detectedBrand(using: systemCodes, realSN: sn)
@@ -239,35 +291,13 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                         }
                     }
 
-                    if let snapshot {
-                        if snapshot.technology == "FeliCa" {
-                            feliCaSnapshot = snapshot
-                        } else if snapshot.technology == "ISO7816" {
-                            iso7816Snapshot = snapshot
-                        }
-                    }
-                } catch {
-                    os_log("[READER] Failed to connect/decode tag [%{public}d]: %{public}@", index, error.localizedDescription)
+                if let snapshot {
+                    self.accept(snapshot, session: session)
+                } else {
+                    self.fail("Could not read any supported transit card data.", session: session)
                 }
-            }
-
-            let finalSnapshot: TransitCardSnapshot?
-            if let feliCaSnapshot, let iso7816Snapshot {
-                finalSnapshot = await MainActor.run {
-                    self.mergeDualModeSnapshots(feliCa: feliCaSnapshot, iso7816: iso7816Snapshot)
-                }
-            } else {
-                finalSnapshot = feliCaSnapshot ?? iso7816Snapshot
-            }
-
-            if let finalSnapshot {
-                await MainActor.run { self.finish(with: finalSnapshot, session: session) }
-            } else {
-                let detail = unsupportedTagDetails.prefix(3).joined(separator: "; ")
-                let message = detail.isEmpty
-                    ? "Could not read any supported transit card data."
-                    : "Could not read any supported transit card data. Detected: \(detail)"
-                await MainActor.run { self.fail(message, session: session) }
+            } catch {
+                self.fail(error.localizedDescription, session: session)
             }
         }
     }

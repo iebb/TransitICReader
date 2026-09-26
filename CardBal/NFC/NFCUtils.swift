@@ -180,11 +180,15 @@ struct TransitTransaction: Identifiable, Hashable, Codable {
     let regionCode: Int?
     let rawData: String?
     let distance: Double?
+    var sourceApplicationID: String? = nil
+    var sourceCardFamily: String? = nil
+    var currencyCode: String? = nil
+    var sourceRecordIDs: [String]? = nil
 
     /// Stable identity derived from content, not the random UUID. Used by ForEach to avoid
     /// UICollectionView crashes when the transactions array is recomputed after deletion.
     var stableID: String {
-        rawData ?? "\(date?.timeIntervalSince1970 ?? 0)|\(amount)|\(type)|\(recordNumber ?? -1)"
+        (sourceApplicationID.map { $0 + "|" } ?? "") + (rawData ?? "\(date?.timeIntervalSince1970 ?? 0)|\(amount)|\(type)|\(recordNumber ?? -1)")
     }
     
     init(date: Date?, time: String? = nil, amount: Decimal, terminalID: String?, type: String, category: TransactionCategory = .unknown, balanceAfter: Decimal? = nil, location: String? = nil, entryStation: String? = nil, exitStation: String? = nil, entryStationCode: String? = nil, exitStationCode: String? = nil, regionCode: Int? = nil, rawData: String? = nil, recordNumber: Int? = nil, ntsam: Int? = nil, distance: Double? = nil) {
@@ -237,7 +241,7 @@ struct TransactionDecoderRegistry {
             } else if data.count == 52 {
                 return KSX6924Decoder.parseTransitHistory(data, sfi: 3, recordIndex: index + 1, brand: brand, logger: os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924"))
             } else if data.count == 23 {
-                return TUnionDecoder.decodePBOC(data: data, index: index)
+                return TUnionDecoder.decodePBOC(data: data, index: index, resolveTUnionTerminals: brand == .tUnion)
             } else {
                 let isNAMANE = brand == .namane
                 if isNAMANE && data.count == 14 {
@@ -298,13 +302,15 @@ struct TransitCardSnapshot: Identifiable {
     let rawTransitHistory: [String]
     
     var transactions: [TransitTransaction] {
-        rawTransactions.enumerated().compactMap { idx, hex in
+        if let applications { return TransitApplicationHistory.decode(applications, kind: .transactions) }
+        return rawTransactions.enumerated().compactMap { idx, hex in
             TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx, kind: .transactions)
         }
     }
     
     var transitHistory: [TransitTransaction] {
-        rawTransitHistory.enumerated().compactMap { idx, hex in
+        if let applications { return TransitApplicationHistory.decode(applications, kind: .transit) }
+        return rawTransitHistory.enumerated().compactMap { idx, hex in
             TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx, kind: .transit, relatedContext: rawTransactions)
         }
     }
@@ -314,6 +320,7 @@ struct TransitCardSnapshot: Identifiable {
     }
     
     let scannedAt: Date
+    var applications: [TransitApplication]? = nil
     
     var brand: ICCardBrand {
         ICCardBrand.from(family: cardFamily)
@@ -388,7 +395,7 @@ struct TransitTransactionRow: View {
     }
 
     private var brand: ICCardBrand {
-        ICCardBrand.from(family: cardFamily ?? "")
+        ICCardBrand.from(family: tx.sourceCardFamily ?? cardFamily ?? "")
     }
     
     var body: some View {
@@ -479,7 +486,7 @@ struct TransitTransactionRow: View {
     }
 
     private var currencyCode: String {
-        brand.region.currencyCode
+        tx.currencyCode ?? brand.region.currencyCode
     }
 
     private var currencyFractionDigits: Int {
@@ -507,12 +514,12 @@ struct TransactionDetailView: View {
     }
     
     private var brand: ICCardBrand {
-        ICCardBrand.from(family: cardFamily ?? "")
+        ICCardBrand.from(family: tx.sourceCardFamily ?? cardFamily ?? "")
     }
     
     private var tUnionDetails: TUnionTransactionRecordDetails? {
         guard brand == .tUnion, let raw = tx.rawData else { return nil }
-        return TUnionTransactionRecordDetails(raw: raw)
+        return TUnionTransactionRecordDetails(raw: raw, isCityUnion: (tx.sourceCardFamily ?? cardFamily ?? "").contains("City Union"))
     }
 
     private var tUnionTravelDetails: TUnionTravelRecordDetails? {
@@ -533,6 +540,9 @@ struct TransactionDetailView: View {
         NavigationStack {
             List {
                 Section("Transaction Summary") {
+                    if let family = tx.sourceCardFamily {
+                        KeyValueRow(title: "Card Family", value: family)
+                    }
                     let isKorean = brand.isKorean
                     let isJapan = brand.isJapan
                     let isNAMANE = brand == .namane
@@ -767,9 +777,9 @@ struct TransactionDetailView: View {
 
                 if let raw = tx.rawData {
                     Section("Raw Transaction Record") {
-                        CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: cardFamily ?? "")
+                        CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: tx.sourceCardFamily ?? cardFamily ?? "")
                         
-                        let f = (cardFamily ?? "").lowercased()
+                        let f = (tx.sourceCardFamily ?? cardFamily ?? "").lowercased()
                         if brand == .waon {
                              WAONRawBreakdownView(raw: raw, tx: tx)
                         } else if brand == .nanaco {
@@ -802,7 +812,7 @@ struct TransactionDetailView: View {
     }
     
     private var currencyCode: String {
-        ICCardBrand.from(family: cardFamily ?? "").region.currencyCode
+        tx.currencyCode ?? ICCardBrand.from(family: tx.sourceCardFamily ?? cardFamily ?? "").region.currencyCode
     }
 
     private var currencyFractionDigits: Int {
@@ -927,7 +937,7 @@ struct TUnionRawBreakdownView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let details = TUnionTransactionRecordDetails(raw: raw) {
+            if let details = TUnionTransactionRecordDetails(raw: raw, isCityUnion: tx.sourceCardFamily?.contains("City Union") == true) {
                 let data = Data(hexString: raw)
                 DetailRawRow(title: "Sequence", value: "\(details.sequence)", hex: data.subdata(in: 0..<2).hexString, color: .blue)
                 DetailRawRow(title: "Overdraft Limit", value: details.overdraftLimitHex, hex: data.subdata(in: 2..<5).hexString, color: .purple)
@@ -1324,7 +1334,7 @@ private struct TUnionTransactionRecordDetails {
     let cityID: String
     let cityName: String?
     
-    init?(raw: String) {
+    init?(raw: String, isCityUnion: Bool = false) {
         let data = Data(hexString: raw)
         guard data.count == 23 else { return nil }
         sequence = data.bigEndianInt(start: 0, length: 2)
@@ -1336,8 +1346,11 @@ private struct TUnionTransactionRecordDetails {
         let timeBCD = data.subdata(in: 20..<23).hexString.uppercased()
         dateText = "\(dateBCD.prefix(4))-\(dateBCD.dropFirst(4).prefix(2))-\(dateBCD.suffix(2))"
         timeText = "\(timeBCD.prefix(2)):\(timeBCD.dropFirst(2).prefix(2)):\(timeBCD.suffix(2))"
-        cityID = String(terminalID.prefix(4))
-        cityName = TUnionCityDatabase.lookupCityName(for: cityID)
+        let terminalStation = !isCityUnion && (typeByte == 0x06 || typeByte == 0x09)
+            ? TUnionCityDatabase.lookupTerminalStation(recordKind: "18", terminalID: terminalID)
+            : nil
+        cityID = terminalStation?.cityID ?? String(terminalID.prefix(4))
+        cityName = isCityUnion ? CityUnionStationDatabase.cityName(cityID) : TUnionCityDatabase.lookupCityName(for: cityID)
     }
     
     var cityDisplay: String {
@@ -1385,7 +1398,9 @@ private struct TUnionTravelRecordDetails {
         dateTimeText = "\(dateBCD.prefix(4))-\(dateBCD.dropFirst(4).prefix(2))-\(dateBCD.dropFirst(6).prefix(2)) \(dateBCD.dropFirst(8).prefix(2)):\(dateBCD.dropFirst(10).prefix(2)):\(dateBCD.suffix(2))"
         cityID = data.subdata(in: 32..<34).hexString.uppercased()
         cityName = TUnionCityDatabase.lookupCityName(for: cityID)
-        stationName = TUnionCityDatabase.lookupStationName(cityID: cityID, stationID: stationID)
+        stationName = TUnionCityDatabase.lookupTravelStation(
+            cityID: cityID, stationID: stationID, terminalID: terminalID
+        )?.name
     }
 
     var typeDescription: String {

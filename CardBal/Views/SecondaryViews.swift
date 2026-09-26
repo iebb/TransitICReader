@@ -930,7 +930,7 @@ struct QuickHistorySheet: View {
                             if let rawData = tx.rawData, let store {
                                 Button(role: .destructive) {
                                     pendingDeletions.insert(rawData)
-                                    store.deleteLocalRecord(cardID: card.id, kind: .transactions, rawData: rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transactions, rawData: rawData, sourceRecordIDs: tx.sourceRecordIDs)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -955,7 +955,7 @@ struct QuickHistorySheet: View {
                             if let rawData = tx.rawData, let store {
                                 Button(role: .destructive) {
                                     pendingDeletions.insert(rawData)
-                                    store.deleteLocalRecord(cardID: card.id, kind: .transit, rawData: rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transit, rawData: rawData, sourceRecordIDs: tx.sourceRecordIDs)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }

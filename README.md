@@ -24,6 +24,10 @@ English station names, coordinates, routes, and ordered route-stop relations.
 See [UB Smart Bus data](docs/ub-smart-bus.md) for the protocol and refresh
 process.
 
+Chinese station and terminal lookups also incorporate
+[Trip Reader / 读卡识途 data](docs/tripreader-data.md), with pinned sources and
+separate station-code and terminal-ID matching.
+
 ## Run notes
 
 - NFC scanning requires a real iPhone. The simulator can build the app but cannot read cards.

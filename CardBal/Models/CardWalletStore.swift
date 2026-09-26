@@ -128,7 +128,10 @@ class CardWalletStore: ObservableObject {
         let cardFamily = snapshot.cardFamily
         let fields = snapshot.resultFields.map { SavedCardField($0) }
 
-        if let index = cards.firstIndex(where: { $0.id == id }) {
+        if let index = cards.firstIndex(where: { $0.id == id }) ?? cards.firstIndex(where: {
+            !$0.identityAliases.isDisjoint(with: snapshot.identityAliases)
+        }) {
+            let previousApplications = cards[index].applicationSnapshots
             cards[index].balanceText = snapshot.balanceText
             cards[index].balanceDetail = snapshot.balanceDetail
             cards[index].resultFields = fields
@@ -170,7 +173,11 @@ class CardWalletStore: ObservableObject {
             cards[index].cardTypeStr = snapshot.resultFields.first(where: { $0.title == "Card Type" })?.value
             cards[index].issueDateStr = snapshot.resultFields.first(where: { $0.title == "Issue Date" })?.value
             cards[index].expiryDateStr = snapshot.resultFields.first(where: { $0.title == "Expiry Date" })?.value
-            autoApplyPresetIfMatching(id: id)
+            if snapshot.applications != nil || cards[index].applications != nil {
+                cards[index].applyApplications(TransitApplication.merge(existing: previousApplications,
+                                                                       incoming: snapshot.applicationSnapshots))
+            }
+            autoApplyPresetIfMatching(id: cards[index].id)
             markMapDataChanged()
         } else {
             let record = SavedCardRecord(snapshot: snapshot)
@@ -253,11 +260,24 @@ class CardWalletStore: ObservableObject {
         }.map(\.raw)
     }
 
-    func deleteLocalRecord(cardID: String, kind: RawHistoryKind, rawData: String) {
+    func deleteLocalRecord(cardID: String, kind: RawHistoryKind, rawData: String, sourceRecordIDs: [String]? = nil) {
         // Defer the mutation to the next run loop tick so SwiftUI's swipe-to-delete
         // animation can complete before the @Published change triggers a re-render.
         DispatchQueue.main.async { [self] in
             guard let index = cards.firstIndex(where: { $0.id == cardID }) else { return }
+            if var apps = cards[index].applications {
+                let evidence = Set(sourceRecordIDs ?? [])
+                for appIndex in apps.indices {
+                    let appID = apps[appIndex].id
+                    apps[appIndex].records.removeAll { record in
+                        evidence.isEmpty ? record.hex == rawData : evidence.contains("\(appID)|\(record.identity)")
+                    }
+                }
+                cards[index].applyApplications(apps)
+                markMapDataChanged()
+                save()
+                return
+            }
             switch kind {
             case .transactions:
                 if let i = cards[index].rawTransactions.firstIndex(of: rawData) {
@@ -540,7 +560,7 @@ class CardWalletStore: ObservableObject {
     }
 
     func card(withID id: String) -> SavedCardRecord? {
-        cards.first(where: { $0.id == id })
+        cards.first(where: { $0.id == id }) ?? cards.first(where: { $0.identityAliases.contains(id) })
     }
 
     func loadFaceImage(fileName: String?) -> UIImage? {
@@ -882,6 +902,10 @@ class CardWalletStore: ObservableObject {
         if merged.realSerialNumber == nil { merged.realSerialNumber = other.realSerialNumber }
         if merged.balanceText == nil { merged.balanceText = other.balanceText }
         if merged.balanceDetail == nil { merged.balanceDetail = other.balanceDetail }
+        if local.applications != nil || incoming.applications != nil {
+            merged.applyApplications(TransitApplication.merge(existing: local.applicationSnapshots,
+                                                               incoming: incoming.applicationSnapshots))
+        }
         return merged
     }
 

@@ -340,3 +340,15 @@
 "What is shared?" = "What is shared?";
 
 "Optional. Share Korean card records to help improve decoding." = "Optional. Share Korean card records to help improve decoding.";
+
+/* Dual-application transit cards */
+"Read Both Octopus Sides" = "Read Both Octopus Sides";
+"For dual Octopus cards, keep the same physical card near your iPhone for both reads." = "For dual Octopus cards, keep the same physical card near your iPhone for both reads.";
+"Hold one dual Octopus card near your iPhone. Keep the same card for both reads." = "Hold one dual Octopus card near your iPhone. Keep the same card for both reads.";
+"Hold the same Octopus card near your iPhone to read its mainland side." = "Hold the same Octopus card near your iPhone to read its mainland side.";
+"Octopus side saved. The mainland side was not read; scan both sides again to add it." = "Octopus side saved. The mainland side was not read; scan both sides again to add it.";
+"This is not a supported Octopus card." = "This is not a supported Octopus card.";
+"Present only one transit card." = "Present only one transit card.";
+"Card Applications" = "Card Applications";
+"Balance Read" = "Balance Read";
+"Balances are shown as reported by each application and are not added together." = "Balances are shown as reported by each application and are not added together.";

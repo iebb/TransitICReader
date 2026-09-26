@@ -89,6 +89,7 @@ def source_rows(resources: Path) -> list[tuple[str, str, str, str, str, str, str
         "TUnionCityCodes.json": ("cities.cn", "China T-Union city-code registry"),
         "TUnionLineStations.json": ("lines.cn", "China T-Union line/station registry"),
         "JPStationCodes.csv": ("codes.jp", "Japanese FeliCa station-code registry"),
+        "tunion_tripreader_source.json": ("sources.cn.tripreader", "Trip Reader source snapshot and attribution"),
     }
     rows = []
     for filename, (source_id, title) in descriptions.items():
@@ -106,6 +107,14 @@ def source_rows(resources: Path) -> list[tuple[str, str, str, str, str, str, str
                 sha256_file(path),
             )
         )
+    tripreader_path = resources / "tunion_tripreader_source.json"
+    if tripreader_path.is_file():
+        for index, upstream in enumerate(load_json(tripreader_path).get("sources", [])):
+            rows.append((
+                f"sources.cn.tripreader.{index}", upstream["attribution"], upstream["url"],
+                upstream["revision"], "", upstream["license"],
+                upstream.get("sha256") or hashlib.sha256(canonical_json(upstream["files"]).encode()).hexdigest(),
+            ))
     return sorted(rows)
 
 
@@ -296,6 +305,22 @@ CREATE TABLE station_graph_edges (
     PRIMARY KEY (country_code, line_code, from_station_code, to_station_code)
 ) WITHOUT ROWID;
 CREATE INDEX station_graph_edges_country_idx ON station_graph_edges(country_code);
+CREATE TABLE tunion_terminal_stations (
+    record_kind TEXT NOT NULL CHECK (record_kind IN ('18', '1e')),
+    city_id TEXT NOT NULL,
+    terminal_code TEXT NOT NULL,
+    station_name TEXT NOT NULL,
+    line_name TEXT NOT NULL,
+    station_type TEXT NOT NULL,
+    station_key TEXT,
+    source_json TEXT NOT NULL,
+    PRIMARY KEY (record_kind, city_id, terminal_code)
+) WITHOUT ROWID;
+CREATE TABLE cityunion_terminal_prefixes (
+    terminal_prefix TEXT PRIMARY KEY, city_id TEXT NOT NULL,
+    station_name TEXT NOT NULL, line_name TEXT NOT NULL,
+    station_type TEXT NOT NULL, station_key TEXT, source_json TEXT NOT NULL
+) WITHOUT ROWID;
 CREATE TABLE reference_line_batches (
     boundary_level TEXT NOT NULL CHECK (boundary_level IN ('city', 'province')),
     country_code TEXT NOT NULL CHECK (country_code IN ('CN', 'JP', 'KR', 'MN')),
@@ -733,6 +758,20 @@ def build_chinese_stations(
     city_parents: dict[str, str],
 ) -> None:
     with open_source_database(source_path) as source:
+        if table_exists(source, "cityunion_terminal_prefixes"):
+            output.executemany(
+                "INSERT INTO cityunion_terminal_prefixes VALUES (?, ?, ?, ?, ?, ?, ?)",
+                source.execute("SELECT * FROM cityunion_terminal_prefixes ORDER BY terminal_prefix").fetchall(),
+            )
+        if table_exists(source, "tunion_terminal_stations"):
+            output.executemany(
+                "INSERT INTO tunion_terminal_stations VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                source.execute(
+                    "SELECT record_kind, city_id, terminal_code, station_name, line_name, "
+                    "station_type, station_key, source_json FROM tunion_terminal_stations "
+                    "ORDER BY record_kind, city_id, terminal_code"
+                ),
+            )
         rows = source.execute("SELECT * FROM tunion_stations ORDER BY station_key").fetchall()
         grouped: dict[str, list[sqlite3.Row]] = defaultdict(list)
         for row in rows:
@@ -807,6 +846,19 @@ def build_chinese_stations(
                     "INSERT OR IGNORE INTO station_line_stops VALUES (?, ?, ?, ?)",
                     (line_id, station_id, station_key, int(row["sequence"])),
                 )
+
+        if table_exists(source, "cityunion_terminal_prefixes"):
+            for prefix, station_key, name in source.execute(
+                "SELECT terminal_prefix, station_key, station_name "
+                "FROM cityunion_terminal_prefixes WHERE station_key IS NOT NULL ORDER BY terminal_prefix"
+            ):
+                station_id = key_to_station.get(station_key)
+                if station_id:
+                    output.execute(
+                        "INSERT INTO station_identifiers VALUES "
+                        "('cn.cityunion.terminal_prefix', ?, 'any', ?, ?, NULL, NULL)",
+                        (prefix, station_id, name),
+                    )
 
         if table_exists(source, "station_edges"):
             for line_code, from_code, to_code, distance in source.execute(
@@ -1458,7 +1510,30 @@ def validate_database(connection: sqlite3.Connection) -> None:
             FROM station_identifiers i
             JOIN stations s ON s.id = i.station_id
             WHERE s.country_code = 'CN'
-                AND i.namespace <> 'cn.tunion.station_key'
+                AND i.namespace NOT IN ('cn.tunion.station_key', 'cn.cityunion.terminal_prefix')
+        """,
+        "invalid Shanghai City Union mappings": """
+            SELECT COUNT(*) FROM cityunion_terminal_prefixes t
+            WHERE t.city_id <> '2000' OR t.terminal_prefix NOT LIKE '2000%'
+                OR length(t.terminal_prefix) NOT IN (8, 10, 12)
+                OR t.terminal_prefix GLOB '*[^0-9A-F]*'
+                OR t.station_name = ''
+                OR (t.station_key IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM station_identifiers i
+                    WHERE i.namespace = 'cn.tunion.station_key'
+                        AND i.code = t.station_key AND i.code LIKE '2900%'
+                ))
+        """,
+        "invalid China terminal station mappings": """
+            SELECT COUNT(*) FROM tunion_terminal_stations t
+            WHERE t.station_name = '' OR length(t.city_id) <> 4
+                OR length(t.terminal_code) <> CASE t.record_kind WHEN '18' THEN 12 ELSE 16 END
+                OR t.terminal_code GLOB '*[^0-9A-F]*'
+                OR (t.station_key IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM station_identifiers i
+                    WHERE i.namespace = 'cn.tunion.station_key' AND i.code = t.station_key
+                        AND substr(i.code, 1, 4) = t.city_id AND i.lookup_name = t.station_name
+                ))
         """,
         "Korean compatibility properties missing": """
             SELECT COUNT(*) FROM station_identifiers
@@ -1721,6 +1796,19 @@ def validate_runtime_source_parity(
     require_runtime_parity("Japanese station lookup", expected_japan, actual_japan)
 
     with open_source_database(resources / "tunion_stations.sqlite") as source:
+        cu_query = "SELECT * FROM cityunion_terminal_prefixes"
+        expected_cu = Counter(tuple(row) for row in source.execute(cu_query)) if table_exists(source, "cityunion_terminal_prefixes") else Counter()
+        require_runtime_parity("City Union terminal prefixes", expected_cu,
+                               Counter(tuple(row) for row in connection.execute(cu_query)))
+        terminal_query = (
+            "SELECT record_kind, city_id, terminal_code, station_name, line_name, "
+            "station_type, station_key, source_json FROM tunion_terminal_stations"
+        )
+        expected_terminals = Counter(
+            tuple(row) for row in source.execute(terminal_query)
+        ) if table_exists(source, "tunion_terminal_stations") else Counter()
+        actual_terminals = Counter(tuple(row) for row in connection.execute(terminal_query))
+        require_runtime_parity("China terminal station mappings", expected_terminals, actual_terminals)
         source_identifier_rows = source.execute(
             "SELECT station_key, city_id, source_code FROM tunion_stations "
             "ORDER BY station_key"
@@ -1731,6 +1819,12 @@ def validate_runtime_source_parity(
             (str(row["station_key"]), str(row["station_name"]))
             for row in source.execute("SELECT station_key, station_name FROM tunion_stations")
         )
+        registry_path = resources / "TUnionLineStations.json"
+        if registry_path.is_file():
+            require_runtime_parity(
+                "China decoder station registry", expected_china_keys,
+                Counter(load_json(registry_path).items()),
+            )
         expected_china = Counter(
             (
                 str(row["station_key"]),

@@ -17,6 +17,19 @@ matches. Country-specific SQLite and JSON/CSV assets remain as generator inputs
 and for legacy Android consumers; the CardBal iOS target bundles only the
 unified SQLite database.
 
+China station enrichment reads every city directory in the pinned
+`domosekai/tripreader-data` source tree and a reviewed three-station supplement
+from Trip Reader 1.7.17. Station prefixes and exact terminal IDs are stored
+separately. Refresh the China assets and the iOS runtime database with:
+
+```sh
+python3 scripts/build_cross_platform_station_assets.py --target tunion --skip-tunion-osm --rebuild-unified --no-sync-android
+```
+
+Add `--offline-tunion-source` to rebuild from the checked-in source snapshot.
+See [Trip Reader data](../docs/tripreader-data.md) for attribution, the comparison
+results, and the supported record fields.
+
 An `all` build creates this normalized cross-country catalog after the source
 databases are ready:
 
@@ -46,3 +59,10 @@ The normalized Ulaanbaatar outputs are `ulaanbaatar_stations.tsv`,
 `ulaanbaatar_transit.sqlite`. The TSV and SQLite tables contain current-state
 fields only. English names supplied by UB Smart Bus are retained; missing or
 Cyrillic English values receive deterministic MNS 5217:2012 romanization.
+
+Shanghai CU terminal prefixes are included in both Chinese source and unified
+databases under `cityunion_terminal_prefixes`. Of the 614 published mappings,
+577 have unambiguous TU station links, also exposed through the separate
+`cn.cityunion.terminal_prefix` namespace. The other 37 retain names and source
+provenance without guessed coordinates. See the
+[Shanghai review](../docs/shanghai-dual-application-review.md).

@@ -2213,7 +2213,7 @@ private struct CityAtlasVisitResolver {
         var accumulators: [String: CityAtlasVisitAccumulator] = [:]
         var provinceAccumulators: [String: CityAtlasVisitAccumulator] = [:]
 
-        for card in cards {
+        for card in cards.flatMap(\.cardsByApplication) {
             let brand = ICCardBrand.from(family: card.cardFamily)
             let region = brand.region
             let normalizedFamily = card.cardFamily
@@ -2255,6 +2255,7 @@ private struct CityAtlasVisitResolver {
             if hasChinaTransitApplication {
                 addChineseEvidence(
                     from: card,
+                    usesTUnionTerminals: !isCityUnion,
                     cityLookup: isCityUnion
                         ? cityUnionCityToBoundary
                         : tUnionCityToBoundary,
@@ -2406,6 +2407,7 @@ private struct CityAtlasVisitResolver {
 
     private func addChineseEvidence(
         from card: SavedCardRecord,
+        usesTUnionTerminals: Bool,
         cityLookup: [String: String],
         provinceLookup: [String: String],
         provinceBoundaryByCityID: [String: String],
@@ -2439,7 +2441,10 @@ private struct CityAtlasVisitResolver {
             let data = Data(hexString: raw)
             guard data.count >= 23, data[9] == 0x06 || data[9] == 0x09 else { continue }
             let terminal = data.subdata(in: 10..<16).hexString.uppercased()
-            let cityID = String(terminal.prefix(4))
+            let terminalStation = usesTUnionTerminals
+                ? TUnionCityDatabase.lookupTerminalStation(recordKind: "18", terminalID: terminal)
+                : nil
+            let cityID = terminalStation?.cityID ?? String(terminal.prefix(4))
             let compactDateTime = data.subdata(in: 16..<23).hexString
             let amount = data.subdata(in: 5..<9).hexString.uppercased()
             addChineseCityCodeEvidence(
@@ -2485,9 +2490,14 @@ private struct CityAtlasVisitResolver {
         }
 
         guard let boundaryID = cityLookup[normalizedCityID] else { return }
+        // CU 2000 and TU 2900 refer to the same Shanghai boundary. Count a
+        // matching timestamp/fare once when both applications recorded it.
+        let canonicalEvidenceID = evidenceID.replacingOccurrences(
+            of: "|china|\(cityID)|", with: "|china|\(boundaryID)|"
+        )
         addEvidence(
             boundaryID: boundaryID,
-            evidenceID: evidenceID,
+            evidenceID: canonicalEvidenceID,
             cardID: cardID,
             date: date,
             provinceBoundaryByCityID: provinceBoundaryByCityID,

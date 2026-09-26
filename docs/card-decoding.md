@@ -267,9 +267,15 @@ Travel records are 48 bytes or longer:
 | Date/time | `25..31` | BCD date and time. |
 | City ID | `32..33` | T-Union city code. |
 
-Station names come from `StationAssets/tunion_stations.sqlite`. Lookup combines
-city ID and station ID and supports prefix matching because some cards store
-more detailed station identifiers than the public station tables.
+Station source data lives in `StationAssets/tunion_stations.sqlite`; iOS uses
+the synchronized `TUnionLineStations.json` prefix registry and the unified
+`cardbal_transit.sqlite`. Station lookup combines city ID and station ID and
+uses the longest matching prefix because cards can store more detailed codes.
+When no station prefix matches, reviewed exact terminal IDs can resolve the
+station. SFI `18` purchase records only use globally unambiguous full terminal
+IDs; SFI `1E` lookups also require the transaction city. Terminal-only stops
+without a reviewed station-code match have names but no invented map position.
+See [Trip Reader data](tripreader-data.md) for sources and refresh instructions.
 
 ## Calypso and Lignes d'Azur
 
@@ -330,3 +336,18 @@ Important generated files:
 Both platforms should use the portable SQLite databases instead of platform-only
 station builders. The Android station database refreshes its copied asset cache
 when assets change so regenerated station data is picked up after rebuilds.
+
+## Shanghai dual applications and dual Octopus (iOS)
+
+The iOS Chinese reader probes both CU and TU AIDs on the connected card and
+stores their metadata and raw records separately. Shanghai CU terminal prefixes
+use their own catalog namespace. Combined history retains source application,
+SFI and index; only unambiguous mirrored transactions are reconciled. Partial
+rescans retain the other application's saved history. Balance readings are never
+summed across applications.
+
+**Read Both Octopus Sides** performs an explicit sequential FeliCa/ISO read.
+iOS 26.4+ changes polling configuration within one session; older iOS releases
+open the second session only after the first has ended. The first result survives
+a failed or cancelled second read. HKD and CNY histories remain independently
+decoded. See [the protocol review and validation boundaries](shanghai-dual-application-review.md).

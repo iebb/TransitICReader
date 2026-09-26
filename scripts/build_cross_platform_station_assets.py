@@ -72,6 +72,7 @@ UNIFIED_INPUT_ASSETS = [
     "TUnionCityCodes.json",
     "TUnionLineStations.json",
     "JPStationCodes.csv",
+    "tunion_tripreader_source.json",
 ]
 
 UNIFIED_PORTABLE_INPUT_ASSETS = {
@@ -82,6 +83,7 @@ UNIFIED_PORTABLE_INPUT_ASSETS = {
     "TUnionCityCodes.json",
     "TUnionLineStations.json",
     "JPStationCodes.csv",
+    "tunion_tripreader_source.json",
 }
 
 # CardBal iOS vendors korean_stations.tsv and its derived East Asia boundary

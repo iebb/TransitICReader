@@ -283,6 +283,17 @@ struct ScanHomeView: View {
                     }
                 }
 
+                Section {
+                    Button {
+                        reader.startDualOctopusScanning()
+                    } label: {
+                        Label("Read Both Octopus Sides", systemImage: "creditcard.and.123")
+                    }
+                    .disabled(reader.isScanning)
+                } footer: {
+                    Text("For dual Octopus cards, keep the same physical card near your iPhone for both reads.")
+                }
+
                 if let snapshot = reader.latestSnapshot {
                     let cardToDisplay = bestDisplayCard(for: snapshot)
                     Section("Card Preview") {
@@ -1005,6 +1016,9 @@ func loadCardFaceImage(fileName: String) -> UIImage? {
 
 extension TransitCardSnapshot {
     var storageIdentifier: String {
+        if let applications, let primary = TransitApplication.primary(in: applications) {
+            return primary.identityAlias
+        }
         // Japanese FeliCa cards use stable IDm. 
         // Korean ISO7816 cards can use randomized UIDs, so favor internal SN.
         if technology == "ISO7816", let sn = realSerialNumber {
@@ -1157,6 +1171,7 @@ struct ScanToolbarItem: ToolbarContent {
             }
             .disabled(reader.isScanning)
             .contextMenu {
+                Button { reader.startDualOctopusScanning() } label: { Label("Read Both Octopus Sides", systemImage: "creditcard.and.123") }
                 Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }
                 Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
                 Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }

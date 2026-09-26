@@ -372,3 +372,15 @@
 "View Station Requests" = "駅の報告を見る";
 "Station Data" = "駅データ";
 "Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private." = "送信前に自動入力されたコードを確認してください。駅の情報は公開リストに表示されますが、カードIDと端末IDは公開されません。";
+
+/* Dual-application transit cards */
+"Read Both Octopus Sides" = "オクトパスの両面を読み取る";
+"For dual Octopus cards, keep the same physical card near your iPhone for both reads." = "デュアルモードのオクトパスは、両方の読み取りで同じ実物カードを iPhone にかざしてください。";
+"Hold one dual Octopus card near your iPhone. Keep the same card for both reads." = "デュアルモードのオクトパスを1枚かざしてください。両方の読み取りで同じカードを使用してください。";
+"Hold the same Octopus card near your iPhone to read its mainland side." = "同じオクトパスを iPhone にかざして、中国本土用のアプリを読み取ってください。";
+"Octopus side saved. The mainland side was not read; scan both sides again to add it." = "オクトパス側を保存しました。中国本土側は未読み取りです。追加するには両方をもう一度読み取ってください。";
+"This is not a supported Octopus card." = "対応するオクトパスカードではありません。";
+"Present only one transit card." = "交通系カードを1枚だけかざしてください。";
+"Card Applications" = "カードのアプリ";
+"Balance Read" = "残高の読み取り日時";
+"Balances are shown as reported by each application and are not added together." = "各アプリから読み取った残高を個別に表示します。合算はしません。";

@@ -89,6 +89,29 @@ struct SavedCardDetailView: View {
                     cardInfoSection(card: card)
                 }
 
+                if let applications = card.applications, applications.count > 1 {
+                    Section {
+                        ForEach(applications) { application in
+                            DisclosureGroup(application.label) {
+                                if let number = application.serialNumber {
+                                    KeyValueRow(title: "Card Number", value: number)
+                                }
+                                KeyValueRow(title: "Balance", value: application.balanceText ?? String(localized: "Unavailable"))
+                                if let balanceReadAt = application.balanceReadAt {
+                                    KeyValueRow(title: "Balance Read", value: KSX6924DateFormatting.formatRawDateForDisplay(balanceReadAt))
+                                }
+                                ForEach(application.fields.filter { $0.title != "Card Number" }) { field in
+                                    KeyValueRow(title: field.title, value: field.value)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Card Applications")
+                    } footer: {
+                        Text("Balances are shown as reported by each application and are not added together.")
+                    }
+                }
+
                 Section("Export") {
                     ShareLink(
                         item: card.fullHexExportText,
@@ -285,7 +308,7 @@ struct SavedCardDetailView: View {
                             if let rawData = tx.rawData {
                                 Button(role: .destructive) {
                                     pendingDeletions.insert(rawData)
-                                    store.deleteLocalRecord(cardID: card.id, kind: .transactions, rawData: rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transactions, rawData: rawData, sourceRecordIDs: tx.sourceRecordIDs)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -311,7 +334,7 @@ struct SavedCardDetailView: View {
                             if let rawData = tx.rawData {
                                 Button(role: .destructive) {
                                     pendingDeletions.insert(rawData)
-                                    store.deleteLocalRecord(cardID: card.id, kind: .transit, rawData: rawData)
+                                    store.deleteLocalRecord(cardID: card.id, kind: .transit, rawData: rawData, sourceRecordIDs: tx.sourceRecordIDs)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }

@@ -137,6 +137,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var expiryDateStr: String?
     var rawTransactions: [String] // Hex strings
     var rawTransitHistory: [String] // Hex strings
+    var applications: [TransitApplication]? = nil
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
@@ -153,6 +154,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         case rawIdentifierValue, identifierValue, pmm, selectedAID, systemCode, balanceText
         case balanceDetail, realSerialNumber, region, enhancedFeliCaDecoded, issuingCity
         case cardTypeStr, issueDateStr, expiryDateStr, rawTransactions, rawTransitHistory
+        case applications
         case resultFields, scannedAt, color, design, faceImageFileName, order, isPinned
     }
 
@@ -193,6 +195,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         expiryDateStr = try container.decodeIfPresent(String.self, forKey: .expiryDateStr)
         rawTransactions = try container.decode([String].self, forKey: .rawTransactions).filter(Self.rawRecordHasContent)
         rawTransitHistory = try container.decode([String].self, forKey: .rawTransitHistory).filter(Self.rawRecordHasContent)
+        applications = try container.decodeIfPresent([TransitApplication].self, forKey: .applications)
         resultFields = try container.decode([SavedCardField].self, forKey: .resultFields)
         scannedAt = try container.decode(Date.self, forKey: .scannedAt)
         color = try container.decode(SavedCardColor.self, forKey: .color)
@@ -204,13 +207,15 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
 
     var transactions: [TransitTransaction] {
-        rawTransactions.enumerated().compactMap { idx, hex in
+        if !applicationSnapshots.isEmpty { return TransitApplicationHistory.decode(applicationSnapshots, kind: .transactions) }
+        return rawTransactions.enumerated().compactMap { idx, hex in
             TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransactions, at: idx, kind: .transactions)
         }
     }
 
     var transitHistory: [TransitTransaction] {
-        rawTransitHistory.enumerated().compactMap { idx, hex in
+        if !applicationSnapshots.isEmpty { return TransitApplicationHistory.decode(applicationSnapshots, kind: .transit) }
+        return rawTransitHistory.enumerated().compactMap { idx, hex in
             TransactionDecoderRegistry.decode(raw: hex, family: cardFamily, technology: technology, context: rawTransitHistory, at: idx, kind: .transit, relatedContext: rawTransactions)
         }
     }
@@ -364,6 +369,18 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
             }
         }
 
+        for app in applicationSnapshots {
+            lines.append("\n[application \(app.id)]")
+            lines.append("card_number=\(app.serialNumber ?? app.identifier)")
+            lines.append("scanned_at=\(app.scannedAt.ISO8601Format())")
+            for record in app.records {
+                lines.append(String(format: "sfi_%02X_record_%03d_%@=%@", record.sfi, record.index, record.kind.rawValue, record.hex))
+            }
+            for section in app.diagnostics {
+                lines.append("[\(app.id) · \(section.title)]")
+                lines.append(contentsOf: section.fields.map { "\($0.title)=\($0.value)" })
+            }
+        }
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -515,6 +532,7 @@ extension SavedCardRecord {
         self.expiryDateStr = snapshot.resultFields.first(where: {$0.title == "Expiry Date"})?.value
         self.rawTransactions = snapshot.rawTransactions.filter(Self.rawRecordHasContent)
         self.rawTransitHistory = snapshot.rawTransitHistory.filter(Self.rawRecordHasContent)
+        self.applications = snapshot.applications
         self.resultFields = snapshot.resultFields.map(SavedCardField.init)
         self.scannedAt = snapshot.scannedAt
         self.color = Self.defaultColor(for: snapshot.cardFamily)

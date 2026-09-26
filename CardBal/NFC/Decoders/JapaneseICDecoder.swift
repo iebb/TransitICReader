@@ -13,12 +13,12 @@ struct JapaneseICDecoder: TransitCardDecoder {
         var primarySnapshot: TransitCardSnapshot?
         for profile in FeliCaProfile.all {
             let scBytes = Data(hexString: profile.systemCode)
-            _ = try? await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1)
+            guard (try? await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1)) != nil else { continue }
 
             if let readResult = try? await feliCa.readWithoutEncryption(
                 serviceCodeList: [profile.serviceCodeLittleEndian],
                 blockList: [Data([0x80, 0x00])]
-            ), let block = readResult.2.first {
+            ), readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first {
                 if let parsed = profile.parseBalance(block, scannedAt) {
                     primarySnapshot = await createSnapshot(feliCa: feliCa, profile: profile, parsedBalance: parsed, scannedAt: scannedAt)
                     break
@@ -81,7 +81,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
              transactions = await readOctopusRawTransactions(feliCa: feliCa)
         }
         
-        return TransitCardSnapshot(
+        var snapshot = TransitCardSnapshot(
             technology: "FeliCa",
             cardFamily: detectedBrand,
             identifierLabel: "IDm",
@@ -100,6 +100,10 @@ struct JapaneseICDecoder: TransitCardDecoder {
             rawTransitHistory: transitHistory,
             scannedAt: scannedAt
         )
+        if profile.systemCode == "8008" {
+            snapshot.applications = [TransitApplication(snapshot: snapshot)]
+        }
+        return snapshot
     }
 
     /// Generic reader for a FeliCa service — reads up to 20 blocks, stops at empty.
@@ -113,7 +117,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         for i in 0..<maxBlocks {
             let blockList = [Data([0x80, UInt8(i)])]
             guard let readResult = try? await feliCa.readWithoutEncryption(serviceCodeList: [serviceCode], blockList: blockList),
-                  let block = readResult.2.first else { break }
+                  readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first else { break }
             guard block.count >= 16 else { break }
             if stopAtEmptyPrefix && block[0] == 0 && block[1] == 0 { break }
             results.append(block.hexString.uppercased())
@@ -128,7 +132,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         for i in 1..<11 {
             let blockList = [Data([0x80, UInt8(i)])]
             guard let readResult = try? await feliCa.readWithoutEncryption(serviceCodeList: [serviceCode], blockList: blockList),
-                  let block = readResult.2.first else { break }
+                  readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first else { break }
             guard block.count >= 16 else { break }
             results.append(block.hexString.uppercased())
         }

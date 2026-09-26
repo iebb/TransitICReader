@@ -2,8 +2,71 @@ import Foundation
 import CoreNFC
 import SQLite3
 
+struct ChineseTransitDecoder: TransitCardDecoder {
+    static func canDecode(tag: NFCTag) async -> Bool {
+        guard case .iso7816(let iso) = tag else { return false }
+        if ["A00000000386980701", TUnionDecoder.applicationAID].contains(iso.initialSelectedAID.uppercased()) { return true }
+        if await PBOCApplicationReader.select(iso, aid: "A00000000386980701") != nil { return true }
+        return await PBOCApplicationReader.select(iso, aid: TUnionDecoder.applicationAID) != nil
+    }
+
+    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+        var snapshots: [TransitCardSnapshot] = []
+        // Both applications belong to this same connected ISO 7816 tag. Each
+        // decoder explicitly selects its AID, independently of initialSelectedAID.
+        if let local = try? await CityUnionDecoder.decode(tag: tag, scannedAt: scannedAt) { snapshots.append(local) }
+        if let national = try? await TUnionDecoder.decode(tag: tag, scannedAt: scannedAt) { snapshots.append(national) }
+        guard let result = TransitCardSnapshot.combining(snapshots) else { throw NFCTestError.unsupportedCard }
+        return result
+    }
+}
+
+enum PBOCApplicationReader {
+    static func select(_ iso: NFCISO7816Tag, aid: String) async -> Data? {
+        await command(iso, cla: 0, ins: 0xA4, p1: 4, p2: 0, data: Data(hexString: aid), length: 256)
+    }
+
+    static func command(_ iso: NFCISO7816Tag, cla: UInt8 = 0, ins: UInt8, p1: UInt8, p2: UInt8,
+                        data: Data = Data(), length: Int) async -> Data? {
+        let apdu = NFCISO7816APDU(instructionClass: cla, instructionCode: ins, p1Parameter: p1,
+                                 p2Parameter: p2, data: data, expectedResponseLength: length)
+        guard let response = try? await iso.sendCommand(apdu: apdu) else { return nil }
+        if response.1 == 0x90 && response.2 == 0 { return response.0 }
+        guard response.1 == 0x6C else { return nil }
+        let retry = NFCISO7816APDU(instructionClass: cla, instructionCode: ins, p1Parameter: p1,
+                                  p2Parameter: p2, data: data, expectedResponseLength: response.2 == 0 ? 256 : Int(response.2))
+        guard let corrected = try? await iso.sendCommand(apdu: retry), corrected.1 == 0x90, corrected.2 == 0 else { return nil }
+        return corrected.0
+    }
+
+    static func binary(_ iso: NFCISO7816Tag, sfi: UInt8, length: Int) async -> Data? {
+        await command(iso, ins: 0xB0, p1: 0x80 | sfi, p2: 0, length: length)
+    }
+
+    static func records(_ iso: NFCISO7816Tag, sfi: Int, length: Int,
+                        kind: TransitApplicationRecord.Kind, indices: [Int] = Array(1...30)) async -> [TransitApplicationRecord] {
+        var result: [TransitApplicationRecord] = []
+        for index in indices {
+            guard let payload = await command(iso, ins: 0xB2, p1: UInt8(index), p2: UInt8((sfi << 3) | 4), length: length),
+                  payload.count >= length else { break }
+            let data = length == 23 ? Data(payload.prefix(23)) : payload
+            let record = TransitApplicationRecord(kind: kind, sfi: sfi, index: index, hex: data.hexString.uppercased())
+            if record.hasContent { result.append(record) }
+        }
+        return result
+    }
+
+    static func shanghaiAuxiliary(_ iso: NFCISO7816Tag) async -> [TransitApplicationRecord] {
+        var result = await records(iso, sfi: 0x07, length: 16, kind: .auxiliary)
+        result += await records(iso, sfi: 0x11, length: 16, kind: .auxiliary, indices: [1, 2])
+        result += await records(iso, sfi: 0x14, length: 16, kind: .auxiliary, indices: [4, 5])
+        result += await records(iso, sfi: 0x10, length: 16, kind: .auxiliary, indices: [2])
+        return result
+    }
+}
+
 struct CityUnionDecoder: TransitCardDecoder {
-    private static let applicationAID = "A00000000386980701"
+    static let applicationAID = "A00000000386980701"
     private static let shanghaiCityCode = 0x2000
 
     static func canDecode(tag: NFCTag) async -> Bool {
@@ -63,10 +126,19 @@ struct CityUnionDecoder: TransitCardDecoder {
             resultFields.append(ResultField(title: "Expiry Date", value: expiry))
         }
 
-        let transactionLog = await readTransactionLog(iso: iso)
+        _ = await selectApplication(iso: iso)
+        var records = await PBOCApplicationReader.records(iso, sfi: 0x18, length: 23, kind: .transaction)
+        let cityCode = cardInfo.flatMap { $0.count >= 4 ? $0.subdata(in: 2..<4).hexString.uppercased() : nil }
+        if cityCode == "2000" {
+            records += await PBOCApplicationReader.records(iso, sfi: 0x06, length: 23, kind: .transaction)
+            records += await PBOCApplicationReader.records(iso, sfi: 0x10, length: 23, kind: .transaction)
+            records += await PBOCApplicationReader.shanghaiAuxiliary(iso)
+        }
+        let transactionLog = records.filter { $0.kind == .transaction }.map(\.hex)
         let transitHistory = transactionLog.filter(isTransitRecord)
+        guard parsedBalance.formatted != nil || cardInfo != nil || !records.isEmpty else { throw NFCTestError.unsupportedCard }
 
-        return TransitCardSnapshot(
+        var snapshot = TransitCardSnapshot(
             technology: "ISO7816",
             cardFamily: "City Union",
             identifierLabel: "UID",
@@ -85,6 +157,8 @@ struct CityUnionDecoder: TransitCardDecoder {
             rawTransitHistory: transitHistory,
             scannedAt: scannedAt
         )
+        snapshot.applications = [TransitApplication(snapshot: snapshot, cityCode: cityCode, records: records)]
+        return snapshot
     }
 
     private static func readBalances(iso: NFCISO7816Tag) async -> [Int: Data] {
@@ -148,7 +222,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         }
     }
 
-    static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? {
+    static func decodeTransitRecord(data: Data, index: Int, auxiliary: [TransitApplicationRecord] = []) -> TransitTransaction? {
         guard data.count >= 23 else { return nil }
 
         // City Union stores China PBOC trip records in file 0x18:
@@ -164,25 +238,49 @@ struct CityUnionDecoder: TransitCardDecoder {
         let decodedType = decodeTransitType(typeByte)
         let amount = Decimal(amountCents) / 100
         let cityID = String(terminalID.prefix(4))
-        let cityName = TUnionCityDatabase.lookupCityName(for: cityID)
+        let cityName = CityUnionStationDatabase.cityName(cityID)
+        let date = CardDateFormatting.parseCompactDateTime(dateBCD + timeBCD, format: "yyyyMMddHHmmss", brand: .tUnion)
+        let station = [UInt8(0x06), 0x09].contains(typeByte)
+            ? CityUnionStationDatabase.lookup(terminalID: terminalID, date: date) : nil
         let terminalLabel = "Terminal \(terminalID)"
-        let location = cityName.map { "\($0) • \(terminalLabel)" } ?? terminalLabel
+        let place = station?.name ?? terminalLabel
+        let location = cityName.map { "\($0) • \(place)" } ?? place
+        let directions = Set(auxiliary.compactMap { record -> Bool? in
+            let payload = record.data
+            guard cityID == "2000", payload.count == 16, payload[0] != 0, payload[1] != 0,
+                  payload.subdata(in: 6..<9) == data.subdata(in: 13..<16),
+                  payload.subdata(in: 1..<6) == data.subdata(in: 17..<22) else { return nil }
+            if record.sfi == 0x11 && record.index == 1 || record.sfi == 0x14 && record.index == 4 { return true }
+            if record.sfi == 0x11 && record.index == 2 || record.sfi == 0x14 && record.index == 5 { return false }
+            return nil
+        })
+        let entry = station != nil && directions == [true]
+        let exit = station != nil && directions == [false]
+        let isBus = station?.type == "BRT" || station?.type == "公交"
+        let category: TransactionCategory = entry ? (isBus ? .busOn : .trainOn)
+            : exit ? (isBus ? .busOff : .trainOff) : (station != nil && isBus ? .bus : decodedType.category)
 
         return TransitTransaction(
-            date: CardDateFormatting.parseCompactDateTime(dateBCD + timeBCD, format: "yyyyMMddHHmmss", brand: .tUnion),
+            date: date,
             time: formatBCDTime(timeBCD),
             amount: decodedType.isCredit ? amount : -amount,
             terminalID: terminalID,
-            type: decodedType.label,
-            category: decodedType.category,
+            type: entry ? "Entry" : exit ? "Exit" : decodedType.label,
+            category: category,
             balanceAfter: nil,
             location: location,
+            entryStation: entry ? station?.name : nil,
+            exitStation: exit ? station?.name : nil,
+            entryStationCode: entry ? station?.stationKey : nil,
+            exitStationCode: exit ? station?.stationKey : nil,
             rawData: data.hexString.uppercased(),
             recordNumber: index + 1
         )
     }
 
     private static func readFile15(iso: NFCISO7816Tag) async -> Data? {
+        if let data = await PBOCApplicationReader.binary(iso, sfi: 0x15, length: 30),
+           data.contains(where: { $0 != 0 }) { return data }
         for path in [[0x1001, 0x0015], [0x0015]] {
             if await selectPath(path, iso: iso),
                let data = await readBinary(iso: iso),
@@ -309,11 +407,9 @@ struct CityUnionDecoder: TransitCardDecoder {
         let cityDisplay = cityCode.map(cityName)
         let serial: String?
         if data.count >= 20 {
-            if cityCode == shanghaiCityCode {
-                serial = String(bigEndianUInt32(data, at: 16))
-            } else {
-                serial = String(littleEndianUInt32(data, at: 16))
-            }
+            let number = cityCode == shanghaiCityCode
+                ? bigEndianUInt32(data, at: 16) : littleEndianUInt32(data, at: 16)
+            serial = number == 0 ? nil : String(number)
         } else {
             serial = nil
         }
@@ -324,7 +420,7 @@ struct CityUnionDecoder: TransitCardDecoder {
 
     private static func cityName(_ code: Int) -> String {
         let hex = String(format: "%04X", code)
-        return "City-Union City \(hex)"
+        return CityUnionStationDatabase.cityName(hex) ?? "City-Union City \(hex)"
     }
 
     private static func formatBCDDate(_ bcd: String) -> String? {
@@ -373,18 +469,20 @@ struct CityUnionDecoder: TransitCardDecoder {
 }
 
 struct TUnionDecoder: TransitCardDecoder {
+    static let applicationAID = "A000000632010105"
     static func canDecode(tag: NFCTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
-        return iso.initialSelectedAID == "A000000632010105"
+        return await PBOCApplicationReader.select(iso, aid: applicationAID) != nil
     }
 
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
-        let selectedAID = iso.initialSelectedAID
+        let selectedAID = applicationAID
         let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
-        let initialResponse = try? await iso.sendCommand(apdu: selectApdu)
+        guard let initialResponse = try? await iso.sendCommand(apdu: selectApdu),
+              initialResponse.1 == 0x90, initialResponse.2 == 0 else { throw NFCTestError.unsupportedCard }
         let applicationAID = selectedAID
-        let initialSelectResponse = initialResponse.map { NFCISO7816ResponseAPDU(statusWord1: $0.1, statusWord2: $0.2, payload: $0.0) }
+        let initialSelectResponse = NFCISO7816ResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
         
         print("[TUnion] Decoding. AID=\(applicationAID), Selected=\(selectedAID)")
         
@@ -397,14 +495,14 @@ struct TUnionDecoder: TransitCardDecoder {
         
         print("[TUnion] Reading Primary Purse (P1=00, P2=02)...")
         let apdu00 = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
-        if let resp = try? await iso.sendCommand(apdu: apdu00), resp.1 == 0x90 {
+        if let resp = try? await iso.sendCommand(apdu: apdu00), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
             balancePayloads[0x02] = resp.0
             print("[TUnion]   Success: \(resp.0.hexString)")
         }
 
         print("[TUnion] Reading Negative Balance (P1=01, P2=02)...")
         let apdu01 = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x01, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
-        if let resp = try? await iso.sendCommand(apdu: apdu01), resp.1 == 0x90 {
+        if let resp = try? await iso.sendCommand(apdu: apdu01), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
             balancePayloads[0x82] = resp.0
             print("[TUnion]   Success: \(resp.0.hexString)")
         }
@@ -434,12 +532,13 @@ struct TUnionDecoder: TransitCardDecoder {
         var realSN: String?
         var brandRegion = "T-Union Cities"
         var issuingCity: String?
+        var metadataCityCode: String?
         var cardTypeStr: String?
         var issueDateStr: String?
         var expiryDateStr: String?
         
         // Octopus T-Union (嶺南通·八达通) and some others store the CAN in the FCI Tag 9F0C!
-        if let fci = initialSelectResponse?.payload {
+        if let fci = initialSelectResponse.payload {
             print("[TUnion] Checking FCI for metadata...")
             
             // Try to find 9F0C tag (Application Meta) - Primary metadata source
@@ -455,6 +554,7 @@ struct TUnionDecoder: TransitCardDecoder {
                 if meta.count >= 4 {
                     let cityIdSubdata = meta.subdata(in: 2..<4)
                     let cityId = cityIdSubdata.hexString.uppercased()
+                    metadataCityCode = cityId
                     let cityName = TUnionCityDatabase.lookupCityName(for: cityId)
                     issuingCity = cityName ?? "City \(cityId)"
                     print("[TUnion] City ID found: \(cityId) (\(issuingCity ?? "Unknown"))")
@@ -532,11 +632,41 @@ struct TUnionDecoder: TransitCardDecoder {
             }
         }
         
-        // T-Union stores transaction records in SFI 0x18 and trip records in SFI 0x1E.
-        let transactions = await readTUnionTransactions(iso: iso)
-        let travelHistory = await readTUnionTravelHistory(iso: iso)
+        let file15 = await PBOCApplicationReader.binary(iso, sfi: 0x15, length: 30)
+        let file17 = await PBOCApplicationReader.binary(iso, sfi: 0x17, length: 60)
+        let cityCode = file15.flatMap { $0.count >= 4 ? $0.subdata(in: 2..<4).hexString.uppercased() : nil } ?? metadataCityCode
+        for (name, payload) in [("15", file15), ("17", file17)] {
+            if let payload { rawSections.append(RawDataSection(title: "File \(name)", fields: [RawDataField(title: "Payload", value: payload.hexString)])) }
+        }
+        if realSN == nil, let file15, file15.count >= 28 {
+            if let number = validateAndCleanCAN(file15.subdata(in: 10..<20).hexString) {
+                realSN = number
+                brandRegion = TUnionCityDatabase.lookupCardName(for: number) ?? brandRegion
+                resultFields.append(ResultField(title: "Card Number", value: formatTUnionCardNumber(number)))
+                resultFields.append(ResultField(title: "Brand", value: brandRegion))
+            }
+        }
+        if let cityCode, issuingCity == nil {
+            resultFields.append(ResultField(title: "Issuing City", value: TUnionCityDatabase.lookupCityName(for: cityCode) ?? cityCode))
+        }
+        let extended = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 5, p2Parameter: 2, data: Data(), expectedResponseLength: 16)
+        if let response = try? await iso.sendCommand(apdu: extended), response.1 == 0x90, response.2 == 0, response.0.count == 16 {
+            rawSections.append(RawDataSection(title: "Extended Balance", fields: [
+                RawDataField(title: "Command", value: "805C050210"),
+                RawDataField(title: "Payload", value: response.0.hexString)
+            ]))
+        }
+        var records = await PBOCApplicationReader.records(iso, sfi: 0x18, length: 23, kind: .transaction)
+        if cityCode == "2900" {
+            records += await PBOCApplicationReader.records(iso, sfi: 0x06, length: 23, kind: .transaction)
+            records += await PBOCApplicationReader.shanghaiAuxiliary(iso)
+        }
+        records += await PBOCApplicationReader.records(iso, sfi: 0x1E, length: 48, kind: .transit)
+        let transactions = records.filter { $0.kind == .transaction }.map(\.hex)
+        let travelHistory = records.filter { $0.kind == .transit }.map(\.hex)
+        guard parsedBalance.formatted != nil || realSN != nil || !records.isEmpty else { throw NFCTestError.unsupportedCard }
         
-        return TransitCardSnapshot(
+        var snapshot = TransitCardSnapshot(
             technology: "ISO7816",
             cardFamily: "China T-Union",
             identifierLabel: "UID",
@@ -555,6 +685,8 @@ struct TUnionDecoder: TransitCardDecoder {
             rawTransitHistory: travelHistory,
             scannedAt: scannedAt
         )
+        snapshot.applications = [TransitApplication(snapshot: snapshot, cityCode: cityCode, records: records)]
+        return snapshot
     }
 
     private static func readTUnionTransactions(iso: NFCISO7816Tag) async -> [String] {
@@ -581,7 +713,7 @@ struct TUnionDecoder: TransitCardDecoder {
         return travels
     }
 
-    static func decodePBOC(data: Data, index: Int) -> TransitTransaction? {
+    static func decodePBOC(data: Data, index: Int, resolveTUnionTerminals: Bool = true) -> TransitTransaction? {
         guard data.count >= 23 else { return nil }
         // PBOC Transaction Record (standard 23 bytes)
         // 0-1: Counter, 2-4: Overdraft, 5-8: Amount, 9: Type, 10-15: Terminal, 16-19: Date (BCD), 20-22: Time (BCD)
@@ -597,16 +729,22 @@ struct TUnionDecoder: TransitCardDecoder {
         let dateStr = dateBCD + timeBCD
         let date = CardDateFormatting.parseCompactDateTime(dateStr, format: "yyyyMMddHHmmss", brand: .tUnion)
         let timeString = formatBCDTime(timeBCD)
+        let terminalID = data.subdata(in: 10..<16).hexString.uppercased()
+        let terminalStation = resolveTUnionTerminals && (typeByte == 0x06 || typeByte == 0x09)
+            ? TUnionCityDatabase.lookupTerminalStation(recordKind: "18", terminalID: terminalID)
+            : nil
         
         return TransitTransaction(
             date: date,
             time: timeString,
             amount: signedAmount,
-            terminalID: data.subdata(in: 10..<16).hexString.uppercased(),
+            terminalID: terminalID,
             type: decodedType.label,
             category: decodedType.category,
             balanceAfter: nil,
-            location: nil,
+            location: terminalStation.map {
+                "\(TUnionCityDatabase.lookupCityName(for: $0.cityID) ?? $0.cityID) • \($0.name)"
+            },
             rawData: data.hexString.uppercased(),
             recordNumber: index + 1
         )
@@ -627,8 +765,9 @@ struct TUnionDecoder: TransitCardDecoder {
         let date = CardDateFormatting.parseCompactDateTime(dateBCD, format: "yyyyMMddHHmmss", brand: .tUnion)
 
         let locationPrefix = TUnionCityDatabase.lookupCityName(for: cityID) ?? "City \(cityID)"
-        let stationLabel = TUnionCityDatabase.lookupStationName(cityID: cityID, stationID: stationID) ?? "Station \(stationID)"
-        let resolvedStationKey = TUnionCityDatabase.lookupStationKey(cityID: cityID, stationID: stationID) ?? (cityID + stationID)
+        let station = TUnionCityDatabase.lookupTravelStation(cityID: cityID, stationID: stationID, terminalID: terminalID)
+        let stationLabel = station?.name ?? "Station \(stationID)"
+        let resolvedStationKey = station?.stationKey ?? (station == nil ? cityID + stationID : nil)
         let location = "\(locationPrefix) • \(stationLabel)"
         let amount = Decimal(Int(amountVal)) / 100
         let balance = Decimal(Int(balanceVal)) / 100
@@ -805,7 +944,8 @@ struct TUnionDecoder: TransitCardDecoder {
         return nil
     }
     
-    private static func parseTUnionBalances(_ payloads: [UInt8: Data]) -> (formatted: String, rawSections: [RawDataSection]) {
+    private static func parseTUnionBalances(_ payloads: [UInt8: Data]) -> (formatted: String?, rawSections: [RawDataSection]) {
+        guard payloads[0x02]?.count == 4 else { return (nil, []) }
         var registerFields: [RawDataField] = []
         
         // Extract Purse (P1=0x00, P2=0x02)
@@ -864,7 +1004,111 @@ struct TUnionDecoder: TransitCardDecoder {
     }
 }
 
+enum CityUnionStationDatabase {
+    struct Station {
+        let prefix: String
+        let name: String
+        let line: String
+        let type: String
+        let stationKey: String?
+    }
+
+    private static let stations: [Station] = {
+        guard let url = Bundle.main.url(forResource: "cardbal_transit", withExtension: "sqlite") else { return [] }
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+            sqlite3_close(database)
+            return []
+        }
+        defer { sqlite3_close(database) }
+        var statement: OpaquePointer?
+        defer { sqlite3_finalize(statement) }
+        let query = "SELECT terminal_prefix, station_name, line_name, station_type, station_key FROM cityunion_terminal_prefixes ORDER BY length(terminal_prefix) DESC, terminal_prefix"
+        guard sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK else { return [] }
+        var result: [Station] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            func value(_ column: Int32) -> String? { sqlite3_column_text(statement, column).map { String(cString: $0) } }
+            guard let prefix = value(0), let name = value(1), let line = value(2), let type = value(3) else { continue }
+            result.append(Station(prefix: prefix, name: name, line: line, type: type, stationKey: value(4)))
+        }
+        return result
+    }()
+
+    static func cityName(_ code: String) -> String? { code == "2000" ? "上海市" : nil }
+
+    static func lookup(terminalID: String, date: Date?) -> Station? {
+        let terminal = terminalID.uppercased()
+        guard terminal.count == 12, terminal.allSatisfy(\.isHexDigit), terminal.hasPrefix("2000"),
+              let date, date.timeIntervalSince1970 >= 1_483_200_000 else { return nil }
+        // Before 2017 some Shanghai buses reused metro terminal numbers.
+        return stations.first { terminal.hasPrefix($0.prefix) }
+    }
+}
+
 struct TUnionCityDatabase {
+    struct StationMatch {
+        let cityID: String
+        let name: String
+        let stationKey: String?
+    }
+
+    private static let terminalStations: [String: [StationMatch]] = {
+        guard let url = Bundle.main.url(forResource: "cardbal_transit", withExtension: "sqlite") else { return [:] }
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK, let database else {
+            if let database { sqlite3_close(database) }
+            return [:]
+        }
+        defer { sqlite3_close(database) }
+        var statement: OpaquePointer?
+        let query = "SELECT record_kind, city_id, terminal_code, station_name, station_key FROM tunion_terminal_stations"
+        guard sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK else {
+            sqlite3_finalize(statement)
+            return [:]
+        }
+        defer { sqlite3_finalize(statement) }
+        var result: [String: [StationMatch]] = [:]
+        var step = sqlite3_step(statement)
+        while step == SQLITE_ROW {
+            guard let kind = sqlite3_column_text(statement, 0),
+                  let city = sqlite3_column_text(statement, 1),
+                  let terminal = sqlite3_column_text(statement, 2),
+                  let name = sqlite3_column_text(statement, 3) else { return [:] }
+            let key = "\(String(cString: kind)):\(String(cString: terminal))"
+            result[key, default: []].append(StationMatch(
+                cityID: String(cString: city), name: String(cString: name),
+                stationKey: sqlite3_column_text(statement, 4).map { String(cString: $0) }
+            ))
+            step = sqlite3_step(statement)
+        }
+        return step == SQLITE_DONE ? result : [:]
+    }()
+
+    static func lookupTerminalStation(recordKind: String, terminalID: String, cityID: String? = nil) -> StationMatch? {
+        let terminal = terminalID.uppercased()
+        guard terminal.count == (recordKind == "18" ? 12 : 16),
+              terminal.allSatisfy({ $0.isHexDigit }) else { return nil }
+        let matches = (terminalStations["\(recordKind):\(terminal)"] ?? []).filter {
+            cityID == nil || $0.cityID == cityID?.uppercased()
+        }
+        // A PBOC record has no city field: only a globally unambiguous exact ID
+        // is usable. Never apply station-prefix matching to terminal numbers.
+        return matches.count == 1 ? matches[0] : nil
+    }
+
+    static func lookupTravelStation(cityID: String, stationID: String, terminalID: String) -> StationMatch? {
+        if let key = lookupStationKey(cityID: cityID, stationID: stationID), let name = lineStations[key] {
+            return StationMatch(cityID: cityID, name: name, stationKey: key)
+        }
+        if let station = lookupTerminalStation(recordKind: "1e", terminalID: terminalID, cityID: cityID) {
+            return station
+        }
+        if terminalID.count == 16, terminalID.hasPrefix("0000") {
+            return lookupTerminalStation(recordKind: "18", terminalID: String(terminalID.suffix(12)), cityID: cityID)
+        }
+        return nil
+    }
+
     private static let cardNames: [String: String] = {
         guard let url = Bundle.main.url(forResource: "TUnionCardNames", withExtension: "json"),
               let data = try? Data(contentsOf: url),
