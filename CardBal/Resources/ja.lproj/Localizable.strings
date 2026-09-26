@@ -340,3 +340,35 @@
 "What is shared?" = "共有されるデータ";
 
 "Optional. Share Korean card records to help improve decoding." = "任意で韓国のカード記録を共有し、読み取りの改善に協力できます。";
+
+/* Station reports */
+"Missing Station" = "未登録の駅";
+"Code Correction" = "駅コードの修正";
+"Report Type" = "報告の種類";
+"Station Name" = "駅名";
+"Code Shown by CardBal (Required)" = "CardBalに表示されたコード（必須）";
+"Code Shown by CardBal (Optional)" = "CardBalに表示されたコード（任意）";
+"Correct Code (Optional)" = "正しいコード（任意）";
+"For a code correction, enter the code shown by CardBal and the correct station name. The correct code is optional." = "コードを修正する場合は、CardBalに表示されたコードと正しい駅名を入力してください。正しいコードは任意です。";
+"More Details (Optional)" = "追加情報（任意）";
+"Line or Lines" = "路線";
+"Country or Region" = "国・地域";
+"Notes" = "補足";
+"Notes stay private. Do not include personal details or raw trip data." = "補足は公開されません。個人情報や利用履歴の生データは記入しないでください。";
+"Tap the map to place or move a pin." = "地図をタップしてピンを置くか移動してください。";
+"Choose a Pin on Map" = "地図上でピンを選ぶ";
+"Use Current Location" = "現在地を使う";
+"Remove Location" = "位置情報を削除";
+"Location (Optional)" = "位置情報（任意）";
+"Your location is never read automatically. Only a pin you choose is sent with this report." = "位置情報は自動取得されません。選択したピンだけが報告とともに送信されます。";
+"Station details and an approximate pin, if selected, appear on the public request list. Notes, this card's SHA-256 ID hash, the app version, and an app-specific device ID stay private for review. The raw card ID and trip history are not sent." = "駅の情報と選択したピンの概略位置は、公開リストに表示されます。補足、カードIDのSHA-256ハッシュ、アプリのバージョン、アプリ専用の端末IDは確認用として非公開で保存されます。元のカードIDや利用履歴は送信されません。";
+"Submit Report" = "報告を送信";
+"Report Station" = "駅を報告";
+"Report Received" = "報告を受け付けました";
+"Could not send the report. Please try again." = "報告を送信できませんでした。もう一度お試しください。";
+"Location access is unavailable. You can place a pin manually." = "位置情報を利用できません。地図上で手動でピンを置けます。";
+"Could not find your location. You can place a pin manually." = "現在地を取得できませんでした。地図上で手動でピンを置けます。";
+"Report or Correct a Station" = "駅を報告・修正";
+"View Station Requests" = "駅の報告を見る";
+"Station Data" = "駅データ";
+"Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private." = "送信前に自動入力されたコードを確認してください。駅の情報は公開リストに表示されますが、カードIDと端末IDは公開されません。";

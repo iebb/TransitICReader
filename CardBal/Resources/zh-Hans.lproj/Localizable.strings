@@ -340,3 +340,35 @@
 "What is shared?" = "会共享哪些数据？";
 
 "Optional. Share Korean card records to help improve decoding." = "可选择共享韩国卡片记录，帮助改进数据解析。";
+
+/* Station reports */
+"Missing Station" = "缺失的车站";
+"Code Correction" = "修正车站代码";
+"Report Type" = "报告类型";
+"Station Name" = "车站名称";
+"Code Shown by CardBal (Required)" = "CardBal 显示的代码（必填）";
+"Code Shown by CardBal (Optional)" = "CardBal 显示的代码（选填）";
+"Correct Code (Optional)" = "正确代码（选填）";
+"For a code correction, enter the code shown by CardBal and the correct station name. The correct code is optional." = "若要修正代码，请填写 CardBal 显示的代码和正确的车站名称。正确代码可选填。";
+"More Details (Optional)" = "更多信息（选填）";
+"Line or Lines" = "线路";
+"Country or Region" = "国家或地区";
+"Notes" = "备注";
+"Notes stay private. Do not include personal details or raw trip data." = "备注不会公开。请勿填写个人信息或原始行程记录。";
+"Tap the map to place or move a pin." = "轻点地图以放置或移动图钉。";
+"Choose a Pin on Map" = "在地图上选择图钉";
+"Use Current Location" = "使用当前位置";
+"Remove Location" = "移除位置";
+"Location (Optional)" = "位置（选填）";
+"Your location is never read automatically. Only a pin you choose is sent with this report." = "不会自动读取您的位置。只有您选择的图钉会随报告发送。";
+"Station details and an approximate pin, if selected, appear on the public request list. Notes, this card's SHA-256 ID hash, the app version, and an app-specific device ID stay private for review. The raw card ID and trip history are not sent." = "车站信息和所选图钉的大致位置会显示在公开列表中。备注、此卡 ID 的 SHA-256 哈希、应用版本和应用专用设备 ID 会仅供审核，不对外公开。原始卡 ID 和行程记录不会发送。";
+"Submit Report" = "提交报告";
+"Report Station" = "报告车站";
+"Report Received" = "已收到报告";
+"Could not send the report. Please try again." = "报告发送失败，请重试。";
+"Location access is unavailable. You can place a pin manually." = "无法使用位置权限。您可以在地图上手动放置图钉。";
+"Could not find your location. You can place a pin manually." = "无法获取当前位置。您可以在地图上手动放置图钉。";
+"Report or Correct a Station" = "报告或修正车站";
+"View Station Requests" = "查看车站报告";
+"Station Data" = "车站数据";
+"Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private." = "提交前请核对自动填入的代码。车站信息会显示在公开列表中；卡 ID 和设备 ID 不会公开。";

@@ -378,7 +378,14 @@ enum NFCISO7816AccessPolicy {
 struct TransitTransactionRow: View {
     let tx: TransitTransaction
     let cardFamily: String?
+    let reportCard: SavedCardRecord?
     @State private var showingDetails = false
+
+    init(tx: TransitTransaction, cardFamily: String?, reportCard: SavedCardRecord? = nil) {
+        self.tx = tx
+        self.cardFamily = cardFamily
+        self.reportCard = reportCard
+    }
 
     private var brand: ICCardBrand {
         ICCardBrand.from(family: cardFamily ?? "")
@@ -450,7 +457,7 @@ struct TransitTransactionRow: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showingDetails) {
-            TransactionDetailView(tx: tx, cardFamily: cardFamily)
+            TransactionDetailView(tx: tx, cardFamily: cardFamily, reportCard: reportCard)
         }
     }
     
@@ -483,7 +490,21 @@ struct TransitTransactionRow: View {
 struct TransactionDetailView: View {
     let tx: TransitTransaction
     let cardFamily: String?
+    let reportCard: SavedCardRecord?
     @Environment(\.dismiss) var dismiss
+
+    init(tx: TransitTransaction, cardFamily: String?, reportCard: SavedCardRecord? = nil) {
+        self.tx = tx
+        self.cardFamily = cardFamily
+        self.reportCard = reportCard
+    }
+
+    private var reportStationCode: String? {
+        let codes = [tx.entryStationCode, tx.exitStationCode]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Set(codes).count == 1 ? codes.first : nil
+    }
     
     private var brand: ICCardBrand {
         ICCardBrand.from(family: cardFamily ?? "")
@@ -732,6 +753,18 @@ struct TransactionDetailView: View {
                     }
                 }
                 
+                if let reportCard {
+                    Section {
+                        NavigationLink {
+                            StationReportView(card: reportCard, stationCode: reportStationCode)
+                        } label: {
+                            Label("Report or Correct a Station", systemImage: "mappin.and.ellipse")
+                        }
+                    } footer: {
+                        Text("Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private.")
+                    }
+                }
+
                 if let raw = tx.rawData {
                     Section("Raw Transaction Record") {
                         CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: cardFamily ?? "")

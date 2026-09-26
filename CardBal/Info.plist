@@ -50,6 +50,8 @@
 	<string>Capture a photo to use as a custom card face design.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Select a photo from your library to use as a custom card face design.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Optionally attach your current location to a station report when you choose to use it.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.ad.neko.cardbal</key>

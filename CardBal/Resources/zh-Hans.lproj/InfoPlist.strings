@@ -4,4 +4,5 @@
 "NFCReaderUsageDescription" = "扫描支持的交通 IC 卡，以显示卡片标识符和已存储余额。";
 "NSCameraUsageDescription" = "需要使用相机拍摄照片，作为自定义卡面设计。";
 "NSPhotoLibraryUsageDescription" = "需要访问照片图库，以选择照片作为自定义卡面设计。";
+"NSLocationWhenInUseUsageDescription" = "仅在您选择时，将当前位置附加到车站报告。";
 "NSUbiquitousContainerName" = "CardBal";

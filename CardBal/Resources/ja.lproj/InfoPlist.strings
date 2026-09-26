@@ -4,4 +4,5 @@
 "NFCReaderUsageDescription" = "対応する交通系ICカードをスキャンして、カード識別子と保存された残高を表示します。";
 "NSCameraUsageDescription" = "カスタムカードデザイン用の写真を撮影するためにカメラを使用します。";
 "NSPhotoLibraryUsageDescription" = "カスタムカードデザイン用の写真をフォトライブラリから選択するために使用します。";
+"NSLocationWhenInUseUsageDescription" = "選択した場合のみ、駅の報告に現在地を添付するために使用します。";
 "NSUbiquitousContainerName" = "CardBal";

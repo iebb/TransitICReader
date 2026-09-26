@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cardbal-station-reports",
+  "main": "src/backend.ts",
+  "compatibility_date": "2026-09-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "secrets": { "required": ["PROXY_TOKEN"] },
+  "workers_dev": false,
+  "routes": [{ "pattern": "cardbal.kitta.co", "custom_domain": true }],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "cardbal-station-reports",
+    "database_id": "27079689-f53e-49fb-9177-0d1c13a486b2",
+    "migrations_dir": "./migrations"
+  }],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

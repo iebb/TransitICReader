@@ -1,0 +1,8 @@
+"CFBundleDisplayName" = "CardBal";
+"CFBundleName" = "CardBal";
+"CFBundleSpokenName" = "카드 잔액";
+"NFCReaderUsageDescription" = "지원하는 교통카드를 스캔하여 카드 식별자와 저장된 잔액을 표시합니다.";
+"NSCameraUsageDescription" = "맞춤 카드 이미지에 사용할 사진을 촬영하기 위해 카메라를 사용합니다.";
+"NSPhotoLibraryUsageDescription" = "맞춤 카드 이미지에 사용할 사진을 선택하기 위해 사진 보관함을 사용합니다.";
+"NSLocationWhenInUseUsageDescription" = "선택한 경우에만 역 신고에 현재 위치를 첨부합니다.";
+"NSUbiquitousContainerName" = "CardBal";

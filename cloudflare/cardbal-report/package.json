@@ -1,0 +1,25 @@
+{
+  "name": "cardbal-station-reports",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/copy-leaflet.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/*.test.ts",
+    "types": "wrangler types -c wrangler.backend.jsonc --env-interface BackendEnv --include-runtime=false src/backend-env.d.ts && wrangler types -c wrangler.edge.jsonc --env-interface EdgeEnv --include-runtime=false src/edge-env.d.ts",
+    "dev:backend": "wrangler dev -c wrangler.backend.jsonc --port 8787",
+    "dev:edge": "wrangler dev -c wrangler.edge.jsonc --port 8788",
+    "deploy:backend": "wrangler deploy -c wrangler.backend.jsonc",
+    "deploy:edge": "wrangler deploy -c wrangler.edge.jsonc"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
+    "@types/leaflet": "^1.9.20",
+    "@types/node": "^26.0.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.141.0"
+  }
+}

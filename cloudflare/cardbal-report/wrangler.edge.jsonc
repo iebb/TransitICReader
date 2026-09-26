@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cardbal-report-edge",
+  "main": "src/edge.ts",
+  "compatibility_date": "2026-09-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "secrets": { "required": ["PROXY_TOKEN"] },
+  "workers_dev": false,
+  "routes": [{ "pattern": "cardbal.ieb.app", "custom_domain": true }],
+  "vars": { "UPSTREAM_ORIGIN": "https://cardbal.kitta.co" },
+  "ratelimits": [{
+    "name": "SUBMISSION_RATE_LIMITER",
+    "namespace_id": "26092601",
+    "simple": { "limit": 20, "period": 60 }
+  }],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

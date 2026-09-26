@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172d2b">
+  <meta name="description" content="Browse CardBal station requests and code corrections.">
+  <title>Station requests · CardBal</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="CardBal station requests home">
+      <span class="brand-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span>CardBal <b>station desk</b></span>
+    </a>
+    <a class="header-link" href="#privacy">About the public list <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="pulse"></span> Community station data</span>
+        <h1 id="page-title">Every station request, in one place.</h1>
+        <p>Browse missing stations and code corrections sent from CardBal. Reports remain requests until the station data is checked.</p>
+      </div>
+      <div class="route-illustration" aria-hidden="true">
+        <div class="route-line"><i></i><i class="current"></i><i></i></div>
+        <span class="route-label route-label-a">Read</span>
+        <span class="route-label route-label-b">Report</span>
+        <span class="route-label route-label-c">Review</span>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <section class="form-panel requests-panel" aria-labelledby="requests-heading">
+        <div class="panel-heading">
+          <div>
+            <span class="step-label">01 / COMMUNITY REQUESTS</span>
+            <h2 id="requests-heading">Station requests</h2>
+          </div>
+          <span class="time-note"><!-- REQUEST_COUNT --></span>
+        </div>
+
+        <div class="request-tabs" role="group" aria-label="Filter station requests">
+          <!-- REQUEST_FILTERS -->
+        </div>
+
+        <div id="request-list" class="request-list"><!-- REQUEST_LIST --></div>
+        <!-- REQUEST_PAGINATION -->
+
+        <section id="map-panel" class="map-panel" aria-labelledby="map-heading" hidden>
+          <div class="map-panel-heading">
+            <div><span class="step-label">APPROXIMATE LOCATIONS</span><h3 id="map-heading">Reported station pins</h3></div>
+            <button id="close-map" class="text-button" type="button">Hide map</button>
+          </div>
+          <div id="map" role="application" aria-label="Map of reported station pins"></div>
+          <p>Public pins are rounded to roughly 100 metres. Exact submitted coordinates are kept for review.</p>
+        </section>
+      </section>
+
+      <aside class="side-panel" id="privacy">
+        <div class="info-card dark-card">
+          <span class="step-label">02 / REPORT IN THE APP</span>
+          <h2>Spot a gap? Send it from CardBal.</h2>
+          <p class="availability-note">The reporting screen is coming in a CardBal app update. Once it is available in your app:</p>
+          <ol class="steps">
+            <li><span>1</span><div><b>Open a saved card</b><p>Use Station Data, or open a trip and choose “Report or Correct a Station.”</p></div></li>
+            <li><span>2</span><div><b>Describe the station</b><p>Add a name. Codes, lines, operator, city and other clues are welcome.</p></div></li>
+            <li><span>3</span><div><b>Pick a location if useful</b><p>Place a pin on the map or choose your current location. The location is optional.</p></div></li>
+          </ol>
+        </div>
+        <div class="info-card privacy-card">
+          <span class="privacy-icon" aria-hidden="true">◈</span>
+          <h2>Public station details. Private identifiers.</h2>
+          <p>This list shows station names, codes, lines, operator, city or region, status, date, and an approximate map pin if one was sent.</p>
+          <p>Card ID hashes, app-specific device IDs, app versions, and private notes are stored for review but never shown on this website.</p>
+          <p>Requests are not verified station records. A reviewed request may be included in a future CardBal data release.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer><span>CardBal station desk</span><span>Station reports are submitted in the CardBal app.</span></footer>
+</body>
+</html>

@@ -112,6 +112,14 @@ struct SavedCardDetailView: View {
                     }
                 }
 
+                Section("Station Data") {
+                    NavigationLink {
+                        StationReportView(card: card)
+                    } label: {
+                        Label("Report or Correct a Station", systemImage: "mappin.and.ellipse")
+                    }
+                }
+
                     Section("Appearance") {
                         appearanceSection(card: card)
                     }
@@ -271,7 +279,7 @@ struct SavedCardDetailView: View {
                 Text("No records found").foregroundStyle(.secondary).font(.subheadline)
             } else {
                 ForEach(sorted, id: \.stableID) { tx in
-                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card)
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if let rawData = tx.rawData {
@@ -297,7 +305,7 @@ struct SavedCardDetailView: View {
                 Text("No records found").foregroundStyle(.secondary).font(.subheadline)
             } else {
                 ForEach(sorted, id: \.stableID) { tx in
-                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card)
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if let rawData = tx.rawData {

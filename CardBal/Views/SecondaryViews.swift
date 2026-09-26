@@ -924,7 +924,7 @@ struct QuickHistorySheet: View {
                 Text("No records found").foregroundStyle(.secondary)
             } else {
                 ForEach(sorted, id: \.stableID) { tx in
-                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card)
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if let rawData = tx.rawData, let store {
@@ -949,7 +949,7 @@ struct QuickHistorySheet: View {
                 Text("No records found").foregroundStyle(.secondary)
             } else {
                 ForEach(sorted, id: \.stableID) { tx in
-                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily)
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card)
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if let rawData = tx.rawData, let store {

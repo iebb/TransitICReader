@@ -225,7 +225,7 @@ struct ContentView: View {
                 pendingKoreanCrowdsourcingSnapshot = nil
             }
         } message: { _ in
-            Text("Upload anonymized raw trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings.")
+            Text("Upload technical trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings.")
         }
     }
 
@@ -355,7 +355,7 @@ struct ScanHomeView: View {
                         Section("Recent Transactions") {
                             let sorted = sortTransactionsByRecency(snapshot.transactions)
                             ForEach(sorted) { tx in
-                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
+                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily, reportCard: cardToDisplay)
                                     .padding(.vertical, 4)
                             }
                         }
@@ -365,7 +365,7 @@ struct ScanHomeView: View {
                         Section("Transit Activity") {
                             let sorted = sortTransactionsByRecency(snapshot.transitHistory)
                             ForEach(sorted) { tx in
-                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily)
+                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily, reportCard: cardToDisplay)
                                     .padding(.vertical, 4)
                             }
                         }
@@ -720,6 +720,11 @@ struct SettingsView: View {
                         Label("About", systemImage: "info.circle")
                     }
                 }
+                Section("Station Data") {
+                    Link(destination: URL(string: "https://cardbal.ieb.app")!) {
+                        Label("View Station Requests", systemImage: "mappin.and.ellipse")
+                    }
+                }
             }
             .navigationTitle("Settings")
         }
@@ -846,7 +851,7 @@ struct SettingsView: View {
                     }
                 ))
                 DisclosureGroup("What is shared?") {
-                    Text("When enabled, eligible T-money and EZL/Cashbee scans upload anonymized raw trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
+                    Text("When enabled, eligible T-money and EZL/Cashbee scans upload technical trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
