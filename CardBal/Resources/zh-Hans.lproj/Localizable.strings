@@ -374,13 +374,8 @@
 "Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private." = "提交前请核对自动填入的代码。车站信息会显示在公开列表中；卡 ID 和设备 ID 不会公开。";
 
 /* Dual-application transit cards */
-"Read Both Octopus Sides" = "读取八达通双模式";
-"For dual Octopus cards, keep the same physical card near your iPhone for both reads." = "读取双模式八达通时，请在两次读取过程中将同一张实体卡靠近 iPhone。";
-"Hold one dual Octopus card near your iPhone. Keep the same card for both reads." = "请将一张双模式八达通靠近 iPhone，两次读取都使用同一张卡。";
-"Hold the same Octopus card near your iPhone to read its mainland side." = "请继续将同一张八达通靠近 iPhone，读取内地应用。";
-"Octopus side saved. The mainland side was not read; scan both sides again to add it." = "八达通应用已保存。内地应用尚未读取，请再次读取双模式以添加。";
-"This is not a supported Octopus card." = "这不是受支持的八达通卡。";
 "Present only one transit card." = "请仅靠近一张交通卡。";
 "Card Applications" = "卡片应用";
 "Balance Read" = "余额读取时间";
 "Balances are shown as reported by each application and are not added together." = "分别显示各应用报告的余额，不进行相加。";
+"Keep the same card near your iPhone while reading finishes." = "读取完成前，请将同一张卡片保持靠近 iPhone。";

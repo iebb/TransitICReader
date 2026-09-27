@@ -378,13 +378,8 @@
 "Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private." = "제출 전에 자동 입력된 코드를 확인하세요. 역 정보는 공개 목록에 표시되지만 카드와 기기 ID는 공개되지 않습니다.";
 
 /* Dual-application transit cards */
-"Read Both Octopus Sides" = "옥토퍼스 양쪽 모드 읽기";
-"For dual Octopus cards, keep the same physical card near your iPhone for both reads." = "듀얼 모드 옥토퍼스는 두 번의 읽기 모두 같은 실물 카드를 iPhone 가까이에 대 주세요.";
-"Hold one dual Octopus card near your iPhone. Keep the same card for both reads." = "듀얼 모드 옥토퍼스 한 장을 iPhone 가까이에 대 주세요. 두 번 모두 같은 카드를 사용하세요.";
-"Hold the same Octopus card near your iPhone to read its mainland side." = "같은 옥토퍼스를 iPhone 가까이에 대고 중국 본토용 모드를 읽어 주세요.";
-"Octopus side saved. The mainland side was not read; scan both sides again to add it." = "옥토퍼스 모드를 저장했습니다. 본토용 모드는 읽지 못했습니다. 추가하려면 양쪽 모드를 다시 읽어 주세요.";
-"This is not a supported Octopus card." = "지원되는 옥토퍼스 카드가 아닙니다.";
 "Present only one transit card." = "교통카드를 한 장만 대 주세요.";
 "Card Applications" = "카드 애플리케이션";
 "Balance Read" = "잔액 읽은 시간";
 "Balances are shown as reported by each application and are not added together." = "각 애플리케이션에서 읽은 잔액을 개별적으로 표시하며 합산하지 않습니다.";
+"Keep the same card near your iPhone while reading finishes." = "읽기가 완료될 때까지 같은 카드를 iPhone 가까이에 두세요.";

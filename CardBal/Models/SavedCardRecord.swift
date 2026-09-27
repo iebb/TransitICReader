@@ -138,6 +138,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var rawTransactions: [String] // Hex strings
     var rawTransitHistory: [String] // Hex strings
     var applications: [TransitApplication]? = nil
+    var mergedIdentifiers: [String]? = nil
     var resultFields: [SavedCardField]
     var scannedAt: Date
     var color: SavedCardColor
@@ -154,7 +155,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         case rawIdentifierValue, identifierValue, pmm, selectedAID, systemCode, balanceText
         case balanceDetail, realSerialNumber, region, enhancedFeliCaDecoded, issuingCity
         case cardTypeStr, issueDateStr, expiryDateStr, rawTransactions, rawTransitHistory
-        case applications
+        case applications, mergedIdentifiers
         case resultFields, scannedAt, color, design, faceImageFileName, order, isPinned
     }
 
@@ -196,6 +197,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         rawTransactions = try container.decode([String].self, forKey: .rawTransactions).filter(Self.rawRecordHasContent)
         rawTransitHistory = try container.decode([String].self, forKey: .rawTransitHistory).filter(Self.rawRecordHasContent)
         applications = try container.decodeIfPresent([TransitApplication].self, forKey: .applications)
+        mergedIdentifiers = try container.decodeIfPresent([String].self, forKey: .mergedIdentifiers)
         resultFields = try container.decode([SavedCardField].self, forKey: .resultFields)
         scannedAt = try container.decode(Date.self, forKey: .scannedAt)
         color = try container.decode(SavedCardColor.self, forKey: .color)

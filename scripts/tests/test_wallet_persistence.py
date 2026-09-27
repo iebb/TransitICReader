@@ -28,7 +28,7 @@ class WalletPersistenceTests(unittest.TestCase):
         methods = "\n".join(method(source, name) for name in [
             "openDatabase", "saveCardToSQLite", "readDeletedCards", "mergeDeletions",
             "deleteCard", "shouldApplyCloudData", "mergeSQLite", "mergeBackupData",
-            "mergeIncomingCard", "save", "load",
+            "mergeIncomingCard", "consolidateMatchingCards", "save", "load",
         ])
         # Isolate test defaults from all real app preferences.
         methods = methods.replace("UserDefaults.standard", "defaults")
@@ -37,7 +37,9 @@ class WalletPersistenceTests(unittest.TestCase):
 import Foundation
 import SQLite3
 struct SavedCardRecord: Codable, Equatable {
-    let id: String
+    var id: String
+    var aliases: Set<String> = []
+    var identityAliases: Set<String> { aliases.union([id]) }
     var scannedAt: Date
     var order = 0
 }
@@ -56,7 +58,10 @@ final class Wallet {
     func markMapDataChanged() {}
     func scheduleAutomaticiCloudBackup() {}
     func mergedCard(local: SavedCardRecord, incoming: SavedCardRecord) -> SavedCardRecord {
-        incoming.scannedAt > local.scannedAt ? incoming : local
+        var merged = local
+        merged.scannedAt = max(local.scannedAt, incoming.scannedAt)
+        merged.aliases = local.aliases.union(incoming.aliases).union([incoming.id]).subtracting([local.id])
+        return merged
     }
     func ensureCardFaceDirectoryExists() throws {}
     func cardFaceFileURL(fileName: String) -> URL { fatalError("No image IO in persistence tests") }
@@ -113,6 +118,18 @@ rollback.cards = [other]
 check(!rollback.save(), "Write failure was reported as success")
 check(rollback.syncMessage != nil, "Write failure was not surfaced")
 check(wallet("rollback.sqlite").cards == [other, old], "Failed save destroyed the previous wallet")
+let splitWallet = wallet("dual.sqlite")
+let felica = SavedCardRecord(id: "FeliCa|A", aliases: ["same-physical-card"], scannedAt: Date(timeIntervalSince1970: 100))
+let iso = SavedCardRecord(id: "ISO7816|B", aliases: ["same-physical-card"], scannedAt: Date(timeIntervalSince1970: 200))
+splitWallet.cards = [felica, iso]
+check(splitWallet.save(), "Split fixture save failed")
+let migrated = wallet("dual.sqlite")
+check(migrated.cards.count == 1, "Reload did not consolidate linked protocol entries")
+check(wallet("dual.sqlite").cards == migrated.cards, "Consolidation was not persisted")
+check(!migrated.mergeIncomingCard(felica) && migrated.cards.count == 1, "Partial restore recreated a duplicate")
+migrated.deleteCard(migrated.cards[0].id)
+let deletedDual = wallet("dual.sqlite")
+check(!deletedDual.mergeIncomingCard(felica) && !deletedDual.mergeIncomingCard(iso), "Deleted dual card resurrected through another protocol")
 print("PASS: deletion/relaunch, empty wallet, stale SQLite/JSON, legacy backup, cloud deletion, rescan, transaction rollback")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-persistence-") as temporary:

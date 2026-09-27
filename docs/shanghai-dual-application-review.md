@@ -187,17 +187,30 @@ APK's behavior is a reference for the implementation, not iOS device validation.
 
 ## Octopus across FeliCa and ISO 7816
 
-The explicit **Read Both Octopus Sides** action reads FeliCa system `8008` first,
-then polls ISO 14443 for the supported mainland application on the same physical
-card. It instructs the user to keep only that card present. Ordinary discovery
-never combines arbitrary FeliCa and ISO tags from one callback.
+The normal all-protocol scan automatically reads the companion interface after
+recognizing Octopus FeliCa system `8008` or a supported CU/TU application. Either
+protocol can be discovered first. There is no separate dual-card action. A tag
+callback containing one FeliCa and one ISO 7816 interface starts with FeliCa and
+only continues as a dual card when that interface is Octopus. Repeated interfaces
+of the same protocol remain a multiple-card discovery; the reader asks for one
+physical card. The user keeps that same card in place throughout the read.
 
 On iOS **26.4+**, `NFCTagReaderSession.Configuration` and
 `restartPolling(configuration:)` switch protocol polling within one session.
-On older iOS versions, the first session is invalidated before opening the ISO
-session. Tag objects are discarded between phases. Timeout, cancellation or an
-unsupported second application saves the known Octopus reading; a partial rescan
-also preserves previously saved mainland history.
+On older iOS versions, the first session is invalidated before opening the
+companion session. Tag objects are discarded between phases. If no companion
+interface is discovered within six seconds, the first reading is saved.
+Cancellation or an unsupported second application also preserves the first
+reading. Protocol-specific scans continue to read only the selected protocol.
+
+The wallet coalesces every entry linked by application numbers, stable tag
+identifiers, or a combined scan. This includes two entries saved before their
+combined scan, transitive aliases, local reloads, file imports and iCloud restores.
+The surviving wallet ID, position and appearance are retained, and removed IDs
+remain persisted aliases. Deletion covers all linked identities so an older
+single-application backup cannot recreate the card. Separately saved cross-
+protocol entries with no shared identity are linked by their next combined read;
+card type alone is never enough to merge different physical cards.
 
 Each application decodes its own history and currency. The wallet headline uses
 Octopus's HKD balance; the application details retain the mainland reading

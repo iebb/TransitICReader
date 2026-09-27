@@ -117,8 +117,10 @@ class CardWalletStore: ObservableObject {
         }
         let previousCount = cards.count
         cards.removeAll { card in
-            guard let deletedAt = deletedCards[card.id] else { return false }
-            return card.scannedAt <= deletedAt
+            card.identityAliases.contains { alias in
+                guard let deletedAt = deletedCards[alias] else { return false }
+                return card.scannedAt <= deletedAt
+            }
         }
         return changed || cards.count != previousCount
     }
@@ -185,6 +187,7 @@ class CardWalletStore: ObservableObject {
             autoApplyPresetIfMatching(id: id)
             markMapDataChanged()
         }
+        consolidateMatchingCards()
         save()
     }
 
@@ -503,7 +506,10 @@ class CardWalletStore: ObservableObject {
 
     func deleteCard(_ id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
-        deletedCards[id] = Date()
+        let deletedAt = Date()
+        for alias in cards[index].identityAliases {
+            deletedCards[alias] = deletedAt
+        }
         cards.remove(at: index)
         markMapDataChanged()
         save()
@@ -859,24 +865,60 @@ class CardWalletStore: ObservableObject {
     }
 
     private func mergeIncomingCard(_ incoming: SavedCardRecord) -> Bool {
-        if let deletedAt = deletedCards[incoming.id], incoming.scannedAt <= deletedAt {
+        if incoming.identityAliases.contains(where: { alias in
+            guard let deletedAt = deletedCards[alias] else { return false }
+            return incoming.scannedAt <= deletedAt
+        }) {
             return false
         }
-        guard let index = cards.firstIndex(where: { $0.id == incoming.id }) else {
+        guard let index = cards.firstIndex(where: {
+            !$0.identityAliases.isDisjoint(with: incoming.identityAliases)
+        }) else {
             cards.append(incoming)
             return true
         }
 
         let local = cards[index]
         let merged = mergedCard(local: local, incoming: incoming)
-        guard merged != local else { return false }
         cards[index] = merged
-        return true
+        let consolidated = consolidateMatchingCards()
+        return merged != local || consolidated
+    }
+
+    /// Coalesce every linked entry, including a combined read that bridges two
+    /// previously saved protocol identities. Keep the first card's wallet place.
+    @discardableResult
+    private func consolidateMatchingCards() -> Bool {
+        var changed = false
+        var index = 0
+        while index < cards.count {
+            var candidate = index + 1
+            while candidate < cards.count {
+                if !cards[index].identityAliases.isDisjoint(with: cards[candidate].identityAliases) {
+                    cards[index] = mergedCard(local: cards[index], incoming: cards[candidate])
+                    cards.remove(at: candidate)
+                    changed = true
+                    // Newly retained aliases can connect an earlier candidate.
+                    candidate = index + 1
+                } else {
+                    candidate += 1
+                }
+            }
+            index += 1
+        }
+        return changed
     }
 
     private func mergedCard(local: SavedCardRecord, incoming: SavedCardRecord) -> SavedCardRecord {
-        var merged = incoming.scannedAt > local.scannedAt ? incoming : local
-        let other = incoming.scannedAt > local.scannedAt ? local : incoming
+        // A second protocol must not replace the existing card's appearance,
+        // pin, position or ID. Same-ID cloud updates retain their usual ordering.
+        let useIncoming = local.id == incoming.id && incoming.scannedAt > local.scannedAt
+        var merged = useIncoming ? incoming : local
+        let other = useIncoming ? local : incoming
+        merged.scannedAt = max(local.scannedAt, incoming.scannedAt)
+        let identifiers = Set((local.mergedIdentifiers ?? []) + (incoming.mergedIdentifiers ?? []) + [local.id, incoming.id])
+            .subtracting([merged.id]).sorted()
+        merged.mergedIdentifiers = identifiers.isEmpty ? nil : identifiers
 
         merged.rawTransactions = mergeRawRecords(
             existing: local.rawTransactions,
@@ -900,9 +942,10 @@ class CardWalletStore: ObservableObject {
         if merged.customTitle == nil { merged.customTitle = other.customTitle }
         if merged.customDisplaySerialNumber == nil { merged.customDisplaySerialNumber = other.customDisplaySerialNumber }
         if merged.realSerialNumber == nil { merged.realSerialNumber = other.realSerialNumber }
+        if merged.pmm == nil { merged.pmm = other.pmm }
         if merged.balanceText == nil { merged.balanceText = other.balanceText }
         if merged.balanceDetail == nil { merged.balanceDetail = other.balanceDetail }
-        if local.applications != nil || incoming.applications != nil {
+        if !local.applicationSnapshots.isEmpty || !incoming.applicationSnapshots.isEmpty {
             merged.applyApplications(TransitApplication.merge(existing: local.applicationSnapshots,
                                                                incoming: incoming.applicationSnapshots))
         }
@@ -949,7 +992,7 @@ class CardWalletStore: ObservableObject {
             if byID[card.id] != nil { replaced += 1 }
             byID[card.id] = card
             // A user-selected file import explicitly restores this card.
-            deletedCards.removeValue(forKey: card.id)
+            for alias in card.identityAliases { deletedCards.removeValue(forKey: alias) }
         }
 
         if !backup.faceAssets.isEmpty {
@@ -963,6 +1006,7 @@ class CardWalletStore: ObservableObject {
             if $0.order != $1.order { return $0.order < $1.order }
             return $0.scannedAt > $1.scannedAt
         }
+        consolidateMatchingCards()
         markMapDataChanged()
         guard save() else {
             throw CocoaError(.fileWriteUnknown)
@@ -1044,6 +1088,9 @@ class CardWalletStore: ObservableObject {
             if $0.order != $1.order { return $0.order < $1.order }
             return $0.scannedAt > $1.scannedAt
         }
+        let consolidated = consolidateMatchingCards()
+        let removedDeleted = mergeDeletions([:])
+        if consolidated || removedDeleted { save() }
         markMapDataChanged()
     }
 

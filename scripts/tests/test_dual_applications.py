@@ -33,9 +33,15 @@ class DualApplicationTests(unittest.TestCase):
         decoder = decoder.replace("Bundle.main.url(", "resourceURL(")
         applications = (ROOT / "CardBal/Models/TransitApplications.swift").read_text()
         store = (ROOT / "CardBal/Models/CardWalletStore.swift").read_text()
-        upsert = method(store, "upsert")
+        upsert = "\n".join(method(store, name) for name in ["upsert", "mergeIncomingCard", "consolidateMatchingCards", "mergedCard", "deleteCard", "mergeDeletions"])
         content = (ROOT / "CardBal/ContentView.swift").read_text()
         storage_id = re.search(r"    var storageIdentifier: String \{.*?^    }", content, re.M | re.S).group()
+        reader = (ROOT / "CardBal/NFC/NFCTransitReader.swift").read_text()
+        reader = reader[:reader.index("extension NFCTransitReader {\n    private func performEnhancedFeliCaHandshake")]
+        reader = "\n".join(line for line in reader.splitlines()
+                           if not line.startswith("import ") and "logger" not in line)
+        reader = reader.replace(", ObservableObject", "").replace("@Published private(set) ", "").replace("private ", "")
+        nfc_stubs = (ROOT / "scripts/tests/fixtures/nfc_reader_stubs.swift").read_text()
         adapters = r'''
 import Foundation
 import SQLite3
@@ -49,7 +55,7 @@ protocol TransitCardDecoder {
     static func canDecode(tag: NFCTag) async -> Bool
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot
 }
-enum NFCTag { case iso7816(NFCISO7816Tag), other }
+enum NFCTag { case iso7816(NFCISO7816Tag), feliCa(any NFCFeliCaTag), other }
 struct NFCISO7816APDU {
     let instructionClass: UInt8, instructionCode: UInt8, p1Parameter: UInt8, p2Parameter: UInt8
     let data: Data
@@ -120,16 +126,21 @@ struct TransactionDecoderRegistry {
         return TUnionDecoder.decodeTravelRecord(data: data, index: index)
     }
 }
-struct SavedCardRecord: Codable {
+struct SavedCardRecord: Codable, Equatable {
     var id: String
     var technology: String, cardFamily: String, identifierLabel: String, identifierValue: String, rawIdentifierValue: String
     var pmm: String?, systemCode: String?, selectedAID: String?, balanceText: String?, balanceDetail: String?, realSerialNumber: String?, region: String?
     var resultFields: [SavedCardField], rawTransactions: [String], rawTransitHistory: [String]
     var scannedAt: Date
     var applications: [TransitApplication]?
+    var mergedIdentifiers: [String]?
+    var faceImageFileName: String?, isUsingImage: Bool?, customDisplaySerialNumber: String?
+    var order = 0
+    var isPinned: Bool?
     var enhancedFeliCaDecoded = false
     var issuingCity: String?, cardTypeStr: String?, issueDateStr: String?, expiryDateStr: String?
     var customTitle: String?
+    var transactionsForTest: [TransitTransaction] { TransitApplicationHistory.decode(applicationSnapshots, kind: .transactions) }
     init(snapshot: TransitCardSnapshot) {
         id = snapshot.storageIdentifier; technology = snapshot.technology; cardFamily = snapshot.cardFamily
         identifierLabel = snapshot.identifierLabel; identifierValue = snapshot.identifierValue; rawIdentifierValue = snapshot.rawIdentifierValue
@@ -141,6 +152,7 @@ struct SavedCardRecord: Codable {
 }
 final class Wallet {
     var cards: [SavedCardRecord] = []
+    var deletedCards: [String: Date] = [:]
     func autoApplyPresetIfMatching(id: String) {}
     func markMapDataChanged() {}
     func save() {}
@@ -151,9 +163,9 @@ func check(_ condition: @autoclosure () -> Bool, _ message: String) { preconditi
 func record(_ data: Data, sfi: Int = 0x18, index: Int = 1, kind: TransitApplicationRecord.Kind = .transaction) -> TransitApplicationRecord {
     TransitApplicationRecord(kind: kind, sfi: sfi, index: index, hex: data.hexString)
 }
-func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: String? = "CNY 32", records: [TransitApplicationRecord] = []) -> TransitCardSnapshot {
+func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: String? = "CNY 32", records: [TransitApplicationRecord] = [], identifier: String? = nil) -> TransitCardSnapshot {
     var snapshot = TransitCardSnapshot(technology: aid == nil ? "FeliCa" : "ISO7816", cardFamily: aid == nil ? "Octopus" : aid == CityUnionDecoder.applicationAID ? "City Union" : "China T-Union",
-        identifierLabel: "UID", identifierValue: "01020304", rawIdentifierValue: aid == nil ? "0102030405060708" : "01020304", pmm: nil,
+        identifierLabel: "UID", identifierValue: "01020304", rawIdentifierValue: identifier ?? (aid == nil ? "0102030405060708" : "01020304"), pmm: nil,
         systemCode: aid == nil ? "8008" : nil, selectedAID: aid, balanceText: balance, balanceDetail: nil, realSerialNumber: serial, region: nil,
         resultFields: [], rawSections: [], rawTransactions: records.filter { $0.kind == .transaction }.map(\.hex),
         rawTransitHistory: records.filter { $0.kind == .transit }.map(\.hex), scannedAt: Date(timeIntervalSince1970: date))
@@ -161,7 +173,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
     return snapshot
 }
 @main struct Tests {
-    static func main() async throws {
+    @MainActor static func main() async throws {
         let cu = CityUnionDecoder.applicationAID, tu = TUnionDecoder.applicationAID
         var purchase = Data(repeating: 0, count: 23)
         purchase[1] = 1; purchase[8] = 200; purchase[9] = 6
@@ -231,6 +243,47 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         let octopusWallet = Wallet(); octopusWallet.upsert(snapshot: octopus); octopusWallet.upsert(snapshot: mixed)
         octopusWallet.upsert(snapshot: snapshot(nil, serial: nil, date: 400, balance: "HKD 45"))
         check(octopusWallet.cards.count == 1 && octopusWallet.cards[0].applications?.count == 2, "Octopus rescan removed mainland history")
+        let split = Wallet()
+        var savedMainland = SavedCardRecord(snapshot: national)
+        savedMainland.customTitle = "Travel card"; savedMainland.faceImageFileName = "my-photo"
+        savedMainland.order = 3; savedMainland.isPinned = true
+        split.cards = [savedMainland, SavedCardRecord(snapshot: octopus)]
+        split.upsert(snapshot: mixed)
+        check(split.cards.count == 1, "Previously separate protocol entries were not coalesced")
+        let unified = split.cards[0]
+        check(unified.id == savedMainland.id && unified.customTitle == "Travel card", "Wallet identity or title lost")
+        check(unified.faceImageFileName == "my-photo" && unified.order == 3 && unified.isPinned == true, "Appearance, pin or order lost")
+        check(unified.applications?.count == 2 && unified.transactionsForTest.count == 2, "Merged history lost a protocol")
+        check(unified.identityAliases.contains(octopus.storageIdentifier), "Removed protocol identity lost")
+        split.upsert(snapshot: octopus)
+        split.upsert(snapshot: national)
+        check(split.cards.count == 1 && split.cards[0].applications?.count == 2, "Partial rescan split a dual card")
+        let cloud = Wallet()
+        cloud.cards = [savedMainland, SavedCardRecord(snapshot: octopus)]
+        check(cloud.mergeIncomingCard(SavedCardRecord(snapshot: mixed)), "Combined backup did not merge")
+        check(cloud.cards.count == 1, "Cloud restore left a second protocol entry")
+        check(!cloud.mergeIncomingCard(SavedCardRecord(snapshot: octopus)), "Stale partial backup changed merged card")
+        let reopened = Wallet()
+        reopened.cards = try JSONDecoder().decode([SavedCardRecord].self, from: JSONEncoder().encode(cloud.cards))
+        check(!reopened.mergeIncomingCard(SavedCardRecord(snapshot: national)), "Persisted aliases failed to match old backup")
+        check(reopened.cards.count == 1 && reopened.cards[0].applications?.count == 2, "Reopen lost merged applications")
+        reopened.deleteCard(reopened.cards[0].id)
+        check(!reopened.mergeIncomingCard(SavedCardRecord(snapshot: octopus)), "Deleted dual card returned through FeliCa alias")
+        check(!reopened.mergeIncomingCard(savedMainland), "Deleted dual card returned through ISO alias")
+        let peer = Wallet(); peer.cards = [SavedCardRecord(snapshot: octopus)]
+        check(peer.mergeDeletions(reopened.deletedCards) && peer.cards.isEmpty, "Cross-protocol cloud deletion failed")
+        let legacySplit = Wallet()
+        var oldFeliCa = SavedCardRecord(snapshot: octopus); oldFeliCa.id = "old-physical-card-id"
+        var linked = SavedCardRecord(snapshot: mixed); linked.id = "legacy-dual-id"
+        legacySplit.cards = [oldFeliCa, savedMainland, linked]
+        check(legacySplit.consolidateMatchingCards() && legacySplit.cards.count == 1, "Transitive legacy aliases not consolidated")
+        check(legacySplit.cards[0].identityAliases.contains("legacy-dual-id"), "Removed legacy ID not retained")
+        let legacyRoundTrip = try JSONDecoder().decode(SavedCardRecord.self, from: JSONEncoder().encode(legacySplit.cards[0]))
+        check(legacyRoundTrip.identityAliases.contains("legacy-dual-id"), "Removed legacy ID not persisted")
+        let distinct = Wallet()
+        let different = snapshot(nil, serial: "ANOTHER-CARD", identifier: "1112131415161718")
+        distinct.cards = [SavedCardRecord(snapshot: octopus), SavedCardRecord(snapshot: different)]
+        check(!distinct.consolidateMatchingCards() && distinct.cards.count == 2, "Unrelated Octopus cards were merged")
         var legacyMixed = SavedCardRecord(snapshot: mixed)
         legacyMixed.applications = nil; legacyMixed.id = "Dual Mode|0102030405060708"
         legacyMixed.selectedAID = tu; legacyMixed.realSerialNumber = "3100000000000000001"
@@ -262,6 +315,47 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         noBalance.files = [tu: [0x18: [purchase]]]
         let missing = try await TUnionDecoder.decode(tag: .iso7816(noBalance), scannedAt: Date())
         check(missing.balanceText == nil && !missing.rawTransactions.isEmpty, "Unavailable balance became zero or discarded history")
+        for pair in [[octopus, national], [national, octopus]] {
+            let reader = NFCTransitReader(); reader.startScanning()
+            let session = reader.session!
+            reader.accept(pair[0], session: session)
+            check(reader.isScanning && reader.latestSnapshot == nil, "Ordinary scan failed to check companion protocol")
+            check(session.pollingOption == (pair[0].technology == "FeliCa" ? [.iso14443] : [.iso18092]), "Wrong companion protocol polled")
+            reader.accept(pair[1], session: session)
+            check(!reader.isScanning && session.invalidated, "Dual scan did not finish")
+            check(reader.latestSnapshot?.applications?.count == 2, "Automatic scan lost one interface")
+        }
+        let felicaOnly = NFCTransitReader(); felicaOnly.startScanning(options: [.iso18092])
+        felicaOnly.accept(octopus, session: felicaOnly.session!)
+        check(!felicaOnly.isScanning && felicaOnly.latestSnapshot?.applications?.count == 1, "Protocol filter was ignored")
+        let cancelled = NFCTransitReader(); cancelled.startScanning()
+        let cancelledSession = cancelled.session!
+        cancelled.accept(national, session: cancelledSession)
+        cancelled.tagReaderSession(cancelledSession, didInvalidateWithError: NSError(domain: "NFC", code: 200))
+        try await Task.sleep(for: .milliseconds(30))
+        check(!cancelled.isScanning && cancelled.latestSnapshot?.storageIdentifier == national.storageIdentifier, "Cancellation lost the first application")
+        let unsupported = NFCTransitReader(); unsupported.startScanning()
+        let unsupportedSession = unsupported.session!
+        unsupported.accept(national, session: unsupportedSession)
+        unsupported.accept(national, session: unsupportedSession)
+        check(unsupported.latestSnapshot?.applications?.count == 1, "Wrong companion family was paired")
+        let discovery = NFCTransitReader(); discovery.startScanning()
+        let discoverySession = discovery.session!
+        discovery.tagReaderSession(discoverySession, didDetect: [.iso7816(NFCISO7816Tag()), .feliCa(TestFeliCaTag(octopus))])
+        try await Task.sleep(for: .milliseconds(30))
+        check(discoverySession.pollingOption == [.iso14443] && discovery.pendingPrimary != nil, "Dual discovery was rejected as two cards")
+        discovery.accept(national, session: discoverySession)
+        check(discovery.latestSnapshot?.applications?.count == 2, "Dual discovery did not produce one combined snapshot")
+        let multiple = NFCTransitReader(); multiple.startScanning()
+        let multipleSession = multiple.session!
+        multiple.tagReaderSession(multipleSession, didDetect: [.feliCa(TestFeliCaTag(octopus)), .feliCa(TestFeliCaTag(different))])
+        try await Task.sleep(for: .milliseconds(30))
+        check(multiple.pendingPrimary == nil && multiple.latestSnapshot == nil && multipleSession.restarts == 1, "Two same-protocol cards were paired")
+        multiple.fail("Test complete", session: multipleSession)
+        let timedOut = NFCTransitReader(); timedOut.startScanning()
+        timedOut.accept(octopus, session: timedOut.session!)
+        try await Task.sleep(for: .seconds(6.2))
+        check(!timedOut.isScanning && timedOut.latestSnapshot?.storageIdentifier == octopus.storageIdentifier, "Companion timeout lost the first application")
         print("PASS: dual applications, strict correlation, currencies, partial rescans, persistence, and APDU selection/status")
     }
 }
@@ -269,7 +363,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         with tempfile.TemporaryDirectory(prefix="cardbal-dual-") as temporary:
             directory = Path(temporary)
             swift = directory / "test.swift"
-            swift.write_text(adapters + models + decoder + applications + main)
+            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main)
             binary = directory / "test-dual"
             build = subprocess.run(["swiftc", "-parse-as-library", str(swift), "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)

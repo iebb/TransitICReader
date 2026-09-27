@@ -346,8 +346,10 @@ SFI and index; only unambiguous mirrored transactions are reconciled. Partial
 rescans retain the other application's saved history. Balance readings are never
 summed across applications.
 
-**Read Both Octopus Sides** performs an explicit sequential FeliCa/ISO read.
-iOS 26.4+ changes polling configuration within one session; older iOS releases
-open the second session only after the first has ended. The first result survives
-a failed or cancelled second read. HKD and CNY histories remain independently
-decoded. See [the protocol review and validation boundaries](shanghai-dual-application-review.md).
+Normal all-protocol scans automatically read a recognized Octopus/CU/TU card's
+companion protocol, in either order. iOS 26.4+ changes polling configuration
+within one session; older iOS releases open the second session only after the
+first has ended. The first result survives a missing, failed or cancelled second
+read. Linked entries are merged into one saved card on scan, reload and restore,
+including entries saved separately before a combined read. HKD and CNY histories
+remain independently decoded. See [the protocol review and validation boundaries](shanghai-dual-application-review.md).

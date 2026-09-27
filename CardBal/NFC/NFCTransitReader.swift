@@ -16,8 +16,9 @@ final class NFCTransitReader: NSObject, ObservableObject {
 
     private enum ScanPhase { case regular, octopus, mainland }
     private var phase: ScanPhase = .regular
-    private var pendingOctopus: TransitCardSnapshot?
-    private var restartForMainland = false
+    private var readsCompanionProtocol = false
+    private var pendingPrimary: TransitCardSnapshot?
+    private var restartForCompanion = false
     private var secondSideTimeout: Task<Void, Never>?
     private var isReadingTag = false
     private var latestStatusKind: StatusKind = .idle
@@ -44,15 +45,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
     func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
         guard !isScanning else { return }
         phase = .regular
+        readsCompanionProtocol = options.contains([.iso18092, .iso14443])
         beginScanning(options: options)
-    }
-
-    /// Pairing is explicit: RF discovery does not prove that two protocols are
-    /// on the same physical card, nor that they have two independent purses.
-    func startDualOctopusScanning() {
-        guard !isScanning else { return }
-        phase = .octopus
-        beginScanning(options: [.iso18092])
     }
 
     private func beginScanning(options: NFCTagReaderSession.PollingOption) {
@@ -67,22 +61,20 @@ final class NFCTransitReader: NSObject, ObservableObject {
             newSession = NFCTagReaderSession(pollingOption: options, delegate: self, queue: nil)
         }
         guard let newSession else {
-            if let pendingOctopus { latestSnapshot = pendingOctopus }
+            if let pendingPrimary { latestSnapshot = pendingPrimary }
             resetScan()
             updateStatus("Unable to start session.", kind: .error)
             return
         }
         self.session = newSession
         isScanning = true
-        let message = phase == .mainland
-            ? String(localized: "Hold the same Octopus card near your iPhone to read its mainland side.")
-            : phase == .octopus
-                ? String(localized: "Hold one dual Octopus card near your iPhone. Keep the same card for both reads.")
-                : String(localized: "Hold your iPhone near a transit card.")
+        let message = phase == .regular
+            ? String(localized: "Hold your iPhone near a transit card.")
+            : String(localized: "Keep the same card near your iPhone while reading finishes.")
         newSession.alertMessage = message
         updateStatus(message, kind: .idle)
         newSession.begin()
-        if phase == .mainland { scheduleSecondSideTimeout(for: newSession) }
+        if phase != .regular { scheduleSecondSideTimeout(for: newSession) }
     }
 
     @available(iOS 26.4, *)
@@ -105,8 +97,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private func scheduleSecondSideTimeout(for session: NFCTagReaderSession) {
         secondSideTimeout?.cancel()
         secondSideTimeout = Task { @MainActor [weak self] in
-            do { try await Task.sleep(for: .seconds(20)) } catch { return }
-            guard let self, self.session === session, self.phase == .mainland else { return }
+            do { try await Task.sleep(for: .seconds(6)) } catch { return }
+            guard let self, self.session === session, self.phase != .regular else { return }
             self.finishPartial(session: session)
         }
     }
@@ -114,9 +106,10 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private func resetScan() {
         secondSideTimeout?.cancel()
         secondSideTimeout = nil
-        pendingOctopus = nil
-        restartForMainland = false
+        pendingPrimary = nil
+        restartForCompanion = false
         phase = .regular
+        readsCompanionProtocol = false
         isScanning = false
     }
 
@@ -136,9 +129,9 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     private func finishPartial(session: NFCTagReaderSession, alreadyInvalidated: Bool = false) {
-        guard self.session === session, let pendingOctopus else { return }
-        latestSnapshot = pendingOctopus
-        updateStatus(String(localized: "Octopus side saved. The mainland side was not read; scan both sides again to add it."), kind: .success)
+        guard self.session === session, let pendingPrimary else { return }
+        latestSnapshot = pendingPrimary
+        updateStatus("Read successful: \(pendingPrimary.cardFamily)", kind: .success)
         self.session = nil
         resetScan()
         if !alreadyInvalidated { session.invalidate() }
@@ -146,7 +139,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
 
     private func fail(_ message: String, session: NFCTagReaderSession) {
         guard self.session === session else { return }
-        if pendingOctopus != nil {
+        if pendingPrimary != nil {
             finishPartial(session: session)
             return
         }
@@ -158,17 +151,19 @@ final class NFCTransitReader: NSObject, ObservableObject {
 
     private func accept(_ snapshot: TransitCardSnapshot, session: NFCTagReaderSession) {
         guard self.session === session else { return }
+        let hasOctopus = snapshot.applicationSnapshots.contains(where: \.isOctopus)
+        let hasMainland = snapshot.applicationSnapshots.contains(where: { $0.isTUnion || $0.isCityUnion })
         switch phase {
         case .regular:
-            finish(with: snapshot, session: session)
-        case .octopus:
-            guard snapshot.applicationSnapshots.contains(where: \.isOctopus) else {
-                fail(String(localized: "This is not a supported Octopus card."), session: session)
+            guard readsCompanionProtocol, hasOctopus != hasMainland else {
+                finish(with: snapshot, session: session)
                 return
             }
-            pendingOctopus = snapshot
-            phase = .mainland
-            let message = String(localized: "Hold the same Octopus card near your iPhone to read its mainland side.")
+            // The ordinary scan reads either interface first, then checks the
+            // other protocol while the user keeps the same physical card in place.
+            pendingPrimary = snapshot
+            phase = hasOctopus ? .mainland : .octopus
+            let message = String(localized: "Keep the same card near your iPhone while reading finishes.")
             updateStatus(message, kind: .idle)
             session.alertMessage = message
             if #available(iOS 26.4, *) {
@@ -176,13 +171,13 @@ final class NFCTransitReader: NSObject, ObservableObject {
                 scheduleSecondSideTimeout(for: session)
             } else {
                 // Only start the next reader after the old one has invalidated.
-                restartForMainland = true
+                restartForCompanion = true
                 session.invalidate()
             }
-        case .mainland:
-            guard let pendingOctopus,
-                  snapshot.applicationSnapshots.contains(where: { $0.isTUnion || $0.isCityUnion }),
-                  let combined = TransitCardSnapshot.combining([pendingOctopus, snapshot]) else {
+        case .octopus, .mainland:
+            guard let pendingPrimary,
+                  phase == .octopus ? hasOctopus : hasMainland,
+                  let combined = TransitCardSnapshot.combining([pendingPrimary, snapshot]) else {
                 finishPartial(session: session)
                 return
             }
@@ -199,13 +194,13 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
         Task { @MainActor in
             guard self.session === session else { return }
-            if self.restartForMainland {
-                self.restartForMainland = false
+            if self.restartForCompanion {
+                self.restartForCompanion = false
                 self.session = nil
-                self.beginScanning(options: [.iso14443])
+                self.beginScanning(options: self.phase == .mainland ? [.iso14443] : [.iso18092])
                 return
             }
-            if self.pendingOctopus != nil {
+            if self.pendingPrimary != nil {
                 self.finishPartial(session: session, alreadyInvalidated: true)
                 return
             }
@@ -222,9 +217,15 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
         Task { @MainActor in
             guard self.session === session, self.isScanning, !self.isReadingTag, !tags.isEmpty else { return }
-            // Multiple discoveries may be different physical cards. Never pair
-            // them merely because they arrived in the same delegate callback.
-            guard tags.count == 1, let tag = tags.first else {
+            // One dual-protocol card may be reported once per technology.
+            // Start with its FeliCa interface and discover ISO afresh after the
+            // protocol switch. Two discoveries of the same type remain ambiguous.
+            let felicaTags = tags.filter { if case .feliCa = $0 { return true }; return false }
+            let isoTags = tags.filter { if case .iso7816 = $0 { return true }; return false }
+            let dualDiscovery = self.phase == .regular && self.readsCompanionProtocol
+                && tags.count == 2 && felicaTags.count == 1 && isoTags.count == 1
+            guard (tags.count == 1 || dualDiscovery),
+                  let tag = dualDiscovery ? felicaTags.first : tags.first else {
                 session.alertMessage = String(localized: "Present only one transit card.")
                 self.restartPolling(session)
                 return
@@ -291,7 +292,10 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                         }
                     }
 
-                if let snapshot {
+                if dualDiscovery && snapshot?.applicationSnapshots.contains(where: \.isOctopus) != true {
+                    session.alertMessage = String(localized: "Present only one transit card.")
+                    self.restartPolling(session)
+                } else if let snapshot {
                     self.accept(snapshot, session: session)
                 } else {
                     self.fail("Could not read any supported transit card data.", session: session)

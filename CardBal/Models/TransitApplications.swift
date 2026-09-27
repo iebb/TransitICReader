@@ -43,6 +43,9 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     var identityAlias: String { "\(technology)|\(serialNumber?.isEmpty == false ? serialNumber! : identifier)" }
     var identityAliases: Set<String> {
         var aliases: Set<String> = identityAlias.hasSuffix("|") ? [] : [identityAlias]
+        if isOctopus, !identifier.isEmpty {
+            aliases.insert("FeliCa|\(identifier.uppercased())")
+        }
         if (isCityUnion || isTUnion), !identifier.isEmpty,
            identifier.contains(where: { $0 != "0" && $0 != "F" }) {
             // A stable UID can match a partial read that could not recover the
@@ -149,7 +152,9 @@ extension TransitCardSnapshot {
     var identityAliases: Set<String> { Set(applicationSnapshots.flatMap(\.identityAliases)) }
 
     static func combining(_ snapshots: [TransitCardSnapshot]) -> TransitCardSnapshot? {
-        let apps = snapshots.flatMap(\.applicationSnapshots)
+        let apps = snapshots.reduce([TransitApplication]()) {
+            TransitApplication.merge(existing: $0, incoming: $1.applicationSnapshots)
+        }
         guard let primary = TransitApplication.primary(in: apps),
               let base = snapshots.first(where: { $0.applicationSnapshots.contains(where: { $0.id == primary.id }) }) else { return nil }
         let isCrossProtocol = Set(apps.map(\.technology)).count > 1
@@ -213,7 +218,7 @@ extension SavedCardRecord {
     }
 
     var identityAliases: Set<String> {
-        Set(applicationSnapshots.flatMap(\.identityAliases)).union([id])
+        Set(applicationSnapshots.flatMap(\.identityAliases)).union([id]).union(mergedIdentifiers ?? [])
     }
 
     var cardsByApplication: [SavedCardRecord] {
