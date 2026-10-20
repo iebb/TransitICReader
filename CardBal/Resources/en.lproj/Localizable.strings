@@ -347,3 +347,29 @@
 "Balance Read" = "Balance Read";
 "Balances are shown as reported by each application and are not added together." = "Balances are shown as reported by each application and are not added together.";
 "Keep the same card near your iPhone while reading finishes." = "Keep the same card near your iPhone while reading finishes.";
+
+/* 2.4.0 */
+"1 trip" = "1 trip";
+"%lld trips" = "%lld trips";
+"Unlimited" = "Unlimited";
+"1 Transaction" = "1 Transaction";
+"%lld Transactions" = "%lld Transactions";
+"1 Ride" = "1 Ride";
+"%lld Rides" = "%lld Rides";
+"Copy card number" = "Copy card number";
+"Scanned %@" = "Scanned %@";
+"Dismiss" = "Dismiss";
+"Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur." = "Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur.";
+"How to Scan" = "How to Scan";
+"Hold the card flat against the top of your iPhone" = "Hold the card flat against the top of your iPhone";
+"Keep it still until the scan finishes" = "Keep it still until the scan finishes";
+"For Apple Wallet cards, turn on Service Mode on the other device" = "For Apple Wallet cards, turn on Service Mode on the other device";
+"Ready to Read a Card" = "Ready to Read a Card";
+"Hold a supported card to the top of your iPhone to read its balance, history and details." = "Hold a supported card to the top of your iPhone to read its balance, history and details.";
+"Scan a Card" = "Scan a Card";
+"Reorder Cards" = "Reorder Cards";
+"Copy %@" = "Copy %@";
+"Type" = "Type";
+"Customize" = "Customize";
+"Last Scanned" = "Last Scanned";
+"Unavailable" = "Unavailable";

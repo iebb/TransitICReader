@@ -81,10 +81,6 @@ struct SavedCardDetailView: View {
                         .listRowBackground(Color.clear)
                 }
                 
-                Section("Settings") {
-                        titleSection(card: card)
-                    }
-
                 Section("Card Information") {
                     cardInfoSection(card: card)
                 }
@@ -112,6 +108,16 @@ struct SavedCardDetailView: View {
                     }
                 }
 
+                if card.supportsRideMap {
+                    Section("Map") {
+                        NavigationLink {
+                            RideMapView(store: store, initialCardID: card.id, showsCardPicker: false)
+                        } label: {
+                            Label("View Ride Map", systemImage: "map")
+                        }
+                    }
+                }
+
                 Section("Export") {
                     ShareLink(
                         item: card.fullHexExportText,
@@ -125,16 +131,6 @@ struct SavedCardDetailView: View {
                     calypsoOnlineSection(card: card)
                 }
 
-                if card.supportsRideMap {
-                    Section("Map") {
-                        NavigationLink {
-                            RideMapView(store: store, initialCardID: card.id, showsCardPicker: false)
-                        } label: {
-                            Label("View Ride Map", systemImage: "map")
-                        }
-                    }
-                }
-
                 Section("Station Data") {
                     NavigationLink {
                         StationReportView(card: card)
@@ -143,11 +139,15 @@ struct SavedCardDetailView: View {
                     }
                 }
 
-                    Section("Appearance") {
-                        appearanceSection(card: card)
-                    }
+                Section("Customize") {
+                    titleSection(card: card)
+                }
 
-                    Section {
+                Section("Appearance") {
+                    appearanceSection(card: card)
+                }
+
+                Section {
                         Button("Delete Card", role: .destructive) {
                             draftDeleteConfirmation = true
                         }
@@ -224,7 +224,11 @@ struct SavedCardDetailView: View {
 
     @ViewBuilder
     private func cardInfoSection(card: SavedCardRecord) -> some View {
-        KeyValueRow(title: "Technology", value: card.technology)
+        if !card.visibleBalance.isEmpty {
+            KeyValueRow(title: "Balance", value: card.visibleBalance)
+        }
+        KeyValueRow(title: "Last Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt))
+        KeyValueRow(title: "Technology", value: card.technology == "ISO7816" ? "ISO 7816" : card.technology)
         if let brand = card.region ?? card.resultFields.first(where: { $0.title == "Brand" })?.value,
            !brand.isEmpty {
             KeyValueRow(title: "Brand", value: brand)

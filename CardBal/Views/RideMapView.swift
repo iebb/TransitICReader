@@ -742,9 +742,9 @@ private struct RideMapRepresentable: UIViewRepresentable {
             guard let polyline = overlay as? MKPolyline else { continue }
             if let renderer = mapView.renderer(for: polyline) as? MKPolylineRenderer {
                 let routeID = polyline.title ?? ""
-                let isHighlighted = routeID == highlightedRouteID
-                renderer.lineWidth = isHighlighted ? 5 : 2.5
-                renderer.alpha = isHighlighted ? 1.0 : 0.4
+                let style = Coordinator.routeStyle(routeID: routeID, highlightedRouteID: highlightedRouteID)
+                renderer.lineWidth = style.width
+                renderer.alpha = style.alpha
                 renderer.setNeedsDisplay()
             }
         }
@@ -767,13 +767,20 @@ private struct RideMapRepresentable: UIViewRepresentable {
             _selectedPointID = selectedPointID
         }
 
+        /// Routes read clearly at city scale; a selected route stands out while the rest recede.
+        static func routeStyle(routeID: String, highlightedRouteID: RideMapRoute.ID?) -> (width: CGFloat, alpha: CGFloat) {
+            guard let highlightedRouteID else { return (3.5, 0.85) }
+            return routeID == highlightedRouteID ? (6, 1.0) : (2.5, 0.3)
+        }
+
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
                 let routeID = polyline.title ?? ""
                 renderer.strokeColor = routeColors[routeID] ?? .systemBlue
-                renderer.lineWidth = routeID == highlightedRouteID ? 5 : 2.5
-                renderer.alpha = routeID == highlightedRouteID ? 1.0 : 0.4
+                let style = Self.routeStyle(routeID: routeID, highlightedRouteID: highlightedRouteID)
+                renderer.lineWidth = style.width
+                renderer.alpha = style.alpha
                 renderer.lineCap = .round
                 renderer.lineJoin = .round
                 return renderer

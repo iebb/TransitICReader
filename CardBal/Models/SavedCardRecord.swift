@@ -246,11 +246,11 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
         // For T-Union cards, prefer the specific brand name (e.g. "羊城通") over generic family
         if brand == .tUnion {
-            if let region, !region.isEmpty, region != "T-Union Cities" { return region }
+            if let region, !region.isEmpty, region != "T-Union Cities" { return Self.displayBrandName(region) }
             // Check resultFields as fallback
             if let brandField = resultFields.first(where: { $0.title == "Brand" })?.value,
                !brandField.isEmpty, brandField != "T-Union Cities" {
-                return brandField
+                return Self.displayBrandName(brandField)
             }
             // "T-Union Cities" or region is still better than "China T-Union"
             if let region, !region.isEmpty { return region }
@@ -264,7 +264,19 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
             }
         }
 
-        return region ?? cardFamily
+        return Self.displayBrandName(region ?? cardFamily)
+    }
+
+    /// Official brand casing for names stored by older scans, and a readable
+    /// name for City Union cards whose issuing city is not in the catalog.
+    static func displayBrandName(_ name: String) -> String {
+        if name.hasPrefix("City-Union City ") { return "City Union" }
+        switch name {
+        case "Manaca": return "manaca"
+        case "Nimoca": return "nimoca"
+        case "Lignes d'Azur card": return "Lignes d’Azur"
+        default: return name
+        }
     }
 
     /// Resolve Japanese IC card brand from serial number prefix.
@@ -272,8 +284,8 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         guard let sn = serialNumber?.uppercased(), !sn.isEmpty else { return nil }
         let prefixMap: [(String, String)] = [
             ("JE", "Suica"), ("PB", "PASMO"), ("JW", "ICOCA"),
-            ("FC", "Hayakaken"), ("JK", "SUGOCA"), ("TP", "Manaca"),
-            ("JH", "Kitaca"), ("NR", "Nimoca"), ("JC", "TOICA"),
+            ("FC", "Hayakaken"), ("JK", "SUGOCA"), ("TP", "manaca"),
+            ("JH", "Kitaca"), ("NR", "nimoca"), ("JC", "TOICA"),
         ]
         for (prefix, name) in prefixMap {
             if sn.hasPrefix(prefix) { return name }
@@ -282,9 +294,34 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     }
 
     var visibleBalance: String {
-        if let balanceText, !balanceText.isEmpty { return balanceText }
-        if let trips = fieldValue("Remaining Trips") { return "\(trips) trips" }
+        if let balanceText, !balanceText.isEmpty { return Self.displayBalance(balanceText, detail: balanceDetail) }
+        if let trips = fieldValue("Remaining Trips").flatMap({ Int($0) }) { return Self.remainingTripsText(trips) }
         return ""
+    }
+
+    /// True when the card stores no stored value to show, such as an unlimited pass.
+    var hasNoStoredBalance: Bool {
+        guard let balanceText else { return true }
+        return balanceText == "N/A" || balanceText.isEmpty
+    }
+
+    static func remainingTripsText(_ trips: Int) -> String {
+        trips == 1 ? String(localized: "1 trip") : String(localized: "\(trips) trips")
+    }
+
+    /// Normalises balance text saved by older versions: one yen sign for Japan and
+    /// China, singular trip counts, and a readable label in place of "N/A".
+    static func displayBalance(_ text: String, detail: String?) -> String {
+        if text == "N/A" {
+            return detail?.localizedCaseInsensitiveContains("unlimited") == true ? String(localized: "Unlimited") : "—"
+        }
+        for suffix in [" trips", " trip"] where text.hasSuffix(suffix) {
+            if let trips = Int(text.dropLast(suffix.count)) { return remainingTripsText(trips) }
+        }
+        for prefix in ["JP¥", "CN¥"] where text.hasPrefix(prefix) {
+            return "¥" + text.dropFirst(prefix.count)
+        }
+        return text
     }
 
     var isCalypsoCard: Bool {

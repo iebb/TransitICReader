@@ -551,8 +551,7 @@ struct TransactionDetailView: View {
                         Text(tx.type)
                     } label: {
                         HStack {
-                            Circle().fill(brand == .tUnion && tUnionTravelDetails != nil ? .red : tx.iconInfo.color).frame(width: 8, height: 8)
-                            Text("TX Type")
+                            Text("Type")
                         }
                     }
                     
@@ -561,7 +560,6 @@ struct TransactionDetailView: View {
                             Text(term)
                         } label: {
                             HStack {
-                                Circle().fill(brand == .tUnion ? .cyan : .red).frame(width: 8, height: 8)
                                 Text("Terminal")
                             }
                         }
@@ -573,9 +571,6 @@ struct TransactionDetailView: View {
                             Text(CardDateFormatting.formatDisplayDate(date, brand: brand))
                         } label: {
                             HStack {
-                                if isKorean { Circle().fill(.brown).frame(width: 8, height: 8) }
-                                if isJapan { Circle().fill(.orange).frame(width: 8, height: 8) }
-                                if brand == .tUnion { Circle().fill(.green).frame(width: 8, height: 8) }
                                 Text("Date")
                             }
                         }
@@ -590,9 +585,6 @@ struct TransactionDetailView: View {
                             Text(displayTime)
                         } label: {
                             HStack {
-                                if isKorean { Circle().fill(.purple).frame(width: 8, height: 8) }
-                                if isJapan { Circle().fill(.cyan).frame(width: 8, height: 8) }
-                                if brand == .tUnion { Circle().fill(.brown).frame(width: 8, height: 8) }
                                 Text("Time")
                             }
                         }
@@ -605,7 +597,6 @@ struct TransactionDetailView: View {
                             Text(signedAmount)
                         } label: {
                             HStack {
-                                Circle().fill(brand == .tUnion ? .orange : .green).frame(width: 8, height: 8)
                                 Text("Amount")
                             }
                         }
@@ -615,7 +606,6 @@ struct TransactionDetailView: View {
                                 .foregroundStyle(.secondary)
                         } label: {
                             HStack {
-                                Circle().fill(.gray).frame(width: 8, height: 8)
                                 Text("Amount")
                             }
                         }
@@ -626,7 +616,6 @@ struct TransactionDetailView: View {
                             Text(formatCurrency(amount: balance, code: currencyCode, fractionDigits: currencyFractionDigits))
                         } label: {
                             HStack {
-                                Circle().fill(brand == .tUnion && tUnionTravelDetails != nil ? .mint : .green).frame(width: 8, height: 8)
                                 Text("Balance After")
                             }
                         }
@@ -637,7 +626,6 @@ struct TransactionDetailView: View {
                             Text(travelDetails.cityDisplay)
                         } label: {
                             HStack {
-                                Circle().fill(.teal).frame(width: 8, height: 8)
                                 Text("City")
                             }
                         }
@@ -645,7 +633,6 @@ struct TransactionDetailView: View {
                             Text(travelDetails.stationDisplay)
                         } label: {
                             HStack {
-                                Circle().fill(.green).frame(width: 8, height: 8)
                                 Text("Station")
                             }
                         }
@@ -659,8 +646,6 @@ struct TransactionDetailView: View {
                              }
                          } label: {
                              HStack(spacing: 6) {
-                                 Circle().fill(regionColor(tx.regionCode)).frame(width: 8, height: 8)
-                                 Circle().fill(.blue).frame(width: 8, height: 8)
                                  Text(tx.category == .bus ? "Operator" : "Entry")
                              }
                          }
@@ -675,8 +660,6 @@ struct TransactionDetailView: View {
                              }
                          } label: {
                              HStack(spacing: 6) {
-                                 Circle().fill(regionColor(tx.regionCode)).frame(width: 8, height: 8)
-                                 Circle().fill(.teal).frame(width: 8, height: 8)
                                  Text(tx.category == .bus ? "Station" : "Exit")
                              }
                          }
@@ -694,7 +677,6 @@ struct TransactionDetailView: View {
                             Text("\(details.sequence)")
                         } label: {
                             HStack {
-                                Circle().fill(.blue).frame(width: 8, height: 8)
                                 Text("Sequence")
                             }
                         }
@@ -702,7 +684,6 @@ struct TransactionDetailView: View {
                             Text(details.overdraftLimitHex)
                         } label: {
                             HStack {
-                                Circle().fill(.purple).frame(width: 8, height: 8)
                                 Text("Overdraft Limit")
                             }
                         }
@@ -710,7 +691,6 @@ struct TransactionDetailView: View {
                             Text(details.cityDisplay)
                         } label: {
                             HStack {
-                                Circle().fill(.cyan).frame(width: 8, height: 8)
                                 Text("Terminal City")
                             }
                         }
@@ -724,7 +704,6 @@ struct TransactionDetailView: View {
                                 Text(String(format: "%.1f km", dist))
                             } label: {
                                 HStack {
-                                    Circle().fill(.indigo).frame(width: 8, height: 8)
                                     Text("Distance")
                                 }
                             }
@@ -735,7 +714,6 @@ struct TransactionDetailView: View {
                                 Text(tid)
                             } label: {
                                 HStack {
-                                    Circle().fill(.cyan).frame(width: 8, height: 8)
                                     Text(is52 ? "Location Code" : "Terminal (IDSAM)")
                                 }
                             }
@@ -745,7 +723,6 @@ struct TransactionDetailView: View {
                                 Text("\(ntsam)")
                             } label: {
                                 HStack {
-                                    Circle().fill(.indigo).frame(width: 8, height: 8)
                                     Text("NTSAM")
                                 }
                             }
@@ -755,7 +732,6 @@ struct TransactionDetailView: View {
                                 Text("\(ntep)")
                             } label: {
                                 HStack {
-                                    Circle().fill(.blue).frame(width: 8, height: 8)
                                     Text(is52 ? "Record Order" : "Record (NTEP)")
                                 }
                             }

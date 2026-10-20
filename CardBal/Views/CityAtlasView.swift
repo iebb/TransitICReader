@@ -1292,7 +1292,7 @@ private final class CityAtlasAnnotationView: MKAnnotationView {
     }
 
     func configure(_ annotation: CityAtlasAnnotation) {
-        label.text = "\(annotation.cityName)  \(annotation.recordCount)"
+        label.text = annotation.recordCount > 0 ? "\(annotation.cityName)  \(annotation.recordCount)" : annotation.cityName
         let labelSize = label.sizeThatFits(CGSize(width: 170, height: 22))
         let plateWidth = min(max(labelSize.width + 14, 56), 178)
         frame = CGRect(x: 0, y: 0, width: plateWidth + 20, height: 30)

@@ -67,10 +67,12 @@ struct WalletCardView: View {
                 if isPhotoFace && card.imageFaceEnhancer == .mask {
                     LinearGradient(
                         stops: [
-                            .init(color: .black.opacity(0.52), location: 0),
-                            .init(color: .black.opacity(0.24), location: 0.18),
-                            .init(color: .black.opacity(0.08), location: 0.34),
-                            .init(color: .clear, location: 0.54)
+                            .init(color: .black.opacity(0.58), location: 0),
+                            .init(color: .black.opacity(0.34), location: 0.2),
+                            .init(color: .black.opacity(0.1), location: 0.38),
+                            .init(color: .clear, location: 0.56),
+                            .init(color: .clear, location: 0.72),
+                            .init(color: .black.opacity(0.22), location: 1)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -82,19 +84,37 @@ struct WalletCardView: View {
                 RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
 
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                if card.markerSystemName != nil || card.markerText != nil {
-                                    markerBadge
-                                }
-                                borderedCardText(
-                                    shouldShowTitle ? card.displayTitle : "",
-                                    font: .title3.weight(.semibold),
-                                    foregroundColor: titleTextColor
-                                )
+                VStack(alignment: .leading, spacing: 0) {
+                    // Two compact rows so a stacked card's visible strip shows
+                    // name, balance, number and scan date without clipping.
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            if card.markerSystemName != nil || card.markerText != nil {
+                                markerBadge
+                                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 6 }
                             }
+                            borderedCardText(
+                                shouldShowTitle ? card.displayTitle : "",
+                                font: .title3.weight(.semibold),
+                                foregroundColor: titleTextColor,
+                                lineLimit: 1,
+                                minimumScaleFactor: 0.8
+                            )
+                            Spacer(minLength: 8)
+                            borderedCardText(
+                                card.visibleBalance,
+                                font: card.hasNoStoredBalance
+                                    ? .system(size: 20, weight: .semibold, design: .rounded)
+                                    : .system(size: 26, weight: .bold, design: .rounded),
+                                foregroundColor: balanceTextColor.opacity(card.hasNoStoredBalance ? 0.82 : 1),
+                                lineLimit: 1,
+                                minimumScaleFactor: 0.7
+                            )
+                            .monospacedDigit()
+                            .layoutPriority(1)
+                        }
+
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             if shouldShowSerialNumber {
                                 let snText = card.privacyFormattedSerialNumber(mode: snDisplayMode)
                                 if !snText.isEmpty {
@@ -107,8 +127,8 @@ struct WalletCardView: View {
                                         HStack(spacing: 4) {
                                             borderedCardText(
                                                 snText,
-                                                font: .caption.weight(.medium),
-                                                foregroundColor: titleTextColor.opacity(0.8),
+                                                font: .caption.weight(.medium).monospacedDigit(),
+                                                foregroundColor: titleTextColor.opacity(0.82),
                                                 lineLimit: 1,
                                                 minimumScaleFactor: 0.75
                                             )
@@ -121,88 +141,64 @@ struct WalletCardView: View {
                                         }
                                     }
                                     .buttonStyle(.plain)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .accessibilityLabel(Text("Copy card number"))
                                 }
                             }
-                        }
-
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 4) {
-                            borderedCardText(
-                                card.visibleBalance,
-                                font: .system(size: 28, weight: .bold, design: .rounded),
-                                foregroundColor: balanceTextColor,
-                                minimumScaleFactor: 0.75
-                            )
-                            
-                            // Mini Last Scanned - Always visible top part
+                            Spacer(minLength: 8)
                             let dateText = KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt, includeTime: false)
                             if !dateText.isEmpty && dateText != "Unknown" {
-                                Text(dateText)
-                                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .foregroundStyle(titleTextColor)
-                                    .background(.black.opacity(0.24), in: Capsule())
+                                borderedCardText(
+                                    dateText,
+                                    font: .caption2.weight(.semibold).monospacedDigit(),
+                                    foregroundColor: titleTextColor.opacity(0.72),
+                                    lineLimit: 1
+                                )
+                                .accessibilityLabel(Text("Scanned \(dateText)"))
                             }
                         }
                     }
 
                     Spacer()
 
-        let transactionCount = card.transactions.count
-        let transitCount = card.transitHistory.count
-        let hasHistory = transactionCount > 0 || transitCount > 0
-        
-        HStack(alignment: .bottom) {
-            if hasHistory {
-                HStack(spacing: 8) {
-                    if transactionCount > 0 {
-                        Button(action: showTransactions) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "list.bullet")
-                                Text(isExpanded ? "\(transactionCount) Tx" : "\(transactionCount)")
+                    let transactionCount = card.transactions.count
+                    let transitCount = card.transitHistory.count
+
+                    HStack(alignment: .bottom) {
+                        HStack(spacing: 8) {
+                            if transactionCount > 0 {
+                                historyButton(
+                                    systemImage: "list.bullet",
+                                    count: transactionCount,
+                                    label: transactionCount == 1 ? String(localized: "1 Transaction") : String(localized: "\(transactionCount) Transactions"),
+                                    action: showTransactions
+                                )
                             }
-                            .font(.system(size: isExpanded ? 11 : 10, weight: .bold, design: .rounded))
-                            .padding(.horizontal, isExpanded ? 10 : 8).padding(.vertical, isExpanded ? 8 : 6)
-                            .foregroundStyle(isPhotoFace ? .white : .primary)
-                            .background((isPhotoFace ? Color.black.opacity(0.3) : Color.white.opacity(0.18)), in: Capsule())
+                            if transitCount > 0 {
+                                historyButton(
+                                    systemImage: "tram.fill",
+                                    count: transitCount,
+                                    label: transitCount == 1 ? String(localized: "1 Ride") : String(localized: "\(transitCount) Rides"),
+                                    action: showTransit
+                                )
+                            }
+                        }
+
+                        Spacer()
+
+                        Button(action: showDetails) {
+                            Image(systemName: "chevron.right")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(titleTextColor)
+                                .frame(width: 40, height: 40)
+                                .background((isPhotoFace ? Color.black.opacity(0.28) : Color.white.opacity(0.14)), in: Circle())
                         }
                         .buttonStyle(.plain)
-                    }
-                    
-                    if transitCount > 0 {
-                        Button(action: showTransit) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "map")
-                                Text(isExpanded ? "\(transitCount) Trips" : "\(transitCount)")
-                            }
-                            .font(.system(size: isExpanded ? 11 : 10, weight: .bold, design: .rounded))
-                            .padding(.horizontal, isExpanded ? 10 : 8).padding(.vertical, isExpanded ? 8 : 6)
-                            .foregroundStyle(isPhotoFace ? .white : .primary)
-                            .background((isPhotoFace ? Color.black.opacity(0.3) : Color.white.opacity(0.18)), in: Capsule())
-                        }
-                        .buttonStyle(.plain)
+                        .accessibilityLabel("Show Details")
                     }
                 }
-            }
-
-            Spacer()
-
-            Button(action: showDetails) {
-                Image(systemName: "chevron.right")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(titleTextColor)
-                    .frame(width: 40, height: 40)
-                    .background((isPhotoFace ? Color.black.opacity(0.22) : Color.white.opacity(0.14)), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Show Details")
-        }
-                }
-                .padding(.top, 11)
-                .padding(.leading, 18)
-                .padding(.trailing, 18)
-                .padding(.bottom, 18)
+                .padding(.top, 12)
+                .padding(.horizontal, 18)
+                .padding(.bottom, 16)
 
                 if visiblePartHeight > 0 && !isExpanded {
                     Rectangle()
@@ -223,6 +219,23 @@ struct WalletCardView: View {
             }
         }
         .frame(height: cardHeight)
+    }
+
+    private func historyButton(systemImage: String, count: Int, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                Text(isExpanded ? label : "\(count)")
+                    .monospacedDigit()
+            }
+            .font(.system(size: isExpanded ? 12 : 10, weight: .semibold, design: .rounded))
+            .padding(.horizontal, isExpanded ? 11 : 8).padding(.vertical, isExpanded ? 8 : 6)
+            .foregroundStyle(.white)
+            .background(.black.opacity(isPhotoFace ? 0.34 : 0.22), in: Capsule())
+            .overlay(Capsule().strokeBorder(.white.opacity(0.14), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     @ViewBuilder

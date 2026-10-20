@@ -379,3 +379,29 @@
 "Balance Read" = "残高の読み取り日時";
 "Balances are shown as reported by each application and are not added together." = "各アプリから読み取った残高を個別に表示します。合算はしません。";
 "Keep the same card near your iPhone while reading finishes." = "読み取りが完了するまで、同じカードをiPhoneに近づけたままにしてください。";
+
+/* 2.4.0 */
+"1 trip" = "残り1回";
+"%lld trips" = "残り%lld回";
+"Unlimited" = "乗り放題";
+"1 Transaction" = "取引 1件";
+"%lld Transactions" = "取引 %lld件";
+"1 Ride" = "乗車 1件";
+"%lld Rides" = "乗車 %lld件";
+"Copy card number" = "カード番号をコピー";
+"Scanned %@" = "%@に読み取り";
+"Dismiss" = "閉じる";
+"Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur." = "Suica、PASMO、ICOCAなどの交通系ICカード、nanaco、楽天Edy、WAON、T-money、EZL、Cashbee、U-Money、Octopus、交通聯合・City Unionのカード、Lignes d’Azurを読み取れます。";
+"How to Scan" = "読み取り方";
+"Hold the card flat against the top of your iPhone" = "カードをiPhoneの上部に平らに当ててください";
+"Keep it still until the scan finishes" = "読み取りが終わるまで動かさないでください";
+"For Apple Wallet cards, turn on Service Mode on the other device" = "Appleウォレットのカードは、もう一方のデバイスでヘルプモードをオンにしてください";
+"Ready to Read a Card" = "カードを読み取る準備ができました";
+"Hold a supported card to the top of your iPhone to read its balance, history and details." = "対応カードをiPhoneの上部にかざすと、残高・履歴・カード情報を読み取れます。";
+"Scan a Card" = "カードを読み取る";
+"Reorder Cards" = "カードを並べ替え";
+"Copy %@" = "%@をコピー";
+"Type" = "種別";
+"Customize" = "カスタマイズ";
+"Last Scanned" = "最終読み取り";
+"Unavailable" = "取得できません";

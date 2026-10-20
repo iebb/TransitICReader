@@ -147,7 +147,7 @@ struct CalypsoDecoder: TransitCardDecoder {
         if primaryContract != nil || remainingTrips != nil {
             resultFields.append(ResultField(title: "Ticket Status", value: remainingTrips.map { "Remaining trips: \($0)" } ?? "Contract decoded"))
         }
-        let balanceText = remainingTrips.map { "\($0) trips" }
+        let balanceText = remainingTrips.map { $0 == 1 ? "1 trip" : "\($0) trips" }
         let balanceDetail = primaryTicket.map { ticket in
             if let remainingTrips {
                 return "\(ticket): \(remainingTrips) remaining trip\(remainingTrips == 1 ? "" : "s")"

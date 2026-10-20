@@ -277,8 +277,10 @@ struct ScanHomeView: View {
                                 Label("Scan Your Transit Card", systemImage: "wave.3.right.circle.fill").font(.title3.bold())
                                 Spacer()
                                 Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(Text("Dismiss"))
                             }
-                            Text("Scan physical transit cards like Suica, ICOCA, Hayakaken, OKICA, Octopus, T-money, U-Money, EZL/Cashbee, City Union, China T-Union and Lignes d'Azur, or Japanese SV cards such as Edy, waon, nanaco.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur.").font(.subheadline).foregroundStyle(.secondary)
                         }.padding(.vertical, 6)
                     }
                 }
@@ -391,8 +393,10 @@ struct ScanHomeView: View {
                         calypsoOnlineSection(card: cardToDisplay)
                     }
                 } else if !reader.isScanning {
-                    Section("Result") {
-                        Text("No card scanned yet.").foregroundStyle(.secondary)
+                    Section {
+                        ScanPromptView { reader.startScanning() }
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
                     }
                 }
 
@@ -412,9 +416,10 @@ struct ScanHomeView: View {
                     }
                 }
 
-                Section("Instructions") {
-                    Label("Hold card at the back top of the phone", systemImage: "iphone.radiowaves.left.and.right")
-                    Label("Keep card steady until scan finishes", systemImage: "hand.tap.fill")
+                Section("How to Scan") {
+                    Label("Hold the card flat against the top of your iPhone", systemImage: "iphone.radiowaves.left.and.right")
+                    Label("Keep it still until the scan finishes", systemImage: "hand.raised.fill")
+                    Label("For Apple Wallet cards, turn on Service Mode on the other device", systemImage: "wallet.pass")
                 }.font(.footnote).foregroundStyle(.secondary)
             }
             .navigationTitle("Scan")
@@ -525,7 +530,7 @@ struct CardsView: View {
     @State private var previewCardID: String?
     @State private var activeHistoryItem: HistorySheetItem?
 
-    private let stackedSpacing: CGFloat = 58
+    private let stackedSpacing: CGFloat = 64
     private let expandedStackGap: CGFloat = 12
     private let cardAspectRatio: CGFloat = 27.0 / 17.0
 
@@ -598,6 +603,7 @@ struct CardsView: View {
                         } label: {
                             Image(systemName: "list.number")
                                 .imageScale(.medium)
+                                .accessibilityLabel(Text("Reorder Cards"))
                         }
                     }
                 }
@@ -904,8 +910,6 @@ struct SettingsView: View {
                         .font(.footnote)
                     Link("Open station_database on GitHub", destination: URL(string: "https://github.com/Seo-4d696b75/station_database")!)
                         .font(.footnote)
-                    Text("Chinese T-Union station names are based on domosekai/tripreader-data.")
-                        .font(.footnote)
                     Text("China T-Union station data is based on domosekai/tripreader-data, the original source used by downstream projects.")
                         .font(.footnote)
                     Text("Licensed under Creative Commons Attribution 4.0 International.")
@@ -1130,6 +1134,7 @@ private struct RawDataSectionList: View {
                                     .foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(Text("Copy \(field.title)"))
                         }
                         .padding(.vertical, 2)
                     }
@@ -1141,6 +1146,45 @@ private struct RawDataSectionList: View {
 
     static func systemCodeRow(_ codes: [String]) -> RawDataField {
         RawDataField(title: "System Codes", value: codes.joined(separator: ", "))
+    }
+}
+
+/// Empty-state call to action on the Scan tab.
+struct ScanPromptView: View {
+    let startScan: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            ZStack {
+                Circle().fill(Color.accentColor.opacity(0.12)).frame(width: 112, height: 112)
+                Circle().stroke(Color.accentColor.opacity(0.25), lineWidth: 1).frame(width: 140, height: 140)
+                Image(systemName: "wave.3.right")
+                    .font(.system(size: 40, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .frame(height: 144)
+            .accessibilityHidden(true)
+            VStack(spacing: 6) {
+                Text("Ready to Read a Card")
+                    .font(.title3.weight(.semibold))
+                Text("Hold a supported card to the top of your iPhone to read its balance, history and details.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            Button(action: startScan) {
+                Label("Scan a Card", systemImage: "sensor.tag.radiowaves.forward.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
 }
 
@@ -1159,6 +1203,7 @@ struct ScanToolbarItem: ToolbarContent {
                     .contentShape(Rectangle())
             }
             .disabled(reader.isScanning)
+            .accessibilityLabel(Text("Scan a Card"))
             .contextMenu {
                 Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }
                 Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
