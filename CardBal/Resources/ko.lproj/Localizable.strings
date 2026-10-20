@@ -409,3 +409,15 @@
 "Customize" = "맞춤 설정";
 "Last Scanned" = "마지막으로 읽은 시간";
 "Unavailable" = "확인할 수 없음";
+"Brand" = "브랜드";
+"Card Number" = "카드 번호";
+"Contracts" = "계약";
+"Expires" = "만료";
+"Export" = "내보내기";
+"Internet Query" = "온라인 조회";
+"Media Serial Number" = "매체 일련번호";
+"Media Unicity" = "매체 고유값";
+"Remaining Trips" = "남은 횟수";
+"Sale Date" = "판매일";
+"Status" = "상태";
+"Validity" = "유효 기간";

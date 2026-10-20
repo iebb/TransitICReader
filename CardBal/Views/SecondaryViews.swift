@@ -854,7 +854,8 @@ struct KeyValueRow: View {
     let value: String
     var body: some View {
         HStack {
-            Text(title).foregroundStyle(.secondary)
+            // Titles are English keys; look them up so rows follow the app language.
+            Text(LocalizedStringKey(title)).foregroundStyle(.secondary)
             Spacer()
             Text(value).multilineTextAlignment(.trailing).textSelection(.enabled)
         }

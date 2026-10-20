@@ -405,3 +405,15 @@
 "Customize" = "自定义";
 "Last Scanned" = "上次读取";
 "Unavailable" = "不可用";
+"Brand" = "品牌";
+"Card Number" = "卡号";
+"Contracts" = "合约";
+"Expires" = "到期";
+"Export" = "导出";
+"Internet Query" = "在线查询";
+"Media Serial Number" = "介质序列号";
+"Media Unicity" = "介质唯一值";
+"Remaining Trips" = "剩余次数";
+"Sale Date" = "销售日期";
+"Status" = "状态";
+"Validity" = "有效期";

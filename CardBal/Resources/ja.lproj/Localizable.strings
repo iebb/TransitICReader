@@ -405,3 +405,15 @@
 "Customize" = "カスタマイズ";
 "Last Scanned" = "最終読み取り";
 "Unavailable" = "取得できません";
+"Brand" = "ブランド";
+"Card Number" = "カード番号";
+"Contracts" = "契約";
+"Expires" = "有効期限";
+"Export" = "書き出し";
+"Internet Query" = "オンライン照会";
+"Media Serial Number" = "媒体シリアル番号";
+"Media Unicity" = "媒体識別子";
+"Remaining Trips" = "残り回数";
+"Sale Date" = "販売日";
+"Status" = "状態";
+"Validity" = "有効期間";
