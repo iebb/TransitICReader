@@ -449,18 +449,22 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         if mode == 2 { return "" }
         let full = displayedSerialNumber
         if mode == 0 { return full }
-        
+        let tail = maskedSerialTail(full)
+        return tail.isEmpty ? "" : "•••• \(tail)"
+    }
+
+    private func maskedSerialTail(_ full: String) -> String {
         let digitsOnly = full.filter { "0123456789".contains($0) }
         let alphanumerics = full.filter { $0.isLetter || $0.isNumber }
-        
+
         if cardFamily == "Octopus" {
-             // Octopus example: 1234 5678 (Y) -> 5678
-             if digitsOnly.count >= 8 {
-                 let start = digitsOnly.index(digitsOnly.startIndex, offsetBy: 4)
-                 let end = digitsOnly.index(start, offsetBy: 4)
-                 return String(digitsOnly[start..<end])
-             }
-             return String(digitsOnly.suffix(4))
+            // Octopus example: 1234 5678 (Y) -> 5678
+            if digitsOnly.count >= 8 {
+                let start = digitsOnly.index(digitsOnly.startIndex, offsetBy: 4)
+                let end = digitsOnly.index(start, offsetBy: 4)
+                return String(digitsOnly[start..<end])
+            }
+            return String(digitsOnly.suffix(4))
         } else if cardFamily == "Lignes d'Azur card" {
             return String(alphanumerics.suffix(3))
         } else {
