@@ -370,7 +370,7 @@ struct CardCustomizeView: View {
             if isPhotoFace {
                 Section("Photo") {
                     Picker("Text Contrast", selection: Binding(get: { card.imageFaceEnhancer }, set: { store.setImageFaceEnhancer($0, for: card.id) })) {
-                        Text("Shade").tag(ImageFaceEnhancer.mask)
+                        Text("Frosted").tag(ImageFaceEnhancer.mask)
                         Text("Shadow").tag(ImageFaceEnhancer.border)
                         Text("None").tag(ImageFaceEnhancer.none)
                     }

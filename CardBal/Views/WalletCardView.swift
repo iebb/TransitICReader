@@ -64,21 +64,8 @@ struct WalletCardView: View {
                         .clipShape(RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous))
                 }
 
-                if isPhotoFace && card.imageFaceEnhancer == .mask {
-                    LinearGradient(
-                        stops: [
-                            .init(color: .black.opacity(0.58), location: 0),
-                            .init(color: .black.opacity(0.34), location: 0.2),
-                            .init(color: .black.opacity(0.1), location: 0.38),
-                            .init(color: .clear, location: 0.56),
-                            .init(color: .clear, location: 0.72),
-                            .init(color: .black.opacity(0.22), location: 1)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous))
-                    .allowsHitTesting(false)
+                if let faceImage, isPhotoFace && card.imageFaceEnhancer == .mask {
+                    frostedHeader(faceImage, size: proxy.size, cornerRadius: dynamicRadius)
                 }
 
                 RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous)
@@ -236,6 +223,47 @@ struct WalletCardView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+
+    /// Blurs and darkens the top strip of a card design so the name, number and
+    /// balance never sit on top of the artwork's own logos. The strip matches the
+    /// part of a card that stays visible when cards are stacked.
+    private func frostedHeader(_ image: UIImage, size: CGSize, cornerRadius: CGFloat) -> some View {
+        let height = max(size.height, 1)
+        func at(_ points: CGFloat) -> CGFloat { min(max(points / height, 0), 1) }
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return ZStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size.width, height: size.height)
+                .blur(radius: 14, opaque: true)
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: at(50)),
+                            .init(color: .clear, location: at(80))
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            LinearGradient(
+                stops: [
+                    .init(color: .black.opacity(0.46), location: 0),
+                    .init(color: .black.opacity(0.34), location: at(52)),
+                    .init(color: .clear, location: at(82)),
+                    .init(color: .clear, location: max(at(82), at(height - 60))),
+                    .init(color: .black.opacity(0.22), location: 1)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(shape)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
