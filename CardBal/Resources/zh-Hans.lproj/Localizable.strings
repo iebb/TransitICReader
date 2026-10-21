@@ -417,3 +417,31 @@
 "Sale Date" = "销售日期";
 "Status" = "状态";
 "Validity" = "有效期";
+
+/* Customize Card */
+"Customize Card" = "自定义卡片";
+"Card Face" = "卡面";
+"Pick a color, a bundled card design or your own photo." = "可选择颜色、内置卡面或你自己的照片。";
+"Photo Library" = "照片图库";
+"Photo" = "照片";
+"Text Contrast" = "文字对比度";
+"Shade" = "渐变遮罩";
+"Shadow" = "文字阴影";
+"None" = "无";
+"Show Name" = "显示名称";
+"Color" = "颜色";
+"Classic" = "经典";
+"Sunrise" = "日出";
+"Scan Card Number" = "扫描卡号";
+"Show Card Number" = "显示卡号";
+"Text on Card" = "卡面文字";
+"Leave the name empty to use the card's own name." = "名称留空时将使用卡片原本的名称。";
+"Shown next to the card name and on the ride map." = "显示在卡片名称旁边和乘车地图上。";
+"Green" = "绿色";
+"Blue" = "蓝色";
+"Red" = "红色";
+"Purple" = "紫色";
+"Cyan" = "青色";
+"Orange" = "橙色";
+"Graphite" = "石墨色";
+"Custom Color" = "自定义颜色";

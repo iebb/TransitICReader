@@ -421,3 +421,31 @@
 "Sale Date" = "판매일";
 "Status" = "상태";
 "Validity" = "유효 기간";
+
+/* Customize Card */
+"Customize Card" = "카드 꾸미기";
+"Card Face" = "카드 앞면";
+"Pick a color, a bundled card design or your own photo." = "색상, 기본 제공 카드 디자인 또는 내 사진을 선택하세요.";
+"Photo Library" = "사진 보관함";
+"Photo" = "사진";
+"Text Contrast" = "텍스트 대비";
+"Shade" = "그라데이션";
+"Shadow" = "그림자";
+"None" = "없음";
+"Show Name" = "이름 표시";
+"Color" = "색상";
+"Classic" = "클래식";
+"Sunrise" = "선라이즈";
+"Scan Card Number" = "카드 번호 스캔";
+"Show Card Number" = "카드 번호 표시";
+"Text on Card" = "카드 표시 정보";
+"Leave the name empty to use the card's own name." = "이름을 비워 두면 카드의 원래 이름을 사용합니다.";
+"Shown next to the card name and on the ride map." = "카드 이름 옆과 승차 지도에 표시됩니다.";
+"Green" = "초록";
+"Blue" = "파랑";
+"Red" = "빨강";
+"Purple" = "보라";
+"Cyan" = "청록";
+"Orange" = "주황";
+"Graphite" = "그래파이트";
+"Custom Color" = "사용자 지정 색상";

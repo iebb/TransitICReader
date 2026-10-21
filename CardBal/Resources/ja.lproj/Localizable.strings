@@ -417,3 +417,31 @@
 "Sale Date" = "販売日";
 "Status" = "状態";
 "Validity" = "有効期間";
+
+/* Customize Card */
+"Customize Card" = "カードをカスタマイズ";
+"Card Face" = "券面";
+"Pick a color, a bundled card design or your own photo." = "色、収録済みの券面デザイン、または自分の写真から選べます。";
+"Photo Library" = "写真ライブラリ";
+"Photo" = "写真";
+"Text Contrast" = "文字の見やすさ";
+"Shade" = "グラデーション";
+"Shadow" = "文字の影";
+"None" = "なし";
+"Show Name" = "名前を表示";
+"Color" = "カラー";
+"Classic" = "クラシック";
+"Sunrise" = "サンライズ";
+"Scan Card Number" = "カード番号をスキャン";
+"Show Card Number" = "カード番号を表示";
+"Text on Card" = "カードの表示";
+"Leave the name empty to use the card's own name." = "名前を空欄にすると、カード本来の名前を使います。";
+"Shown next to the card name and on the ride map." = "カード名の横と乗車マップに表示されます。";
+"Green" = "緑";
+"Blue" = "青";
+"Red" = "赤";
+"Purple" = "紫";
+"Cyan" = "シアン";
+"Orange" = "オレンジ";
+"Graphite" = "グラファイト";
+"Custom Color" = "カスタムカラー";

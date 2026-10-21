@@ -54,7 +54,7 @@ struct WalletCardView: View {
             
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous)
-                    .fill(cardBackground)
+                    .fill(card.colorFace())
 
                 if let faceImage, card.finalIsUsingImage {
                     Image(uiImage: faceImage)
@@ -273,13 +273,16 @@ struct WalletCardView: View {
                 y: 1.5
             )
     }
+}
 
-    private var cardBackground: AnyShapeStyle {
-        switch card.design {
+extension SavedCardRecord {
+    /// The gradient a card shows when it has no photo face.
+    func colorFace(design: SavedCardDesign? = nil) -> LinearGradient {
+        switch design ?? self.design {
         case .classic:
-            return AnyShapeStyle(LinearGradient(colors: [card.color.color, card.color.darkerColor, .black], startPoint: .topLeading, endPoint: .bottomTrailing))
+            return LinearGradient(colors: [color.color, color.darkerColor, .black], startPoint: .topLeading, endPoint: .bottomTrailing)
         case .sunrise:
-            return AnyShapeStyle(LinearGradient(stops: [.init(color: card.color.color, location: 0), .init(color: card.color.color.opacity(0.92), location: 0.28), .init(color: .orange.opacity(0.9), location: 0.72), .init(color: card.color.darkerColor, location: 1)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            return LinearGradient(stops: [.init(color: color.color, location: 0), .init(color: color.color.opacity(0.92), location: 0.28), .init(color: .orange.opacity(0.9), location: 0.72), .init(color: color.darkerColor, location: 1)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 }

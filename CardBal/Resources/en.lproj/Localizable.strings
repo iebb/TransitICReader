@@ -373,3 +373,32 @@
 "Customize" = "Customize";
 "Last Scanned" = "Last Scanned";
 "Unavailable" = "Unavailable";
+
+/* Customize Card */
+"Customize Card" = "Customize Card";
+"Card Face" = "Card Face";
+"Pick a color, a bundled card design or your own photo." = "Pick a color, a bundled card design or your own photo.";
+"Photo Library" = "Photo Library";
+"Photo" = "Photo";
+"Text Contrast" = "Text Contrast";
+"Shade" = "Shade";
+"Shadow" = "Shadow";
+"None" = "None";
+"Show Name" = "Show Name";
+"Color" = "Color";
+"Classic" = "Classic";
+"Sunrise" = "Sunrise";
+"Card Number" = "Card Number";
+"Scan Card Number" = "Scan Card Number";
+"Show Card Number" = "Show Card Number";
+"Text on Card" = "Text on Card";
+"Leave the name empty to use the card's own name." = "Leave the name empty to use the card's own name.";
+"Shown next to the card name and on the ride map." = "Shown next to the card name and on the ride map.";
+"Green" = "Green";
+"Blue" = "Blue";
+"Red" = "Red";
+"Purple" = "Purple";
+"Cyan" = "Cyan";
+"Orange" = "Orange";
+"Graphite" = "Graphite";
+"Custom Color" = "Custom Color";

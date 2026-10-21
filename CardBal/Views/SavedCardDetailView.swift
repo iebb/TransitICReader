@@ -2,29 +2,12 @@ import SwiftUI
 import PhotosUI
 
 struct SavedCardDetailView: View {
-    private enum AppearanceMode: String, CaseIterable, Identifiable {
-        case image = "Image", colors = "Colors"
-        var id: String { rawValue }
-    }
-
     let cardID: String
     @ObservedObject var store: CardWalletStore
     var initialSelection: CardDetailRoute.Selection = .settings
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewSelection: CardDetailRoute.Selection = .settings
-    @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var isShowingCamera = false
-    @State private var pendingFaceImage: UIImage?
-    @State private var pendingAutoCroppedImage: UIImage?
-    @State private var appearanceMode: AppearanceMode = .colors
-    @State private var isShowingMarkerSheet = false
-    @State private var isShowingSNScanner = false
-    @State private var isShowingSavedFacePicker = false
-    @State private var draftTitle: String?
-    @State private var draftSerialNumber: String?
-    @State private var titleTask: Task<Void, Never>?
-    @State private var snTask: Task<Void, Never>?
     @State private var draftDeleteConfirmation = false
     @State private var activeHistoryItem: HistorySheetItem?
     @State private var pendingDeletions: Set<String> = []
@@ -43,33 +26,6 @@ struct SavedCardDetailView: View {
     private func detailContent(card: SavedCardRecord) -> some View {
         cardDetailList(card: card)
             .navigationTitle(card.displayTitle)
-            .onAppear { appearanceMode = card.finalIsUsingImage ? .image : .colors }
-            .sheet(isPresented: $isShowingSNScanner) {
-                snScannerSheet(card: card)
-            }
-            .sheet(isPresented: $isShowingMarkerSheet) {
-                markerEditorSheet(card: card)
-            }
-            .sheet(isPresented: $isShowingSavedFacePicker) {
-                savedFacePickerSheet(card: card)
-            }
-            .onChange(of: selectedPhotoItem) { newValue in
-                handlePhotoSelection(newValue)
-            }
-            .fullScreenCover(isPresented: $isShowingCamera) {
-                ImagePicker { image in
-                    Task {
-                        let result = await CardPhotoProcessor.process(image)
-                        await MainActor.run {
-                            pendingFaceImage = result.original
-                            pendingAutoCroppedImage = result.autoCropped
-                        }
-                    }
-                }
-            }
-            .sheet(item: editableFaceImageBinding()) { editable in
-                faceImageEditorSheet(editable: editable, card: card)
-            }
     }
 
     private func cardDetailList(card: SavedCardRecord) -> some View {
@@ -80,7 +36,15 @@ struct SavedCardDetailView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
                 }
-                
+
+                Section {
+                    NavigationLink {
+                        CardCustomizeView(cardID: card.id, store: store)
+                    } label: {
+                        Label("Customize Card", systemImage: "paintbrush.pointed")
+                    }
+                }
+
                 Section("Card Information") {
                     cardInfoSection(card: card)
                 }
@@ -139,14 +103,6 @@ struct SavedCardDetailView: View {
                     }
                 }
 
-                Section("Customize") {
-                    titleSection(card: card)
-                }
-
-                Section("Appearance") {
-                    appearanceSection(card: card)
-                }
-
                 Section {
                         Button("Delete Card", role: .destructive) {
                             draftDeleteConfirmation = true
@@ -186,40 +142,6 @@ struct SavedCardDetailView: View {
             }
         }
         .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    private func titleSection(card: SavedCardRecord) -> some View {
-        Button { isShowingMarkerSheet = true } label: {
-            HStack { 
-                Text("Icon").foregroundStyle(.primary)
-                Spacer()
-                MarkerPreviewBadge(card: card)
-                Image(systemName: "chevron.right").foregroundStyle(.tertiary) 
-            }
-        }.buttonStyle(.plain)
-
-        HStack { 
-            Text("Name").foregroundStyle(.secondary)
-            Spacer()
-            TextField("Card Title", text: titleBinding(card: card))
-                .multilineTextAlignment(.trailing) 
-        }
-
-        HStack { 
-            Text("S/N").foregroundStyle(.secondary)
-            Spacer()
-            TextField("S/N", text: snBinding(card: card))
-                .multilineTextAlignment(.trailing)
-            if card.technology == "FeliCa" && card.systemCode == "0003" { 
-                Button { isShowingSNScanner = true } label: { 
-                    Image(systemName: "barcode.viewfinder").font(.title3).foregroundStyle(Color.accentColor) 
-                }.buttonStyle(.plain) 
-            } 
-        }
-
-        Toggle("Hide Title", isOn: Binding(get: { card.finalHideTitle }, set: { store.setHideTitleOnImage($0, for: card.id) }))
-        Toggle("Hide Serial Number", isOn: Binding(get: { card.finalHideSN }, set: { store.setHideSerialNumber($0, for: card.id) }))
     }
 
     @ViewBuilder
@@ -349,87 +271,6 @@ struct SavedCardDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func appearanceSection(card: SavedCardRecord) -> some View {
-        Picker("Design Type", selection: $appearanceMode) { 
-            Text("Colors").tag(AppearanceMode.colors)
-            Text("Image").tag(AppearanceMode.image) 
-        }
-        .pickerStyle(.segmented)
-        .onChange(of: appearanceMode) { mode in
-            store.setIsUsingImage(mode == .image, for: card.id)
-        }
-
-        if appearanceMode == .image {
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images) { 
-                Label("Choose From Gallery", systemImage: "photo") 
-            }
-            Button {
-                isShowingSavedFacePicker = true
-            } label: {
-                Label("Choose From Preset Designs", systemImage: "square.stack.3d.up")
-            }
-            if UIImagePickerController.isSourceTypeAvailable(.camera) { 
-                Button { isShowingCamera = true } label: { Label("Take Photo", systemImage: "camera") } 
-            }
-            if card.faceImageFileName != nil {
-                Button(role: .destructive) { store.removeFaceImage(for: card.id); appearanceMode = .colors } label: {
-                    Label("Remove Current Photo", systemImage: "trash")
-                }
-            }
-        } else {
-            ColorPicker("Card Color", selection: Binding(get: { card.color.color }, set: { store.setColor($0, for: card.id) }), supportsOpacity: false)
-            Picker("Style", selection: Binding(get: { card.design }, set: { store.setDesign($0, for: card.id) })) { 
-                ForEach(SavedCardDesign.allCases) { d in Text(d.title).tag(d) } 
-            }
-        }
-    }
-
-    private func titleBinding(card: SavedCardRecord) -> Binding<String> {
-        Binding(
-            get: { draftTitle ?? card.customTitle ?? "" },
-            set: { v in 
-                draftTitle = v
-                titleTask?.cancel()
-                titleTask = Task {
-                    try? await Task.sleep(nanoseconds: 400_000_000)
-                    if !Task.isCancelled { store.setCustomTitle(v, for: card.id) }
-                }
-            }
-        )
-    }
-
-    private func snBinding(card: SavedCardRecord) -> Binding<String> {
-        Binding(
-            get: {
-                draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue
-            },
-            set: { v in 
-                draftSerialNumber = v
-                snTask?.cancel()
-                snTask = Task {
-                    try? await Task.sleep(nanoseconds: 400_000_000)
-                    if !Task.isCancelled { store.setCustomDisplaySerialNumber(v, for: card.id) }
-                }
-            }
-        )
-    }
-
-    private func handlePhotoSelection(_ item: PhotosPickerItem?) {
-        guard let item = item else { return }
-        Task {
-            if let data = try? await item.loadTransferable(type: Data.self),
-               let image = UIImage(data: data) {
-                let result = await CardPhotoProcessor.process(image)
-                await MainActor.run {
-                    pendingFaceImage = result.original
-                    pendingAutoCroppedImage = result.autoCropped
-                }
-            }
-            await MainActor.run { selectedPhotoItem = nil }
-        }
-    }
-
     private func checkCalypsoOnline(card: SavedCardRecord) {
         guard let serial = card.calypsoOnlineSerialNumber else { return }
         calypsoOnlineLookup = .loading
@@ -447,6 +288,346 @@ struct SavedCardDetailView: View {
                     calypsoOnlineLookup = .failed(error.localizedDescription)
                 }
             }
+        }
+    }
+}
+
+/// Restyles a saved card while the live result stays pinned above the controls.
+struct CardCustomizeView: View {
+    let cardID: String
+    @ObservedObject var store: CardWalletStore
+
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isShowingCamera = false
+    @State private var pendingFaceImage: UIImage?
+    @State private var pendingAutoCroppedImage: UIImage?
+    @State private var isShowingMarkerSheet = false
+    @State private var isShowingSNScanner = false
+    @State private var draftTitle: String?
+    @State private var draftSerialNumber: String?
+    @State private var titleTask: Task<Void, Never>?
+    @State private var snTask: Task<Void, Never>?
+
+    private static let swatches: [(name: LocalizedStringKey, color: SavedCardColor)] = [
+        ("Green", SavedCardColor(red: 0.13, green: 0.64, blue: 0.36)),
+        ("Blue", SavedCardColor(red: 0.23, green: 0.45, blue: 0.94)),
+        ("Red", SavedCardColor(red: 0.90, green: 0.25, blue: 0.18)),
+        ("Purple", SavedCardColor(red: 0.63, green: 0.40, blue: 0.91)),
+        ("Cyan", SavedCardColor(red: 0.10, green: 0.66, blue: 0.87)),
+        ("Orange", SavedCardColor(red: 0.96, green: 0.57, blue: 0.12)),
+        ("Graphite", SavedCardColor(red: 0.23, green: 0.24, blue: 0.27))
+    ]
+
+    var body: some View {
+        if let card = store.card(withID: cardID) {
+            customizeList(card: card)
+                .navigationTitle("Customize Card")
+                .navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $isShowingMarkerSheet) {
+                    MarkerEditorSheet(cardID: card.id, store: store)
+                }
+                .sheet(isPresented: $isShowingSNScanner) {
+                    snScannerSheet(card: card)
+                }
+                .fullScreenCover(isPresented: $isShowingCamera) {
+                    ImagePicker { image in processPhoto(image) }
+                }
+                .sheet(item: editableFaceImageBinding()) { editable in
+                    faceImageEditorSheet(editable: editable, card: card)
+                }
+                .onChange(of: selectedPhotoItem) { newValue in
+                    handlePhotoSelection(newValue)
+                }
+        }
+    }
+
+    private func customizeList(card: SavedCardRecord) -> some View {
+        let isPhotoFace = card.finalIsUsingImage && store.loadFaceImage(fileName: card.faceImageFileName) != nil
+        return List {
+            Section {
+                faceCarousel(card: card, isPhotoFace: isPhotoFace)
+                    .listRowInsets(EdgeInsets(top: 14, leading: 0, bottom: 12, trailing: 0))
+                HStack(spacing: 10) {
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                        Label("Photo Library", systemImage: "photo.on.rectangle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button { isShowingCamera = true } label: {
+                            Label("Take Photo", systemImage: "camera")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .font(.subheadline.weight(.semibold))
+            } header: {
+                Text("Card Face")
+            } footer: {
+                Text("Pick a color, a bundled card design or your own photo.")
+            }
+
+            if isPhotoFace {
+                Section("Photo") {
+                    Picker("Text Contrast", selection: Binding(get: { card.imageFaceEnhancer }, set: { store.setImageFaceEnhancer($0, for: card.id) })) {
+                        Text("Shade").tag(ImageFaceEnhancer.mask)
+                        Text("Shadow").tag(ImageFaceEnhancer.border)
+                        Text("None").tag(ImageFaceEnhancer.none)
+                    }
+                    Toggle("Show Name", isOn: Binding(get: { !card.finalHideTitle }, set: { store.setHideTitleOnImage(!$0, for: card.id) }))
+                }
+            } else {
+                Section("Color") {
+                    swatchRow(card: card)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                }
+                Section("Style") {
+                    HStack(spacing: 14) {
+                        ForEach(SavedCardDesign.allCases) { design in
+                            faceTile(Text(LocalizedStringKey(design.title)), isSelected: card.design == design) {
+                                store.setDesign(design, for: card.id)
+                            } face: {
+                                Rectangle().fill(card.colorFace(design: design))
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+            Section {
+                LabeledContent("Name") {
+                    TextField("Name", text: titleBinding(card: card), prompt: Text(defaultTitle(card: card)))
+                        .multilineTextAlignment(.trailing)
+                        .submitLabel(.done)
+                }
+                LabeledContent("Card Number") {
+                    HStack(spacing: 10) {
+                        TextField("Card Number", text: snBinding(card: card))
+                            .multilineTextAlignment(.trailing)
+                            .monospacedDigit()
+                            .submitLabel(.done)
+                        if card.technology == "FeliCa" && card.systemCode == "0003" {
+                            Button { isShowingSNScanner = true } label: {
+                                Image(systemName: "barcode.viewfinder")
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel(Text("Scan Card Number"))
+                        }
+                    }
+                }
+                Toggle("Show Card Number", isOn: Binding(get: { !card.finalHideSN }, set: { store.setHideSerialNumber(!$0, for: card.id) }))
+            } header: {
+                Text("Text on Card")
+            } footer: {
+                Text("Leave the name empty to use the card's own name.")
+            }
+
+            Section {
+                Button { isShowingMarkerSheet = true } label: {
+                    HStack {
+                        Text("Card Icon").foregroundStyle(.primary)
+                        Spacer()
+                        MarkerPreviewBadge(card: card)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } footer: {
+                Text("Shown next to the card name and on the ride map.")
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            livePreview(card: card)
+        }
+    }
+
+    private func livePreview(card: SavedCardRecord) -> some View {
+        WalletCardLayout {
+            GeometryReader { proxy in
+                // Compact history chips keep the smaller preview from wrapping.
+                WalletCardView(
+                    card: card,
+                    isExpanded: false,
+                    cardHeight: proxy.size.height,
+                    visiblePartHeight: 0,
+                    onVisibleTap: {},
+                    showDetails: {},
+                    showTransactions: {},
+                    showTransit: {}
+                )
+            }
+        }
+        .frame(maxWidth: 300)
+        .allowsHitTesting(false)
+        .shadow(color: .black.opacity(0.25), radius: 14, y: 8)
+        .padding(.top, 8)
+        .padding(.bottom, 14)
+        .frame(maxWidth: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+
+    private func faceCarousel(card: SavedCardRecord, isPhotoFace: Bool) -> some View {
+        let current = card.faceImageFileName
+        let presets = store.presets()
+        let savedFaces = store.faceAssets().filter { $0.fileName != current }
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 12) {
+                faceTile(Text("Color"), isSelected: !isPhotoFace) {
+                    store.setIsUsingImage(false, for: card.id)
+                } face: {
+                    Rectangle().fill(card.colorFace())
+                }
+
+                if let current, let image = store.loadFaceImage(fileName: current) {
+                    let presetName = presets.first { $0.fileName == current }?.name
+                    faceTile(presetName.map { Text(verbatim: $0) } ?? Text("Photo"), isSelected: isPhotoFace) {
+                        store.setIsUsingImage(true, for: card.id)
+                    } face: {
+                        Image(uiImage: image).resizable().scaledToFill()
+                    }
+                }
+
+                ForEach(savedFaces) { asset in
+                    if let image = store.loadFaceImage(fileName: asset.fileName) {
+                        faceTile(Text("Photo"), isSelected: false) {
+                            store.applyFaceAsset(asset.fileName, to: card.id)
+                        } face: {
+                            Image(uiImage: image).resizable().scaledToFill()
+                        }
+                    }
+                }
+
+                ForEach(presets.filter { $0.fileName != current }) { preset in
+                    if let image = UIImage(named: preset.fileName) {
+                        faceTile(Text(verbatim: preset.name), isSelected: false) {
+                            store.applyPreset(preset, to: card.id)
+                        } face: {
+                            Image(uiImage: image).resizable().scaledToFill()
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func faceTile<Face: View>(_ title: Text, isSelected: Bool, action: @escaping () -> Void, @ViewBuilder face: () -> Face) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        return Button(action: action) {
+            VStack(spacing: 7) {
+                face()
+                    .frame(width: 92, height: 92 / WalletCardLayout.aspectRatio)
+                    .clipShape(shape)
+                    .overlay(shape.strokeBorder(.white.opacity(0.14), lineWidth: 1))
+                    .padding(3)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
+                    )
+                title
+                    .font(.caption.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .lineLimit(1)
+            }
+            .frame(width: 98)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func swatchRow(card: SavedCardRecord) -> some View {
+        let isCustom = !Self.swatches.contains { isSameColor($0.color, card.color) }
+        return HStack(spacing: 0) {
+            ForEach(Self.swatches.indices, id: \.self) { index in
+                let swatch = Self.swatches[index]
+                let isSelected = isSameColor(swatch.color, card.color)
+                Button {
+                    store.setColor(swatch.color.color, for: card.id)
+                } label: {
+                    Circle()
+                        .fill(swatch.color.color)
+                        .frame(width: 28, height: 28)
+                        .padding(3)
+                        .overlay(Circle().strokeBorder(isSelected ? Color.primary : .clear, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel(Text(swatch.name))
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+            ColorPicker("Custom Color", selection: Binding(get: { card.color.color }, set: { store.setColor($0, for: card.id) }), supportsOpacity: false)
+                .labelsHidden()
+                .padding(3)
+                .overlay(Circle().strokeBorder(isCustom ? Color.primary : .clear, lineWidth: 2))
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func isSameColor(_ lhs: SavedCardColor, _ rhs: SavedCardColor) -> Bool {
+        abs(lhs.red - rhs.red) < 0.02 && abs(lhs.green - rhs.green) < 0.02 && abs(lhs.blue - rhs.blue) < 0.02
+    }
+
+    private func defaultTitle(card: SavedCardRecord) -> String {
+        var uncustomized = card
+        uncustomized.customTitle = nil
+        return uncustomized.displayTitle
+    }
+
+    private func titleBinding(card: SavedCardRecord) -> Binding<String> {
+        Binding(
+            get: { draftTitle ?? card.customTitle ?? "" },
+            set: { v in
+                draftTitle = v
+                titleTask?.cancel()
+                titleTask = Task {
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    if !Task.isCancelled { store.setCustomTitle(v, for: card.id) }
+                }
+            }
+        )
+    }
+
+    private func snBinding(card: SavedCardRecord) -> Binding<String> {
+        Binding(
+            get: {
+                draftSerialNumber ?? card.customDisplaySerialNumber ?? card.cardNumber ?? card.identifierValue
+            },
+            set: { v in
+                draftSerialNumber = v
+                snTask?.cancel()
+                snTask = Task {
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    if !Task.isCancelled { store.setCustomDisplaySerialNumber(v, for: card.id) }
+                }
+            }
+        )
+    }
+
+    private func processPhoto(_ image: UIImage) {
+        Task {
+            let result = await CardPhotoProcessor.process(image)
+            await MainActor.run {
+                pendingFaceImage = result.original
+                pendingAutoCroppedImage = result.autoCropped
+            }
+        }
+    }
+
+    private func handlePhotoSelection(_ item: PhotosPickerItem?) {
+        guard let item = item else { return }
+        Task {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let image = UIImage(data: data) {
+                processPhoto(image)
+            }
+            await MainActor.run { selectedPhotoItem = nil }
         }
     }
 
@@ -472,10 +653,6 @@ struct SavedCardDetailView: View {
         )
     }
 
-    private func markerEditorSheet(card: SavedCardRecord) -> some View {
-        MarkerEditorSheet(cardID: card.id, store: store)
-    }
-
     private func faceImageEditorSheet(editable: EditableFaceImage, card: SavedCardRecord) -> some View {
         FaceImageEditorSheet(
             image: editable.image,
@@ -485,21 +662,6 @@ struct SavedCardDetailView: View {
                 store.setFaceImage(image, for: card.id)
                 pendingFaceImage = nil
                 pendingAutoCroppedImage = nil
-            }
-        )
-    }
-
-    private func savedFacePickerSheet(card: SavedCardRecord) -> some View {
-        SavedFaceAssetPickerSheet(
-            store: store,
-            excludingFileName: card.faceImageFileName,
-            onSelect: { fileName in
-                store.applyFaceAsset(fileName, to: card.id)
-                isShowingSavedFacePicker = false
-            },
-            onSelectPreset: { preset in
-                store.applyPreset(preset, to: card.id)
-                isShowingSavedFacePicker = false
             }
         )
     }
