@@ -368,13 +368,18 @@ struct CardCustomizeView: View {
             }
 
             if isPhotoFace {
-                Section("Photo") {
+                Section {
+                    Toggle("Frosted Header", isOn: Binding(get: { card.finalFrostedHeader }, set: { store.setFrostedHeader($0, for: card.id) }))
                     Picker("Text Contrast", selection: Binding(get: { card.imageFaceEnhancer }, set: { store.setImageFaceEnhancer($0, for: card.id) })) {
-                        Text("Frosted").tag(ImageFaceEnhancer.mask)
+                        Text("Shade").tag(ImageFaceEnhancer.mask)
                         Text("Shadow").tag(ImageFaceEnhancer.border)
                         Text("None").tag(ImageFaceEnhancer.none)
                     }
                     Toggle("Show Name", isOn: Binding(get: { !card.finalHideTitle }, set: { store.setHideTitleOnImage(!$0, for: card.id) }))
+                } header: {
+                    Text("Photo")
+                } footer: {
+                    Text("Frosted Header blurs the top of the design so the name and balance stay clear of its logos.")
                 }
             } else {
                 Section("Color") {

@@ -698,7 +698,7 @@ struct SettingsView: View {
                 Section {
                     Toggle("Scan on Launch", isOn: $scanOnLaunch)
                     NavigationLink { displaySettings } label: {
-                        Label("Display", systemImage: "textformat")
+                        Label("Display", systemImage: "calendar.badge.clock")
                     }
                     NavigationLink { CardFaceLibraryView(store: store) } label: {
                         Label("Card Faces", systemImage: "photo.stack")

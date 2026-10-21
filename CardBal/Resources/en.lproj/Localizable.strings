@@ -381,7 +381,9 @@
 "Photo Library" = "Photo Library";
 "Photo" = "Photo";
 "Text Contrast" = "Text Contrast";
-"Frosted" = "Frosted";
+"Shade" = "Shade";
+"Frosted Header" = "Frosted Header";
+"Frosted Header blurs the top of the design so the name and balance stay clear of its logos." = "Frosted Header blurs the top of the design so the name and balance stay clear of its logos.";
 "Shadow" = "Shadow";
 "None" = "None";
 "Show Name" = "Show Name";

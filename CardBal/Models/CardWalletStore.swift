@@ -403,6 +403,12 @@ class CardWalletStore: ObservableObject {
         save()
     }
 
+    func setFrostedHeader(_ frosted: Bool, for id: String) {
+        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        cards[index].frostedHeader = frosted
+        save()
+    }
+
     func setMarkerSymbolName(_ symbol: String?, for id: String) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
         cards[index].markerSymbolName = symbol

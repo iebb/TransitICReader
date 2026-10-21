@@ -64,8 +64,23 @@ struct WalletCardView: View {
                         .clipShape(RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous))
                 }
 
-                if let faceImage, isPhotoFace && card.imageFaceEnhancer == .mask {
+                if let faceImage, isPhotoFace && card.finalFrostedHeader {
                     frostedHeader(faceImage, size: proxy.size, cornerRadius: dynamicRadius)
+                } else if isPhotoFace && card.imageFaceEnhancer == .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.58), location: 0),
+                            .init(color: .black.opacity(0.34), location: 0.2),
+                            .init(color: .black.opacity(0.1), location: 0.38),
+                            .init(color: .clear, location: 0.56),
+                            .init(color: .clear, location: 0.72),
+                            .init(color: .black.opacity(0.22), location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous))
+                    .allowsHitTesting(false)
                 }
 
                 RoundedRectangle(cornerRadius: dynamicRadius, style: .continuous)

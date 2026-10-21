@@ -425,7 +425,9 @@
 "Photo Library" = "照片图库";
 "Photo" = "照片";
 "Text Contrast" = "文字对比度";
-"Frosted" = "磨砂";
+"Shade" = "渐变遮罩";
+"Frosted Header" = "磨砂顶栏";
+"Frosted Header blurs the top of the design so the name and balance stay clear of its logos." = "磨砂顶栏会模糊卡面顶部，让名称和余额不与卡面标志重叠。";
 "Shadow" = "文字阴影";
 "None" = "无";
 "Show Name" = "显示名称";

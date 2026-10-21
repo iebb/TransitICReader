@@ -113,6 +113,8 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var isUsingImage: Bool?
     var hideTitleOnImage: Bool?
     var hideSerialNumber: Bool?
+    /// Opt-in blur behind the card text on photo and design faces.
+    var frostedHeader: Bool?
     var imageFaceEnhancer: ImageFaceEnhancer
     var autoImageTextColors: Bool
     var autoTitleTextColor: SavedCardColor?
@@ -149,7 +151,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id, cardFamily, markerSymbolName, markerColor, markerOuterColor, markerShape
-        case customTitle, customDisplaySerialNumber, isUsingImage, hideTitleOnImage, hideSerialNumber
+        case customTitle, customDisplaySerialNumber, isUsingImage, hideTitleOnImage, hideSerialNumber, frostedHeader
         case imageFaceEnhancer, autoImageTextColors, autoTitleTextColor, autoBalanceTextColor
         case titleTextColorOverride, balanceTextColorOverride, technology, identifierLabel
         case rawIdentifierValue, identifierValue, pmm, selectedAID, systemCode, balanceText
@@ -172,6 +174,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         isUsingImage = try container.decodeIfPresent(Bool.self, forKey: .isUsingImage)
         hideTitleOnImage = try container.decodeIfPresent(Bool.self, forKey: .hideTitleOnImage)
         hideSerialNumber = try container.decodeIfPresent(Bool.self, forKey: .hideSerialNumber)
+        frostedHeader = try container.decodeIfPresent(Bool.self, forKey: .frostedHeader)
         imageFaceEnhancer = try container.decode(ImageFaceEnhancer.self, forKey: .imageFaceEnhancer)
         autoImageTextColors = try container.decode(Bool.self, forKey: .autoImageTextColors)
         autoTitleTextColor = try container.decodeIfPresent(SavedCardColor.self, forKey: .autoTitleTextColor)
@@ -431,6 +434,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var finalIsUsingImage: Bool { isUsingImage ?? (faceImageFileName != nil) }
     var finalHideTitle: Bool { hideTitleOnImage ?? false }
     var finalHideSN: Bool { hideSerialNumber ?? false }
+    var finalFrostedHeader: Bool { frostedHeader ?? false }
 
     var displayedSerialNumber: String {
         let raw: String
@@ -548,6 +552,7 @@ extension SavedCardRecord {
         self.isUsingImage = nil
         self.hideTitleOnImage = nil
         self.hideSerialNumber = nil
+        self.frostedHeader = nil
         self.imageFaceEnhancer = .mask
         self.autoImageTextColors = true
         self.autoTitleTextColor = nil

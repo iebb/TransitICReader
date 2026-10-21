@@ -425,7 +425,9 @@
 "Photo Library" = "写真ライブラリ";
 "Photo" = "写真";
 "Text Contrast" = "文字の見やすさ";
-"Frosted" = "すりガラス";
+"Shade" = "グラデーション";
+"Frosted Header" = "すりガラスのヘッダー";
+"Frosted Header blurs the top of the design so the name and balance stay clear of its logos." = "すりガラスのヘッダーは券面上部をぼかし、名前や残高が券面のロゴと重ならないようにします。";
 "Shadow" = "文字の影";
 "None" = "なし";
 "Show Name" = "名前を表示";

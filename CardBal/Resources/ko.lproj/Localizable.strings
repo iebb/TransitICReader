@@ -429,7 +429,9 @@
 "Photo Library" = "사진 보관함";
 "Photo" = "사진";
 "Text Contrast" = "텍스트 대비";
-"Frosted" = "흐림 효과";
+"Shade" = "그라데이션";
+"Frosted Header" = "흐림 효과 헤더";
+"Frosted Header blurs the top of the design so the name and balance stay clear of its logos." = "흐림 효과 헤더는 디자인 상단을 흐리게 해 이름과 잔액이 로고와 겹쳐 보이지 않게 합니다.";
 "Shadow" = "그림자";
 "None" = "없음";
 "Show Name" = "이름 표시";
