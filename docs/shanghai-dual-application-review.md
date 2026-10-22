@@ -167,9 +167,11 @@ APK's behavior is a reference for the implementation, not iOS device validation.
   customization. History is merged by application/file/content, not ring position.
 - Mirrored PBOC purchases match bytes `[5,23)` only across distinct sources.
   Multiple matching records within one source remain separate. A TU travel row
-  enriches a purchase only for a unique match on timestamp, amount/currency and
-  the full six-byte terminal with an exact zero-padded eight-byte counterpart.
-  Unmatched and ambiguous records remain available.
+  enriches a purchase only for a unique match on timestamp and amount/currency.
+  The records must share an application source, or have a full six-byte terminal
+  with an exact zero-padded eight-byte counterpart. Both history views retain
+  all correlated source-record identities. Unmatched and ambiguous records
+  remain available. See the [Chongqing regression](chongqing-history-correlation.md).
 - CU entry/exit interpretation uses the reviewed SFI `11`/`14` terminal and
   minute fields; contradictory auxiliary directions remain unknown. Other
   auxiliary bytes are retained for inspection. Metro station lookup is disabled

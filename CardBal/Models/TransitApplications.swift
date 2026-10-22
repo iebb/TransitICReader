@@ -312,16 +312,20 @@ enum TransitApplicationHistory {
             return [best]
         }
 
+        // Evaluate both sides' candidates before enrichment changes provenance.
+        // A payment and a gate record must form a unique one-to-one pair.
+        let matchesByTrip = trips.map { trip in
+            purchases.indices.filter { matchesTravel(purchases[$0], trip) }
+        }
         var matchedPurchases = Set<Int>()
         for tripIndex in trips.indices {
             let trip = trips[tripIndex]
-            guard trip.app.isTUnion else { continue }
-            let matches = purchases.indices.filter { matchesTravel(purchases[$0], trip) }
+            let matches = matchesByTrip[tripIndex]
             guard matches.count == 1, let purchaseIndex = matches.first,
-                  trips.filter({ matchesTravel(purchases[purchaseIndex], $0) }).count == 1 else { continue }
-            let purchase = purchases[purchaseIndex].transaction
-            purchases[purchaseIndex].transaction = enriched(purchase, with: trip.transaction)
-            trips[tripIndex].transaction.sourceRecordIDs = (trip.transaction.sourceRecordIDs ?? []) + (purchase.sourceRecordIDs ?? [])
+                  matchesByTrip.filter({ $0.contains(purchaseIndex) }).count == 1 else { continue }
+            let merged = enriched(purchases[purchaseIndex].transaction, with: trip.transaction)
+            purchases[purchaseIndex].transaction = merged
+            trips[tripIndex].transaction.sourceRecordIDs = merged.sourceRecordIDs
             matchedPurchases.insert(purchaseIndex)
         }
         if kind == .transactions { return sortTransactionsByRecency(purchases.map(\.transaction)) }
@@ -340,10 +344,19 @@ enum TransitApplicationHistory {
 
     private static func matchesTravel(_ purchase: Item, _ trip: Item) -> Bool {
         guard trip.app.isTUnion, purchase.record.isPurchase,
+              purchase.app.isCityUnion || purchase.app.isTUnion,
               let date = purchase.transaction.date, date == trip.transaction.date,
               purchase.transaction.amount == trip.transaction.amount,
-              purchase.transaction.currencyCode == trip.transaction.currencyCode,
-              let terminal = purchase.transaction.terminalID, terminal.count == 12,
+              purchase.transaction.currencyCode == trip.transaction.currencyCode else { return false }
+        // SFI 18 payment terminals and SFI 1E gates can use different namespaces
+        // (for example Chongqing's 413180... payments and 0912... metro gates).
+        // Equal time and fare can correlate records from the same application.
+        // Include all mirrored sources, even if CU won the representative row.
+        if purchase.transaction.sourceRecordIDs?.contains(where: { $0.hasPrefix("\(trip.app.id)|") }) == true {
+            return true
+        }
+        // Without shared application evidence, retain the stricter terminal rule.
+        guard let terminal = purchase.transaction.terminalID, terminal.count == 12,
               terminal.contains(where: { $0 != "0" }),
               let travelTerminal = trip.transaction.terminalID else { return false }
         return travelTerminal == "0000" + terminal
@@ -359,7 +372,7 @@ enum TransitApplicationHistory {
         result.sourceApplicationID = purchase.sourceApplicationID
         result.sourceCardFamily = purchase.sourceCardFamily
         result.currencyCode = purchase.currencyCode
-        result.sourceRecordIDs = purchase.sourceRecordIDs
+        result.sourceRecordIDs = Array(Set((purchase.sourceRecordIDs ?? []) + (trip.sourceRecordIDs ?? []))).sorted()
         return result
     }
 }

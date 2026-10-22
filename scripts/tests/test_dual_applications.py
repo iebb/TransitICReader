@@ -174,6 +174,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
 }
 @main struct Tests {
     @MainActor static func main() async throws {
+        try testChongqingHistory()
         let cu = CityUnionDecoder.applicationAID, tu = TUnionDecoder.applicationAID
         var purchase = Data(repeating: 0, count: 23)
         purchase[1] = 1; purchase[8] = 200; purchase[9] = 6
@@ -193,7 +194,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         check(dual.balanceText == national.balanceText, "Shanghai purses added")
         check(dual.transactions.count == 1, "CU/TU duplicate purchase not reconciled")
         check(dual.transactions[0].entryStation == "莘庄", "Travel detail not joined to purchase")
-        check(dual.transactions[0].sourceRecordIDs?.count == 2, "Duplicate evidence lost")
+        check(dual.transactions[0].sourceRecordIDs?.count == 3, "Correlated payment evidence lost")
         check(dual.transitHistory.count == 1, "Travel and purchase shown twice")
         check(dual.transitHistory[0].sourceRecordIDs?.count == 3, "Correlated transit evidence lost")
         var ambiguous = national.applications![0]
@@ -354,7 +355,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         multiple.fail("Test complete", session: multipleSession)
         let timedOut = NFCTransitReader(); timedOut.startScanning()
         timedOut.accept(octopus, session: timedOut.session!)
-        try await Task.sleep(for: .seconds(6.2))
+        await timedOut.secondSideTimeout?.value
         check(!timedOut.isScanning && timedOut.latestSnapshot?.storageIdentifier == octopus.storageIdentifier, "Companion timeout lost the first application")
         print("PASS: dual applications, strict correlation, currencies, partial rescans, persistence, and APDU selection/status")
     }
@@ -363,7 +364,8 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         with tempfile.TemporaryDirectory(prefix="cardbal-dual-") as temporary:
             directory = Path(temporary)
             swift = directory / "test.swift"
-            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main)
+            chongqing = (ROOT / "scripts/tests/fixtures/chongqing_history.swift").read_text()
+            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing)
             binary = directory / "test-dual"
             build = subprocess.run(["swiftc", "-parse-as-library", str(swift), "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
