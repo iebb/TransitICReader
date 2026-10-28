@@ -29,8 +29,8 @@ jobs:
       ios_build: ${{ steps.version.outputs.ios_build }}
       android_version_code: ${{ steps.version.outputs.android_version_code }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - id: version
@@ -48,8 +48,8 @@ jobs:
       RELEASE_VERSION: ${{ needs.version.outputs.version }}
       IOS_BUILD_NUMBER: ${{ needs.version.outputs.ios_build }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - run: xcodebuild -version
@@ -70,7 +70,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
         run: python3 -m tools.release.testflight --ipa build/ios/export/CardBal.ipa
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-${{ needs.version.outputs.version }}-${{ needs.version.outputs.ios_build }}
           path: |
@@ -88,16 +88,19 @@ jobs:
       RELEASE_VERSION: ${{ needs.version.outputs.version }}
       ANDROID_VERSION_CODE: ${{ needs.version.outputs.android_version_code }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - run: python3 -m pip install -r android/tools/requirements-play.txt
       - name: Test Play release helper
         run: python3 -m unittest discover -s android/tools/tests -v
@@ -129,7 +132,7 @@ jobs:
             --bundle android/app/build/outputs/bundle/release/app-release.aab \
             --version "$RELEASE_VERSION" --version-code "$ANDROID_VERSION_CODE" \
             --metadata-out build/upload/android.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-${{ needs.version.outputs.version }}-${{ needs.version.outputs.android_version_code }}
           path: |
