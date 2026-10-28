@@ -1,0 +1,143 @@
+name: Upload
+run-name: Upload ${{ inputs.version }} to TestFlight and Play internal
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Marketing version, for example 2.5.0'
+        required: true
+        type: string
+      build_number:
+        description: 'Optional build counter (1–9999); defaults to 1000 + workflow run number'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cardbal-stores
+  cancel-in-progress: false
+
+jobs:
+  version:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      ios_build: ${{ steps.version.outputs.ios_build }}
+      android_version_code: ${{ steps.version.outputs.android_version_code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - id: version
+        name: Validate manual version and assign build numbers
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_BUILD_NUMBER: ${{ inputs.build_number }}
+        run: python3 -m tools.release.versions
+
+  ios:
+    needs: version
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      RELEASE_VERSION: ${{ needs.version.outputs.version }}
+      IOS_BUILD_NUMBER: ${{ needs.version.outputs.ios_build }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: xcodebuild -version
+      - name: Compile pinned station catalog
+        run: python3 -m tools.stations.build --source csv --target all --no-sync-android
+      - name: Test shared tools and Swift readers
+        run: python3 -m unittest discover -s tests -t .
+      - name: Archive and export signed iOS app
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: bash tools/release/ios_archive.sh
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: python3 -m tools.release.testflight --ipa build/ios/export/CardBal.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ needs.version.outputs.version }}-${{ needs.version.outputs.ios_build }}
+          path: |
+            build/ios/export/*.ipa
+            build/ios/CardBal.xcarchive/dSYMs
+          retention-days: 14
+      - name: Record upload
+        run: echo "Uploaded iOS $RELEASE_VERSION ($IOS_BUILD_NUMBER) to TestFlight. Apple processing may still be pending." >> "$GITHUB_STEP_SUMMARY"
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_VERSION: ${{ needs.version.outputs.version }}
+      ANDROID_VERSION_CODE: ${{ needs.version.outputs.android_version_code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: python3 -m pip install -r android/tools/requirements-play.txt
+      - name: Test Play release helper
+        run: python3 -m unittest discover -s android/tools/tests -v
+      - name: Restore upload keystore
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'cardbal-upload.jks'
+          path.write_bytes(base64.b64decode(os.environ['ANDROID_UPLOAD_KEYSTORE_BASE64'], validate=True))
+          path.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'CARDBAL_UPLOAD_STORE_FILE={path}\n')
+          PY
+      - name: Test and build signed Android bundle
+        working-directory: android
+        env:
+          CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
+          CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
+          CARDBAL_UPLOAD_KEY_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_KEY_PASSWORD }}
+        run: ./gradlew :app:testDebugUnitTest :app:bundleRelease --no-daemon -Ptransitic.versionName="$RELEASE_VERSION" -Ptransitic.versionCode="$ANDROID_VERSION_CODE"
+      - name: Upload to Google Play internal testing
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 android/tools/play_release.py upload-internal \
+            --bundle android/app/build/outputs/bundle/release/app-release.aab \
+            --version "$RELEASE_VERSION" --version-code "$ANDROID_VERSION_CODE" \
+            --metadata-out build/upload/android.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ needs.version.outputs.version }}-${{ needs.version.outputs.android_version_code }}
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            build/upload/android.json
+          retention-days: 14
+      - name: Remove upload keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/cardbal-upload.jks"
+      - name: Record upload
+        run: echo "Uploaded Android $RELEASE_VERSION ($ANDROID_VERSION_CODE) to Google Play internal testing." >> "$GITHUB_STEP_SUMMARY"

@@ -57,6 +57,7 @@ included. See [Android setup](android/README.md).
 ## Development
 
 - [Testing and build checks](docs/development/testing.md)
+- [Manual TestFlight, Play internal and store release workflows](docs/development/releases.md)
 - [Card decoding](docs/decoding/cards.md)
 - [Additional-card feasibility and platform gaps](docs/research/card-support.md)
 - [Station data and attribution](docs/data/station-assets.md)

@@ -21,6 +21,18 @@ val buildArm64Split = providers.gradleProperty("cardbal.abiSplit")
     .map { it.equals("true", ignoreCase = true) }
     .getOrElse(false)
 
+val appVersionName = providers.gradleProperty("transitic.versionName").orElse("0.1.1").get()
+require(appVersionName.isNotBlank() && appVersionName == appVersionName.trim() &&
+    appVersionName.none { it.isISOControl() }) {
+    "transitic.versionName must be a nonempty version without surrounding whitespace or control characters"
+}
+val appVersionCodeText = providers.gradleProperty("transitic.versionCode").orElse("4").get()
+val appVersionCode = appVersionCodeText.toIntOrNull()
+require(appVersionCode != null && appVersionCode in 1..2_100_000_000 &&
+    appVersionCodeText.matches(Regex("[0-9]+"))) {
+    "transitic.versionCode must be an integer between 1 and 2100000000"
+}
+
 val stationAssetsDirectory = layout.buildDirectory.dir("generated/stationAssets")
 val portableStationDirectory = layout.buildDirectory.dir("generated/portableStationAssets")
 
@@ -32,8 +44,8 @@ android {
         applicationId = "ad.neko.cardbal.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.1.1"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     splits {

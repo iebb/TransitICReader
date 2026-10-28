@@ -79,3 +79,64 @@ variables or the ignored `local.properties` file:
 
 Keep keystores outside the checkout. Do not commit `local.properties`, `local/`,
 SDK paths, passwords, keystores, caches, APKs, bundles or build output.
+
+## Manual store workflows
+
+Run the repository's [Upload workflow](../.github/workflows/upload.yml) on
+`master` to build both platforms with an explicit marketing version. Android
+uploads a signed AAB to Google Play **internal testing**; iOS uploads to
+TestFlight. The optional build number is a major value from 1 through 9999;
+otherwise it defaults to `1000 + workflow run number`. A run attempt is appended
+for iOS and encoded as `major * 100 + attempt` for Android. For example, major
+3000 on attempt 1 produces iOS build `3000.1` and Android version code `300001`.
+Choose a higher major override if existing store builds exceed the default.
+The standalone Android helper accepts version codes from 1 through 2100000000.
+
+The separate [Release workflow](../.github/workflows/release.yml) selects the
+latest existing TestFlight and Play internal builds, checks their marketing
+versions agree, then submits those builds for App Review/production. It does
+not rebuild or upload binaries. Play selection uses the greatest numeric
+version code and requires a single completed internal release with a numeric
+marketing-version name. It fails on ambiguous metadata, a changed selection,
+an unfinished production release, or an equal/newer production build. Play
+review and managed publishing settings still determine when an accepted edit
+becomes public. Both store steps use existing configured listings and their
+review information; they do not create a new store listing.
+
+Maintainers configure `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` as a GitHub secret for
+the existing app's Play Developer API access, and the upload signing values
+above through the workflow's secret configuration. No credentials belong in
+the checkout. The service account needs permissions to inspect releases and
+release to testing/production for `ad.neko.cardbal.android`. Review the
+[official API setup](https://developers.google.com/android-publisher/getting_started)
+when granting access.
+
+The Gradle version overrides used by Upload can also build a local unsigned AAB
+when no upload signing values are configured:
+
+```sh
+./gradlew :app:bundleRelease -Ptransitic.versionName=1.2.3 -Ptransitic.versionCode=1234
+```
+
+The Play helper can inspect the internal selection without committing an edit:
+
+```sh
+python3 -m pip install -r tools/requirements-play.txt
+python3 tools/play_release.py inspect-latest-internal --metadata-out /tmp/play-internal.json
+python3 -m unittest discover -s tools/tests -v
+```
+
+It reads the secret environment variable or `--service-account-file` pointing
+outside the checkout. JSON output includes only the package, track, marketing
+version, numeric version code and operation result. Upload also records the
+bundle's SHA-256. Promotion rechecks the workflow's expected version and code
+inside its own edit, and reuses the existing bundle, release notes and update
+priority. It does not change the internal track.
+
+The helper uses the official
+[bundle upload](https://developers.google.com/android-publisher/api-ref/rest/v3/edits.bundles/upload),
+[track update](https://developers.google.com/android-publisher/api-ref/rest/v3/edits.tracks/update)
+and [edit commit](https://developers.google.com/android-publisher/api-ref/rest/v3/edits/commit)
+APIs. It commits with `changesInReviewBehavior=ERROR_IF_IN_REVIEW`, so another
+active review causes a failure rather than being cancelled. There is no
+automatic retry that changes that review policy.
