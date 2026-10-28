@@ -1,6 +1,6 @@
 {
   "format": "cardbal-portable-station-assets-v1",
-  "generatedAt": "2026-10-28T04:26:39.894688+00:00",
+  "generatedAt": "2026-10-28T06:48:35.223321+00:00",
   "files": {
     "EastAsiaCityBoundaries.json": {
       "bytes": 8773312,
@@ -47,16 +47,16 @@
       "sha256": "4397ec770d135608a528ab00bc015447962ca789bc6f3184adb8d5d37d83ba5d"
     },
     "card-stations-manifest.json": {
-      "bytes": 19141,
-      "sha256": "32a2dda91cafa2cc73b2c9be528bf77a911e24ddd76b36f80615475ec19a4ab6"
+      "bytes": 19471,
+      "sha256": "1d27a22962846164406495cc9873e57695e764ae4abc540c510bc3c16ddb4489"
     },
     "card-stations.lock.json": {
       "bytes": 122,
-      "sha256": "823a479c0e292765ce92c6906c28fc4e02ab96832948dd92af3825aafe0c069b"
+      "sha256": "df2dea3d5fb86473f5defc17242d81fea23037f9f9e0875b6fed0a76c9614d5d"
     },
     "cardbal_transit.sqlite": {
-      "bytes": 27619328,
-      "sha256": "fa01068dab5c28ffa4bcfb0337ace56d61421175147b09982c83b57a95e60416"
+      "bytes": 28897280,
+      "sha256": "71bb13c0753d6512e9469e1c33b49c4f07e058e3078a861c0cd33b7dc8189b4f"
     },
     "jp_stations.sqlite": {
       "bytes": 4833280,
@@ -67,8 +67,8 @@
       "sha256": "6960cd662c9b223d4cdf95617cb50935ad87eeb447b3d33884f4c0398b99ca5a"
     },
     "korean_stations.tsv": {
-      "bytes": 282600,
-      "sha256": "7be5914695a86cbbf6cf6de8c1913fd920e593ed20e74a841a16f6cba7cfb0f6"
+      "bytes": 720842,
+      "sha256": "f05e9f529421a6b2ce9bb085d3ee6efe51f24061f844418f373134ff9c012358"
     },
     "tunion_osm_bus_city_cache.json": {
       "bytes": 12566985,
@@ -79,8 +79,8 @@
       "sha256": "6b85e98065eb03f4cd7c664a960472aa296bc2e12e2cdfbc062098d7dbff8ca5"
     },
     "tunion_stations.sqlite": {
-      "bytes": 2269184,
-      "sha256": "4a21f94f453e6c287aa47f1219d31eed19a495dde251285ebd19c016a4f5062e"
+      "bytes": 2273280,
+      "sha256": "6f76dc3779c2a73859dfa973fa3012d9a8f334c129a2a85fecb44afb6cb434ac"
     },
     "tunion_tripreader_source.json": {
       "bytes": 2544742,
@@ -111,7 +111,7 @@
     "ulaanbaatar_stations": 1511,
     "ulaanbaatar_routes": 140,
     "ulaanbaatar_route_stations": 4928,
-    "cardbal_transit_stations": 14943,
+    "cardbal_transit_stations": 16109,
     "cardbal_transit_cities": 1576,
     "cardbal_transit_provinces": 94
   }
