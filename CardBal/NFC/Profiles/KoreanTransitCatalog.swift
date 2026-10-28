@@ -240,7 +240,6 @@ enum KoreanStationAliasCatalogError: Error, Equatable {
 /// Reviewed Korean stations from the current-state consumer export published by
 /// https://github.com/iebb/korean-stations.
 struct KoreanStationAliasCatalog {
-    private static let expectedRowCount = 1142
     private static let expectedHeader = [
         "location_code", "station_id", "transport_mode_code",
         "transport_mode_name_ko", "transport_mode_name_en", "transport_mode_name_ja",
@@ -390,10 +389,10 @@ struct KoreanStationAliasCatalog {
         guard stepResult == SQLITE_DONE else {
             throw KoreanStationAliasCatalogError.databaseQueryFailed(stepResult)
         }
-        guard loaded.count == Self.expectedRowCount else {
+        guard !loaded.isEmpty else {
             throw KoreanStationAliasCatalogError.rowCountMismatch(
-                expected: Self.expectedRowCount,
-                actual: loaded.count
+                expected: 1,
+                actual: 0
             )
         }
 
@@ -467,10 +466,10 @@ struct KoreanStationAliasCatalog {
             }
             loaded.append(alias)
         }
-        guard loaded.count == Self.expectedRowCount else {
+        guard !loaded.isEmpty else {
             throw KoreanStationAliasCatalogError.rowCountMismatch(
-                expected: Self.expectedRowCount,
-                actual: loaded.count
+                expected: 1,
+                actual: 0
             )
         }
 

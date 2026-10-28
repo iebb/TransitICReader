@@ -327,6 +327,24 @@ class Fixture:
                 "('1000L1', '10000001', 'CN-GRAPH-ONLY', 2.5)"
             )
 
+    def add_chinese_station_alias(
+        self,
+        city_code: str,
+        latitude: float = 10.4,
+        longitude: float = 10.4,
+    ) -> None:
+        with closing(sqlite3.connect(self.resources / "tunion_stations.sqlite")) as source, source:
+            source.execute(
+                """
+                INSERT INTO tunion_stations
+                SELECT ?, ?, ?, sequence, station_name, match_status, ?, ?,
+                       display_name, osm_type, osm_id, osm_name_zh, osm_name_en,
+                       osm_name_ja, source_code, source_type, source_line_name
+                FROM tunion_stations WHERE station_key = '10000001'
+                """,
+                (f"{city_code}0001", city_code, f"{city_code}L1", latitude, longitude),
+            )
+
     def write_mongolia_database(self) -> None:
         path = self.resources / "ulaanbaatar_transit.sqlite"
         path.unlink(missing_ok=True)
@@ -961,6 +979,115 @@ class UnifiedTransitDatabaseGeneratorTests(unittest.TestCase):
                 "source_code does not reproduce its canonical station_key",
             ):
                 generator.generate(fixture.resources, root / "output", GENERATED_AT)
+
+    def test_china_shared_station_retains_lookup_and_line_cities(self) -> None:
+        for conflicting_provinces in (False, True):
+            with self.subTest(conflicting_provinces=conflicting_provinces):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    root = Path(temporary_directory)
+                    fixture = Fixture(root)
+                    fixture.city_catalog["boundaries"].append(
+                        boundary("cn:city:2", "CN", "Second China City", 10.1, 10.1)
+                    )
+                    fixture.city_catalog["chinaCityToBoundary"]["1002"] = "cn:city:2"
+                    province_name = "China Coverage Province"
+                    if conflicting_provinces:
+                        second_province = boundary(
+                            "cn:province:2", "CN", "Second China Province", 10.0, 10.0
+                        )
+                        second_province["coverageName"] = "Second Coverage Province"
+                        fixture.province_catalog["boundaries"].append(second_province)
+                        province_name = "Second Coverage Province"
+                    fixture.china_coverage["tUnion"]["cityToProvince"]["1002"] = province_name
+                    fixture.write()
+                    fixture.add_chinese_station_alias("1002")
+
+                    database = generator.generate(
+                        fixture.resources, root / "output", GENERATED_AT
+                    )
+                    with closing(sqlite3.connect(database)) as connection:
+                        self.assertEqual(
+                            connection.execute(
+                                "SELECT id, city_id, province_id, native_name, latitude, longitude "
+                                "FROM stations WHERE country_code = 'CN'"
+                            ).fetchall(),
+                            [
+                                (
+                                    "cn:osm:node:1", None,
+                                    None if conflicting_provinces else "cn:province:1",
+                                    "中国站", 10.4, 10.4,
+                                )
+                            ],
+                        )
+                        self.assertEqual(
+                            connection.execute(
+                                "SELECT code, station_id FROM station_identifiers "
+                                "WHERE namespace = 'cn.tunion.station_key' ORDER BY code"
+                            ).fetchall(),
+                            [
+                                ("10000001", "cn:osm:node:1"),
+                                ("10020001", "cn:osm:node:1"),
+                            ],
+                        )
+                        self.assertEqual(
+                            connection.execute(
+                                "SELECT l.id, l.city_id, s.source_stop_code, s.station_id "
+                                "FROM lines l JOIN station_line_stops s ON s.line_id = l.id "
+                                "WHERE l.country_code = 'CN' ORDER BY l.id"
+                            ).fetchall(),
+                            [
+                                ("cn:line:1000L1", "cn:city:1", "10000001", "cn:osm:node:1"),
+                                ("cn:line:1002L1", "cn:city:2", "10020001", "cn:osm:node:1"),
+                            ],
+                        )
+
+    def test_china_shared_station_city_aliases_keep_canonical_city(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            fixture = Fixture(root)
+            fixture.city_catalog["chinaCityToBoundary"]["1002"] = "cn:city:1"
+            fixture.china_coverage["tUnion"]["cityToProvince"]["1002"] = (
+                "China Coverage Province"
+            )
+            fixture.write()
+            fixture.add_chinese_station_alias("1002")
+
+            database = generator.generate(fixture.resources, root / "output", GENERATED_AT)
+            with closing(sqlite3.connect(database)) as connection:
+                self.assertEqual(
+                    connection.execute(
+                        "SELECT id, city_id, province_id FROM stations WHERE country_code = 'CN'"
+                    ).fetchall(),
+                    [("cn:osm:node:1", "cn:city:1", "cn:province:1")],
+                )
+                self.assertEqual(
+                    connection.execute(
+                        "SELECT code, station_id FROM station_identifiers "
+                        "WHERE namespace = 'cn.tunion.station_key' ORDER BY code"
+                    ).fetchall(),
+                    [("10000001", "cn:osm:node:1"), ("10020001", "cn:osm:node:1")],
+                )
+                self.assertEqual(
+                    connection.execute(
+                        "SELECT id, city_id FROM lines WHERE country_code = 'CN' ORDER BY id"
+                    ).fetchall(),
+                    [("cn:line:1000L1", "cn:city:1"), ("cn:line:1002L1", "cn:city:1")],
+                )
+
+    def test_china_shared_station_still_rejects_conflicting_coordinates(self) -> None:
+        for latitude, longitude, coordinate in (
+            (10.5, 10.4, "latitude"), (10.4, 10.5, "longitude")
+        ):
+            with self.subTest(coordinate=coordinate):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    root = Path(temporary_directory)
+                    fixture = Fixture(root)
+                    fixture.add_chinese_station_alias("1002", latitude, longitude)
+                    with self.assertRaisesRegex(
+                        generator.CatalogError,
+                        f"cn:osm:node:1 {coordinate} has conflicting values",
+                    ):
+                        generator.generate(fixture.resources, root / "output", GENERATED_AT)
 
     def test_rejects_stationless_japanese_city(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

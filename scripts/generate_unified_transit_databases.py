@@ -807,12 +807,14 @@ def build_chinese_stations(
         key_to_station: dict[str, str] = {}
         for station_id in sorted(grouped):
             group = grouped[station_id]
-            city_codes = {str(row["city_id"]) for row in group}
-            if len(city_codes) != 1:
-                raise CatalogError(f"Chinese station {station_id} spans multiple city codes")
-            city_code = next(iter(city_codes))
-            city_id = city_lookup.get(city_code)
-            province_id = city_parents.get(city_id) if city_id else None
+            city_ids = {
+                city_lookup[str(row["city_id"])]
+                for row in group
+                if str(row["city_id"]) in city_lookup
+            }
+            city_id = next(iter(city_ids)) if len(city_ids) == 1 else None
+            province_ids = {city_parents.get(mapped_city_id) for mapped_city_id in city_ids}
+            province_id = next(iter(province_ids)) if len(province_ids) == 1 else None
             latitude = one_or_none((row["latitude"] for row in group), f"{station_id} latitude")
             longitude = one_or_none((row["longitude"] for row in group), f"{station_id} longitude")
             name = choose_text(str(row["display_name"] or row["station_name"] or "") for row in group)
@@ -855,7 +857,7 @@ def build_chinese_stations(
                     "INSERT OR IGNORE INTO lines VALUES (?, 'CN', ?, ?, ?, ?, ?)",
                     (
                         line_id,
-                        city_id,
+                        city_lookup.get(str(row["city_id"])),
                         str(row["line_key"]),
                         str(row["source_line_name"] or "") or None,
                         str(row["source_line_name"] or "") or None,
