@@ -1,55 +1,66 @@
-# CardBal
+# CardBal / TransitICReader
 
-Native SwiftUI iPhone app for scanning physical transit IC cards with CoreNFC.
+Transit IC-card readers for iPhone and Android. The apps read supported on-card
+balances and records through Core NFC, ISO-DEP, and FeliCa; the available fields
+depend on the card family and phone. No card-writing or top-up feature is included.
 
-## What it does
+## Repository layout
 
-- Reads FeliCa transit cards with `NFCTagReaderSession`
-- Shows the card ID (`IDm`)
-- Tries to decode stored balance from the common transit-card balance service
+| Directory | Purpose |
+| --- | --- |
+| `ios/CardBal/` | SwiftUI app, Core NFC readers, decoders, and iOS runtime resources |
+| `CardBal.xcodeproj/` | Stable Xcode and Xcode Cloud project entry point |
+| `android/` | Android app, Gradle wrapper, NFC readers, and unit tests |
+| `tools/stations/` | Pinned CSV compilation and unified database packaging |
+| `tools/boundaries/` | Geographic catalog maintenance |
+| `tools/maintenance/stations/` | Explicit upstream research/import tools |
+| `tools/ios/` | Portable archive, device-run, and log helpers |
+| `tests/` | Python and production-Swift regression tests |
+| `data/` | Catalog pin, geographic inputs, and offline maintenance inputs |
+| `services/station-reports/` | Station-report API and review interface |
+| `design/cards/` | Source/reference card artwork |
+| `docs/` | Decoder notes, data attribution, development guides, and research |
 
-## Current support
+## Build
 
-- Implemented: Japanese transit FeliCa cards on system code `0003` such as Suica, PASMO, and ICOCA
-- Implemented: Octopus on FeliCa system code `8008`
-- Implemented: KS X 6924 ISO7816 cards such as T-money, U-Money, and EZL/Cashbee. U-Money is distinguished from the shared T-money-compatible application by purse issuer `0x01` together with a normalized card number beginning with `16`.
-- The app now shows structured raw payloads alongside the parsed balance
-- An opt-in Developer Mode probes SFIs 1-30 with read-only APDUs and keeps every readable record and short-EF binary block in Raw Data.
-
-## Station data
-
-Station lookup sources are contribution-friendly CSVs in
-[iebb/card-stations](https://github.com/iebb/card-stations). Japanese IC uses one
-shared station file; T-Union is grouped by city, Korean cards by known company
-or mode, and U-money by city. Xcode builds compile the pinned CSV revision into
-the app's SQLite database before copying resources. The pin lives in
-`StationAssets/card-stations.lock.json`; update it after merging a data PR.
+Compile the station data shared by both apps:
 
 ```sh
-python3 scripts/build_cross_platform_station_assets.py --target all
-# Test an unmerged CSV contribution:
-python3 scripts/build_cross_platform_station_assets.py --target all --csv-source ../card-stations
+python3 -m tools.stations.build --source csv --target all
 ```
 
-Set `CARDBAL_STATIONS_SOURCE=/path/to/card-stations` to test a local data checkout
-in Xcode. Builds use the pinned commit by default and never refresh upstream
-station services. The first build fetches that commit; later builds reuse it.
+The source is the public [iebb/card-stations](https://github.com/iebb/card-stations)
+CSV catalog, pinned by `data/stations/card-stations.lock.json`. Compiler outputs
+are generated under ignored `build/stations/`; each app receives only its runtime
+files. See [station data](docs/data/station-assets.md).
 
-Generated portable station catalogs live in `StationAssets`. The Ulaanbaatar catalog is
-generated from the service used by `com.uscc.ubbus` and contains Mongolian and
-English station names, coordinates, routes, and ordered route-stop relations.
-See [UB Smart Bus data](docs/ub-smart-bus.md) for the protocol and refresh
-process.
+For iPhone, open `CardBal.xcodeproj` in a current Xcode with Core NFC support.
+A simulator build does not require a Firebase configuration:
 
-Chinese station and terminal lookups also incorporate
-[Trip Reader / 读卡识途 data](docs/tripreader-data.md), with pinned sources and
-separate station-code and terminal-ID matching.
+```sh
+xcodebuild -project CardBal.xcodeproj -scheme CardBal \
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO build
+```
 
-## Run notes
+For Android, install JDK 17 and Android SDK 36, then:
 
-- NFC scanning requires a real iPhone. The simulator can build the app but cannot read cards.
-- In Xcode, set your own signing team before running on device.
-- Xcode Cloud stores the Firebase plist as the
-  `FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64` workflow environment variable.
-  `ci_scripts/ci_post_clone.sh` decodes it before the build; the generated plist
-  remains ignored by Git.
+```sh
+cd android
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+Android builds invoke the shared catalog compiler automatically. Release signing
+uses private local settings or environment variables; no signing material is
+included. See [Android setup](android/README.md).
+
+## Development
+
+- [Testing and build checks](docs/development/testing.md)
+- [Card decoding](docs/decoding/cards.md)
+- [Additional-card feasibility and platform gaps](docs/research/card-support.md)
+- [Station data and attribution](docs/data/station-assets.md)
+- [Station-report service](services/station-reports/README.md)
+
+The compatibility command `python3 scripts/build_cross_platform_station_assets.py`
+continues to forward to the shared compiler.

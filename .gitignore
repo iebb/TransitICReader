@@ -46,11 +46,29 @@ __pycache__/
 
 # Standalone sibling repositories and local snapshots
 /.external/
-/android/
 /kreader/
 /build_armv8_apk.sh
-/CardBal/NFC/Decoders.zip
-/CardBal/Resources/GoogleService-Info.plist
+/ios/CardBal/NFC/Decoders.zip
+/ios/CardBal/Resources/GoogleService-Info.plist
 
 # Project-specific logs
 build_log.txt
+
+# Local signing, service configuration, and generated platform artifacts.
+**/local.properties
+**/.gradle/
+**/.kotlin/
+**/.wrangler/
+**/node_modules/
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example
+android/local/
+android/app/src/main/assets/

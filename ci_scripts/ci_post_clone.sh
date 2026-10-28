@@ -3,11 +3,11 @@
 set -eu
 
 repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-firebase_plist="$repo_root/CardBal/Resources/GoogleService-Info.plist"
+firebase_plist="$repo_root/ios/CardBal/Resources/GoogleService-Info.plist"
 
 if [ -z "${FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64:-}" ]; then
-    echo "error: FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64 is required for Xcode Cloud builds." >&2
-    exit 1
+    echo "Firebase configuration is absent; building with analytics disabled."
+    exit 0
 fi
 
 umask 077
