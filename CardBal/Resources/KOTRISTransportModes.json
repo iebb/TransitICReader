@@ -17,332 +17,1665 @@
     "transformation": "Converted to UTF-8 JSON and trimmed surrounding whitespace from descriptions and class values; codes and labels are otherwise unchanged."
   },
   "supplementaryModes": [
-    {"code": 142, "nameKo": "도심순환(142)", "transportClass": "B", "matchStatus": "official_seoul", "sourceTitle": "Seoul Smart Card transport-code table", "sourceURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"},
-    {"code": 209, "nameKo": "경기철도", "transportClass": "R", "matchStatus": "official_seoul", "sourceTitle": "Seoul Smart Card transport-code table", "sourceURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"},
-    {"code": 210, "nameKo": "새서울철도㈜", "transportClass": "R", "matchStatus": "institutional_reference", "sourceTitle": "Incheon Institute, 도시와 대중교통, Table 3", "sourceURL": "https://www.ii.re.kr/storage/data/2024/04/30/DATA_ATTACH_1714437784942.pdf"},
-    {"code": 235, "nameKo": "우이신설경전철", "transportClass": "R", "matchStatus": "official_seoul", "sourceTitle": "Seoul Smart Card transport-code table", "sourceURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13"},
-    {"code": 237, "nameKo": "신림경전철㈜", "transportClass": "R", "matchStatus": "institutional_reference", "sourceTitle": "Incheon Institute, 도시와 대중교통, Table 3", "sourceURL": "https://www.ii.re.kr/storage/data/2024/04/30/DATA_ATTACH_1714437784942.pdf"},
-    {"code": 290, "nameKo": "GTX-A candidate", "transportClass": "R", "matchStatus": "corpus_geometry_inference", "sourceTitle": "KOTI GTX-A line reference and CardBal distance geometry", "sourceURL": "https://cppr.koti.re.kr/site.do?command=railwyDetail&railwyId=RID241201000022"}
+    {
+      "code": 142,
+      "matchStatus": "official_seoul",
+      "sourceTitle": "Seoul Smart Card transport-code table",
+      "sourceURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13",
+      "nameKo": "도심순환(142)",
+      "transportClass": "B"
+    },
+    {
+      "code": 209,
+      "matchStatus": "official_seoul",
+      "sourceTitle": "Seoul Smart Card transport-code table",
+      "sourceURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13",
+      "nameKo": "경기철도",
+      "transportClass": "R"
+    },
+    {
+      "code": 210,
+      "matchStatus": "institutional_reference",
+      "sourceTitle": "Incheon Institute, 도시와 대중교통, Table 3",
+      "sourceURL": "https://www.ii.re.kr/storage/data/2024/04/30/DATA_ATTACH_1714437784942.pdf",
+      "nameKo": "새서울철도㈜",
+      "transportClass": "R"
+    },
+    {
+      "code": 235,
+      "matchStatus": "official_seoul",
+      "sourceTitle": "Seoul Smart Card transport-code table",
+      "sourceURL": "https://bigdata.seoul.go.kr/data/selectSampleData.do?r_id=P213&sample_data_seq=13",
+      "nameKo": "우이신설경전철",
+      "transportClass": "R"
+    },
+    {
+      "code": 237,
+      "matchStatus": "institutional_reference",
+      "sourceTitle": "Incheon Institute, 도시와 대중교통, Table 3",
+      "sourceURL": "https://www.ii.re.kr/storage/data/2024/04/30/DATA_ATTACH_1714437784942.pdf",
+      "nameKo": "신림경전철㈜",
+      "transportClass": "R"
+    },
+    {
+      "code": 290,
+      "matchStatus": "corpus_geometry_inference",
+      "sourceTitle": "KOTI GTX-A line reference and CardBal distance geometry",
+      "sourceURL": "https://cppr.koti.re.kr/site.do?command=railwyDetail&railwyId=RID241201000022",
+      "nameKo": "GTX-A",
+      "transportClass": "R"
+    }
   ],
   "modes": [
-    {"code": 100, "nameKo": "버스", "transportClass": "B"},
-    {"code": 101, "nameKo": "도시형버스", "transportClass": "B"},
-    {"code": 102, "nameKo": "일반좌석버스", "transportClass": "B"},
-    {"code": 103, "nameKo": "고급좌석버스(심야좌석포함)", "transportClass": "B"},
-    {"code": 104, "nameKo": "구순환버스", "transportClass": "B"},
-    {"code": 105, "nameKo": "마을버스(105)", "transportClass": "B"},
-    {"code": 106, "nameKo": "공항버스", "transportClass": "B"},
-    {"code": 110, "nameKo": "주간선버스", "transportClass": "B"},
-    {"code": 115, "nameKo": "간선버스", "transportClass": "B"},
-    {"code": 120, "nameKo": "지선버스(120)", "transportClass": "B"},
-    {"code": 121, "nameKo": "지선버스(121)", "transportClass": "B"},
-    {"code": 122, "nameKo": "지선버스(122)", "transportClass": "B"},
-    {"code": 130, "nameKo": "광역버스(130)", "transportClass": "B"},
-    {"code": 131, "nameKo": "광역버스(131)", "transportClass": "B"},
-    {"code": 132, "nameKo": "시티투어버스", "transportClass": "B"},
-    {"code": 133, "nameKo": "시티투어2층버스", "transportClass": "B"},
-    {"code": 134, "nameKo": "국토부서울광역", "transportClass": "B"},
-    {"code": 140, "nameKo": "순환버스", "transportClass": "B"},
-    {"code": 151, "nameKo": "마을버스(151)", "transportClass": "B"},
-    {"code": 152, "nameKo": "9호선급행순환버스", "transportClass": "B"},
-    {"code": 200, "nameKo": "도시철도(공통)", "transportClass": "R"},
-    {"code": 201, "nameKo": "서울메트로", "transportClass": "R"},
-    {"code": 202, "nameKo": "한국철도공사", "transportClass": "R"},
-    {"code": 203, "nameKo": "도시철도", "transportClass": "R"},
-    {"code": 204, "nameKo": "인천지하철", "transportClass": "R"},
-    {"code": 205, "nameKo": "9호선", "transportClass": "R"},
-    {"code": 206, "nameKo": "공항철도 단독구간", "transportClass": "R"},
-    {"code": 207, "nameKo": "공항철도 연락구간", "transportClass": "R"},
-    {"code": 208, "nameKo": "신분당선", "transportClass": "R"},
-    {"code": 231, "nameKo": "용인경전철", "transportClass": "R"},
-    {"code": 232, "nameKo": "의정부경전철", "transportClass": "R"},
-    {"code": 300, "nameKo": "택시", "transportClass": "T"},
-    {"code": 301, "nameKo": "개인택시", "transportClass": "T"},
-    {"code": 302, "nameKo": "법인택시", "transportClass": "T"},
-    {"code": 303, "nameKo": "시설공단택시", "transportClass": "T"},
-    {"code": 321, "nameKo": "원주택시", "transportClass": "T"},
-    {"code": 400, "nameKo": "인천일반", "transportClass": "B"},
-    {"code": 401, "nameKo": "강화군내버스", "transportClass": "B"},
-    {"code": 402, "nameKo": "인천간선버스(1~99번대)", "transportClass": "B"},
-    {"code": 403, "nameKo": "인천지선버스(500번대)", "transportClass": "B"},
-    {"code": 404, "nameKo": "인천광역버스(404)", "transportClass": "B"},
-    {"code": 406, "nameKo": "인천일반좌석버스(103번)", "transportClass": "B"},
-    {"code": 408, "nameKo": "인천시외좌석버스(408)", "transportClass": "B"},
-    {"code": 430, "nameKo": "인천광역버스(430)", "transportClass": "B"},
-    {"code": 431, "nameKo": "인천시외좌석버스(431)", "transportClass": "B"},
-    {"code": 440, "nameKo": "공항철도", "transportClass": "R"},
-    {"code": 450, "nameKo": "인천좌석버스(450)", "transportClass": "B"},
-    {"code": 451, "nameKo": "인천좌석버스(451)", "transportClass": "B"},
-    {"code": 452, "nameKo": "인천좌석버스(452)", "transportClass": "B"},
-    {"code": 453, "nameKo": "인천좌석버스(453)", "transportClass": "B"},
-    {"code": 454, "nameKo": "인천좌석버스(454)", "transportClass": "B"},
-    {"code": 455, "nameKo": "인천좌석버스(455)", "transportClass": "B"},
-    {"code": 456, "nameKo": "인천좌석버스(456)", "transportClass": "B"},
-    {"code": 457, "nameKo": "인천좌석버스(457)", "transportClass": "B"},
-    {"code": 458, "nameKo": "인천좌석버스(458)", "transportClass": "B"},
-    {"code": 459, "nameKo": "인천좌석버스(459)", "transportClass": "B"},
-    {"code": 460, "nameKo": "인천좌석버스(460)", "transportClass": "B"},
-    {"code": 461, "nameKo": "인천좌석버스(461)", "transportClass": "B"},
-    {"code": 462, "nameKo": "인천좌석버스(462)", "transportClass": "B"},
-    {"code": 463, "nameKo": "인천좌석버스(463)", "transportClass": "B"},
-    {"code": 464, "nameKo": "인천좌석버스(464)", "transportClass": "B"},
-    {"code": 465, "nameKo": "인천관광버스(465)", "transportClass": "B"},
-    {"code": 466, "nameKo": "인천관광버스(466)", "transportClass": "B"},
-    {"code": 467, "nameKo": "인천관광버스(467)", "transportClass": "B"},
-    {"code": 470, "nameKo": "인천간선", "transportClass": "B"},
-    {"code": 471, "nameKo": "인천간선-초승", "transportClass": "B"},
-    {"code": 472, "nameKo": "인천마을버스(472)-기본요금", "transportClass": "B"},
-    {"code": 474, "nameKo": "인천급행간선-초승", "transportClass": "B"},
-    {"code": 475, "nameKo": "인천급행간선", "transportClass": "B"},
-    {"code": 476, "nameKo": "인천시내좌석", "transportClass": "B"},
-    {"code": 477, "nameKo": "인천시내좌석-초승", "transportClass": "B"},
-    {"code": 480, "nameKo": "인천지선", "transportClass": "B"},
-    {"code": 481, "nameKo": "인천마을버스", "transportClass": "B"},
-    {"code": 482, "nameKo": "인천마을(중형)버스(482)-기본요금", "transportClass": "B"},
-    {"code": 483, "nameKo": "인천공항좌석(483)-초승거리비례제", "transportClass": "B"},
-    {"code": 484, "nameKo": "인천광역구-초승", "transportClass": "B"},
-    {"code": 485, "nameKo": "인천광역-초승", "transportClass": "B"},
-    {"code": 486, "nameKo": "인천공항좌석", "transportClass": "B"},
-    {"code": 487, "nameKo": "인천광역구버스", "transportClass": "B"},
-    {"code": 488, "nameKo": "인천광역버스", "transportClass": "B"},
-    {"code": 489, "nameKo": "인천뉴광역-초승", "transportClass": "B"},
-    {"code": 490, "nameKo": "인천좌석버스", "transportClass": "B"},
-    {"code": 491, "nameKo": "인천좌석버스(491)-초승거리비례제", "transportClass": "B"},
-    {"code": 496, "nameKo": "국토부인천광역", "transportClass": "B"},
-    {"code": 500, "nameKo": "경기일반버스(500)-거리비례제", "transportClass": "B"},
-    {"code": 501, "nameKo": "도시형(500)", "transportClass": "B"},
-    {"code": 502, "nameKo": "도시형(550)", "transportClass": "B"},
-    {"code": 503, "nameKo": "도시형(580)", "transportClass": "B"},
-    {"code": 504, "nameKo": "도시형(600)-1", "transportClass": "B"},
-    {"code": 505, "nameKo": "도시형(600)-2", "transportClass": "B"},
-    {"code": 506, "nameKo": "도시형(600)-3", "transportClass": "B"},
-    {"code": 507, "nameKo": "도시형(650)-1", "transportClass": "B"},
-    {"code": 508, "nameKo": "도시형(700)-1", "transportClass": "B"},
-    {"code": 509, "nameKo": "도시형(700)-2", "transportClass": "B"},
-    {"code": 510, "nameKo": "도시형(700)-3", "transportClass": "B"},
-    {"code": 511, "nameKo": "경기일반버스(511)-기본요금", "transportClass": "B"},
-    {"code": 512, "nameKo": "도시형(800)-2", "transportClass": "B"},
-    {"code": 513, "nameKo": "도시형(800)-3", "transportClass": "B"},
-    {"code": 514, "nameKo": "도시형(650)-2", "transportClass": "B"},
-    {"code": 515, "nameKo": "좌석(1100)", "transportClass": "B"},
-    {"code": 516, "nameKo": "좌석(1200)", "transportClass": "B"},
-    {"code": 517, "nameKo": "좌석(1300)-1", "transportClass": "B"},
-    {"code": 518, "nameKo": "좌석(1300)-2", "transportClass": "B"},
-    {"code": 519, "nameKo": "좌석(1300)-3", "transportClass": "B"},
-    {"code": 520, "nameKo": "좌석(1300)-4", "transportClass": "B"},
-    {"code": 521, "nameKo": "좌석(1300)-5", "transportClass": "B"},
-    {"code": 522, "nameKo": "좌석(1300)-6", "transportClass": "B"},
-    {"code": 523, "nameKo": "좌석(1300)-7", "transportClass": "B"},
-    {"code": 524, "nameKo": "좌석(1300)-8", "transportClass": "B"},
-    {"code": 525, "nameKo": "좌석(1300)-9", "transportClass": "B"},
-    {"code": 526, "nameKo": "고급좌석(1400)-1", "transportClass": "B"},
-    {"code": 527, "nameKo": "고급좌석(1400)-2", "transportClass": "B"},
-    {"code": 528, "nameKo": "고급좌석(1400)-3", "transportClass": "B"},
-    {"code": 529, "nameKo": "고급좌석(1400)-4", "transportClass": "B"},
-    {"code": 530, "nameKo": "경기좌석(530)", "transportClass": "B"},
-    {"code": 531, "nameKo": "경기좌석(531)", "transportClass": "B"},
-    {"code": 532, "nameKo": "경기좌석(532)", "transportClass": "B"},
-    {"code": 533, "nameKo": "경기좌석(533)", "transportClass": "B"},
-    {"code": 534, "nameKo": "고급좌석(1500)-1", "transportClass": "B"},
-    {"code": 535, "nameKo": "고급좌석(1500)-2", "transportClass": "B"},
-    {"code": 536, "nameKo": "고급좌석(1500)-3", "transportClass": "B"},
-    {"code": 537, "nameKo": "고급좌석(1500)-4", "transportClass": "B"},
-    {"code": 538, "nameKo": "명성운수공항(환승)", "transportClass": "B"},
-    {"code": 539, "nameKo": "신성교통시외(800)", "transportClass": "B"},
-    {"code": 540, "nameKo": "평안운수시외(800)", "transportClass": "B"},
-    {"code": 541, "nameKo": "경진여객시외(1600)", "transportClass": "B"},
-    {"code": 542, "nameKo": "경진여객시외(1900)", "transportClass": "B"},
-    {"code": 543, "nameKo": "용남고속시외(2500)", "transportClass": "B"},
-    {"code": 544, "nameKo": "좌석(1300)-10", "transportClass": "B"},
-    {"code": 545, "nameKo": "경남여객공항A", "transportClass": "B"},
-    {"code": 546, "nameKo": "경남여객공항B", "transportClass": "B"},
-    {"code": 550, "nameKo": "경기순환버스-거리", "transportClass": "B"},
-    {"code": 570, "nameKo": "국토부경기광역", "transportClass": "B"},
-    {"code": 580, "nameKo": "경기마을버스(580)", "transportClass": "B"},
-    {"code": 581, "nameKo": "경기마을버스(581)", "transportClass": "B"},
-    {"code": 582, "nameKo": "경기마을버스(582)", "transportClass": "B"},
-    {"code": 583, "nameKo": "경기 마을버스(583)", "transportClass": "B"},
-    {"code": 584, "nameKo": "경기마을버스(584)-기본요금", "transportClass": "B"},
-    {"code": 599, "nameKo": "경기시외버스", "transportClass": "B"},
-    {"code": 600, "nameKo": "예비", "transportClass": "B"},
-    {"code": 601, "nameKo": "부산일반버스", "transportClass": "B"},
-    {"code": 602, "nameKo": "부산좌석버스", "transportClass": "B"},
-    {"code": 603, "nameKo": "부산급행", "transportClass": "B"},
-    {"code": 604, "nameKo": "부산심야급행", "transportClass": "B"},
-    {"code": 605, "nameKo": "부산마을버스(605)", "transportClass": "B"},
-    {"code": 606, "nameKo": "부산마을버스(606)", "transportClass": "B"},
-    {"code": 607, "nameKo": "부산마을버스(607)", "transportClass": "B"},
-    {"code": 608, "nameKo": "부산마을버스(608)", "transportClass": "B"},
-    {"code": 609, "nameKo": "부산마을버스(609)", "transportClass": "B"},
-    {"code": 610, "nameKo": "부산마을버스(610)", "transportClass": "B"},
-    {"code": 611, "nameKo": "부산마을버스(611)", "transportClass": "B"},
-    {"code": 612, "nameKo": "부산마을버스(612)", "transportClass": "B"},
-    {"code": 613, "nameKo": "부산마을버스(613)", "transportClass": "B"},
-    {"code": 614, "nameKo": "부산마을버스(614)", "transportClass": "B"},
-    {"code": 615, "nameKo": "부산일반-유한(615)", "transportClass": "B"},
-    {"code": 616, "nameKo": "부산일반-유한(616)", "transportClass": "B"},
-    {"code": 617, "nameKo": "부산마을버스(617)", "transportClass": "B"},
-    {"code": 618, "nameKo": "부산일반심야", "transportClass": "B"},
-    {"code": 619, "nameKo": "예비", "transportClass": "B"},
-    {"code": 620, "nameKo": "예비", "transportClass": "B"},
-    {"code": 621, "nameKo": "울산일반", "transportClass": "B"},
-    {"code": 622, "nameKo": "울산좌석", "transportClass": "B"},
-    {"code": 623, "nameKo": "울산시외", "transportClass": "B"},
-    {"code": 624, "nameKo": "울산마을", "transportClass": "B"},
-    {"code": 625, "nameKo": "울산공항", "transportClass": "B"},
-    {"code": 626, "nameKo": "울산예비", "transportClass": "B"},
-    {"code": 627, "nameKo": "마산/창원/진해일반", "transportClass": "B"},
-    {"code": 628, "nameKo": "마산/창원/진해좌석", "transportClass": "B"},
-    {"code": 629, "nameKo": "마산/창원/진해시외", "transportClass": "B"},
-    {"code": 630, "nameKo": "마산/창원/진해마을", "transportClass": "B"},
-    {"code": 631, "nameKo": "마산/창원/진해예비", "transportClass": "B"},
-    {"code": 632, "nameKo": "양산일반", "transportClass": "B"},
-    {"code": 633, "nameKo": "양산좌석", "transportClass": "B"},
-    {"code": 634, "nameKo": "양산시외", "transportClass": "B"},
-    {"code": 635, "nameKo": "양산마을", "transportClass": "B"},
-    {"code": 636, "nameKo": "양산예비", "transportClass": "B"},
-    {"code": 637, "nameKo": "진주일반", "transportClass": "B"},
-    {"code": 638, "nameKo": "진주좌석", "transportClass": "B"},
-    {"code": 639, "nameKo": "진주시외", "transportClass": "B"},
-    {"code": 640, "nameKo": "진주예비", "transportClass": "B"},
-    {"code": 641, "nameKo": "김해일반", "transportClass": "B"},
-    {"code": 642, "nameKo": "김해좌석", "transportClass": "B"},
-    {"code": 643, "nameKo": "김해시외", "transportClass": "B"},
-    {"code": 644, "nameKo": "김해예비", "transportClass": "B"},
-    {"code": 645, "nameKo": "밀양일반", "transportClass": "B"},
-    {"code": 646, "nameKo": "밀양좌석", "transportClass": "B"},
-    {"code": 647, "nameKo": "밀양시외", "transportClass": "B"},
-    {"code": 648, "nameKo": "함안일반", "transportClass": "B"},
-    {"code": 649, "nameKo": "함안좌석", "transportClass": "B"},
-    {"code": 650, "nameKo": "함안시외", "transportClass": "B"},
-    {"code": 651, "nameKo": "천안일반", "transportClass": "B"},
-    {"code": 652, "nameKo": "천안좌석", "transportClass": "B"},
-    {"code": 653, "nameKo": "천안시외", "transportClass": "B"},
-    {"code": 654, "nameKo": "천안마을", "transportClass": "B"},
-    {"code": 655, "nameKo": "천안호서대버스", "transportClass": "B"},
-    {"code": 656, "nameKo": "아산일반", "transportClass": "B"},
-    {"code": 657, "nameKo": "아산좌석", "transportClass": "B"},
-    {"code": 658, "nameKo": "아산시외", "transportClass": "B"},
-    {"code": 659, "nameKo": "아산마을", "transportClass": "B"},
-    {"code": 660, "nameKo": "아산예비", "transportClass": "B"},
-    {"code": 661, "nameKo": "충남시내버스(대표)", "transportClass": "B"},
-    {"code": 662, "nameKo": "충남시내(시)", "transportClass": "B"},
-    {"code": 663, "nameKo": "충남시내(군)", "transportClass": "B"},
-    {"code": 664, "nameKo": "충남좌석(좌석1)", "transportClass": "B"},
-    {"code": 665, "nameKo": "충남좌석(좌석2)", "transportClass": "B"},
-    {"code": 666, "nameKo": "충남좌석(좌석3)", "transportClass": "B"},
-    {"code": 667, "nameKo": "충남시내(광역시)", "transportClass": "B"},
-    {"code": 668, "nameKo": "예비", "transportClass": "B"},
-    {"code": 669, "nameKo": "예비", "transportClass": "B"},
-    {"code": 670, "nameKo": "예비", "transportClass": "B"},
-    {"code": 671, "nameKo": "예비", "transportClass": "B"},
-    {"code": 672, "nameKo": "대전버스(대표)", "transportClass": "B"},
-    {"code": 673, "nameKo": "대전마을버스", "transportClass": "B"},
-    {"code": 674, "nameKo": "대전급행버스", "transportClass": "B"},
-    {"code": 675, "nameKo": "대전지선버스", "transportClass": "B"},
-    {"code": 676, "nameKo": "대전간선_일반", "transportClass": "B"},
-    {"code": 677, "nameKo": "대전간선_논산", "transportClass": "B"},
-    {"code": 678, "nameKo": "대전간선_보은/옥천", "transportClass": "B"},
-    {"code": 679, "nameKo": "대전간선_연기/금산", "transportClass": "B"},
-    {"code": 680, "nameKo": "대전외곽_일반", "transportClass": "B"},
-    {"code": 681, "nameKo": "대전외곽_논산", "transportClass": "B"},
-    {"code": 682, "nameKo": "대전외곽_보은/옥천", "transportClass": "B"},
-    {"code": 683, "nameKo": "대전외곽_연기/금산", "transportClass": "B"},
-    {"code": 684, "nameKo": "예비", "transportClass": "B"},
-    {"code": 685, "nameKo": "예비", "transportClass": "B"},
-    {"code": 686, "nameKo": "예비", "transportClass": "B"},
-    {"code": 687, "nameKo": "예비", "transportClass": "B"},
-    {"code": 688, "nameKo": "예비", "transportClass": "B"},
-    {"code": 689, "nameKo": "예비", "transportClass": "B"},
-    {"code": 690, "nameKo": "예비", "transportClass": "B"},
-    {"code": 691, "nameKo": "광주_1호선", "transportClass": "R"},
-    {"code": 692, "nameKo": "예비", "transportClass": "B"},
-    {"code": 693, "nameKo": "예비", "transportClass": "B"},
-    {"code": 694, "nameKo": "예비", "transportClass": "B"},
-    {"code": 695, "nameKo": "예비", "transportClass": "B"},
-    {"code": 699, "nameKo": "공항철도(보급형카드에만적용)", "transportClass": "R"},
-    {"code": 701, "nameKo": "포항시내", "transportClass": "B"},
-    {"code": 702, "nameKo": "포항좌석", "transportClass": "B"},
-    {"code": 703, "nameKo": "포항읍면", "transportClass": "B"},
-    {"code": 704, "nameKo": "통영시내", "transportClass": "B"},
-    {"code": 705, "nameKo": "통영예비", "transportClass": "B"},
-    {"code": 706, "nameKo": "안동시내", "transportClass": "B"},
-    {"code": 707, "nameKo": "안동좌석", "transportClass": "B"},
-    {"code": 708, "nameKo": "안동예비", "transportClass": "B"},
-    {"code": 709, "nameKo": "거제시내", "transportClass": "B"},
-    {"code": 710, "nameKo": "거제예비", "transportClass": "B"},
-    {"code": 711, "nameKo": "원주시내", "transportClass": "B"},
-    {"code": 712, "nameKo": "원주시외", "transportClass": "B"},
-    {"code": 713, "nameKo": "원주좌석", "transportClass": "B"},
-    {"code": 714, "nameKo": "횡성시내", "transportClass": "B"},
-    {"code": 715, "nameKo": "횡성시외", "transportClass": "B"},
-    {"code": 716, "nameKo": "횡성좌석", "transportClass": "B"},
-    {"code": 717, "nameKo": "춘천일반", "transportClass": "B"},
-    {"code": 718, "nameKo": "춘천시외", "transportClass": "B"},
-    {"code": 719, "nameKo": "춘천좌석", "transportClass": "B"},
-    {"code": 720, "nameKo": "강릉시내버스", "transportClass": "B"},
-    {"code": 721, "nameKo": "강릉좌석버스", "transportClass": "B"},
-    {"code": 722, "nameKo": "예비", "transportClass": "B"},
-    {"code": 729, "nameKo": "강원시외", "transportClass": "B"},
-    {"code": 770, "nameKo": "광주일반", "transportClass": "B"},
-    {"code": 771, "nameKo": "광주좌석", "transportClass": "B"},
-    {"code": 772, "nameKo": "광주시외", "transportClass": "B"},
-    {"code": 773, "nameKo": "광주마을", "transportClass": "B"},
-    {"code": 774, "nameKo": "광주공항", "transportClass": "B"},
-    {"code": 775, "nameKo": "광주예비", "transportClass": "B"},
-    {"code": 776, "nameKo": "순천일반", "transportClass": "B"},
-    {"code": 777, "nameKo": "순천좌석", "transportClass": "B"},
-    {"code": 778, "nameKo": "순천시외", "transportClass": "B"},
-    {"code": 779, "nameKo": "순천예비", "transportClass": "B"},
-    {"code": 780, "nameKo": "목포일반", "transportClass": "B"},
-    {"code": 781, "nameKo": "목포좌석", "transportClass": "B"},
-    {"code": 782, "nameKo": "목포시외버스", "transportClass": "B"},
-    {"code": 783, "nameKo": "목포예비", "transportClass": "B"},
-    {"code": 784, "nameKo": "광양일반", "transportClass": "B"},
-    {"code": 785, "nameKo": "광양좌석", "transportClass": "B"},
-    {"code": 786, "nameKo": "광양시외버스", "transportClass": "B"},
-    {"code": 787, "nameKo": "광양예비", "transportClass": "B"},
-    {"code": 788, "nameKo": "여수일반", "transportClass": "B"},
-    {"code": 789, "nameKo": "여수좌석", "transportClass": "B"},
-    {"code": 790, "nameKo": "여수시외버스", "transportClass": "B"},
-    {"code": 791, "nameKo": "여수예비", "transportClass": "B"},
-    {"code": 792, "nameKo": "나주일반", "transportClass": "B"},
-    {"code": 793, "nameKo": "나주좌석", "transportClass": "B"},
-    {"code": 794, "nameKo": "나주시외버스", "transportClass": "B"},
-    {"code": 795, "nameKo": "나주예비", "transportClass": "B"},
-    {"code": 796, "nameKo": "사천일반", "transportClass": "B"},
-    {"code": 797, "nameKo": "사천좌석", "transportClass": "B"},
-    {"code": 798, "nameKo": "사천시외버스", "transportClass": "B"},
-    {"code": 799, "nameKo": "사천예비", "transportClass": "B"},
-    {"code": 800, "nameKo": "적용:남산1,3호", "transportClass": "B"},
-    {"code": 801, "nameKo": "주차장", "transportClass": "B"},
-    {"code": 802, "nameKo": "만월산", "transportClass": "B"},
-    {"code": 810, "nameKo": "공항그룹코드", "transportClass": "B"},
-    {"code": 811, "nameKo": "대한항공리무진", "transportClass": "B"},
-    {"code": 812, "nameKo": "공항리무진", "transportClass": "B"},
-    {"code": 813, "nameKo": "서울버스리무진고급형", "transportClass": "B"},
-    {"code": 814, "nameKo": "서울버스리무진일반형", "transportClass": "B"},
-    {"code": 815, "nameKo": "공항고속센트럴시티리무진", "transportClass": "B"},
-    {"code": 816, "nameKo": "도심공항리무진", "transportClass": "B"},
-    {"code": 817, "nameKo": "공항예비", "transportClass": "B"},
-    {"code": 818, "nameKo": "공항예비", "transportClass": "B"},
-    {"code": 819, "nameKo": "공항예비", "transportClass": "B"},
-    {"code": 820, "nameKo": "공항예비", "transportClass": "B"},
-    {"code": 850, "nameKo": "경전철그룹코드", "transportClass": "R"},
-    {"code": 851, "nameKo": "용인경전철", "transportClass": "R"},
-    {"code": 853, "nameKo": "대전도시철도공사", "transportClass": "R"},
-    {"code": 870, "nameKo": "부산교통공단", "transportClass": "R"},
-    {"code": 871, "nameKo": "광주도시철도공사", "transportClass": "R"},
-    {"code": 872, "nameKo": "대구지하철공사", "transportClass": "R"},
-    {"code": 990, "nameKo": "제주시외버스", "transportClass": "B"},
-    {"code": 991, "nameKo": "제주공항리무진", "transportClass": "B"},
-    {"code": 992, "nameKo": "제주읍면순환버스", "transportClass": "B"},
-    {"code": 993, "nameKo": "제주시외예비", "transportClass": "B"},
-    {"code": 994, "nameKo": "제주시내일반", "transportClass": "B"},
-    {"code": 995, "nameKo": "제주시내좌석", "transportClass": "B"},
-    {"code": 996, "nameKo": "제주시내예비", "transportClass": "B"},
-    {"code": 997, "nameKo": "서귀포시내", "transportClass": "B"},
-    {"code": 998, "nameKo": "서귀포좌석", "transportClass": "B"},
-    {"code": 999, "nameKo": "서귀포예비", "transportClass": "B"}
+    {
+      "code": 100,
+      "nameKo": "버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 101,
+      "nameKo": "도시형버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 102,
+      "nameKo": "일반좌석버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 103,
+      "nameKo": "고급좌석버스(심야좌석포함)",
+      "transportClass": "B"
+    },
+    {
+      "code": 104,
+      "nameKo": "구순환버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 105,
+      "nameKo": "마을버스(105)",
+      "transportClass": "B"
+    },
+    {
+      "code": 106,
+      "nameKo": "공항버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 110,
+      "nameKo": "주간선버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 115,
+      "nameKo": "간선버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 120,
+      "nameKo": "지선버스(120)",
+      "transportClass": "B"
+    },
+    {
+      "code": 121,
+      "nameKo": "지선버스(121)",
+      "transportClass": "B"
+    },
+    {
+      "code": 122,
+      "nameKo": "지선버스(122)",
+      "transportClass": "B"
+    },
+    {
+      "code": 130,
+      "nameKo": "광역버스(130)",
+      "transportClass": "B"
+    },
+    {
+      "code": 131,
+      "nameKo": "심야버스(131)",
+      "transportClass": "B"
+    },
+    {
+      "code": 132,
+      "nameKo": "시티투어버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 133,
+      "nameKo": "시티투어2층버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 134,
+      "nameKo": "국토부서울광역",
+      "transportClass": "B"
+    },
+    {
+      "code": 140,
+      "nameKo": "순환버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 151,
+      "nameKo": "마을버스(151)",
+      "transportClass": "B"
+    },
+    {
+      "code": 152,
+      "nameKo": "9호선급행순환버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 190,
+      "nameKo": "교통수단 코드 190",
+      "transportClass": ""
+    },
+    {
+      "code": 200,
+      "nameKo": "도시철도(공통)",
+      "transportClass": "R"
+    },
+    {
+      "code": 201,
+      "nameKo": "서울교통공사",
+      "transportClass": "R"
+    },
+    {
+      "code": 202,
+      "nameKo": "한국철도공사",
+      "transportClass": "R"
+    },
+    {
+      "code": 203,
+      "nameKo": "도시철도",
+      "transportClass": "R"
+    },
+    {
+      "code": 204,
+      "nameKo": "인천지하철",
+      "transportClass": "R"
+    },
+    {
+      "code": 205,
+      "nameKo": "9호선",
+      "transportClass": "R"
+    },
+    {
+      "code": 206,
+      "nameKo": "공항철도 단독구간",
+      "transportClass": "R"
+    },
+    {
+      "code": 207,
+      "nameKo": "공항철도 연락구간",
+      "transportClass": "R"
+    },
+    {
+      "code": 208,
+      "nameKo": "신분당선",
+      "transportClass": "R"
+    },
+    {
+      "code": 231,
+      "nameKo": "용인경전철",
+      "transportClass": "R"
+    },
+    {
+      "code": 232,
+      "nameKo": "의정부경전철",
+      "transportClass": "R"
+    },
+    {
+      "code": 300,
+      "nameKo": "택시",
+      "transportClass": "T"
+    },
+    {
+      "code": 301,
+      "nameKo": "개인택시",
+      "transportClass": "T"
+    },
+    {
+      "code": 302,
+      "nameKo": "법인택시",
+      "transportClass": "T"
+    },
+    {
+      "code": 303,
+      "nameKo": "시설공단택시",
+      "transportClass": "T"
+    },
+    {
+      "code": 321,
+      "nameKo": "원주택시",
+      "transportClass": "T"
+    },
+    {
+      "code": 400,
+      "nameKo": "인천일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 401,
+      "nameKo": "강화군내버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 402,
+      "nameKo": "인천간선버스(1~99번대)",
+      "transportClass": "B"
+    },
+    {
+      "code": 403,
+      "nameKo": "인천지선버스(500번대)",
+      "transportClass": "B"
+    },
+    {
+      "code": 404,
+      "nameKo": "인천광역버스(404)",
+      "transportClass": "B"
+    },
+    {
+      "code": 406,
+      "nameKo": "인천일반좌석버스(103번)",
+      "transportClass": "B"
+    },
+    {
+      "code": 408,
+      "nameKo": "인천시외좌석버스(408)",
+      "transportClass": "B"
+    },
+    {
+      "code": 430,
+      "nameKo": "인천광역버스(430)",
+      "transportClass": "B"
+    },
+    {
+      "code": 431,
+      "nameKo": "인천시외좌석버스(431)",
+      "transportClass": "B"
+    },
+    {
+      "code": 440,
+      "nameKo": "공항철도",
+      "transportClass": "R"
+    },
+    {
+      "code": 450,
+      "nameKo": "인천좌석버스(450)",
+      "transportClass": "B"
+    },
+    {
+      "code": 451,
+      "nameKo": "인천좌석버스(451)",
+      "transportClass": "B"
+    },
+    {
+      "code": 452,
+      "nameKo": "인천좌석버스(452)",
+      "transportClass": "B"
+    },
+    {
+      "code": 453,
+      "nameKo": "인천좌석버스(453)",
+      "transportClass": "B"
+    },
+    {
+      "code": 454,
+      "nameKo": "인천좌석버스(454)",
+      "transportClass": "B"
+    },
+    {
+      "code": 455,
+      "nameKo": "인천좌석버스(455)",
+      "transportClass": "B"
+    },
+    {
+      "code": 456,
+      "nameKo": "인천좌석버스(456)",
+      "transportClass": "B"
+    },
+    {
+      "code": 457,
+      "nameKo": "인천좌석버스(457)",
+      "transportClass": "B"
+    },
+    {
+      "code": 458,
+      "nameKo": "인천좌석버스(458)",
+      "transportClass": "B"
+    },
+    {
+      "code": 459,
+      "nameKo": "인천좌석버스(459)",
+      "transportClass": "B"
+    },
+    {
+      "code": 460,
+      "nameKo": "인천좌석버스(460)",
+      "transportClass": "B"
+    },
+    {
+      "code": 461,
+      "nameKo": "인천좌석버스(461)",
+      "transportClass": "B"
+    },
+    {
+      "code": 462,
+      "nameKo": "인천좌석버스(462)",
+      "transportClass": "B"
+    },
+    {
+      "code": 463,
+      "nameKo": "인천좌석버스(463)",
+      "transportClass": "B"
+    },
+    {
+      "code": 464,
+      "nameKo": "인천좌석버스(464)",
+      "transportClass": "B"
+    },
+    {
+      "code": 465,
+      "nameKo": "인천관광버스(465)",
+      "transportClass": "B"
+    },
+    {
+      "code": 466,
+      "nameKo": "인천관광버스(466)",
+      "transportClass": "B"
+    },
+    {
+      "code": 467,
+      "nameKo": "인천관광버스(467)",
+      "transportClass": "B"
+    },
+    {
+      "code": 470,
+      "nameKo": "인천간선",
+      "transportClass": "B"
+    },
+    {
+      "code": 471,
+      "nameKo": "인천간선-초승",
+      "transportClass": "B"
+    },
+    {
+      "code": 472,
+      "nameKo": "인천마을버스(472)-기본요금",
+      "transportClass": "B"
+    },
+    {
+      "code": 474,
+      "nameKo": "인천급행간선-초승",
+      "transportClass": "B"
+    },
+    {
+      "code": 475,
+      "nameKo": "인천급행간선",
+      "transportClass": "B"
+    },
+    {
+      "code": 476,
+      "nameKo": "인천시내좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 477,
+      "nameKo": "인천시내좌석-초승",
+      "transportClass": "B"
+    },
+    {
+      "code": 480,
+      "nameKo": "인천지선",
+      "transportClass": "B"
+    },
+    {
+      "code": 481,
+      "nameKo": "인천마을버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 482,
+      "nameKo": "인천마을(중형)버스(482)-기본요금",
+      "transportClass": "B"
+    },
+    {
+      "code": 483,
+      "nameKo": "인천공항좌석(483)-초승거리비례제",
+      "transportClass": "B"
+    },
+    {
+      "code": 484,
+      "nameKo": "인천광역구-초승",
+      "transportClass": "B"
+    },
+    {
+      "code": 485,
+      "nameKo": "인천광역-초승",
+      "transportClass": "B"
+    },
+    {
+      "code": 486,
+      "nameKo": "인천공항좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 487,
+      "nameKo": "인천광역구버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 488,
+      "nameKo": "인천광역버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 489,
+      "nameKo": "인천뉴광역-초승",
+      "transportClass": "B"
+    },
+    {
+      "code": 490,
+      "nameKo": "인천좌석버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 491,
+      "nameKo": "인천좌석버스(491)-초승거리비례제",
+      "transportClass": "B"
+    },
+    {
+      "code": 496,
+      "nameKo": "국토부인천광역",
+      "transportClass": "B"
+    },
+    {
+      "code": 500,
+      "nameKo": "경기일반버스(500)-거리비례제",
+      "transportClass": "B"
+    },
+    {
+      "code": 501,
+      "nameKo": "도시형(500)",
+      "transportClass": "B"
+    },
+    {
+      "code": 502,
+      "nameKo": "도시형(550)",
+      "transportClass": "B"
+    },
+    {
+      "code": 503,
+      "nameKo": "도시형(580)",
+      "transportClass": "B"
+    },
+    {
+      "code": 504,
+      "nameKo": "도시형(600)-1",
+      "transportClass": "B"
+    },
+    {
+      "code": 505,
+      "nameKo": "도시형(600)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 506,
+      "nameKo": "도시형(600)-3",
+      "transportClass": "B"
+    },
+    {
+      "code": 507,
+      "nameKo": "도시형(650)-1",
+      "transportClass": "B"
+    },
+    {
+      "code": 508,
+      "nameKo": "도시형(700)-1",
+      "transportClass": "B"
+    },
+    {
+      "code": 509,
+      "nameKo": "도시형(700)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 510,
+      "nameKo": "도시형(700)-3",
+      "transportClass": "B"
+    },
+    {
+      "code": 511,
+      "nameKo": "경기일반버스(511)-기본요금",
+      "transportClass": "B"
+    },
+    {
+      "code": 512,
+      "nameKo": "도시형(800)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 513,
+      "nameKo": "도시형(800)-3",
+      "transportClass": "B"
+    },
+    {
+      "code": 514,
+      "nameKo": "도시형(650)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 515,
+      "nameKo": "좌석(1100)",
+      "transportClass": "B"
+    },
+    {
+      "code": 516,
+      "nameKo": "좌석(1200)",
+      "transportClass": "B"
+    },
+    {
+      "code": 517,
+      "nameKo": "좌석(1300)-1",
+      "transportClass": "B"
+    },
+    {
+      "code": 518,
+      "nameKo": "좌석(1300)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 519,
+      "nameKo": "좌석(1300)-3",
+      "transportClass": "B"
+    },
+    {
+      "code": 520,
+      "nameKo": "좌석(1300)-4",
+      "transportClass": "B"
+    },
+    {
+      "code": 521,
+      "nameKo": "좌석(1300)-5",
+      "transportClass": "B"
+    },
+    {
+      "code": 522,
+      "nameKo": "좌석(1300)-6",
+      "transportClass": "B"
+    },
+    {
+      "code": 523,
+      "nameKo": "좌석(1300)-7",
+      "transportClass": "B"
+    },
+    {
+      "code": 524,
+      "nameKo": "좌석(1300)-8",
+      "transportClass": "B"
+    },
+    {
+      "code": 525,
+      "nameKo": "좌석(1300)-9",
+      "transportClass": "B"
+    },
+    {
+      "code": 526,
+      "nameKo": "고급좌석(1400)-1",
+      "transportClass": "B"
+    },
+    {
+      "code": 527,
+      "nameKo": "고급좌석(1400)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 528,
+      "nameKo": "고급좌석(1400)-3",
+      "transportClass": "B"
+    },
+    {
+      "code": 529,
+      "nameKo": "고급좌석(1400)-4",
+      "transportClass": "B"
+    },
+    {
+      "code": 530,
+      "nameKo": "경기좌석(530)",
+      "transportClass": "B"
+    },
+    {
+      "code": 531,
+      "nameKo": "경기좌석(531)",
+      "transportClass": "B"
+    },
+    {
+      "code": 532,
+      "nameKo": "경기좌석(532)",
+      "transportClass": "B"
+    },
+    {
+      "code": 533,
+      "nameKo": "경기좌석(533)",
+      "transportClass": "B"
+    },
+    {
+      "code": 534,
+      "nameKo": "고급좌석(1500)-1",
+      "transportClass": "B"
+    },
+    {
+      "code": 535,
+      "nameKo": "고급좌석(1500)-2",
+      "transportClass": "B"
+    },
+    {
+      "code": 536,
+      "nameKo": "고급좌석(1500)-3",
+      "transportClass": "B"
+    },
+    {
+      "code": 537,
+      "nameKo": "고급좌석(1500)-4",
+      "transportClass": "B"
+    },
+    {
+      "code": 538,
+      "nameKo": "명성운수공항(환승)",
+      "transportClass": "B"
+    },
+    {
+      "code": 539,
+      "nameKo": "신성교통시외(800)",
+      "transportClass": "B"
+    },
+    {
+      "code": 540,
+      "nameKo": "평안운수시외(800)",
+      "transportClass": "B"
+    },
+    {
+      "code": 541,
+      "nameKo": "경진여객시외(1600)",
+      "transportClass": "B"
+    },
+    {
+      "code": 542,
+      "nameKo": "경진여객시외(1900)",
+      "transportClass": "B"
+    },
+    {
+      "code": 543,
+      "nameKo": "용남고속시외(2500)",
+      "transportClass": "B"
+    },
+    {
+      "code": 544,
+      "nameKo": "좌석(1300)-10",
+      "transportClass": "B"
+    },
+    {
+      "code": 545,
+      "nameKo": "경남여객공항A",
+      "transportClass": "B"
+    },
+    {
+      "code": 546,
+      "nameKo": "경남여객공항B",
+      "transportClass": "B"
+    },
+    {
+      "code": 550,
+      "nameKo": "경기순환버스-거리",
+      "transportClass": "B"
+    },
+    {
+      "code": 570,
+      "nameKo": "국토부경기광역",
+      "transportClass": "B"
+    },
+    {
+      "code": 580,
+      "nameKo": "경기마을버스(580)",
+      "transportClass": "B"
+    },
+    {
+      "code": 581,
+      "nameKo": "경기마을버스(581)",
+      "transportClass": "B"
+    },
+    {
+      "code": 582,
+      "nameKo": "경기마을버스(582)",
+      "transportClass": "B"
+    },
+    {
+      "code": 583,
+      "nameKo": "경기 마을버스(583)",
+      "transportClass": "B"
+    },
+    {
+      "code": 584,
+      "nameKo": "경기마을버스(584)-기본요금",
+      "transportClass": "B"
+    },
+    {
+      "code": 599,
+      "nameKo": "경기시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 600,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 601,
+      "nameKo": "부산일반버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 602,
+      "nameKo": "부산좌석버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 603,
+      "nameKo": "부산급행",
+      "transportClass": "B"
+    },
+    {
+      "code": 604,
+      "nameKo": "부산심야급행",
+      "transportClass": "B"
+    },
+    {
+      "code": 605,
+      "nameKo": "부산마을버스(605)",
+      "transportClass": "B"
+    },
+    {
+      "code": 606,
+      "nameKo": "부산마을버스(606)",
+      "transportClass": "B"
+    },
+    {
+      "code": 607,
+      "nameKo": "부산마을버스(607)",
+      "transportClass": "B"
+    },
+    {
+      "code": 608,
+      "nameKo": "부산마을버스(608)",
+      "transportClass": "B"
+    },
+    {
+      "code": 609,
+      "nameKo": "부산마을버스(609)",
+      "transportClass": "B"
+    },
+    {
+      "code": 610,
+      "nameKo": "부산마을버스(610)",
+      "transportClass": "B"
+    },
+    {
+      "code": 611,
+      "nameKo": "부산마을버스(611)",
+      "transportClass": "B"
+    },
+    {
+      "code": 612,
+      "nameKo": "부산마을버스(612)",
+      "transportClass": "B"
+    },
+    {
+      "code": 613,
+      "nameKo": "부산마을버스(613)",
+      "transportClass": "B"
+    },
+    {
+      "code": 614,
+      "nameKo": "부산마을버스(614)",
+      "transportClass": "B"
+    },
+    {
+      "code": 615,
+      "nameKo": "부산일반-유한(615)",
+      "transportClass": "B"
+    },
+    {
+      "code": 616,
+      "nameKo": "부산일반-유한(616)",
+      "transportClass": "B"
+    },
+    {
+      "code": 617,
+      "nameKo": "부산마을버스(617)",
+      "transportClass": "B"
+    },
+    {
+      "code": 618,
+      "nameKo": "부산일반심야",
+      "transportClass": "B"
+    },
+    {
+      "code": 619,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 620,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 621,
+      "nameKo": "울산일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 622,
+      "nameKo": "울산좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 623,
+      "nameKo": "울산시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 624,
+      "nameKo": "울산마을",
+      "transportClass": "B"
+    },
+    {
+      "code": 625,
+      "nameKo": "울산공항",
+      "transportClass": "B"
+    },
+    {
+      "code": 626,
+      "nameKo": "울산예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 627,
+      "nameKo": "마산/창원/진해일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 628,
+      "nameKo": "마산/창원/진해좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 629,
+      "nameKo": "마산/창원/진해시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 630,
+      "nameKo": "마산/창원/진해마을",
+      "transportClass": "B"
+    },
+    {
+      "code": 631,
+      "nameKo": "마산/창원/진해예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 632,
+      "nameKo": "양산일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 633,
+      "nameKo": "양산좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 634,
+      "nameKo": "양산시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 635,
+      "nameKo": "양산마을",
+      "transportClass": "B"
+    },
+    {
+      "code": 636,
+      "nameKo": "양산예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 637,
+      "nameKo": "진주일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 638,
+      "nameKo": "진주좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 639,
+      "nameKo": "진주시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 640,
+      "nameKo": "진주예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 641,
+      "nameKo": "김해일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 642,
+      "nameKo": "김해좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 643,
+      "nameKo": "김해시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 644,
+      "nameKo": "김해예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 645,
+      "nameKo": "밀양일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 646,
+      "nameKo": "밀양좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 647,
+      "nameKo": "밀양시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 648,
+      "nameKo": "함안일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 649,
+      "nameKo": "함안좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 650,
+      "nameKo": "함안시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 651,
+      "nameKo": "천안일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 652,
+      "nameKo": "천안좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 653,
+      "nameKo": "천안시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 654,
+      "nameKo": "천안마을",
+      "transportClass": "B"
+    },
+    {
+      "code": 655,
+      "nameKo": "천안호서대버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 656,
+      "nameKo": "아산일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 657,
+      "nameKo": "아산좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 658,
+      "nameKo": "아산시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 659,
+      "nameKo": "아산마을",
+      "transportClass": "B"
+    },
+    {
+      "code": 660,
+      "nameKo": "아산예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 661,
+      "nameKo": "충남시내버스(대표)",
+      "transportClass": "B"
+    },
+    {
+      "code": 662,
+      "nameKo": "충남시내(시)",
+      "transportClass": "B"
+    },
+    {
+      "code": 663,
+      "nameKo": "충남시내(군)",
+      "transportClass": "B"
+    },
+    {
+      "code": 664,
+      "nameKo": "충남좌석(좌석1)",
+      "transportClass": "B"
+    },
+    {
+      "code": 665,
+      "nameKo": "충남좌석(좌석2)",
+      "transportClass": "B"
+    },
+    {
+      "code": 666,
+      "nameKo": "충남좌석(좌석3)",
+      "transportClass": "B"
+    },
+    {
+      "code": 667,
+      "nameKo": "충남시내(광역시)",
+      "transportClass": "B"
+    },
+    {
+      "code": 668,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 669,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 670,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 671,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 672,
+      "nameKo": "대전버스(대표)",
+      "transportClass": "B"
+    },
+    {
+      "code": 673,
+      "nameKo": "대전마을버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 674,
+      "nameKo": "대전급행버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 675,
+      "nameKo": "대전지선버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 676,
+      "nameKo": "대전간선_일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 677,
+      "nameKo": "대전간선_논산",
+      "transportClass": "B"
+    },
+    {
+      "code": 678,
+      "nameKo": "대전간선_보은/옥천",
+      "transportClass": "B"
+    },
+    {
+      "code": 679,
+      "nameKo": "대전간선_연기/금산",
+      "transportClass": "B"
+    },
+    {
+      "code": 680,
+      "nameKo": "대전외곽_일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 681,
+      "nameKo": "대전외곽_논산",
+      "transportClass": "B"
+    },
+    {
+      "code": 682,
+      "nameKo": "대전외곽_보은/옥천",
+      "transportClass": "B"
+    },
+    {
+      "code": 683,
+      "nameKo": "대전외곽_연기/금산",
+      "transportClass": "B"
+    },
+    {
+      "code": 684,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 685,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 686,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 687,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 688,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 689,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 690,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 691,
+      "nameKo": "광주_1호선",
+      "transportClass": "R"
+    },
+    {
+      "code": 692,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 693,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 694,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 695,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 699,
+      "nameKo": "공항철도(보급형카드에만적용)",
+      "transportClass": "R"
+    },
+    {
+      "code": 701,
+      "nameKo": "포항시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 702,
+      "nameKo": "포항좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 703,
+      "nameKo": "포항읍면",
+      "transportClass": "B"
+    },
+    {
+      "code": 704,
+      "nameKo": "통영시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 705,
+      "nameKo": "통영예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 706,
+      "nameKo": "안동시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 707,
+      "nameKo": "안동좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 708,
+      "nameKo": "안동예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 709,
+      "nameKo": "거제시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 710,
+      "nameKo": "거제예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 711,
+      "nameKo": "원주시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 712,
+      "nameKo": "원주시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 713,
+      "nameKo": "원주좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 714,
+      "nameKo": "횡성시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 715,
+      "nameKo": "횡성시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 716,
+      "nameKo": "횡성좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 717,
+      "nameKo": "춘천일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 718,
+      "nameKo": "춘천시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 719,
+      "nameKo": "춘천좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 720,
+      "nameKo": "강릉시내버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 721,
+      "nameKo": "강릉좌석버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 722,
+      "nameKo": "예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 729,
+      "nameKo": "강원시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 736,
+      "nameKo": "iM유페이 대구·경산 버스(736)",
+      "transportClass": "B"
+    },
+    {
+      "code": 741,
+      "nameKo": "iM유페이 대구·경산 버스(741)",
+      "transportClass": "B"
+    },
+    {
+      "code": 770,
+      "nameKo": "광주일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 771,
+      "nameKo": "광주좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 772,
+      "nameKo": "광주시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 773,
+      "nameKo": "광주마을",
+      "transportClass": "B"
+    },
+    {
+      "code": 774,
+      "nameKo": "광주공항",
+      "transportClass": "B"
+    },
+    {
+      "code": 775,
+      "nameKo": "광주예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 776,
+      "nameKo": "순천일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 777,
+      "nameKo": "순천좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 778,
+      "nameKo": "순천시외",
+      "transportClass": "B"
+    },
+    {
+      "code": 779,
+      "nameKo": "순천예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 780,
+      "nameKo": "목포일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 781,
+      "nameKo": "목포좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 782,
+      "nameKo": "목포시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 783,
+      "nameKo": "목포예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 784,
+      "nameKo": "광양일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 785,
+      "nameKo": "광양좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 786,
+      "nameKo": "광양시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 787,
+      "nameKo": "광양예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 788,
+      "nameKo": "여수일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 789,
+      "nameKo": "여수좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 790,
+      "nameKo": "여수시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 791,
+      "nameKo": "여수예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 792,
+      "nameKo": "나주일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 793,
+      "nameKo": "나주좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 794,
+      "nameKo": "나주시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 795,
+      "nameKo": "나주예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 796,
+      "nameKo": "사천일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 797,
+      "nameKo": "사천좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 798,
+      "nameKo": "사천시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 799,
+      "nameKo": "사천예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 800,
+      "nameKo": "적용:남산1,3호",
+      "transportClass": "B"
+    },
+    {
+      "code": 801,
+      "nameKo": "주차장",
+      "transportClass": "B"
+    },
+    {
+      "code": 802,
+      "nameKo": "만월산",
+      "transportClass": "B"
+    },
+    {
+      "code": 810,
+      "nameKo": "공항그룹코드",
+      "transportClass": "B"
+    },
+    {
+      "code": 811,
+      "nameKo": "K공항리무진",
+      "transportClass": "B"
+    },
+    {
+      "code": 812,
+      "nameKo": "공항리무진",
+      "transportClass": "B"
+    },
+    {
+      "code": 813,
+      "nameKo": "서울버스리무진고급형",
+      "transportClass": "B"
+    },
+    {
+      "code": 814,
+      "nameKo": "서울버스리무진일반형",
+      "transportClass": "B"
+    },
+    {
+      "code": 815,
+      "nameKo": "공항고속센트럴시티리무진",
+      "transportClass": "B"
+    },
+    {
+      "code": 816,
+      "nameKo": "도심공항리무진",
+      "transportClass": "B"
+    },
+    {
+      "code": 817,
+      "nameKo": "공항예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 818,
+      "nameKo": "공항예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 819,
+      "nameKo": "공항예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 820,
+      "nameKo": "공항예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 850,
+      "nameKo": "경전철그룹코드",
+      "transportClass": "R"
+    },
+    {
+      "code": 851,
+      "nameKo": "용인경전철",
+      "transportClass": "R"
+    },
+    {
+      "code": 853,
+      "nameKo": "대전도시철도공사",
+      "transportClass": "R"
+    },
+    {
+      "code": 870,
+      "nameKo": "부산교통공사",
+      "transportClass": "R"
+    },
+    {
+      "code": 871,
+      "nameKo": "광주도시철도공사",
+      "transportClass": "R"
+    },
+    {
+      "code": 872,
+      "nameKo": "대구교통공사",
+      "transportClass": "R"
+    },
+    {
+      "code": 990,
+      "nameKo": "제주시외버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 991,
+      "nameKo": "제주공항리무진",
+      "transportClass": "B"
+    },
+    {
+      "code": 992,
+      "nameKo": "제주읍면순환버스",
+      "transportClass": "B"
+    },
+    {
+      "code": 993,
+      "nameKo": "제주시외예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 994,
+      "nameKo": "제주시내일반",
+      "transportClass": "B"
+    },
+    {
+      "code": 995,
+      "nameKo": "제주시내좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 996,
+      "nameKo": "제주시내예비",
+      "transportClass": "B"
+    },
+    {
+      "code": 997,
+      "nameKo": "서귀포시내",
+      "transportClass": "B"
+    },
+    {
+      "code": 998,
+      "nameKo": "서귀포좌석",
+      "transportClass": "B"
+    },
+    {
+      "code": 999,
+      "nameKo": "서귀포예비",
+      "transportClass": "B"
+    }
   ]
 }

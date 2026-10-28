@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import argparse
 import datetime as dt
 import hashlib
@@ -42,6 +44,7 @@ TUNION_SOURCE_ASSETS = [
 
 KOREAN_ASSETS = [
     "KOTRISTransportModes.json",
+    "korean_stations.tsv",
 ]
 
 ULAANBAATAR_ASSETS = [
@@ -73,6 +76,7 @@ UNIFIED_INPUT_ASSETS = [
     "TUnionLineStations.json",
     "JPStationCodes.csv",
     "tunion_tripreader_source.json",
+    "card-stations-manifest.json",
 ]
 
 UNIFIED_PORTABLE_INPUT_ASSETS = {
@@ -84,6 +88,8 @@ UNIFIED_PORTABLE_INPUT_ASSETS = {
     "TUnionLineStations.json",
     "JPStationCodes.csv",
     "tunion_tripreader_source.json",
+    "korean_stations.tsv",
+    "card-stations-manifest.json",
 }
 
 # CardBal iOS vendors korean_stations.tsv and its derived East Asia boundary
@@ -137,7 +143,9 @@ def copy_assets(names: list[str], source_dir: Path, destination: Path) -> None:
         source = source_dir / name
         if not source.exists():
             raise FileNotFoundError(source)
-        shutil.copy2(source, destination / name)
+        target = destination / name
+        if not target.is_file() or source.read_bytes() != target.read_bytes():
+            shutil.copy2(source, target)
 
 
 def seed_portable_assets(names: list[str], portable_assets: Path, ios_resources: Path) -> None:
@@ -205,7 +213,12 @@ def write_manifest(portable_assets: Path) -> None:
             ),
         },
     }
-    (portable_assets / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest_path = portable_assets / "manifest.json"
+    if manifest_path.is_file():
+        previous = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if previous.get("files") == files and previous.get("sqlite") == manifest["sqlite"]:
+            return
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def build_japanese(python: str, portable_assets: Path) -> None:
@@ -284,6 +297,8 @@ def build_unified_database(
                 if name in UNIFIED_PORTABLE_INPUT_ASSETS and portable_source.is_file()
                 else ios_source
             )
+            if name == "card-stations-manifest.json" and not source.is_file():
+                continue
             if not source.is_file():
                 raise FileNotFoundError(
                     f"Unified database input {name} is missing from both "
@@ -318,6 +333,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ios-resources", type=Path, default=IOS_RESOURCES)
     parser.add_argument("--android-assets", type=Path, default=ANDROID_ASSETS)
     parser.add_argument("--python", default=sys.executable)
+    parser.add_argument("--source", choices=["csv", "upstream"], default="csv",
+                        help="Build from pinned iebb/card-stations CSVs (default); upstream is maintenance-only.")
+    parser.add_argument("--csv-source", type=Path,
+                        help="Explicit local card-stations checkout for testing CSV contributions.")
     parser.add_argument(
         "--copy-only",
         action="store_true",
@@ -336,6 +355,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if args.rebuild_unified and args.copy_only:
         parser.error("--rebuild-unified cannot be combined with --copy-only")
+    if args.csv_source and args.source != "csv":
+        parser.error("--csv-source requires --source csv")
     return args
 
 
@@ -349,11 +370,18 @@ def main() -> None:
         ios_names.extend(UNIFIED_ASSETS)
     seed_portable_assets(names, args.portable_assets, args.ios_resources)
     if not args.copy_only:
-        if args.target in ("all", "japanese"):
+        if args.source == "upstream":
+            # A maintenance import must not claim it came from the pinned CSVs.
+            (args.portable_assets / "card-stations-manifest.json").unlink(missing_ok=True)
+        if args.source == "csv":
+            run([args.python, str(SCRIPTS_DIR / "card_stations_source.py"),
+                 "--output", str(args.portable_assets), "--python", args.python]
+                + (["--source", str(args.csv_source)] if args.csv_source else []))
+        if args.source == "upstream" and args.target in ("all", "japanese"):
             build_japanese(args.python, args.portable_assets)
-        if args.target in ("all", "tunion"):
+        if args.source == "upstream" and args.target in ("all", "tunion"):
             build_tunion(args.python, args.portable_assets, args.tunion_delay_seconds, args.skip_tunion_osm, args.offline_tunion_source)
-        if args.target in ("all", "ulaanbaatar"):
+        if args.source == "upstream" and args.target in ("all", "ulaanbaatar"):
             build_ulaanbaatar(args.python, args.portable_assets, args.ulaanbaatar_delay_seconds)
         if args.target == "all" or args.rebuild_unified:
             build_unified_database(

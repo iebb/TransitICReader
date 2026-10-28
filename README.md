@@ -18,7 +18,24 @@ Native SwiftUI iPhone app for scanning physical transit IC cards with CoreNFC.
 
 ## Station data
 
-Portable station catalogs live in `StationAssets`. The Ulaanbaatar catalog is
+Station lookup sources are contribution-friendly CSVs in
+[iebb/card-stations](https://github.com/iebb/card-stations). Japanese IC uses one
+shared station file; T-Union is grouped by city, Korean cards by known company
+or mode, and U-money by city. Xcode builds compile the pinned CSV revision into
+the app's SQLite database before copying resources. The pin lives in
+`StationAssets/card-stations.lock.json`; update it after merging a data PR.
+
+```sh
+python3 scripts/build_cross_platform_station_assets.py --target all
+# Test an unmerged CSV contribution:
+python3 scripts/build_cross_platform_station_assets.py --target all --csv-source ../card-stations
+```
+
+Set `CARDBAL_STATIONS_SOURCE=/path/to/card-stations` to test a local data checkout
+in Xcode. Builds use the pinned commit by default and never refresh upstream
+station services. The first build fetches that commit; later builds reuse it.
+
+Generated portable station catalogs live in `StationAssets`. The Ulaanbaatar catalog is
 generated from the service used by `com.uscc.ubbus` and contains Mongolian and
 English station names, coordinates, routes, and ordered route-stop relations.
 See [UB Smart Bus data](docs/ub-smart-bus.md) for the protocol and refresh

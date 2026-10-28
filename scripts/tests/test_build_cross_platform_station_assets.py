@@ -56,6 +56,7 @@ class UnifiedAssetRoutingTests(unittest.TestCase):
 
             with patch("sys.argv", [
                 "packager", "--target", "ulaanbaatar", "--rebuild-unified",
+                "--source", "upstream",
                 "--portable-assets", str(portable), "--ios-resources", str(ios),
                 "--android-assets", str(android),
             ]), patch.object(packager, "build_ulaanbaatar", side_effect=refresh), \

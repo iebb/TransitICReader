@@ -92,6 +92,15 @@ def source_rows(resources: Path) -> list[tuple[str, str, str, str, str, str, str
         "tunion_tripreader_source.json": ("sources.cn.tripreader", "Trip Reader source snapshot and attribution"),
     }
     rows = []
+    csv_manifest_path = resources / "card-stations-manifest.json"
+    if csv_manifest_path.is_file():
+        csv_manifest = load_json(csv_manifest_path)
+        rows.append((
+            "sources.card-stations", "iebb/card-stations CSV catalog",
+            csv_manifest["repository"], csv_manifest["revision"], "",
+            "See card-stations DATA_SOURCES.md for per-source terms",
+            csv_manifest["source_sha256"],
+        ))
     for filename, (source_id, title) in descriptions.items():
         path = resources / filename
         if not path.is_file():
@@ -305,6 +314,17 @@ CREATE TABLE station_graph_edges (
     PRIMARY KEY (country_code, line_code, from_station_code, to_station_code)
 ) WITHOUT ROWID;
 CREATE INDEX station_graph_edges_country_idx ON station_graph_edges(country_code);
+CREATE TABLE station_edge_paths (
+    country_code TEXT NOT NULL CHECK (country_code IN ('JP', 'CN')),
+    line_code TEXT NOT NULL,
+    from_station_code TEXT NOT NULL,
+    to_station_code TEXT NOT NULL,
+    geohash_path TEXT NOT NULL,
+    PRIMARY KEY (country_code, line_code, from_station_code, to_station_code),
+    FOREIGN KEY (country_code, line_code, from_station_code, to_station_code)
+      REFERENCES station_graph_edges(country_code, line_code, from_station_code, to_station_code)
+) WITHOUT ROWID;
+
 CREATE TABLE tunion_terminal_stations (
     record_kind TEXT NOT NULL CHECK (record_kind IN ('18', '1e')),
     city_id TEXT NOT NULL,
@@ -1128,6 +1148,19 @@ def build_mongolian_stations(
                         str(source_station_id),
                         int(sequence),
                     ),
+                )
+
+
+def import_edge_paths(output: sqlite3.Connection, resources: Path) -> None:
+    for country, filename in (("JP", "jp_stations.sqlite"), ("CN", "tunion_stations.sqlite")):
+        with open_source_database(resources / filename) as source:
+            if table_exists(source, "station_edge_paths"):
+                output.executemany(
+                    "INSERT INTO station_edge_paths VALUES (?, ?, ?, ?, ?)",
+                    [(country, *tuple(row)) for row in source.execute(
+                        "SELECT line_code, from_station_code, to_station_code, geohash_path "
+                        "FROM station_edge_paths ORDER BY line_code, from_station_code, to_station_code"
+                    )],
                 )
 
 
@@ -2020,6 +2053,7 @@ def generate(
                 city_parents,
             )
             update_catalog_counts(connection)
+            import_edge_paths(connection, resources)
             validate_runtime_source_parity(connection, resources)
             korean_alias_count, korean_map_group_count = validate_korean_source_parity(
                 connection, resources / "korean_stations.tsv"

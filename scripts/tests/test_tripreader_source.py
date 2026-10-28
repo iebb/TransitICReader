@@ -74,13 +74,15 @@ class TripReaderSourceTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256((assets / name).read_bytes()).digest(),
                              hashlib.sha256((resources / name).read_bytes()).digest())
         payload = json.loads((assets / "tunion_tripreader_source.json").read_text())
+        manifest = json.loads((assets / "card-stations-manifest.json").read_text()) if (assets / "card-stations-manifest.json").is_file() else {}
+        compact = manifest.get("format") in ("card-stations-v2", "card-stations-v3")
         self.assertEqual(len(payload["city_union_stations"]), 614)
         with contextlib.closing(sqlite3.connect(assets / "cardbal_transit.sqlite")) as connection:
             rows = connection.execute("SELECT terminal_prefix, station_key, source_json FROM cityunion_terminal_prefixes").fetchall()
             self.assertEqual(len(rows), 614)
             self.assertEqual(sum(key is not None for _, key, _ in rows), 577)
             for prefix, key, metadata in rows:
-                self.assertEqual(json.loads(metadata), payload["city_union_stations"][prefix])
+                self.assertEqual(json.loads(metadata), {} if compact else payload["city_union_stations"][prefix])
                 if key:
                     self.assertTrue(key.startswith("2900"))
                     self.assertEqual(connection.execute(

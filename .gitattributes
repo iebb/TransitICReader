@@ -1,0 +1,2 @@
+# Generated TSVs retain trailing delimiters for empty final fields.
+*.tsv whitespace=-blank-at-eol

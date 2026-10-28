@@ -1,139 +1,141 @@
 route_id	route_name_mn	route_name_en	endpoint_name_mn	endpoint_name_en
-11100020	Ч:2	Ch:2	ШАР ХАДНЫ ЭЦЭС-3,4-р хороололын эцэс	Shar khad final station-Final station of 3, 4th section
-11100060	Ч:6	Ch:6	65-р дэлгүүр-10-р хороолол	65th market-10th section
-11100070	Ч:7	Ch:7	НИСЭХ-4-р дэлгүүр	Nisekh-4th market
-11100080	Ч:8	Ch:8	Хайлаастын шинэ эцэс-МУБИС	Khailaast new final station-Mongolian national university of education
-11100090	Ч:9	Ch:9	НИСЭХ-Монгол Улсын Их Сургууль	Nisekh-National university of mongolia
-11100100	Ч:10	Ch:10	Гадна тойруугийн эцэс-ТЭЦ-3	-3rd power plant
-11100110	Ч:11	Ch:11	Хужирбулангийн шинэ эцэс-Офицеруудын ордон	-Officer station
-11100120	Ч:12	Ch:12	Зүүн салааны шинэ эцэс-32-р байр	-Flat 32
-11100130	Ч:13	Ch:13	Тахилтын эцэс-3-р эмнэлэг	Takhilt final station-3rd hospital
-11100140	Ч:14	Ch:14	НАРАНГИЙН ГОЛ-5 Шар	Narangiin gol-5 Shar
-11100150	Ч:15	Ch:15	НИСЭХ-5 Шар	Nisekh-5 Shar
-11100155	Ч:75	Ch:75	Архивын ерөнхий газар-5 Шар	General Office of Archives-5 Shar
-11100160	Ч:16	Ch:16	Баруун салааны шинэ эцэс-10-р хороолол	Bumbatyn rashaan final station-10th section
-11100163	Ч:16А	Ch:16A	БАРУУН САЛААНЫ ЭЦЭС-5 Шар	Baruun salaa final station-5 Shar
-11100171	Ч:17А	Ch:17A	Сансар ШТС-Вокзал	Sansar gas station-Railway station
-11100172	Ч:17Б	Ch:17B	Сансар ШТС-Вокзал	Sansar gas station-Railway station
-11100181	Ч:18А	Ch:18A	ТЭЦ-3-Гэмтлийн эмнэлэг	3rd power plant-Hospital for Injury and Trauma
-11100182	Ч:18Б	Ch:18B	МҮИС-ТЭЦ-3	Mongolian National University-3rd power plant
-11100191	Ч:19А	Ch:19A	Цагаан давааны задгай-Сансарын үйлчилгээний төв	Tsagaan davaany zadgai-Sansaryn uilchilgeenii tuv
-11100192	Ч:19Б	Ch:19B	Цагаан давааны задгай-Сансарын үйлчилгээний төв	Tsagaan davaany zadgai-Sansaryn uilchilgeenii tuv
-11100201	Ч:20А	Ch:20A	БАЯНХОШУУ-34-р байр	Bayankhoshuu-Flat 34
-11100202	Ч:20Б	Ch:20B	БАЯНХОШУУ-Хар хорин	Bayankhoshuu-Kharkhorin
-11100211	Ч:21А	Ch:21A	Вокзал-Дэнжийн 1000-ын эцэс	Railway station-Autobus baaz
-11100212	Ч:21Б	Ch:21B	Вокзал-Дэнжийн 1000-ын эцэс	Railway station-Autobus baaz
-11100220	Ч:22	Ch:22	ШАДИВЛАНГИЙН ЭЦЭС-зуслан-Тээврийн товчоо	Shadivlan final station-Teevryn tovchoo
-11100230	Ч:23	Ch:23	ЗҮРХ УУЛ /Чингэлтэйн эцэс/-Ард кино театр	Zurkh Uul /Chingeltei final station/-Ard cinema
-11100240	Ч:24Б	Ch:24B	НИСЭХ-МҮИС	Nisekh-Mongolian National University
-11100241	Ч:24А	Ch:24A	Дүүхээ дэлгүүр-ЗҮРХ УУЛ /Чингэлтэйн эцэс/	Duukhee market-Zurkh Uul /Chingeltei final station/
-11100250	Ч:25	Ch:25	Тоосгоны Үйлдвэр Эцэс-Дүүхээ дэлгүүр	Toosgonii uildver final station-Duukhee market
-11100260	Ч:26	Ch:26	Тоосгоны Үйлдвэр Эцэс-Жанжин Клуб	Toosgonii uildver final station-Janjin club
-11100270	Ч:27	Ch:27	Өвөр согоот-Вокзал	Uvur sogoot-Railway station
-11100280	Ч:28	Ch:28	Сэлх -7 БУУДАЛ	Selkh-7th station
-11100300	Ч:30	Ch:30	Жанжин Клуб-Сүхбаатарын талбайн төв зогсоол	Janjin club-ㅗㅗ
-11100310	Ч:31	Ch:31	УЛИАСТАЙН ШИНЭ ЭЦЭС-Дэнжийн 1000-ын 4-р зогсоол	Uliastai new final station-Zam guuriin avto baaz
-11100330	Ч:33	Ch:33	Хайрхан хөгжлийн төв-Сансар ШТС	-Sansar gas station
-11100340	Ч:34	Ch:34	ШАР ХАДНЫ ЭЦЭС-ТЭЦ-3	Shar khad final station-3rd power plant
-11100350	Ч:35	Ch:35	Гадна тойруугийн эцэс-4-р дэлгүүр	-4th market
-11100360	Ч:36	Ch:36	ГАЧУУРТЫН ЭЦЭС-Офицеруудын ордон	Gachuurt final station-Officer station
-11100370	Ч:37	Ch:37	УЛААНХУАРАН -ын эцэс-4-р хороолол	Ulaankhuaran final station-4th section
-11100380	Ч:38	Ch:38	Ханын Материалын Комбинат-Хайлаастын шинэ эцэс	HMK-Khailaast new final station
-11100390	Ч:39	Ch:39	Сансар /Тунель/-3,4-р хороололын эцэс	Sansar /Tunnel/-Final station of 3, 4th section
-11100400	Ч:40	Ch:40	Алтан тариа-УЛААНХУАРАН -ын эцэс	Altan taria-Ulaankhuaran final station
-11100410	Ч:41	Ch:41	БАРУУН САЛААНЫ ЭЦЭС-ХАЛДВАРТЫН ЭМНЭЛЭГ	Baruun salaa final station-Infectious Disease Hospital
-11100420	Ч:42	Ch:42	ЗАЙСАН-Та Чи	Zaisan-Ta-chi
-11100430	Ч:43	Ch:43	БАЯНХОШУУ-Ард кино театр	Bayankhoshuu-Ard cinema
-11100440	Ч:44	Ch:44	НАРАНГИЙН ГОЛ-Дүнжингарав Худалдааны төв	Narangiin gol-Dunjingarav trade center
-11100460	Ч:46	Ch:46	Улаанчулуут-Вокзал	Ulaanchuluut-Railway station
-11100480	Ч:48	Ch:48	Зүүн салааны хуучин эцэс-МУБИС	Zuun salaa station-Mongolian national university of education
-11100482	Ч:48A	Ch:48A	Зүүн салааны хуучин эцэс-МУБИС	Zuun salaa station-Mongolian national university of education
-11100490	Ч:49	Ch:49	34-р байр-Дүнжингарав Худалдааны төв	Flat 34-Dunjingarav trade center
-11100500	Ч:50	Ch:50	УЛААНХУАРАН -ын эцэс-ТЭЦ-3	Ulaankhuaran final station-3rd power plant
-11100510	Ч:51	Ch:51	Дүүхээ дэлгүүр-Дүнжингарав Худалдааны төв	Duukhee market-Dunjingarav trade center
-11100520	Ч:52	Ch:52	Дүүхээ дэлгүүр-ЗАЙСАН	Duukhee market-Zaisan
-11100530	Ч:53	Ch:53	ЯАРМАГИЙН ЭЦЭС-МУБИС	Yarmag final station-Mongolian national university of education
-11100540	Ч:54	Ch:54	ЯАРМАГИЙН ЭЦЭС-БАЯНХОШУУ	Yarmag final station-Bayankhoshuu
-11100550	Ч:55	Ch:55	Дэнжийн 1000-ын эцэс-ЗАЙСАН	Autobus baaz-Zaisan
-11100570	Ч:57	Ch:57	Улаанчулуут-Монгол Улсын Их Сургууль	Ulaanchuluut-National university of mongolia
-11100573	Ч:57Б	Ch:57B	Алтан овоо 48-р гудамж-Монгол Улсын Их Сургууль	Altan ovoo street 48-National university of mongolia
-11100580	Ч:58	Ch:58	ТЭЦ-3-3,4-р хороололын эцэс	3rd power plant-Final station of 3, 4th section
-11100600	Ч:60	Ch:60	5 Шар-Авто Худалдааны Цогцолбор	5 Shar-Auto Trade Complex
-11100612	Ч:61	Ch:61	ТЭЦ-3-Офицеруудын ордон	3rd power plant-Officer station
-11100620	Ч:62	Ch:62	Алтан овоо 48-р гудамж-10-р хороолол	Altan ovoo street 48-10th section
-11100630	Ч:63	Ch:63	Хан Хиллс-МУБИС	Khan hills-Mongolian national university of education
-11100640	Ч:64	Ch:64	Цагаан давааны задгай-ХАЛДВАРТЫН ЭМНЭЛЭГ	Tsagaan davaany zadgai-Infectious Disease Hospital
-11100650	Ч:65	Ch:65	ЗАЙСАН-Офицеруудын ордон	Zaisan-Officer station
-11100660	Ч:66	Ch:66	ЗАЙСАН-11-р хороолол	Zaisan-11th section
-11100670	Ч:67	Ch:67	Морин 3-НИСЭХ	Morin 3-Nisekh
-11100680	Ч:68	Ch:68	Архивын ерөнхий газар-Нисэхийн шинэ эцэс	General Office of Archives-Nisekh final station
-11100700	Ч:70	Ch:70	ТЭЦ-3-Ард кино театр	3rd power plant-Ard cinema
-11100710	Ч:71	Ch:71	МУБИС-120 мянгат	Mongolian national university of education-120 myangat
-11100720	Ч:72	Ch:72	Хөгжим бүжгийн коллеж-БОГДХАН АМРАЛТ	Music and Dance College of Mongolia-Bogdkhan camp
-11100730	Ч:73	Ch:73	ТЭЦ4-Зунжин худалдааны төв	4th power plant-Zunjin trade center
-11100740	Ч:74	Ch:74	Цагаан давааны задгай-Вокзал	Tsagaan davaany zadgai-Railway station
-11100743	Ч:76	Ch:76	Архивын ерөнхий газар-3,4-р хороололын эцэс	General Office of Archives-Final station of 3, 4th section
-11100772	ШҮ:1	ShÜ:1	5 Шар-Офицеруудын ордон	5 Shar-Officer station
-11100779	Ч:77	Ch:77	ГАН ХИЙЦ КОМПАНИ-Мотобуудлага спорт төв	Gan Khiits company-Moto shooting sports center
-11100801	М:1	M:1	5 Шар-Офицеруудын ордон	5 Shar-Officer station
-11100802	М:2	M:2	Зунжин худалдааны төв-МУБИС	Zunjin trade center-Mongolian national university of education
-11100803	М:4	M:4	ШАР ХАДНЫ ЭЦЭС-Цамбагарав	Shar khad final station-Tsambagarav
-11100804	М:5	M:5	Ботаник-10-р хороолол	Botanik-10th section
-11100805	М:6	M:6	ТЭЦ-3-Монгол тэмүүлэл сургууль	3rd power plant-
-11100806	М:3	M:3	Архивын ерөнхий газар-Сүхбаатарын талбайн төв зогсоол	General Office of Archives-ㅗㅗ
-11100815	Х:1	Kh:1	Санзайн эцэс-7 БУУДАЛ	Baga bayan camp-7th station
-11100816	Х:2	Kh:2	ШАРГА МОРЬТЫН ЭЦЭС-зуслан-7 БУУДАЛ	Sharga morit final station-7th station
-11100817	Х:6	Kh:6	Түргэний гол эцэс-Яармагийн 3-р буудал	Turgenii gol final station-Yarmag 3rd station
-11100818	Х:7	Kh:7	Туул тосгон шинэ эцэс-Хангарьд цогцолбор	Tuul tosgon new final station-Yarmag 1st station
-11100820	Х:11	Kh:11	Давааны зөрлөг-5 Шар	Davaany zurlug-5 Shar
-11100821	Х:12	Kh:12	Хонхор Эцэс-Офицеруудын ордон	Khonkhor final station-Officer station
-11100822	Х:13	Kh:13	Мал бордох-5 Шар	Mal bordokh-5 Shar
-11100823	Х:14	Kh:14	Баруун түрүү эцэс-5 Шар	Baruun turuu final station-5 Shar
-11100824	Х:15	Kh:15	Жаргалант Партизан-5 Шар	Jargalant partizan-5 Shar
-11100825	Х:4	Kh:4	10 ШАР БАЙР-Шилжрээ	10 shar bair-Shiljree
-11100826	Х:5	Kh:5	10 ШАР БАЙР-Офицеруудын ордон	10 shar bair-Officer station
-11100827	Х:3	Kh:3	Городок-10 ШАР БАЙР	Gorodok-10 shar bair
-11100828	Х:8	Kh:8	Найрамдал зуслан-5 Шар	Nairamdal camp-5 Shar
-11100829	Х:10	Kh:10	150-р Сургууль-5 Шар	-5 Shar
-11100870	Д:1	D:1	ШАР ХАДНЫ ЭЦЭС-Чулуун овоо	Shar khad final station-Chuluun ovoo
-11100871	Д:2	D:2	39-р сургууль-149-р сургууль	39th school-149th school
-11100874	Д:5	D:5	Гандан-Хүчит шонхор	-
-11100876	Х:16	Kh:16	10 ШАР БАЙР-Нарангийн эцсийн зогсоол	10 shar bair-
-11100877	Ч:78	Ch:78	ХАЛДВАРТЫН ЭМНЭЛЭГ-Сүхбаатарын талбайн төв зогсоол	Infectious Disease Hospital-ㅗㅗ
-11100878	Ч:79	Ch:79	Монгол хюндэй киа компани-Хангарьд цогцолбор	Hyundai kia company mongolia-Yarmag 1st station
-11100879	Ч:80	Ch:80	ХАЛДВАРТЫН ЭМНЭЛЭГ-Хангарьд цогцолбор	Infectious Disease Hospital-Yarmag 1st station
-11100880	Ч:81	Ch:81	Дүүхээ дэлгүүр-Хангарьд цогцолбор	Duukhee market-Yarmag 1st station
-11100881	Х:21	Kh:21	Ногоон толгойн эцэс-5 Шар	-5 Shar
-11100890	ШҮ:3	ShÜ:3	Сүхбаатарын талбайн төв зогсоол-Зунжин худалдааны төв	ㅗㅗ-Zunjin trade center
-11100891	ШҮ:2	ShÜ:2	Сүхбаатарын талбай-НИСЭХ	Sukhbaatar square-Nisekh
-11100893	Д:6	D:6	Шар хоолойн ам-ГАЧУУРТЫН ЭЦЭС	-Gachuurt final station
-11100894	Д:8	D:8	Товчооны зам 6-р зогсоол-Толгойтын эцэс	-Tolgoit final station
-11100895	Х:19	Kh:19	Сүхбаатарын талбай-Чингис хаан ОУНБ	Sukhbaatar square-Chinggis khan airport
-11100896	Х:20	Kh:20	5 Шар-Чингис хаан ОУНБ	5 Shar-Chinggis khan airport
-11100913	Д:9	D:9	ХУД 8-р хорооны эцэс-Англи сургууль	-British school
-11100915	Д:10	D:10	158-р сургууль-Офицеруудын ордон	-Officer station
-11100920	Ч:7а	Ch:7a	НИСЭХ-Таван богд компани	Nisekh-Tavan Bogd company
-11100921	М:3а	M:3a	Архивын ерөнхий газар-Таван богд компани	General Office of Archives-Tavan Bogd company
-11100922	Х:17	Kh:17	Тэнгэр плаза-Хэрлэн худалдааны төв /баруун/	-
-11100923	Х:18	Kh:18	Тэнгэр плаза-Багахангай эцсийн зогсоол	-
-11100991	Д:4Z	D:4Z	Хайрханы шинэ эцэс-Цамбагарав	-Tsambagarav
-11100992	Ч:71А	Ch:71A	Дүнжингарав Худалдааны төв-МУБИС	Dunjingarav trade center-
-11100993	Ч:82	Ch:82	10-р хороолол-Шар дэлгүүр	10th section-Shar market
-11100994	ШҮ:4	ShÜ:4	Сүхбаатарын талбай-Чингис хаан ОУНБ	Sukhbaatar square-Chinggis khan airport
-11101000	Ч:84	Ch:84	Бага тэнгэр сити-120 мянгат	-120 myangat
-11101007	ЗҮ:4	ZÜ:4	ГҮНТИЙН ЭЦЭС-зуслан-7 БУУДАЛ	Gunt final station-7th station
-11101008	Д:11	D:11	Офицеруудын ордон-442-р худаг /микроны эцэс/	Officer station-442-r khudag /mikrony etses/
-11101009	Д:12	D:12	УЛИАСТАЙН ШИНЭ ЭЦЭС-Баатархайрханы эцэс	Uliastai new final station-
-11101010	Д:13	D:13	ШАР ХАДНЫ ЭЦЭС-УЛИАСТАЙН ШИНЭ ЭЦЭС	Shar khad final station-Uliastai new final station
-11101011	Д:14	D:14	Винтер гарден-Ирээдүй хотхон	-
-11101012	Ч:85	Ch:85	Орбитын шинэ эцэс-5 Шар	Orbit new final station-5 Shar
-11101013	Ч:83	Ch:83	Ургах наран хороолол эцэс-Офицеруудын ордон	Urgakh naran final station-Officer station
-11101014	Ч:86	Ch:86	ЗАЙСАН-Цамбагарав	Zaisan-Tsambagarav
-11101029	COP:2	COP:2	Ramada hotel-Шинэ зуун айл худалдааны төв	-Shine zuun ail trade center
-14100116	М:1А	M:1A	Ханын Материалын Комбинат-Ард кино театр	HMK-Ard cinema
-14100117	М:1Б	M:1B	Ботаник-Сүхбаатарын талбай	Botanik-Sukhbaatar square
-14100118	Ч:29А	Ch:29A	Сэлбэ амралт-Чингис зочид буудал	Selbe camp-Chinggis hotel
-14100120	Ч:32А	Ch:32A	УЛИАСТАЙН ШИНЭ ЭЦЭС-Офицеруудын ордон	Uliastai new final station-Officer station
-14100121	Ч:32Б	Ch:32B	Офицеруудын ордон-ТЭЦ-3	Officer station-3rd power plant
-14100129	Ч:69Б	Ch:69B	Гэмтлийн эмнэлэг-Англи сургууль	Hospital for Injury and Trauma-British school
-14100135	Ч:29Б	Ch:29B	Сансар /Тунель/-Вокзал	Sansar /Tunnel/-Railway station
+11100020	Ч:2	Ch:2		
+11100060	Ч:6	Ch:6		
+11100070	Ч:7	Ch:7		
+11100080	Ч:8	Ch:8		
+11100090	Ч:9	Ch:9		
+11100100	Ч:10	Ch:10		
+11100110	Ч:11	Ch:11		
+11100120	Ч:12	Ch:12		
+11100130	Ч:13	Ch:13		
+11100140	Ч:14	Ch:14		
+11100150	Ч:15	Ch:15		
+11100155	Ч:75	Ch:75		
+11100160	Ч:16	Ch:16		
+11100163	Ч:16А	Ch:16A		
+11100171	Ч:17А	Ch:17A		
+11100172	Ч:17Б	Ch:17B		
+11100181	Ч:18А	Ch:18A		
+11100182	Ч:18Б	Ch:18B		
+11100191	Ч:19А	Ch:19A		
+11100192	Ч:19Б	Ch:19B		
+11100201	Ч:20А	Ch:20A		
+11100202	Ч:20Б	Ch:20B		
+11100211	Ч:21А	Ch:21A		
+11100212	Ч:21Б	Ch:21B		
+11100220	Ч:22	Ch:22		
+11100230	Ч:23	Ch:23		
+11100240	Ч:24Б	Ch:24B		
+11100241	Ч:24А	Ch:24A		
+11100250	Ч:25	Ch:25		
+11100260	Ч:26	Ch:26		
+11100270	Ч:27	Ch:27		
+11100280	Ч:28	Ch:28		
+11100300	Ч:30	Ch:30		
+11100310	Ч:31	Ch:31		
+11100330	Ч:33	Ch:33		
+11100340	Ч:34	Ch:34		
+11100350	Ч:35	Ch:35		
+11100360	Ч:36	Ch:36		
+11100370	Ч:37	Ch:37		
+11100380	Ч:38	Ch:38		
+11100390	Ч:39	Ch:39		
+11100400	Ч:40	Ch:40		
+11100410	Ч:41	Ch:41		
+11100420	Ч:42	Ch:42		
+11100430	Ч:43	Ch:43		
+11100440	Ч:44	Ch:44		
+11100460	Ч:46	Ch:46		
+11100480	Ч:48	Ch:48		
+11100482	Ч:48A	Ch:48A		
+11100490	Ч:49	Ch:49		
+11100500	Ч:50	Ch:50		
+11100510	Ч:51	Ch:51		
+11100520	Ч:52	Ch:52		
+11100530	Ч:53	Ch:53		
+11100540	Ч:54	Ch:54		
+11100550	Ч:55	Ch:55		
+11100570	Ч:57	Ch:57		
+11100573	Ч:57Б	Ch:57B		
+11100580	Ч:58	Ch:58		
+11100600	Ч:60	Ch:60		
+11100612	Ч:61	Ch:61		
+11100620	Ч:62	Ch:62		
+11100630	Ч:63	Ch:63		
+11100640	Ч:64	Ch:64		
+11100650	Ч:65	Ch:65		
+11100660	Ч:66	Ch:66		
+11100670	Ч:67	Ch:67		
+11100680	Ч:68	Ch:68		
+11100700	Ч:70	Ch:70		
+11100710	Ч:71	Ch:71		
+11100720	Ч:72	Ch:72		
+11100730	Ч:73	Ch:73		
+11100740	Ч:74	Ch:74		
+11100743	Ч:76	Ch:76		
+11100772	ШҮ:1	ShÜ:1		
+11100779	Ч:77	Ch:77		
+11100801	М:1	M:1		
+11100802	М:2	M:2		
+11100803	М:4	M:4		
+11100804	М:5	M:5		
+11100805	М:6	M:6		
+11100806	М:3	M:3		
+11100815	Х:1	Kh:1		
+11100816	Х:2	Kh:2		
+11100817	Х:6	Kh:6		
+11100818	Х:7	Kh:7		
+11100820	Х:11	Kh:11		
+11100821	Х:12	Kh:12		
+11100822	Х:13	Kh:13		
+11100823	Х:14	Kh:14		
+11100824	Х:15	Kh:15		
+11100825	Х:4	Kh:4		
+11100826	Х:5	Kh:5		
+11100827	Х:3	Kh:3		
+11100828	Х:8	Kh:8		
+11100829	Х:10	Kh:10		
+11100870	Д:1	D:1		
+11100871	Д:2	D:2		
+11100874	Д:5	D:5		
+11100876	Х:16	Kh:16		
+11100877	Ч:78	Ch:78		
+11100878	Ч:79	Ch:79		
+11100879	Ч:80	Ch:80		
+11100880	Ч:81	Ch:81		
+11100881	Х:21	Kh:21		
+11100890	ШҮ:3	ShÜ:3		
+11100891	ШҮ:2	ShÜ:2		
+11100893	Д:6	D:6		
+11100894	Д:8	D:8		
+11100895	Х:19	Kh:19		
+11100896	Х:20	Kh:20		
+11100913	Д:9	D:9		
+11100915	Д:10	D:10		
+11100920	Ч:7а	Ch:7a		
+11100921	М:3а	M:3a		
+11100922	Х:17	Kh:17		
+11100923	Х:18	Kh:18		
+11100991	Д:4Z	D:4Z		
+11100992	Ч:71А	Ch:71A		
+11100993	Ч:82	Ch:82		
+11100994	ШҮ:4	ShÜ:4		
+11101000	Ч:84	Ch:84		
+11101008	Д:11	D:11		
+11101009	Д:12	D:12		
+11101010	Д:13	D:13		
+11101011	Д:14	D:14		
+11101012	Ч:85	Ch:85		
+11101013	Ч:83	Ch:83		
+11101014	Ч:86	Ch:86		
+11101029	COP:2			
+11300010	ЗҮ:1	ZÜ:1		
+11300020	ЗҮ:2	ZÜ:2		
+11300030	ЗҮ:3	ZÜ:3		
+14100116	М:1А	M:1A		
+14100117	М:1Б	M:1B		
+14100118	Ч:29А	Ch:29A		
+14100120	Ч:32А	Ch:32A		
+14100121	Ч:32Б	Ch:32B		
+14100129	Ч:69Б	Ch:69B		
+14100135	Ч:29Б	Ch:29B		

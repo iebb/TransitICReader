@@ -25,8 +25,12 @@ route-station rows.
 Run:
 
 ```sh
-python3 scripts/build_cross_platform_station_assets.py --target ulaanbaatar
+python3 scripts/build_cross_platform_station_assets.py --source upstream --target ulaanbaatar
 ```
+
+This is a maintenance import. Normal app builds use the pinned CSV catalog in
+`iebb/card-stations`. Review refreshed data as a CSV contribution there and
+update the app's lock to adopt it.
 
 The downloader validates non-zero response CRCs, pagination totals,
 Mongolian/English ID alignment, foreign keys, and SQLite integrity. Production

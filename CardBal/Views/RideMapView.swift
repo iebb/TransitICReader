@@ -972,6 +972,8 @@ private struct StationGraphStation: Codable {
 private struct StationGraphEdge: Codable {
     let toStationCode: String
     let distanceKm: Double
+    let geohashPath: String?
+    let reversed: Bool
 }
 
 private struct RideRouteCandidate {
@@ -1004,7 +1006,7 @@ private struct KoreanMapEvent {
 
 private final class StationGraphDatabase {
     static let shared = StationGraphDatabase()
-    private static let cacheVersion = 3
+    private static let cacheVersion = 4
 
     private(set) var isReady = false
     private let pathCacheLock = NSLock()
@@ -1012,8 +1014,10 @@ private final class StationGraphDatabase {
     private var stationsByStationCode: [String: StationGraphStation] = [:]
     private var adjacency: [String: [StationGraphEdge]] = [:]
     private var pathCache: [String: [String]] = [:]
+    private var catalogSignature = ""
 
     private init() {
+        catalogSignature = bundledCatalogSignature()
         if !loadCachedGraph() {
             buildFromBundledDatabases()
             saveCachedGraph()
@@ -1035,14 +1039,38 @@ private final class StationGraphDatabase {
     }
 
     func shortestPath(from sourceCode: String, to targetCode: String) -> [StationGraphStation] {
+        pathCodes(from: sourceCode, to: targetCode).compactMap { stationsByStationCode[$0] }
+    }
+
+    func routeCoordinates(from sourceCode: String, to targetCode: String) -> [CLLocationCoordinate2D] {
+        let codes = pathCodes(from: sourceCode, to: targetCode)
+        if codes.count == 1 { return stationsByStationCode[codes[0]].map { [$0.coordinate] } ?? [] }
+        var output: [CLLocationCoordinate2D] = []
+        for (from, to) in zip(codes, codes.dropFirst()) {
+            let edge = adjacency[from, default: []].filter { $0.toStationCode == to }.min { $0.distanceKm < $1.distanceKm }
+            var coordinates: [CLLocationCoordinate2D]
+            if let edge, let packed = edge.geohashPath, let vertices = GeohashPath.decodePath(packed) {
+                coordinates = vertices.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+                if edge.reversed { coordinates.reverse() }
+            } else {
+                coordinates = [from, to].compactMap { stationsByStationCode[$0]?.coordinate }
+            }
+            for coordinate in coordinates {
+                if let last = output.last, abs(last.latitude - coordinate.latitude) < 0.0000001,
+                   abs(last.longitude - coordinate.longitude) < 0.0000001 { continue }
+                output.append(coordinate)
+            }
+        }
+        return output
+    }
+
+    private func pathCodes(from sourceCode: String, to targetCode: String) -> [String] {
         guard sourceCode != "0", targetCode != "0" else { return [] }
         let stationsByStationCode = self.stationsByStationCode
         let adjacency = self.adjacency
 
         guard stationsByStationCode[sourceCode] != nil, stationsByStationCode[targetCode] != nil else { return [] }
-        if sourceCode == targetCode, let station = stationsByStationCode[sourceCode] {
-            return [station]
-        }
+        if sourceCode == targetCode { return [sourceCode] }
 
         let cacheKey = sourceCode < targetCode ? "\(sourceCode)|\(targetCode)" : "\(targetCode)|\(sourceCode)"
         pathCacheLock.lock()
@@ -1050,7 +1078,7 @@ private final class StationGraphDatabase {
         pathCacheLock.unlock()
         if let cached = cachedPath {
             let ordered = sourceCode < targetCode ? cached : cached.reversed()
-            return ordered.compactMap { stationsByStationCode[$0] }
+            return Array(ordered)
         }
 
         var distances: [String: Double] = [sourceCode: 0]
@@ -1095,11 +1123,12 @@ private final class StationGraphDatabase {
         pathCacheLock.lock()
         pathCache[cacheKey] = sourceCode < targetCode ? stationCodes : stationCodes.reversed()
         pathCacheLock.unlock()
-        return stationCodes.compactMap { stationsByStationCode[$0] }
+        return stationCodes
     }
 
     private struct CachedGraphPayload: Codable {
         let version: Int
+        let catalogSignature: String
         let stationsByLookupCode: [String: StationGraphStation]
         let stationsByStationCode: [String: StationGraphStation]
         let adjacency: [String: [StationGraphEdge]]
@@ -1112,6 +1141,18 @@ private final class StationGraphDatabase {
         pathCache.removeAll(keepingCapacity: true)
         loadJPDatabase()
         loadTUnionDatabase()
+        // An inferred physical route can have parallel line records. Prefer a
+        // detailed alignment only among near-equal alternatives, using the same
+        // selected edge for both path cost and drawing.
+        for (code, edges) in adjacency {
+            let groups = Dictionary(grouping: edges, by: \.toStationCode)
+            adjacency[code] = groups.keys.sorted().compactMap { destination in
+                let choices = groups[destination] ?? []
+                guard let shortest = choices.min(by: { $0.distanceKm < $1.distanceKm }) else { return nil }
+                return choices.filter { $0.geohashPath != nil && $0.distanceKm <= shortest.distanceKm * 1.05 }
+                    .min(by: { $0.distanceKm < $1.distanceKm }) ?? shortest
+            }
+        }
     }
 
     private func loadJPDatabase() {
@@ -1274,7 +1315,7 @@ private final class StationGraphDatabase {
             return false
         }
         guard let payload = try? PropertyListDecoder().decode(CachedGraphPayload.self, from: data),
-              payload.version == Self.cacheVersion else {
+              payload.version == Self.cacheVersion, payload.catalogSignature == catalogSignature else {
             return false
         }
         stationsByLookupCode = payload.stationsByLookupCode
@@ -1287,6 +1328,7 @@ private final class StationGraphDatabase {
         guard let url = cachedGraphURL() else { return }
         let payload = CachedGraphPayload(
             version: Self.cacheVersion,
+            catalogSignature: catalogSignature,
             stationsByLookupCode: stationsByLookupCode,
             stationsByStationCode: stationsByStationCode,
             adjacency: adjacency
@@ -1308,9 +1350,12 @@ private final class StationGraphDatabase {
     private func loadEdges(db: OpaquePointer?, countryCode: String) {
         var statement: OpaquePointer?
         let query = """
-            SELECT from_station_code, to_station_code, distance_km
-            FROM station_graph_edges
-            WHERE country_code = ?;
+            SELECT e.from_station_code, e.to_station_code, e.distance_km, p.geohash_path
+            FROM station_graph_edges e
+            LEFT JOIN station_edge_paths p
+              ON p.country_code = e.country_code AND p.line_code = e.line_code
+             AND p.from_station_code = e.from_station_code AND p.to_station_code = e.to_station_code
+            WHERE e.country_code = ?;
             """
         guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
             sqlite3_finalize(statement)
@@ -1332,9 +1377,20 @@ private final class StationGraphDatabase {
             let fromStation = String(cString: fromText)
             let toStation = String(cString: toText)
             let distance = sqlite3_column_double(statement, 2)
-            adjacency[fromStation, default: []].append(StationGraphEdge(toStationCode: toStation, distanceKm: distance))
-            adjacency[toStation, default: []].append(StationGraphEdge(toStationCode: fromStation, distanceKm: distance))
+            let packed = sqlite3_column_text(statement, 3).map { String(cString: $0) }
+            adjacency[fromStation, default: []].append(StationGraphEdge(toStationCode: toStation, distanceKm: distance, geohashPath: packed, reversed: false))
+            adjacency[toStation, default: []].append(StationGraphEdge(toStationCode: fromStation, distanceKm: distance, geohashPath: packed, reversed: true))
         }
+    }
+
+    private func bundledCatalogSignature() -> String {
+        guard let db = openBundledDatabase() else { return "" }
+        defer { sqlite3_close(db) }
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(db, "SELECT sha256 FROM sources WHERE id = 'sources.card-stations'", -1, &statement, nil) == SQLITE_OK else { return "" }
+        defer { sqlite3_finalize(statement) }
+        guard sqlite3_step(statement) == SQLITE_ROW, let text = sqlite3_column_text(statement, 0) else { return "" }
+        return String(cString: text)
     }
 
     private func openBundledDatabase() -> OpaquePointer? {
@@ -1460,8 +1516,8 @@ private struct RideMapBuilder {
                     continue
                 }
 
-                let pathStations = database.shortestPath(from: startStation.stationCode, to: endStation.stationCode)
-                let coordinates = pathStations.isEmpty ? [startStation.coordinate, endStation.coordinate] : pathStations.map(\.coordinate)
+                let pathCoordinates = database.routeCoordinates(from: startStation.stationCode, to: endStation.stationCode)
+                let coordinates = pathCoordinates.isEmpty ? [startStation.coordinate, endStation.coordinate] : pathCoordinates
                 routes.append(
                     RideMapRoute(
                         id: "\(card.id)|\(candidate.transaction.id.uuidString)|\(candidate.startCode)|\(candidate.endCode)",

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E5A100042F6F2ACB0071B6C4 /* GeohashPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */; };
 		7A21867ED31B404BB36291A1 /* TransitApplications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A21867ED31B404BB36291A2 /* TransitApplications.swift */; };
 		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
 		0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */; };
@@ -67,6 +68,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GeohashPath.swift; path = Helpers/GeohashPath.swift; sourceTree = "<group>"; };
 		7A21867ED31B404BB36291A2 /* TransitApplications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Models/TransitApplications.swift; sourceTree = "<group>"; };
 		0A9B9E8A6B5A4A8E9F001003 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = CardBal/Resources/ja.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
 		0A9B9E8A6B5A4A8E9F001004 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "CardBal/Resources/zh-Hans.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
@@ -309,6 +311,7 @@
 		BF822B82E672A2BA37577E6B /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */,
 				118B2F4C7E32F920855B0DF5 /* Localizer.swift */,
 				454A3A745671012F6C832F91 /* StationResolver.swift */,
 				280A750331F0F722A143051F /* BusResolver.swift */,
@@ -323,6 +326,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A00000000000000000000051 /* Build configuration list for PBXNativeTarget "CardBal" */;
 			buildPhases = (
+				E5A100022F6F2ACB0071B6C4 /* Build CSV station database */,
 				A00000000000000000000022 /* Sources */,
 				A00000000000000000000021 /* Frameworks */,
 				A00000000000000000000023 /* Resources */,
@@ -380,6 +384,21 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		E5A100022F6F2ACB0071B6C4 /* Build CSV station database */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ();
+			name = "Build CSV station database";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\n/usr/bin/python3 \"$SRCROOT/scripts/build_cross_platform_station_assets.py\" --source csv --target all --no-sync-android\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXResourcesBuildPhase section */
 		A00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
@@ -418,6 +437,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E5A100042F6F2ACB0071B6C4 /* GeohashPath.swift in Sources */,
 				A00000000000000000000011 /* CardBalApp.swift in Sources */,
 				8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */,
 				8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */,
@@ -493,6 +513,7 @@
 				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CardBal/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -526,6 +547,7 @@
 				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CardBal/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
