@@ -18,6 +18,7 @@ struct CardDateFormatting {
     }
 
     static func issuerTimeZone(for brand: ICCardBrand) -> TimeZone? {
+        if brand == .clipper { return TimeZone(identifier: "America/Los_Angeles") }
         switch brand.region {
         case .china:
             return TimeZone(identifier: "Asia/Shanghai")
@@ -31,6 +32,8 @@ struct CardDateFormatting {
             return TimeZone(identifier: "Asia/Singapore")
         case .hongkong:
             return TimeZone(identifier: "Asia/Hong_Kong")
+        case .macau:
+            return TimeZone(identifier: "Asia/Macau")
         case .newZealand:
             return TimeZone(identifier: "Pacific/Auckland")
         case .indonesia:

@@ -3,6 +3,9 @@ package ad.neko.cardbal.android.data
 import android.content.Context
 import ad.neko.cardbal.android.nfc.JapaneseCardFormats
 import ad.neko.cardbal.android.nfc.KoreanCardFormat
+import ad.neko.cardbal.android.nfc.ClipperDecoder
+import ad.neko.cardbal.android.nfc.ClipperUltralightDecoder
+import ad.neko.cardbal.android.nfc.MacauPassDecoder
 import org.json.JSONObject
 import ad.neko.cardbal.android.util.beInt
 import ad.neko.cardbal.android.util.hexToBytes
@@ -14,6 +17,7 @@ import java.time.ZoneId
 class TransactionDecoder(context: Context) {
     private val stationDb = StationDatabase.get(context)
     private val busResolver = BusResolver.get(context)
+    private val clipperCatalog = ClipperTransitCatalog.get(context)
     private val modeClasses by lazy {
         val json=JSONObject(context.assets.open("KOTRISTransportModes.json").bufferedReader().use{it.readText()})
         val result=mutableMapOf<Int,String>()
@@ -87,7 +91,7 @@ class TransactionDecoder(context: Context) {
         val isTUnion = "union" in family || "china" in family
         return when (tx.category) {
             TransactionCategory.train, TransactionCategory.trainOn, TransactionCategory.trainOff,
-            TransactionCategory.tapOn, TransactionCategory.tapOff -> true
+            TransactionCategory.tapOn, TransactionCategory.tapOff, TransactionCategory.ferry -> true
             TransactionCategory.bus, TransactionCategory.busOn, TransactionCategory.busOff -> isTUnion
             else -> false
         }
@@ -123,7 +127,9 @@ class TransactionDecoder(context: Context) {
 
     private fun resolvePoint(card: SavedCardRecord, code: String?): StationPoint? {
         val family = card.cardFamily.lowercase()
-        return if (family == "u-money") {
+        return if (family == "clipper" || family == "clipper ticket") {
+            clipperCatalog.point(code)
+        } else if (family == "u-money") {
             stationDb.findCatalogStation("mn.ubsmartbus.station_id",code)
         } else if (family.contains("t-money") || family.contains("ezl") || family.contains("cashbee") || family=="namane") {
             stationDb.findCatalogStation("kr.ksx.location",code)
@@ -136,7 +142,7 @@ class TransactionDecoder(context: Context) {
 
     private fun routePath(card: SavedCardRecord, entry: StationPoint, exit: StationPoint): List<StationPoint> {
         val family = card.cardFamily.lowercase()
-        return if ("union" in family || "china" in family) {
+        return if ("union" in family || "china" in family || family == "clipper" || family == "clipper ticket") {
             listOf(entry, exit)
         } else {
             stationDb.shortestJapanesePath(entry, exit)
@@ -156,6 +162,14 @@ class TransactionDecoder(context: Context) {
         if (data.isEmpty() || data.all { it == 0.toByte() }) return null
         val family = card.cardFamily.lowercase()
         return when {
+            (family == "clipper" || family == "clipper ticket") && card.technology == "MIFARE Ultralight" ->
+                if (kind == RawHistoryKind.Transit && raw in card.rawTransactions) null
+                else ClipperUltralightDecoder.decodeTransaction(data, clipperCatalog)
+            family == "clipper" && data.size == 33 ->
+                if (kind == RawHistoryKind.Transit && raw in card.rawTransactions) null
+                else ClipperDecoder.decodeTransaction(data, context.map { it.hexToBytes() }, index, clipperCatalog)
+            family == "macau pass" && card.technology == "ISO7816" ->
+                if (kind == RawHistoryKind.Transactions) MacauPassDecoder.decodeTransaction(data) else null
             AdditionalCardHistory.handles(family) -> if(kind==RawHistoryKind.Transactions) AdditionalCardHistory.decode(raw,family,context) else null
             family == "snapper+" || family == "snapper plus" ->
                 if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) decodeSnapperHistory(data, raw) else null

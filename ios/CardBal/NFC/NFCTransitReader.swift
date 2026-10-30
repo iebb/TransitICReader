@@ -242,7 +242,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
         let hasMainland = snapshot.applicationSnapshots.contains(where: { $0.isTUnion || $0.isCityUnion })
         switch phase {
         case .regular:
-            guard readsCompanionProtocol, hasOctopus != hasMainland else {
+            guard readsCompanionProtocol, hasOctopus != hasMainland,
+                  !snapshot.applicationSnapshots.contains(where: \.isMacauPass) else {
                 finish(with: snapshot, session: session)
                 return
             }
@@ -331,7 +332,8 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 let decoders: [TransitCardDecoder.Type] = phase == .mainland
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [JapaneseICDecoder.self] : [
-                        CEPASDecoder.self, StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
+                        CEPASDecoder.self, MacauPassDecoder.self, ClipperDecoder.self, ClipperUltralightDecoder.self,
+                        StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
                     ]
                 var snapshot: TransitCardSnapshot?

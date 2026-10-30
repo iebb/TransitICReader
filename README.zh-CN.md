@@ -94,7 +94,9 @@ Android 构建会自动调用共用的目录编译器。发布签名使用本地
 
 ## 许可
 
-源代码以 [BSD 3-Clause License](LICENSE) 发布。
+除另有许可声明的文件外，项目原创代码以 [BSD 3-Clause License](LICENSE) 发布。
+Clipper 改编代码及上游测试样本保留 [GPL-3.0 或更新版本](docs/licenses/FareBot-GPL-3.0.txt)
+许可；澳门通改编代码保留 [TU-Reader 的 MIT 声明](docs/licenses/TU-Reader-MIT.txt)。
 
 车站、地图和边界数据沿用上文所列的上游许可，不适用 BSD 许可。随附的
 `cardbal_transit.sqlite` 和 Android 站点数据改编自这些来源，保留其署名和相同方式共享条款。

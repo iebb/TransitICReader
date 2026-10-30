@@ -1,0 +1,903 @@
+{
+  "lines": {
+    "1638401": {
+      "mode": 0,
+      "name": "Sausalito - San Francisco"
+    },
+    "1638402": {
+      "mode": 0,
+      "name": "San Francisco - Sausalito"
+    },
+    "1638403": {
+      "mode": 0,
+      "name": "San Francisco - Larkspur"
+    },
+    "1638404": {
+      "mode": 0,
+      "name": "Larkspur - San Francisco"
+    }
+  },
+  "notice": "The following notices apply to Metrodroid's Clipper card stop database:\n\n1. Bay Area Rapid Transit (BART) station names and locations are derived from BART's GTFS feed, made available under the Developer License Agreement by BART.\n\nYou can obtain a copy of the raw data and its license at:\n\n   http://www.bart.gov/schedules/developers/developer-license-agreement\n\n   http://www.bart.gov/schedules/developers/gtfs\n\n2. San Francisco Municipal Railway (Muni) station/stop names and locations are derived from San Francisco Municipal Transportation Agency's (SFMTA) GTFS feed, made under available under the SFMTA Transit Data License Agreement.\n\nYou can obtain a copy of the raw data and its license at:\n\n   https://www.sfmta.com/reports/gtfs-transit-data\n\n3. Santa Clara Valley Transportation Authority (VTA) station locations are derived from VTA's GTFS feed, made available under the Developer License Agreement by VTA.\n\nYou can obtain a copy of the raw data and its license at:\n\n   http://www.vta.org/getting-around/gtfs-info/dev-terms-of-use\n\n   http://www.vta.org/getting-around/gtfs-info/data-file\n\n4. San Francisco Bay Ferry (SFBF) station locations and Golden Gate Transit (GGT) station names and locations are derived from SFBF's and GGT's GTFS feeds, respectively. These are made available under the 511 Data Disseminator Agreement.\n\nYou can obtain a copy of the raw data and its license at:\n\n   https://511.org/open-data/transit\n\n   https://511.org/sites/default/files/pdfs/511_Data_Agreement_Final.pdf\n\n5. Station, stop and agency ID mappings for Clipper card are not provided by the aforementioned agencies. This information is available in Metrodroid's source repository, and is subject to the same license terms as Metrodroid.\n\nMapping data is contributed by:\n * Chris Hundt\n * David Hoover\n * Devin Carraway\n * Jason Hsu\n * Sebastian Oliva\n * Shayan Guha\n * Mike Castleman\n * Bao-Long Nguyen-Trong\n * Eric Butler\n * Dustin L. Howett\n * Brendan Dwyer\n * Kevin Thomas\n * Hernan Monserrat\n * Vladimir Serbinenko\n * Michael Farrell\n * Robbie Trencheny\n * Eric J Nguyen\n * Stefano Rivera",
+  "operators": {
+    "1": {
+      "mode": 1,
+      "name": "Alameda-Contra Costa Transit District"
+    },
+    "11": {
+      "mode": 1,
+      "name": "Golden Gate Transit"
+    },
+    "12": {
+      "mode": 2,
+      "name": "Sonoma-Marin Area Rail Transit"
+    },
+    "15": {
+      "mode": 1,
+      "name": "San Mateo County Transit District"
+    },
+    "17": {
+      "mode": 1,
+      "name": "Santa Clara Valley Transportation Authority"
+    },
+    "18": {
+      "mode": 1,
+      "name": "San Francisco Municipal"
+    },
+    "25": {
+      "mode": 5,
+      "name": "Golden Gate Ferry"
+    },
+    "27": {
+      "mode": 5,
+      "name": "San Francisco Bay Ferry"
+    },
+    "341": {
+      "mode": 0,
+      "name": "UCSF Transportation Services (Parnassus)"
+    },
+    "342": {
+      "mode": 0,
+      "name": "UCSF Transportation Services (Mission Bay)"
+    },
+    "371": {
+      "mode": 0,
+      "name": "Caltrain 8-Rides"
+    },
+    "4": {
+      "mode": 4,
+      "name": "Bay Area Rapid Transit"
+    },
+    "444": {
+      "mode": 0,
+      "name": "Walgreens"
+    },
+    "446": {
+      "mode": 0,
+      "name": "Walgreens #7080 (105 El Camino Real)"
+    },
+    "475": {
+      "mode": 0,
+      "name": "Walgreens"
+    },
+    "478": {
+      "mode": 0,
+      "name": "Walgreens #1297 (670 4th Street)"
+    },
+    "510": {
+      "mode": 0,
+      "name": "Walgreens #6625 (Chestnut & Steiner)"
+    },
+    "511": {
+      "mode": 0,
+      "name": "Walgreens #1403 (Lombard & Divisadero)"
+    },
+    "584": {
+      "mode": 0,
+      "name": "San Francisco International Airport Info Booth"
+    },
+    "6": {
+      "mode": 2,
+      "name": "Caltrain"
+    },
+    "61": {
+      "mode": 0,
+      "name": "Bay Crossings"
+    },
+    "63": {
+      "mode": 0,
+      "name": "Clipper Customer Service"
+    },
+    "683": {
+      "mode": 0,
+      "name": "Whole Foods SoMa"
+    },
+    "719": {
+      "mode": 0,
+      "name": "Whole Foods"
+    },
+    "8": {
+      "mode": 1,
+      "name": "Contra Costa Transportation Authority"
+    }
+  },
+  "source": "https://github.com/codebutler/farebot/blob/dc09f6f014ea3675b64bcd38335b4b78d77fa374/base/src/commonMain/composeResources/files/clipper.mdst",
+  "sourceRevision": "dc09f6f014ea3675b64bcd38335b4b78d77fa374",
+  "sourceSHA256": "e3b402e0c3bd2abc02dcd5959a309692f8b7e45d6d079701f5e8771608215f40",
+  "stations": {
+    "1114117": {
+      "id": 1114117,
+      "latitude": 37.35813522338867,
+      "longitude": -121.83212280273438,
+      "name": "Alum Rock"
+    },
+    "1114118": {
+      "id": 1114118,
+      "latitude": 37.29985046386719,
+      "longitude": -121.9298324584961,
+      "name": "Bascom"
+    },
+    "1114119": {
+      "id": 1114119,
+      "latitude": 37.387386322021484,
+      "longitude": -121.86148071289062,
+      "name": "Berryessa"
+    },
+    "1114120": {
+      "id": 1114120,
+      "latitude": 37.253150939941406,
+      "longitude": -121.84181213378906,
+      "name": "Blossom Hill"
+    },
+    "1114121": {
+      "id": 1114121,
+      "latitude": 37.38874816894531,
+      "longitude": -121.92974090576172,
+      "name": "Bonaventura"
+    },
+    "1114122": {
+      "id": 1114122,
+      "latitude": 37.411983489990234,
+      "longitude": -122.01931762695312,
+      "name": "Borregas"
+    },
+    "1114123": {
+      "id": 1114123,
+      "latitude": 37.4108772277832,
+      "longitude": -121.94152069091797,
+      "name": "Baypointe"
+    },
+    "1114124": {
+      "id": 1114124,
+      "latitude": 37.267295837402344,
+      "longitude": -121.85938262939453,
+      "name": "Branham"
+    },
+    "1114125": {
+      "id": 1114125,
+      "latitude": 37.404701232910156,
+      "longitude": -122.04998779296875,
+      "name": "Bayshore Nasa"
+    },
+    "1114126": {
+      "id": 1114126,
+      "latitude": 37.2859001159668,
+      "longitude": -121.94302368164062,
+      "name": "Campbell"
+    },
+    "1114127": {
+      "id": 1114127,
+      "latitude": 37.275291442871094,
+      "longitude": -121.86326599121094,
+      "name": "Capitol"
+    },
+    "1114128": {
+      "id": 1114128,
+      "latitude": 37.32776641845703,
+      "longitude": -121.89366149902344,
+      "name": "Children's Discovery Museum"
+    },
+    "1114129": {
+      "id": 1114129,
+      "latitude": 37.409423828125,
+      "longitude": -121.9526138305664,
+      "name": "Champion"
+    },
+    "1114130": {
+      "id": 1114130,
+      "latitude": 37.412349700927734,
+      "longitude": -121.92831420898438,
+      "name": "Cisco"
+    },
+    "1114131": {
+      "id": 1114131,
+      "latitude": 37.35201644897461,
+      "longitude": -121.90243530273438,
+      "name": "Civic Center"
+    },
+    "1114132": {
+      "id": 1114132,
+      "latitude": 37.38348388671875,
+      "longitude": -121.92577362060547,
+      "name": "Component"
+    },
+    "1114133": {
+      "id": 1114133,
+      "latitude": 37.242733001708984,
+      "longitude": -121.80316162109375,
+      "name": "Cottle"
+    },
+    "1114134": {
+      "id": 1114134,
+      "latitude": 37.402645111083984,
+      "longitude": -121.88106536865234,
+      "name": "Cropley"
+    },
+    "1114135": {
+      "id": 1114135,
+      "latitude": 37.40946578979492,
+      "longitude": -122.01170349121094,
+      "name": "Crossman"
+    },
+    "1114136": {
+      "id": 1114136,
+      "latitude": 37.2939567565918,
+      "longitude": -121.8727035522461,
+      "name": "Curtner"
+    },
+    "1114137": {
+      "id": 1114137,
+      "latitude": 37.330169677734375,
+      "longitude": -121.88975524902344,
+      "name": "Convention Center"
+    },
+    "1114138": {
+      "id": 1114138,
+      "latitude": 37.32894515991211,
+      "longitude": -121.90351104736328,
+      "name": "Diridon"
+    },
+    "1114139": {
+      "id": 1114139,
+      "latitude": 0,
+      "longitude": 0,
+      "name": "Evelyn (closed)"
+    },
+    "1114140": {
+      "id": 1114140,
+      "latitude": 37.40277862548828,
+      "longitude": -122.00955200195312,
+      "name": "Fair Oaks"
+    },
+    "1114141": {
+      "id": 1114141,
+      "latitude": 37.310482025146484,
+      "longitude": -121.91801452636719,
+      "name": "Fruitdale"
+    },
+    "1114142": {
+      "id": 1114142,
+      "latitude": 37.362545013427734,
+      "longitude": -121.91015625,
+      "name": "Gish"
+    },
+    "1114143": {
+      "id": 1114143,
+      "latitude": 37.41392517089844,
+      "longitude": -121.90143585205078,
+      "name": "Great Mall"
+    },
+    "1114144": {
+      "id": 1114144,
+      "latitude": 37.40346908569336,
+      "longitude": -121.97490692138672,
+      "name": "Great America"
+    },
+    "1114145": {
+      "id": 1114145,
+      "latitude": 37.294063568115234,
+      "longitude": -121.93616485595703,
+      "name": "Hamilton"
+    },
+    "1114146": {
+      "id": 1114146,
+      "latitude": 37.39564895629883,
+      "longitude": -121.87029266357422,
+      "name": "Hostetter"
+    },
+    "1114147": {
+      "id": 1114147,
+      "latitude": 37.345558166503906,
+      "longitude": -121.8975601196289,
+      "name": "Japantown/Ayer"
+    },
+    "1114148": {
+      "id": 1114148,
+      "latitude": 37.376277923583984,
+      "longitude": -121.92040252685547,
+      "name": "Karina"
+    },
+    "1114149": {
+      "id": 1114149,
+      "latitude": 37.407615661621094,
+      "longitude": -121.96367645263672,
+      "name": "Lick Mill"
+    },
+    "1114150": {
+      "id": 1114150,
+      "latitude": 37.40940475463867,
+      "longitude": -122.02713012695312,
+      "name": "Lockheed Martin"
+    },
+    "1114151": {
+      "id": 1114151,
+      "latitude": 37.371055603027344,
+      "longitude": -121.84403228759766,
+      "name": "Mckee"
+    },
+    "1114152": {
+      "id": 1114152,
+      "latitude": 37.370365142822266,
+      "longitude": -121.9159927368164,
+      "name": "Metro/Airport"
+    },
+    "1114153": {
+      "id": 1114153,
+      "latitude": 37.39542770385742,
+      "longitude": -122.05220794677734,
+      "name": "Middlefield"
+    },
+    "1114154": {
+      "id": 1114154,
+      "latitude": 37.413570404052734,
+      "longitude": -121.9171142578125,
+      "name": "Alder"
+    },
+    "1114155": {
+      "id": 1114155,
+      "latitude": 37.40243911743164,
+      "longitude": -122.03433227539062,
+      "name": "Moffett Park"
+    },
+    "1114156": {
+      "id": 1114156,
+      "latitude": 37.40855026245117,
+      "longitude": -121.89061737060547,
+      "name": "Milpitas"
+    },
+    "1114157": {
+      "id": 1114157,
+      "latitude": 37.39495086669922,
+      "longitude": -122.07678985595703,
+      "name": "Mountain View"
+    },
+    "1114159": {
+      "id": 1114159,
+      "latitude": 37.257423400878906,
+      "longitude": -121.86027526855469,
+      "name": "Ohlone-Chynoweth"
+    },
+    "1114160": {
+      "id": 1114160,
+      "latitude": 37.4033088684082,
+      "longitude": -121.9798583984375,
+      "name": "Old Ironsides"
+    },
+    "1114161": {
+      "id": 1114161,
+      "latitude": 37.395729064941406,
+      "longitude": -121.93486785888672,
+      "name": "Orchard"
+    },
+    "1114162": {
+      "id": 1114162,
+      "latitude": 37.380958557128906,
+      "longitude": -121.85441589355469,
+      "name": "Penitencia Creek"
+    },
+    "1114163": {
+      "id": 1114163,
+      "latitude": 37.31756591796875,
+      "longitude": -121.91031646728516,
+      "name": "Race"
+    },
+    "1114164": {
+      "id": 1114164,
+      "latitude": 37.40357208251953,
+      "longitude": -121.98966217041016,
+      "name": "Reamwood"
+    },
+    "1114165": {
+      "id": 1114165,
+      "latitude": 37.40284729003906,
+      "longitude": -121.94002532958984,
+      "name": "River Oaks"
+    },
+    "1114166": {
+      "id": 1114166,
+      "latitude": 37.33036804199219,
+      "longitude": -121.89811706542969,
+      "name": "San Fernando"
+    },
+    "1114167": {
+      "id": 1114167,
+      "latitude": 37.33278274536133,
+      "longitude": -121.88797760009766,
+      "name": "San Antonio"
+    },
+    "1114168": {
+      "id": 1114168,
+      "latitude": 37.33348083496094,
+      "longitude": -121.88719177246094,
+      "name": "San Antonio"
+    },
+    "1114169": {
+      "id": 1114169,
+      "latitude": 37.33592224121094,
+      "longitude": -121.89035034179688,
+      "name": "Santa Clara"
+    },
+    "1114170": {
+      "id": 1114170,
+      "latitude": 37.33579635620117,
+      "longitude": -121.88890838623047,
+      "name": "Santa Clara"
+    },
+    "1114171": {
+      "id": 1114171,
+      "latitude": 37.338401794433594,
+      "longitude": -121.89218139648438,
+      "name": "Saint James"
+    },
+    "1114172": {
+      "id": 1114172,
+      "latitude": 37.33835983276367,
+      "longitude": -121.89080810546875,
+      "name": "Saint James"
+    },
+    "1114173": {
+      "id": 1114173,
+      "latitude": 37.23666763305664,
+      "longitude": -121.78913879394531,
+      "name": "Santa Teresa"
+    },
+    "1114174": {
+      "id": 1114174,
+      "latitude": 37.24805450439453,
+      "longitude": -121.83133697509766,
+      "name": "Snell"
+    },
+    "1114175": {
+      "id": 1114175,
+      "latitude": 37.311927795410156,
+      "longitude": -121.88481140136719,
+      "name": "Tamien"
+    },
+    "1114176": {
+      "id": 1114176,
+      "latitude": 37.408668518066406,
+      "longitude": -121.94446563720703,
+      "name": "Tasman"
+    },
+    "1114177": {
+      "id": 1114177,
+      "latitude": 37.40339660644531,
+      "longitude": -122.0008773803711,
+      "name": "Vienna"
+    },
+    "1114178": {
+      "id": 1114178,
+      "latitude": 37.319828033447266,
+      "longitude": -121.89010620117188,
+      "name": "Virginia"
+    },
+    "1114179": {
+      "id": 1114179,
+      "latitude": 37.39177322387695,
+      "longitude": -122.05899810791016,
+      "name": "Whisman"
+    },
+    "1114180": {
+      "id": 1114180,
+      "latitude": 37.27960968017578,
+      "longitude": -121.94790649414062,
+      "name": "Winchester"
+    },
+    "1179653": {
+      "id": 1179653,
+      "latitude": 37.79313278198242,
+      "longitude": -122.39643096923828,
+      "name": "Metro Embarcadero"
+    },
+    "1179654": {
+      "id": 1179654,
+      "latitude": 37.78879165649414,
+      "longitude": -122.40213012695312,
+      "name": "Metro Montgomery Station/Outbound"
+    },
+    "1179655": {
+      "id": 1179655,
+      "latitude": 37.78465270996094,
+      "longitude": -122.40708923339844,
+      "name": "Metro Powell Station/Downtown"
+    },
+    "1179656": {
+      "id": 1179656,
+      "latitude": 37.77971267700195,
+      "longitude": -122.41334533691406,
+      "name": "Metro Civic Center Station/Downtn"
+    },
+    "1179657": {
+      "id": 1179657,
+      "latitude": 37.77512741088867,
+      "longitude": -122.41925048828125,
+      "name": "Metro Van Ness"
+    },
+    "1179658": {
+      "id": 1179658,
+      "latitude": 37.76719284057617,
+      "longitude": -122.42916870117188,
+      "name": "Metro Church Station/Downtown"
+    },
+    "1179659": {
+      "id": 1179659,
+      "latitude": 37.76261901855469,
+      "longitude": -122.43523406982422,
+      "name": "Metro Castro Station/Downtown"
+    },
+    "1179660": {
+      "id": 1179660,
+      "latitude": 37.74835205078125,
+      "longitude": -122.45862579345703,
+      "name": "Metro Forest Hill Station/Downtown"
+    },
+    "1179661": {
+      "id": 1179661,
+      "latitude": 37.741390228271484,
+      "longitude": -122.46553039550781,
+      "name": "West Portal"
+    },
+    "1638401": {
+      "id": 1638401,
+      "latitude": 37.795921325683594,
+      "longitude": -122.39242553710938,
+      "name": "San Francisco Ferry Terminal"
+    },
+    "1638402": {
+      "id": 1638402,
+      "latitude": 37.85616683959961,
+      "longitude": -122.47754669189453,
+      "name": "Sausalito Ferry Landing"
+    },
+    "1638403": {
+      "id": 1638403,
+      "latitude": 37.9447135925293,
+      "longitude": -122.50835418701172,
+      "name": "Larkspur Ferry Terminal"
+    },
+    "1638404": {
+      "id": 1638404,
+      "latitude": 37.795921325683594,
+      "longitude": -122.39242553710938,
+      "name": "San Francisco Ferry Terminal"
+    },
+    "1769473": {
+      "id": 1769473,
+      "latitude": 37.79066848754883,
+      "longitude": -122.29403686523438,
+      "name": "Alameda Main Street Terminal"
+    },
+    "1769477": {
+      "id": 1769477,
+      "latitude": 37.79520797729492,
+      "longitude": -122.28022766113281,
+      "name": "Oakland Ferry Terminal"
+    },
+    "1769480": {
+      "id": 1769480,
+      "latitude": 37.79587173461914,
+      "longitude": -122.3919906616211,
+      "name": "San Francisco Ferry Building"
+    },
+    "262145": {
+      "id": 262145,
+      "latitude": 37.684635162353516,
+      "longitude": -122.46615600585938,
+      "name": "Colma"
+    },
+    "262146": {
+      "id": 262146,
+      "latitude": 37.706260681152344,
+      "longitude": -122.46891021728516,
+      "name": "Daly City"
+    },
+    "262147": {
+      "id": 262147,
+      "latitude": 37.72174835205078,
+      "longitude": -122.44745635986328,
+      "name": "Balboa Park"
+    },
+    "262148": {
+      "id": 262148,
+      "latitude": 37.73323440551758,
+      "longitude": -122.43351745605469,
+      "name": "Glen Park"
+    },
+    "262149": {
+      "id": 262149,
+      "latitude": 37.752418518066406,
+      "longitude": -122.41846466064453,
+      "name": "24th Street / Mission"
+    },
+    "262150": {
+      "id": 262150,
+      "latitude": 37.765174865722656,
+      "longitude": -122.4197006225586,
+      "name": "16th Street / Mission"
+    },
+    "262151": {
+      "id": 262151,
+      "latitude": 37.7794075012207,
+      "longitude": -122.41382598876953,
+      "name": "Civic Center / UN Plaza"
+    },
+    "262152": {
+      "id": 262152,
+      "latitude": 37.78460693359375,
+      "longitude": -122.40733337402344,
+      "name": "Powell Street"
+    },
+    "262153": {
+      "id": 262153,
+      "latitude": 37.7891731262207,
+      "longitude": -122.4015884399414,
+      "name": "Montgomery Street"
+    },
+    "262154": {
+      "id": 262154,
+      "latitude": 37.792762756347656,
+      "longitude": -122.39703369140625,
+      "name": "Embarcadero"
+    },
+    "262155": {
+      "id": 262155,
+      "latitude": 37.80488967895508,
+      "longitude": -122.29515075683594,
+      "name": "West Oakland"
+    },
+    "262156": {
+      "id": 262156,
+      "latitude": 37.80348205566406,
+      "longitude": -122.2716293334961,
+      "name": "12th Street / Oakland City Center"
+    },
+    "262157": {
+      "id": 262157,
+      "latitude": 37.80807876586914,
+      "longitude": -122.26876068115234,
+      "name": "19th Street Oakland"
+    },
+    "262158": {
+      "id": 262158,
+      "latitude": 37.82880401611328,
+      "longitude": -122.26710510253906,
+      "name": "MacArthur"
+    },
+    "262159": {
+      "id": 262159,
+      "latitude": 37.84475326538086,
+      "longitude": -122.25123596191406,
+      "name": "Rockridge"
+    },
+    "262160": {
+      "id": 262160,
+      "latitude": 37.878482818603516,
+      "longitude": -122.18367004394531,
+      "name": "Orinda"
+    },
+    "262161": {
+      "id": 262161,
+      "latitude": 37.893184661865234,
+      "longitude": -122.12461853027344,
+      "name": "Lafayette"
+    },
+    "262162": {
+      "id": 262162,
+      "latitude": 37.905792236328125,
+      "longitude": -122.06732940673828,
+      "name": "Walnut Creek"
+    },
+    "262163": {
+      "id": 262163,
+      "latitude": 37.92843246459961,
+      "longitude": -122.05596923828125,
+      "name": "Pleasant Hill / Contra Costa Centre"
+    },
+    "262164": {
+      "id": 262164,
+      "latitude": 37.973758697509766,
+      "longitude": -122.0290756225586,
+      "name": "Concord"
+    },
+    "262165": {
+      "id": 262165,
+      "latitude": 38.00338363647461,
+      "longitude": -122.0245132446289,
+      "name": "North Concord / Martinez"
+    },
+    "262166": {
+      "id": 262166,
+      "latitude": 38.0189094543457,
+      "longitude": -121.9442367553711,
+      "name": "Pittsburg / Bay Point"
+    },
+    "262167": {
+      "id": 262167,
+      "latitude": 37.85307312011719,
+      "longitude": -122.26976776123047,
+      "name": "Ashby"
+    },
+    "262168": {
+      "id": 262168,
+      "latitude": 37.87010955810547,
+      "longitude": -122.26811218261719,
+      "name": "Downtown Berkeley"
+    },
+    "262169": {
+      "id": 262169,
+      "latitude": 37.87400436401367,
+      "longitude": -122.28352355957031,
+      "name": "North Berkeley"
+    },
+    "262170": {
+      "id": 262170,
+      "latitude": 37.902610778808594,
+      "longitude": -122.29891967773438,
+      "name": "El Cerrito Plaza"
+    },
+    "262171": {
+      "id": 262171,
+      "latitude": 37.9251823425293,
+      "longitude": -122.31689453125,
+      "name": "El Cerrito Del Norte"
+    },
+    "262172": {
+      "id": 262172,
+      "latitude": 37.9367561340332,
+      "longitude": -122.3530502319336,
+      "name": "Richmond"
+    },
+    "262173": {
+      "id": 262173,
+      "latitude": 37.79732131958008,
+      "longitude": -122.26524353027344,
+      "name": "Lake Merritt"
+    },
+    "262174": {
+      "id": 262174,
+      "latitude": 37.77484130859375,
+      "longitude": -122.22408294677734,
+      "name": "Fruitvale"
+    },
+    "262175": {
+      "id": 262175,
+      "latitude": 37.75357437133789,
+      "longitude": -122.19671630859375,
+      "name": "Coliseum"
+    },
+    "262176": {
+      "id": 262176,
+      "latitude": 37.72178268432617,
+      "longitude": -122.1607437133789,
+      "name": "San Leandro"
+    },
+    "262177": {
+      "id": 262177,
+      "latitude": 37.69690704345703,
+      "longitude": -122.12644958496094,
+      "name": "Bay Fair"
+    },
+    "262178": {
+      "id": 262178,
+      "latitude": 37.669700622558594,
+      "longitude": -122.08695983886719,
+      "name": "Hayward"
+    },
+    "262179": {
+      "id": 262179,
+      "latitude": 37.63433837890625,
+      "longitude": -122.05718231201172,
+      "name": "South Hayward"
+    },
+    "262180": {
+      "id": 262180,
+      "latitude": 37.590736389160156,
+      "longitude": -122.01725006103516,
+      "name": "Union City"
+    },
+    "262181": {
+      "id": 262181,
+      "latitude": 37.55747985839844,
+      "longitude": -121.97661590576172,
+      "name": "Fremont"
+    },
+    "262182": {
+      "id": 262182,
+      "latitude": 37.690738677978516,
+      "longitude": -122.07559967041016,
+      "name": "Castro Valley"
+    },
+    "262183": {
+      "id": 262183,
+      "latitude": 37.70164489746094,
+      "longitude": -121.89923095703125,
+      "name": "Dublin / Pleasanton"
+    },
+    "262184": {
+      "id": 262184,
+      "latitude": 37.66446304321289,
+      "longitude": -122.4442138671875,
+      "name": "South San Francisco"
+    },
+    "262185": {
+      "id": 262185,
+      "latitude": 37.63772964477539,
+      "longitude": -122.41632843017578,
+      "name": "San Bruno"
+    },
+    "262186": {
+      "id": 262186,
+      "latitude": 37.616092681884766,
+      "longitude": -122.39195251464844,
+      "name": "San Francisco International Airport"
+    },
+    "262187": {
+      "id": 262187,
+      "latitude": 37.60023880004883,
+      "longitude": -122.38675689697266,
+      "name": "Millbrae"
+    },
+    "262188": {
+      "id": 262188,
+      "latitude": 37.69972229003906,
+      "longitude": -121.92827606201172,
+      "name": "West Dublin / Pleasanton"
+    },
+    "262189": {
+      "id": 262189,
+      "latitude": 37.7132568359375,
+      "longitude": -122.21223449707031,
+      "name": "Oakland International Airport"
+    },
+    "262190": {
+      "id": 262190,
+      "latitude": 37.50228500366211,
+      "longitude": -121.93939208984375,
+      "name": "Warm Springs / South Fremont"
+    },
+    "262191": {
+      "id": 262191,
+      "latitude": 37.4102783203125,
+      "longitude": -121.89108276367188,
+      "name": "Milpitas"
+    },
+    "262192": {
+      "id": 262192,
+      "latitude": 37.368473052978516,
+      "longitude": -121.87467956542969,
+      "name": "Berryessa / North San Jose"
+    },
+    "262193": {
+      "id": 262193,
+      "latitude": 38.016845703125,
+      "longitude": -121.8890609741211,
+      "name": "Pittsburg Center"
+    },
+    "262194": {
+      "id": 262194,
+      "latitude": 37.9953727722168,
+      "longitude": -121.78034973144531,
+      "name": "Antioch"
+    }
+  },
+  "version": 1
+}

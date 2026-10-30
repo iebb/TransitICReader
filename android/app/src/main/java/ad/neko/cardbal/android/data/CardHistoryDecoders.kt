@@ -1,6 +1,7 @@
 package ad.neko.cardbal.android.data
 
 import ad.neko.cardbal.android.nfc.SnapperPlusProtocol
+import ad.neko.cardbal.android.nfc.ClipperDecoder
 import kotlinx.datetime.Instant
 
 /** Upgrade only a positively identified Snapper on the same UID/shared AID. */
@@ -20,6 +21,9 @@ internal fun cardIndexForSnapshot(cards: List<SavedCardRecord>, snapshot: Transi
 internal fun mergeCardHistory(family: String, existing: List<String>, incoming: List<String>): List<String> {
     if (family.equals("Snapper+", ignoreCase = true) || family.equals("Snapper Plus", ignoreCase = true)) {
         return SnapperPlusProtocol.mergeHistory(incoming + existing)
+    }
+    if (family.equals("Clipper", ignoreCase = true)) {
+        return AdditionalCardHistory.merge((incoming + existing).map(ClipperDecoder::canonicalHistoryRecord))
     }
     if (AdditionalCardHistory.handles(family)) return AdditionalCardHistory.merge(incoming + existing)
     return (incoming + existing).distinct()

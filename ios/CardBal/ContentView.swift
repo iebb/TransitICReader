@@ -1013,6 +1013,19 @@ struct SettingsView: View {
         List {
             Section("Credits") {
                 VStack(alignment: .leading, spacing: 6) {
+                    Text("Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22.")
+                        .font(.footnote)
+                    Link("TU-Reader source and licence", destination: URL(string: "https://github.com/HaoTian22/TU-Reader")!)
+                        .font(.footnote)
+                    Text("Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later).")
+                        .font(.footnote)
+                    Link("FareBot source and licence", destination: URL(string: "https://github.com/codebutler/farebot")!)
+                        .font(.footnote)
+                    DisclosureGroup("Clipper station data attributions") {
+                        Text(ClipperTransitCatalog.shared.notice)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     Text("Singapore station names and locations: LTA Train Station Codes and Chinese Names and TrainStation, accessed 31 October 2026, under the Singapore Open Data Licence v1.0. Country outline: Natural Earth (public domain).")
                         .font(.footnote)
                     Link("Singapore station data and licence", destination: URL(string: "https://datamall.lta.gov.sg/content/datamall/en/SingaporeOpenDataLicence.html")!)
@@ -1108,6 +1121,10 @@ struct ArchiveButton: View {
 
 extension TransitCardSnapshot {
     var storageIdentifier: String {
+        // Keep the wallet identity used by the previous DESFire reader.
+        if cardFamily == "Clipper", selectedAID == "9011F2", !rawIdentifierValue.isEmpty {
+            return "DESFire|\(rawIdentifierValue)"
+        }
         if let applications, let primary = TransitApplication.primary(in: applications) {
             return primary.identityAlias
         }

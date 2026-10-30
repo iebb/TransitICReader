@@ -226,6 +226,9 @@ class CardWalletStore: ObservableObject {
         if ICCardBrand.from(family: family) == .snapperPlus, technology == "ISO7816", kind == .transactions {
             return SnapperPlusProtocol.mergeHistory(incoming + existing)
         }
+        if ICCardBrand.from(family: family) == .clipper {
+            return AdditionalCardHistory.merge((incoming + existing).map(ClipperDecoder.canonicalHistoryRecord))
+        }
         if AdditionalCardHistory.handles(family) { return AdditionalCardHistory.merge(incoming + existing) }
         guard !existing.isEmpty else { return incoming }
         guard !incoming.isEmpty else { return existing }
@@ -305,8 +308,21 @@ class CardWalletStore: ObservableObject {
                 let evidence = Set(sourceRecordIDs ?? [])
                 for appIndex in apps.indices {
                     let appID = apps[appIndex].id
+                    // Application history supplies only the displayed record's
+                    // ID. Expand that evidence within this app and record kind.
+                    let clipperTrips = ICCardBrand.from(family: apps[appIndex].cardFamily) == .clipper
+                        && ["ISO7816", "DESFire"].contains(apps[appIndex].technology)
+                        ? apps[appIndex].records.compactMap { record -> (kind: TransitApplicationRecord.Kind, timestamp: Int)? in
+                            guard evidence.contains("\(appID)|\(record.identity)"),
+                                  let timestamp = ClipperDecoder.tripEntryTimestamp(record.data) else { return nil }
+                            return (record.kind, timestamp)
+                        } : []
                     apps[appIndex].records.removeAll { record in
-                        evidence.isEmpty ? record.hex == rawData : evidence.contains("\(appID)|\(record.identity)")
+                        if evidence.isEmpty { return record.hex == rawData }
+                        if evidence.contains("\(appID)|\(record.identity)") { return true }
+                        guard !clipperTrips.isEmpty,
+                              let timestamp = ClipperDecoder.tripEntryTimestamp(record.data) else { return false }
+                        return clipperTrips.contains { $0.kind == record.kind && $0.timestamp == timestamp }
                     }
                 }
                 cards[index].applyApplications(apps)
@@ -314,13 +330,26 @@ class CardWalletStore: ObservableObject {
                 save()
                 return
             }
+            // A displayed Clipper trip can represent both a tap-in and its
+            // completed tap-out. Remove the whole group from this history.
+            let clipperTripTimestamp = ICCardBrand.from(family: cards[index].cardFamily) == .clipper
+                && ["ISO7816", "DESFire"].contains(cards[index].technology)
+                ? ClipperDecoder.tripEntryTimestamp(Data(hexString: rawData)) : nil
             switch kind {
             case .transactions:
-                if let i = cards[index].rawTransactions.firstIndex(of: rawData) {
+                if let timestamp = clipperTripTimestamp {
+                    cards[index].rawTransactions.removeAll {
+                        ClipperDecoder.tripEntryTimestamp(Data(hexString: $0)) == timestamp
+                    }
+                } else if let i = cards[index].rawTransactions.firstIndex(of: rawData) {
                     cards[index].rawTransactions.remove(at: i)
                 }
             case .transit:
-                if let i = cards[index].rawTransitHistory.firstIndex(of: rawData) {
+                if let timestamp = clipperTripTimestamp {
+                    cards[index].rawTransitHistory.removeAll {
+                        ClipperDecoder.tripEntryTimestamp(Data(hexString: $0)) == timestamp
+                    }
+                } else if let i = cards[index].rawTransitHistory.firstIndex(of: rawData) {
                     cards[index].rawTransitHistory.remove(at: i)
                 }
             }

@@ -35,7 +35,7 @@ class UnifiedAssetRoutingTests(unittest.TestCase):
                 "TUnionCityCodes.json", "TUnionLineStations.json", "KOTRISTransportModes.json",
                 "cardbal_transit.sqlite",
             })
-            expected_android = {"JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite", "tunion_stations.sqlite", "KOTRISTransportModes.json", "cardbal_transit.sqlite"}
+            expected_android = {"JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite", "tunion_stations.sqlite", "KOTRISTransportModes.json", "cardbal_transit.sqlite", "ClipperTransit.json"}
             self.assertEqual({p.name for p in android.iterdir()}, expected_android | {"manifest.json"})
             self.assertEqual(set(json.loads((android / "manifest.json").read_text())["files"]), expected_android)
 
@@ -43,6 +43,7 @@ class UnifiedAssetRoutingTests(unittest.TestCase):
         self.assertEqual(set(packager.platform_asset_names("all")), {
             "JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite",
             "tunion_stations.sqlite", "cardbal_transit.sqlite", "KOTRISTransportModes.json",
+            "ClipperTransit.json",
         })
         self.assertEqual(set(packager.ios_asset_names("all")), {
             "JPBusCodes.csv", "JPStationCodes.csv", "TUnionCardNames.json",

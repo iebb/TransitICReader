@@ -51,6 +51,7 @@
     <string name="text_38da1505ca837328" formatted="false">"Activity"</string>
     <string name="text_c416069b7f61a4a6" formatted="false">"Adjustment"</string>
     <string name="text_9f088dbebd6c3c70" formatted="false">"Advanced"</string>
+    <string name="text_86f357cfb8c2c100" formatted="false">"Agency"</string>
     <string name="text_5624631ec7a3b5b8" formatted="false">"Agency %lld"</string>
     <string name="text_a52ace420f2175d0" formatted="false">"All"</string>
     <string name="text_c98ee63d931a24c6" formatted="false">"All Cards"</string>
@@ -67,6 +68,8 @@
     <string name="text_3907fa7f80722a6f" formatted="false">"Appearance"</string>
     <string name="text_e7ad522ea327e5ba" formatted="false">"Application"</string>
     <string name="text_bec17fcd0d76e50d" formatted="false">"Application AID"</string>
+    <string name="text_bd61c415a3186708" formatted="false">"Application Serial"</string>
+    <string name="text_a187c7382f4026c9" formatted="false">"Application Version"</string>
     <string name="text_024dc204d7ba77a8" formatted="false">"Area"</string>
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"Armed while foregrounded"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"Authenticated file is not readable"</string>
@@ -173,6 +176,10 @@
     <string name="text_ae25d6481fc1741f" formatted="false">"Classic"</string>
     <string name="text_beba8972e75d3241" formatted="false">"Climate Card"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"Climate Card (Unlimited Pass)"</string>
+    <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper Read Status"</string>
+    <string name="text_ff014a49de0b17b8" formatted="false">"Clipper Ticket Pages 0-15"</string>
+    <string name="text_f4670225e02da0b0" formatted="false">"Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later)."</string>
+    <string name="text_0428db0c505886b6" formatted="false">"Clipper station data attributions"</string>
     <string name="text_7d9eb7acb13e2462" formatted="false">"Close"</string>
     <string name="text_1e3b47d868841ea8" formatted="false">"Code Correction"</string>
     <string name="text_e4a57491b5de6250" formatted="false">"Code Shown by CardBal (Optional)"</string>
@@ -252,6 +259,7 @@
     <string name="text_a1d2e698b3b406a1" formatted="false">"Edy history records store type, sequence, packed elapsed date/time, amount, and balance in a 16-byte block."</string>
     <string name="text_c7e1e2c581a628e7" formatted="false">"Edy transaction"</string>
     <string name="text_72755d6de33db86f" formatted="false">"Encryption Algorithm"</string>
+    <string name="text_b1465a137408339d" formatted="false">"End of line"</string>
     <string name="text_2649e082d9a2ba37" formatted="false">"Entry"</string>
     <string name="text_0ff9decbdf045e5a" formatted="false">"Entry Code"</string>
     <string name="text_3c26e3d5df93be97" formatted="false">"Entry Fare Adjustment"</string>
@@ -282,6 +290,7 @@
     <string name="text_1e93b82b69bbdd1e" formatted="false">"Fare To Pass Boundary"</string>
     <string name="text_3b4977332ccb8a76" formatted="false">"Fare unavailable"</string>
     <string name="text_f5768f1bdeb1266d" formatted="false">"Fare unknown"</string>
+    <string name="text_2e80c60e87af7f9d" formatted="false">"FareBot source and licence"</string>
     <string name="text_386bc3a49284e3fb" formatted="false">"FeliCa"</string>
     <string name="text_96376179bf25706e" formatted="false">"FeliCa Probing"</string>
     <string name="text_3194003bd2b01f52" formatted="false">"FeliCa gate activity record layout for service `108F` (`8F10` little-endian on card I/O). Bytes `0-1` are activity/subtype, `2-3` station code, `4-5` device number, `6-7` packed date, `8-9` BCD time, `10-11` amount, `12-13` pass-boundary fare, and `14-15` pass-boundary station."</string>
@@ -350,6 +359,7 @@
     <string name="text_6012aa50b377e287" formatted="false">"Invalid DESFire response"</string>
     <string name="text_496372bfbc726e11" formatted="false">"Issue Date"</string>
     <string name="text_5a3e34481390f14e" formatted="false">"Issue Date Raw"</string>
+    <string name="text_39e02c46a08382b7" formatted="false">"Issuer"</string>
     <string name="text_991ed8b90d565858" formatted="false">"Issuer ID"</string>
     <string name="text_184a55d5723c1b2c" formatted="false">"Issuing City"</string>
     <string name="text_647294383b2cbc24" formatted="false">"Japan"</string>
@@ -407,6 +417,11 @@
     <string name="text_5875cac9bc1836b2" formatted="false">"Log Type"</string>
     <string name="text_b6429462bd7ba37c" formatted="false">"MM/DD/YYYY"</string>
     <string name="text_44058dd7d279d035" formatted="false">"MMM d, yyyy"</string>
+    <string name="text_a1018acc62c9e3da" formatted="false">"Macau Pass Application"</string>
+    <string name="text_8447f2a3a1248d9e" formatted="false">"Macau Pass Information (SFI 15)"</string>
+    <string name="text_d6bdbbe65ac659a4" formatted="false">"Macau Pass Read Status"</string>
+    <string name="text_2f01dd86456511e6" formatted="false">"Macau Pass Unrecognized History Record"</string>
+    <string name="text_e2ab0d74b23c5a80" formatted="false">"Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22."</string>
     <string name="text_6ead8d1d6f1c6445" formatted="false">"Magnetic Ticket Purchase"</string>
     <string name="text_b31d6d779f9863c2" formatted="false">"Manage Card Faces"</string>
     <string name="text_b0b9fe24ffa96291" formatted="false">"Manual"</string>
@@ -542,6 +557,7 @@
     <string name="text_f6096b0b022c0af9" formatted="false">"Process %lld"</string>
     <string name="text_cab123ad068a0c41" formatted="false">"Processing Date"</string>
     <string name="text_24ba74a663e65699" formatted="false">"Processing Time"</string>
+    <string name="text_fb9ef894175c3274" formatted="false">"Product"</string>
     <string name="text_e7160a0e72ccf3e8" formatted="false">"Product %@, zone %@"</string>
     <string name="text_9994e57546dfb974" formatted="false">"Product %lld"</string>
     <string name="text_0123f7e78f101348" formatted="false">"Product %lld, zone %lld"</string>
@@ -616,6 +632,7 @@
     <string name="text_5864885934940b16" formatted="false">"Ride map"</string>
     <string name="text_c3613b1704f54c8b" formatted="false">"Rotate"</string>
     <string name="text_b3b566413ca802ab" formatted="false">"Route %@"</string>
+    <string name="text_e6333ac1c8b4c2df" formatted="false">"Route 0x%X"</string>
     <string name="text_2c5b669bcdeb51bf" formatted="false">"Routes"</string>
     <string name="text_50a369c7e56b94b6" formatted="false">"Ryukyu Bus Kotsu"</string>
     <string name="text_0055bd3734f302ed" formatted="false">"S/N"</string>
@@ -722,6 +739,7 @@
     <string name="text_8f9aabd679bb72c2" formatted="false">"T-Union Cities"</string>
     <string name="text_fa1570d532773447" formatted="false">"T-Union edges"</string>
     <string name="text_1b0e610b495d865d" formatted="false">"T-Union stations"</string>
+    <string name="text_adfe2a088075ae44" formatted="false">"TU-Reader source and licence"</string>
     <string name="text_78590556d5b7ae9a" formatted="false">"TX Type"</string>
     <string name="text_1503916a2ab2b0fd" formatted="false">"Tag"</string>
     <string name="text_1ca36a90c342fa4f" formatted="false">"Take Photo"</string>
@@ -757,6 +775,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"Ticket"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"Ticket Gate"</string>
     <string name="text_a4a454897222f91f" formatted="false">"Ticket Status"</string>
+    <string name="text_5a918ce6f7f22691" formatted="false">"Ticket Type"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"Ticket validation"</string>
     <string name="text_3d131368b43397ff" formatted="false">"Tickets"</string>
     <string name="text_33b93476cf597a33" formatted="false">"Time"</string>
@@ -780,6 +799,7 @@
     <string name="text_3e5136fd4b11c0dd" formatted="false">"Transactions"</string>
     <string name="text_dde8bef78cbb7206" formatted="false">"Transfer"</string>
     <string name="text_51f4081f11a8b7dc" formatted="false">"Transfer Adjustment Machine"</string>
+    <string name="text_40dc5e8d2bbd2a91" formatted="false">"Transfer Expiry"</string>
     <string name="text_99da84d9adf64d31" formatted="false">"Transit"</string>
     <string name="text_e255fef680215120" formatted="false">"Transit Activity"</string>
     <string name="text_a4e4377c1895ca01" formatted="false">"Transit Atlas"</string>
@@ -797,6 +817,7 @@
     <string name="text_3ab1df0173d809e8" formatted="false">"Travel event"</string>
     <string name="text_b673fbd678a7323e" formatted="false">"Trip State"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"Trips"</string>
+    <string name="text_36ad6bc8245efca9" formatted="false">"Trips Remaining"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"Type"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"Unable to load development samples"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"Unable to load development samples: %@"</string>
@@ -859,6 +880,7 @@
     <string name="text_2c81c25a819d0715" formatted="false">"Your provinces will glow here"</string>
     <string name="text_fa86d119f5d55862" formatted="false">"Yui Rail"</string>
     <string name="text_7dc5bb225c93d47d" formatted="false">"Yui Rail Top-up"</string>
+    <string name="text_5279cdfd8afab7c7" formatted="false">"Zone %d"</string>
     <string name="text_509c517ede79fef0" formatted="false">"Zoom"</string>
     <string name="text_0e47f09a748fa132" formatted="false">"Zoom in"</string>
     <string name="text_bc7b631a689b45ca" formatted="false">"Zoom out"</string>

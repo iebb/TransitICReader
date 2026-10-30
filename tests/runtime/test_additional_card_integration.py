@@ -27,6 +27,12 @@ struct SavedCardRecord { static func rawRecordHasContent(_ raw: String) -> Bool 
 enum JapaneseICDecoder { static func decodeTransaction(block: Data, context: [Data], index: Int, family: String, kind: RawHistoryKind, relatedContext: [Data]) -> TransitTransaction? { fatalError("Japan fallback used") } }
 enum CityUnionDecoder { static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("China fallback used") } }
 enum TianfuTongDecoder { static func decodeRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("Tianfu fallback used") } }
+enum ClipperDecoder {
+ static func decodeTransaction(_ data: Data, context: [Data], index: Int) -> TransitTransaction? { fatalError("Clipper fallback used") }
+ static func canonicalHistoryRecord(_ raw: String) -> String { raw }
+}
+enum ClipperUltralightDecoder { static func decodeTransaction(_ data: Data) -> TransitTransaction? { fatalError("Clipper ticket fallback used") } }
+enum MacauPassDecoder { static func decodeTransaction(_ data: Data) -> TransitTransaction? { fatalError("Macau fallback used") } }
 enum TUnionDecoder {
  static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("China fallback used") }
  static func decodePBOC(data: Data, index: Int, resolveTUnionTerminals: Bool) -> TransitTransaction? { fatalError("China fallback used") }

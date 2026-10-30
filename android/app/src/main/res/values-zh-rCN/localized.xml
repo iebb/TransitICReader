@@ -51,6 +51,7 @@
     <string name="text_38da1505ca837328" formatted="false">"活动"</string>
     <string name="text_c416069b7f61a4a6" formatted="false">"调整"</string>
     <string name="text_9f088dbebd6c3c70" formatted="false">"高级设置"</string>
+    <string name="text_86f357cfb8c2c100" formatted="false">"运营商"</string>
     <string name="text_5624631ec7a3b5b8" formatted="false">"运营机构 %lld"</string>
     <string name="text_a52ace420f2175d0" formatted="false">"全部"</string>
     <string name="text_c98ee63d931a24c6" formatted="false">"所有卡片"</string>
@@ -67,6 +68,8 @@
     <string name="text_3907fa7f80722a6f" formatted="false">"外观"</string>
     <string name="text_e7ad522ea327e5ba" formatted="false">"应用"</string>
     <string name="text_bec17fcd0d76e50d" formatted="false">"应用 AID"</string>
+    <string name="text_bd61c415a3186708" formatted="false">"应用序列号"</string>
+    <string name="text_a187c7382f4026c9" formatted="false">"应用版本"</string>
     <string name="text_024dc204d7ba77a8" formatted="false">"区域"</string>
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"前台运行时启用"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"无法读取需要认证的文件"</string>
@@ -173,6 +176,10 @@
     <string name="text_ae25d6481fc1741f" formatted="false">"经典"</string>
     <string name="text_beba8972e75d3241" formatted="false">"气候同行卡"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"气候同行卡（无限次通票）"</string>
+    <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper 读取状态"</string>
+    <string name="text_ff014a49de0b17b8" formatted="false">"Clipper 票卡页面 0-15"</string>
+    <string name="text_f4670225e02da0b0" formatted="false">"Clipper 解码改编自 FareBot 和 Metrodroid（GPL-3.0 或更新版本）。"</string>
+    <string name="text_0428db0c505886b6" formatted="false">"Clipper 车站数据署名"</string>
     <string name="text_7d9eb7acb13e2462" formatted="false">"关闭"</string>
     <string name="text_1e3b47d868841ea8" formatted="false">"修正车站代码"</string>
     <string name="text_e4a57491b5de6250" formatted="false">"CardBal 显示的代码（选填）"</string>
@@ -252,6 +259,7 @@
     <string name="text_a1d2e698b3b406a1" formatted="false">"Edy 历史记录在 16 字节数据块中保存类型、序号、打包的经过日期时间、金额及余额。"</string>
     <string name="text_c7e1e2c581a628e7" formatted="false">"Edy 交易"</string>
     <string name="text_72755d6de33db86f" formatted="false">"加密算法"</string>
+    <string name="text_b1465a137408339d" formatted="false">"线路终点"</string>
     <string name="text_2649e082d9a2ba37" formatted="false">"进站"</string>
     <string name="text_0ff9decbdf045e5a" formatted="false">"进站代码"</string>
     <string name="text_3c26e3d5df93be97" formatted="false">"进站补票"</string>
@@ -282,6 +290,7 @@
     <string name="text_1e93b82b69bbdd1e" formatted="false">"至定期区间边界的票价"</string>
     <string name="text_3b4977332ccb8a76" formatted="false">"票价未知"</string>
     <string name="text_f5768f1bdeb1266d" formatted="false">"票价未知"</string>
+    <string name="text_2e80c60e87af7f9d" formatted="false">"FareBot 源代码与许可证"</string>
     <string name="text_386bc3a49284e3fb" formatted="false">"FeliCa"</string>
     <string name="text_96376179bf25706e" formatted="false">"FeliCa 深度扫描"</string>
     <string name="text_3194003bd2b01f52" formatted="false">"FeliCa 闸机记录格式，服务 `108F`（卡片通信中使用小端序 `8F10`）。字节 `0–1` 为活动／子类型，`2–3` 为车站代码，`4–5` 为设备编号，`6–7` 为打包日期，`8–9` 为 BCD 时间，`10–11` 为金额，`12–13` 为定期区间边界票价，`14–15` 为边界车站。"</string>
@@ -350,6 +359,7 @@
     <string name="text_6012aa50b377e287" formatted="false">"无效的 DESFire 响应"</string>
     <string name="text_496372bfbc726e11" formatted="false">"发行日期"</string>
     <string name="text_5a3e34481390f14e" formatted="false">"原始发行日期"</string>
+    <string name="text_39e02c46a08382b7" formatted="false">"发行方"</string>
     <string name="text_991ed8b90d565858" formatted="false">"发行机构 ID"</string>
     <string name="text_184a55d5723c1b2c" formatted="false">"发行城市"</string>
     <string name="text_647294383b2cbc24" formatted="false">"日本"</string>
@@ -407,6 +417,11 @@
     <string name="text_5875cac9bc1836b2" formatted="false">"日志类型"</string>
     <string name="text_b6429462bd7ba37c" formatted="false">"MM/DD/YYYY"</string>
     <string name="text_44058dd7d279d035" formatted="false">"MMM d, yyyy"</string>
+    <string name="text_a1018acc62c9e3da" formatted="false">"澳门通应用"</string>
+    <string name="text_8447f2a3a1248d9e" formatted="false">"澳门通信息（SFI 15）"</string>
+    <string name="text_d6bdbbe65ac659a4" formatted="false">"澳门通读取状态"</string>
+    <string name="text_2f01dd86456511e6" formatted="false">"澳门通无法识别的历史记录"</string>
+    <string name="text_e2ab0d74b23c5a80" formatted="false">"澳门通解码改编自 TU-Reader（MIT），版权所有 2026 HaoTian22。"</string>
     <string name="text_6ead8d1d6f1c6445" formatted="false">"购买磁性车票"</string>
     <string name="text_b31d6d779f9863c2" formatted="false">"管理卡面"</string>
     <string name="text_b0b9fe24ffa96291" formatted="false">"手动"</string>
@@ -542,6 +557,7 @@
     <string name="text_f6096b0b022c0af9" formatted="false">"处理类型 %lld"</string>
     <string name="text_cab123ad068a0c41" formatted="false">"处理日期"</string>
     <string name="text_24ba74a663e65699" formatted="false">"处理时间"</string>
+    <string name="text_fb9ef894175c3274" formatted="false">"产品"</string>
     <string name="text_e7160a0e72ccf3e8" formatted="false">"产品 %@，区域 %@"</string>
     <string name="text_9994e57546dfb974" formatted="false">"产品 %lld"</string>
     <string name="text_0123f7e78f101348" formatted="false">"产品 %lld，区域 %lld"</string>
@@ -616,6 +632,7 @@
     <string name="text_5864885934940b16" formatted="false">"乘车地图"</string>
     <string name="text_c3613b1704f54c8b" formatted="false">"旋转"</string>
     <string name="text_b3b566413ca802ab" formatted="false">"线路 %@"</string>
+    <string name="text_e6333ac1c8b4c2df" formatted="false">"线路 0x%X"</string>
     <string name="text_2c5b669bcdeb51bf" formatted="false">"路线"</string>
     <string name="text_50a369c7e56b94b6" formatted="false">"琉球巴士交通"</string>
     <string name="text_0055bd3734f302ed" formatted="false">"S/N"</string>
@@ -722,6 +739,7 @@
     <string name="text_8f9aabd679bb72c2" formatted="false">"交通联合城市"</string>
     <string name="text_fa1570d532773447" formatted="false">"交通联合线路连接"</string>
     <string name="text_1b0e610b495d865d" formatted="false">"交通联合车站"</string>
+    <string name="text_adfe2a088075ae44" formatted="false">"TU-Reader 源代码与许可证"</string>
     <string name="text_78590556d5b7ae9a" formatted="false">"交易类型"</string>
     <string name="text_1503916a2ab2b0fd" formatted="false">"标签"</string>
     <string name="text_1ca36a90c342fa4f" formatted="false">"拍照"</string>
@@ -757,6 +775,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"票券"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"检票闸机"</string>
     <string name="text_a4a454897222f91f" formatted="false">"车票状态"</string>
+    <string name="text_5a918ce6f7f22691" formatted="false">"票种"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"验票"</string>
     <string name="text_3d131368b43397ff" formatted="false">"票券"</string>
     <string name="text_33b93476cf597a33" formatted="false">"时间"</string>
@@ -780,6 +799,7 @@
     <string name="text_3e5136fd4b11c0dd" formatted="false">"交易"</string>
     <string name="text_dde8bef78cbb7206" formatted="false">"转乘／转账"</string>
     <string name="text_51f4081f11a8b7dc" formatted="false">"转乘补票机"</string>
+    <string name="text_40dc5e8d2bbd2a91" formatted="false">"换乘有效期"</string>
     <string name="text_99da84d9adf64d31" formatted="false">"乘车"</string>
     <string name="text_e255fef680215120" formatted="false">"乘车记录"</string>
     <string name="text_a4e4377c1895ca01" formatted="false">"交通图鉴"</string>
@@ -797,6 +817,7 @@
     <string name="text_3ab1df0173d809e8" formatted="false">"乘车事件"</string>
     <string name="text_b673fbd678a7323e" formatted="false">"行程状态"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"行程"</string>
+    <string name="text_36ad6bc8245efca9" formatted="false">"剩余次数"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"类型"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"无法加载开发示例"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"无法加载开发示例：%@"</string>
@@ -859,6 +880,7 @@
     <string name="text_2c81c25a819d0715" formatted="false">"你去过的省级区域将在这里点亮"</string>
     <string name="text_fa86d119f5d55862" formatted="false">"冲绳都市单轨"</string>
     <string name="text_7dc5bb225c93d47d" formatted="false">"冲绳单轨充值"</string>
+    <string name="text_5279cdfd8afab7c7" formatted="false">"区域 %d"</string>
     <string name="text_509c517ede79fef0" formatted="false">"缩放"</string>
     <string name="text_0e47f09a748fa132" formatted="false">"放大"</string>
     <string name="text_bc7b631a689b45ca" formatted="false">"缩小"</string>

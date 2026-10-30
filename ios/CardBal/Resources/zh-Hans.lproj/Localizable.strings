@@ -1001,3 +1001,27 @@
 
 /* Shared interface and decoded record labels. */
 "spending" = "消费";
+
+/* Clipper and Macau Pass */
+"Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22." = "澳门通解码改编自 TU-Reader（MIT），版权所有 2026 HaoTian22。";
+"TU-Reader source and licence" = "TU-Reader 源代码与许可证";
+"Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later)." = "Clipper 解码改编自 FareBot 和 Metrodroid（GPL-3.0 或更新版本）。";
+"FareBot source and licence" = "FareBot 源代码与许可证";
+"Clipper station data attributions" = "Clipper 车站数据署名";
+"End of line" = "线路终点";
+"Zone %d" = "区域 %d";
+"Clipper Read Status" = "Clipper 读取状态";
+"Ticket Type" = "票种";
+"Product" = "产品";
+"Agency" = "运营商";
+"Trips Remaining" = "剩余次数";
+"Transfer Expiry" = "换乘有效期";
+"Clipper Ticket Pages 0-15" = "Clipper 票卡页面 0-15";
+"Application Version" = "应用版本";
+"Macau Pass Read Status" = "澳门通读取状态";
+"Macau Pass Application" = "澳门通应用";
+"Macau Pass Information (SFI 15)" = "澳门通信息（SFI 15）";
+"Macau Pass Unrecognized History Record" = "澳门通无法识别的历史记录";
+"Application Serial" = "应用序列号";
+"Issuer" = "发行方";
+"Route 0x%X" = "线路 0x%X";

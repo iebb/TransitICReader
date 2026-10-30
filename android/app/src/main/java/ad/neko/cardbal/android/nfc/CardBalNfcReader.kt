@@ -6,12 +6,17 @@ import android.nfc.Tag
 import androidx.lifecycle.ViewModel
 import ad.neko.cardbal.android.data.TransitCardSnapshot
 import ad.neko.cardbal.android.data.TransitApplication
+import ad.neko.cardbal.android.data.ClipperTransitCatalog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Clock
 
 class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
-    private val decoders: List<TransitCardDecoder> = listOf(CEPASDecoder(), StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder())
+    private var clipperLookup: ClipperLookup = ClipperLookup.Numeric
+    private val decoders: List<TransitCardDecoder> get() = listOf(
+        CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
+        StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder(),
+    )
     private val _latestSnapshot = MutableStateFlow<TransitCardSnapshot?>(null)
     private val _status = MutableStateFlow("Ready to scan.")
     private val _isScanning = MutableStateFlow(false)
@@ -22,6 +27,7 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     val isScanning: StateFlow<Boolean> = _isScanning
 
     fun start(activity: Activity) {
+        clipperLookup = ClipperTransitCatalog.get(activity)
         val adapter = NfcAdapter.getDefaultAdapter(activity)
         if (adapter == null || !adapter.isEnabled) {
             _status.value = "NFC is not available."
@@ -59,7 +65,8 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
         for(decoder in decoders) {
             if(results.isNotEmpty()) {
                 val mainland=results.any { s -> s.applications.orEmpty().any { it.isTUnion || it.isCityUnion } }
-                if(!mainland || decoder !is JapaneseICDecoder) continue
+                val macau=results.any { s -> s.applications.orEmpty().any { it.isMacauPass } }
+                if(!mainland || macau || decoder !is JapaneseICDecoder) continue
             }
             if(decoder.canDecode(tag)) runCatching { decoder.decode(tag,scannedAt) }.getOrNull()?.let(results::add)
         }

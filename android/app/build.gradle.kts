@@ -21,12 +21,12 @@ val buildArm64Split = providers.gradleProperty("cardbal.abiSplit")
     .map { it.equals("true", ignoreCase = true) }
     .getOrElse(false)
 
-val appVersionName = providers.gradleProperty("transitic.versionName").orElse("0.1.1").get()
+val appVersionName = providers.gradleProperty("transitic.versionName").orElse("2.5.0").get()
 require(appVersionName.isNotBlank() && appVersionName == appVersionName.trim() &&
     appVersionName.none { it.isISOControl() }) {
     "transitic.versionName must be a nonempty version without surrounding whitespace or control characters"
 }
-val appVersionCodeText = providers.gradleProperty("transitic.versionCode").orElse("4").get()
+val appVersionCodeText = providers.gradleProperty("transitic.versionCode").orElse("5").get()
 val appVersionCode = appVersionCodeText.toIntOrNull()
 require(appVersionCode != null && appVersionCode in 1..2_100_000_000 &&
     appVersionCodeText.matches(Regex("[0-9]+"))) {
@@ -87,6 +87,7 @@ android {
     sourceSets.getByName("main").assets.setSrcDirs(listOf(stationAssetsDirectory))
     sourceSets.getByName("test").resources.srcDir("../../tests/runtime/fixtures")
     sourceSets.getByName("test").resources.srcDir("../../data/development")
+    sourceSets.getByName("test").resources.srcDir("../../data/stations")
 
     lint {
         disable += "NullSafeMutableLiveData"
@@ -145,7 +146,7 @@ val prepareStationAssets by tasks.registering(Exec::class) {
         "--portable-assets", portableStationDirectory.get().asFile.absolutePath)
     doLast {
         val required = setOf("JPStationCodes.csv", "JPBusCodes.csv", "jp_stations.sqlite",
-            "tunion_stations.sqlite", "cardbal_transit.sqlite", "KOTRISTransportModes.json", "manifest.json")
+            "tunion_stations.sqlite", "cardbal_transit.sqlite", "KOTRISTransportModes.json", "ClipperTransit.json", "manifest.json")
         required.forEach { name ->
             check(stationAssetsDirectory.get().file(name).asFile.isFile) {
                 "Shared station build did not produce the required Android asset: $name"

@@ -564,6 +564,19 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                 )
             }
         }
+        item {
+            SettingsSection(title = "Credits") {
+                Text(tr("Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22."),
+                    style = MaterialTheme.typography.bodySmall)
+                SettingsLinkRow("TU-Reader source and licence", "HaoTian22/TU-Reader", "https://github.com/HaoTian22/TU-Reader")
+                Text(tr("Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later)."),
+                    style = MaterialTheme.typography.bodySmall)
+                SettingsLinkRow("FareBot source and licence", "codebutler/farebot", "https://github.com/codebutler/farebot")
+                Text(tr("Clipper station data attributions"), style = MaterialTheme.typography.titleSmall)
+                Text(remember(context) { ad.neko.cardbal.android.data.ClipperTransitCatalog.get(context).notice },
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 

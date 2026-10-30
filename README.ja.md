@@ -102,7 +102,10 @@ Android のビルドは共通のカタログコンパイラーを自動で呼び
 
 ## ライセンス
 
-ソースコードは [BSD 3-Clause License](LICENSE) で公開しています。
+個別のライセンス表記があるファイルを除き、プロジェクト独自のコードは
+[BSD 3-Clause License](LICENSE) で公開しています。Clipper の移植コードと
+上流テストデータには [GPL-3.0 以降](docs/licenses/FareBot-GPL-3.0.txt)、
+Macau Pass の移植コードには [TU-Reader の MIT 表記](docs/licenses/TU-Reader-MIT.txt) が適用されます。
 
 駅・地図・境界データには上記の上流ライセンスが適用され、BSD ライセンスの対象外です。
 同梱の `cardbal_transit.sqlite` と Android の駅データはこれらの出典を改変したもので、

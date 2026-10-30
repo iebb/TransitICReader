@@ -41,10 +41,12 @@ presentation logic.
 | Named Calypso networks | ISO 7816 | ISO 7816 | Network-specific public contracts, counters and travel events. |
 | IruCa / PASPY / SAPICA / OKICA / Ryuto | FeliCa | FeliCa | Balance and their configured record services on both. |
 | CEPAS / NETS FlashPay / stored-value EZ-Link | ISO/MIFARE | ISO-DEP | SGD balance and records; no SimplyGo backend balance. |
-| Opal / HSL / Waltti / older Clipper | DESFire | DESFire | Public purse, journey or ticket files according to the generation. |
+| Opal / HSL / Waltti | DESFire | DESFire | Public purse, journey or ticket files according to the generation. |
+| Clipper | DESFire / Ultralight | DESFire / Ultralight | USD purse, trip/top-up history and mapped stations for the public DESFire format; disposable ticket state and validations. [Format](clipper.md). |
+| Macau Pass / 澳门通 | ISO 7816 / CCID | ISO-DEP | MOP purse, serial, validity and recent transaction records; optional T-Union companion. [Format](macau-pass.md). |
 
 Both platforms try CEPAS before readers that change the implicit application,
-then the appropriate DESFire, Chinese, Calypso, Korean and FeliCa readers.
+then Macau Pass, Clipper and the remaining DESFire, Chinese, Calypso, Korean and FeliCa readers.
 
 ## Snapper+ and KMT
 

@@ -6,6 +6,11 @@ Transit IC-card readers for iPhone and Android. The apps read supported on-card
 balances and records through Core NFC, ISO-DEP, and FeliCa; the available fields
 depend on the card family and phone. No card-writing or top-up feature is included.
 
+Clipper format adaptations from FareBot/Metrodroid are GPL-3.0-or-later; their
+notices and source attribution are recorded in [Clipper decoding](docs/decoding/clipper.md)
+and [the upstream licence](docs/licenses/FareBot-GPL-3.0.txt). Macau Pass adapts
+TU-Reader's MIT-licensed format with its [original notice](docs/licenses/TU-Reader-MIT.txt).
+
 **iPad and macOS (Mac Catalyst) require a compatible external NFC card reader.**
 iPhone supports built-in NFC and external USB CCID readers. ACR122U has been
 verified on Mac with physical Edy, EZLink and 天府通 CPU cards. See [external readers and
@@ -69,6 +74,9 @@ included. See [Android setup](android/README.md).
 - [Manual TestFlight, Play internal and store release workflows](docs/development/releases.md)
 - [Card capabilities on both platforms](docs/research/platform-parity.md)
 - [Card decoding](docs/decoding/cards.md)
+- [Clipper cards and tickets](docs/decoding/clipper.md)
+- [Macau Pass / 澳门通](docs/decoding/macau-pass.md)
+- [FareBot publicly readable card survey](docs/research/farebot-public-card-survey.md)
 - [Additional-card feasibility and platform gaps](docs/research/card-support.md)
 - [Station data and attribution](docs/data/station-assets.md)
 - [Station-report service](services/station-reports/README.md)
@@ -107,7 +115,10 @@ See also [Trip Reader provenance](docs/data/tripreader.md) and
 
 ## License
 
-The source code is available under the [BSD 3-Clause License](LICENSE).
+Original project code is available under the [BSD 3-Clause License](LICENSE),
+except files with their own licence notices. The Clipper adaptations and
+upstream fixture retain [GPL-3.0-or-later](docs/licenses/FareBot-GPL-3.0.txt)
+terms; the Macau Pass adaptations retain [TU-Reader's MIT notice](docs/licenses/TU-Reader-MIT.txt).
 
 Station, map, and boundary data keep the upstream licenses listed above; the BSD
 license does not apply to them. The bundled `cardbal_transit.sqlite` and the

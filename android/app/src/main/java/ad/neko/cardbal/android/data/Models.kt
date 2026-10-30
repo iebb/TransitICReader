@@ -34,6 +34,8 @@ data class SavedCardColor(
         fun defaultFor(family: String): SavedCardColor {
             val f = family.lowercase()
             return when {
+                f == "clipper" || f == "clipper ticket" -> SavedCardColor(0.15, 0.29, 0.53)
+                f == "macau pass" -> SavedCardColor(0.0, 0.48, 0.27)
                 f == "snapper+" || f == "snapper plus" -> SavedCardColor(0.76, 0.08, 0.17)
                 f == "kmt" || f == "kartu multi trip" -> SavedCardColor(0.16, 0.47, 0.31)
                 "suica" in f -> SavedCardColor(0.10, 0.58, 0.12)
@@ -85,7 +87,7 @@ object FlexibleInstantSerializer : KSerializer<Instant> {
 @Serializable
 enum class TransactionCategory {
     topUp, tapOn, tapOff, payment, purchase, adjustment, refund, bus, busOn, busOff,
-    train, trainOn, trainOff, unknown
+    train, trainOn, trainOff, ferry, unknown
 }
 
 @Serializable
@@ -159,7 +161,10 @@ data class TransitCardSnapshot(
     val scannedAt: Instant = Clock.System.now(),
 ) {
     val storageIdentifier: String get() {
-        val primary=applications?.firstOrNull{it.isOctopus} ?: applications?.firstOrNull{it.isTUnion} ?: applications?.firstOrNull()
+        if (cardFamily == "Clipper" && selectedAID == "9011F2" && rawIdentifierValue.isNotEmpty()) {
+            return "DESFire|$rawIdentifierValue"
+        }
+        val primary=applications?.let { TransitApplication.primary(it) }
         if(primary!=null) return "${primary.technology}|${primary.serialNumber?.takeIf{it.isNotBlank()} ?: primary.identifier}"
         val serial=realSerialNumber?.trim()?.takeIf{it.isNotEmpty() && it.any{c->c!='0' && c!=' ' && c!='F' && c!='f'}}
         if(technology=="ISO7816" && serial!=null) {

@@ -96,6 +96,7 @@ def asset_names(target: str) -> list[str]:
         names.extend(ULAANBAATAR_ASSETS)
     if target == "all":
         names.extend(UNIFIED_ASSETS)
+        names.append("ClipperTransit.json")
     return names
 
 
@@ -110,6 +111,7 @@ def platform_asset_names(target: str) -> list[str]:
         names.append("KOTRISTransportModes.json")
     if target == "all":
         names.append("cardbal_transit.sqlite")
+        names.append("ClipperTransit.json")
     return names
 
 
@@ -369,6 +371,8 @@ def main() -> None:
         names.extend(UNIFIED_ASSETS)
         ios_names.extend(UNIFIED_ASSETS)
     seed_portable_assets(names, args.portable_assets, args.ios_resources)
+    if args.target == "all" and not args.copy_only:
+        copy_assets(["ClipperTransit.json"], REPO_ROOT / "data/stations", args.portable_assets)
     if not args.copy_only:
         if args.source == "upstream":
             # A maintenance import must not claim it came from the pinned CSVs.

@@ -248,6 +248,8 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         let brand = ICCardBrand.from(family: cardFamily)
 
         if brand == .ezlink { return "EZLink" }
+        if brand == .clipper { return cardFamily }
+        if brand == .macauPass { return "Macau Pass" }
         if brand == .tianfuTong { return "天府通" }
 
         // For T-Union cards, prefer the specific brand name (e.g. "羊城通") over generic family
@@ -606,6 +608,8 @@ extension SavedCardRecord {
         if f.contains("u-money") || f.contains("umoney") { return SavedCardColor(red: 0.64, green: 0.04, blue: 0.45) } // U-Money Magenta
         if f.contains("t-money") || f.contains("ezl") { return SavedCardColor(red: 0.94, green: 0.5, blue: 0.0) } // Transit Orange
         if f.contains("octopus") { return SavedCardColor(red: 0.92, green: 0.48, blue: 0.1) } // Octopus Amber
+        if f.contains("clipper") { return SavedCardColor(red: 0.15, green: 0.29, blue: 0.53) }
+        if ICCardBrand.from(family: family) == .macauPass { return SavedCardColor(red: 0.0, green: 0.48, blue: 0.27) }
         if f.contains("china") || f.contains("union") { return SavedCardColor(red: 0.75, green: 0.1, blue: 0.12) } // T-Union Red
         return SavedCardColor(red: 0.19, green: 0.38, blue: 0.73) // Default brand color
     }

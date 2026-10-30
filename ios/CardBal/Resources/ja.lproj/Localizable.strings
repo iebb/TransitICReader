@@ -1001,3 +1001,27 @@
 
 /* Shared interface and decoded record labels. */
 "spending" = "利用";
+
+/* Clipper and Macau Pass */
+"Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22." = "Macau Pass のデコードは TU-Reader（MIT）を基にしています。Copyright 2026 HaoTian22。";
+"TU-Reader source and licence" = "TU-Reader のソースとライセンス";
+"Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later)." = "Clipper のデコードは FareBot と Metrodroid（GPL-3.0 以降）を基にしています。";
+"FareBot source and licence" = "FareBot のソースとライセンス";
+"Clipper station data attributions" = "Clipper 駅データの出典";
+"End of line" = "路線の終点";
+"Zone %d" = "ゾーン %d";
+"Clipper Read Status" = "Clipper 読み取り状況";
+"Ticket Type" = "券種";
+"Product" = "商品";
+"Agency" = "事業者";
+"Trips Remaining" = "残り利用回数";
+"Transfer Expiry" = "乗り継ぎ有効期限";
+"Clipper Ticket Pages 0-15" = "Clipper チケットのページ 0-15";
+"Application Version" = "アプリケーションバージョン";
+"Macau Pass Read Status" = "Macau Pass 読み取り状況";
+"Macau Pass Application" = "Macau Pass アプリケーション";
+"Macau Pass Information (SFI 15)" = "Macau Pass 情報（SFI 15）";
+"Macau Pass Unrecognized History Record" = "Macau Pass の未対応履歴レコード";
+"Application Serial" = "アプリケーション製造番号";
+"Issuer" = "発行者";
+"Route 0x%X" = "路線 0x%X";

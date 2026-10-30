@@ -25,7 +25,9 @@ balance, ticket or travel-record support.
 | NETS FlashPay / stored-value EZ-Link | Signed SGD-cent purse, CAN | CEPAS payments, MRT/bus transactions, reloads/refunds |
 | Opal DESFire | Signed AUD-cent purse | Last-event summary only; no fare inferred from that summary |
 | HSL V1/V2 / Waltti DESFire | EUR purse and ticket-product validity | Journey logs, last reload and embedded ticket validations |
-| Older Clipper DESFire | Signed USD-cent purse | Trips and reloads; pending/completed trip halves reconciled |
+| Clipper public DESFire layout | Signed USD-cent purse, serial and optional expiry | Trips and reloads; pending/completed halves reconciled, agency/route/station lookup |
+| Clipper Ultralight tickets | Product, passenger type, validity and remaining rides | Recent validations with station lookup; no cash purse |
+| Macau Pass / 澳门通 ISO-DEP application | MOP purse, serial and validity | Recent PBOC-style purchases/top-ups; optional T-Union companion kept separately |
 | Navigo / OPUS / MOBIB / Rav-Kav | Network-specific contracts, passes and applicable trip/value counters | Public travel events; numeric operator/route/location fields |
 
 The Calypso reader identifies the network from public environment fields and
@@ -60,13 +62,16 @@ Myki, Nol, AT HOP and other identifier-only implementations are not counted.
 MIFARE Classic examples from the GitHub survey, including Classic EasyCard and
 Bip!, have not been advertised as iPhone NFC support. Core NFC does not expose
 Classic sector access; Android additionally needs compatible hardware and the
-appropriate keys. No keys, card-writing commands, personal captures or copied
-GPL implementation code are included.
+appropriate keys. No keys or card-writing commands are included. Clipper
+adaptations and their upstream fixture retain GPL-3.0-or-later notices and the
+original station-data attribution; see [Clipper](../decoding/clipper.md).
 
 ## Evidence and tests
 
 - [CEPAS wire notes](cepas.md)
 - [DESFire application layouts and transport](desfire-stored-value.md)
+- [Clipper formats, tickets, station data and upstream licence](../decoding/clipper.md)
+- [Macau Pass application and read limitations](../decoding/macau-pass.md)
 - [Calypso layouts and primary sources](calypso-public-records.md)
 - Ryuto service `898F` / system `8B5D` and log fields: MIT
   [TRETJapanNFCReader at 03470a5](https://github.com/treastrain/TRETJapanNFCReader/blob/03470a515c0b06d762de39e6d80f9a07ed502cae/Sources/FeliCa/Ryuto/RyutoCardData.swift)

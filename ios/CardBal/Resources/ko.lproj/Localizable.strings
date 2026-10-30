@@ -1002,3 +1002,27 @@
 
 /* Shared interface and decoded record labels. */
 "spending" = "사용";
+
+/* Clipper and Macau Pass */
+"Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22." = "Macau Pass 디코딩은 TU-Reader(MIT)를 바탕으로 합니다. 저작권 2026 HaoTian22.";
+"TU-Reader source and licence" = "TU-Reader 소스 및 라이선스";
+"Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later)." = "Clipper 디코딩은 FareBot 및 Metrodroid(GPL-3.0 이상)를 바탕으로 합니다.";
+"FareBot source and licence" = "FareBot 소스 및 라이선스";
+"Clipper station data attributions" = "Clipper 역 데이터 출처";
+"End of line" = "노선 종점";
+"Zone %d" = "구역 %d";
+"Clipper Read Status" = "Clipper 읽기 상태";
+"Ticket Type" = "승차권 종류";
+"Product" = "상품";
+"Agency" = "운영사";
+"Trips Remaining" = "남은 이용 횟수";
+"Transfer Expiry" = "환승 유효 기한";
+"Clipper Ticket Pages 0-15" = "Clipper 승차권 페이지 0-15";
+"Application Version" = "애플리케이션 버전";
+"Macau Pass Read Status" = "Macau Pass 읽기 상태";
+"Macau Pass Application" = "Macau Pass 애플리케이션";
+"Macau Pass Information (SFI 15)" = "Macau Pass 정보(SFI 15)";
+"Macau Pass Unrecognized History Record" = "Macau Pass 인식할 수 없는 기록";
+"Application Serial" = "애플리케이션 일련번호";
+"Issuer" = "발급사";
+"Route 0x%X" = "노선 0x%X";

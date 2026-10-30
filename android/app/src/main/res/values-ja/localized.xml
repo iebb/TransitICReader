@@ -51,6 +51,7 @@
     <string name="text_38da1505ca837328" formatted="false">"動作"</string>
     <string name="text_c416069b7f61a4a6" formatted="false">"精算"</string>
     <string name="text_9f088dbebd6c3c70" formatted="false">"詳細設定"</string>
+    <string name="text_86f357cfb8c2c100" formatted="false">"事業者"</string>
     <string name="text_5624631ec7a3b5b8" formatted="false">"事業者 %lld"</string>
     <string name="text_a52ace420f2175d0" formatted="false">"すべて"</string>
     <string name="text_c98ee63d931a24c6" formatted="false">"すべてのカード"</string>
@@ -67,6 +68,8 @@
     <string name="text_3907fa7f80722a6f" formatted="false">"外観"</string>
     <string name="text_e7ad522ea327e5ba" formatted="false">"アプリケーション"</string>
     <string name="text_bec17fcd0d76e50d" formatted="false">"アプリケーション AID"</string>
+    <string name="text_bd61c415a3186708" formatted="false">"アプリケーション製造番号"</string>
+    <string name="text_a187c7382f4026c9" formatted="false">"アプリケーションバージョン"</string>
     <string name="text_024dc204d7ba77a8" formatted="false">"エリア"</string>
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"アプリ使用中に有効"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"認証が必要なファイルは読み取れません"</string>
@@ -173,6 +176,10 @@
     <string name="text_ae25d6481fc1741f" formatted="false">"クラシック"</string>
     <string name="text_beba8972e75d3241" formatted="false">"気候同行カード"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"気候同行カード（乗り放題パス）"</string>
+    <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper 読み取り状況"</string>
+    <string name="text_ff014a49de0b17b8" formatted="false">"Clipper チケットのページ 0-15"</string>
+    <string name="text_f4670225e02da0b0" formatted="false">"Clipper のデコードは FareBot と Metrodroid（GPL-3.0 以降）を基にしています。"</string>
+    <string name="text_0428db0c505886b6" formatted="false">"Clipper 駅データの出典"</string>
     <string name="text_7d9eb7acb13e2462" formatted="false">"閉じる"</string>
     <string name="text_1e3b47d868841ea8" formatted="false">"駅コードの修正"</string>
     <string name="text_e4a57491b5de6250" formatted="false">"CardBalに表示されたコード（任意）"</string>
@@ -252,6 +259,7 @@
     <string name="text_a1d2e698b3b406a1" formatted="false">"Edy 履歴は 16 バイトのブロックに種別・連番・圧縮された経過日時・金額・残高を保存します。"</string>
     <string name="text_c7e1e2c581a628e7" formatted="false">"Edy 取引"</string>
     <string name="text_72755d6de33db86f" formatted="false">"暗号化方式"</string>
+    <string name="text_b1465a137408339d" formatted="false">"路線の終点"</string>
     <string name="text_2649e082d9a2ba37" formatted="false">"入場"</string>
     <string name="text_0ff9decbdf045e5a" formatted="false">"入場コード"</string>
     <string name="text_3c26e3d5df93be97" formatted="false">"入場精算"</string>
@@ -282,6 +290,7 @@
     <string name="text_1e93b82b69bbdd1e" formatted="false">"定期券区間境界までの運賃"</string>
     <string name="text_3b4977332ccb8a76" formatted="false">"運賃不明"</string>
     <string name="text_f5768f1bdeb1266d" formatted="false">"運賃不明"</string>
+    <string name="text_2e80c60e87af7f9d" formatted="false">"FareBot のソースとライセンス"</string>
     <string name="text_386bc3a49284e3fb" formatted="false">"FeliCa"</string>
     <string name="text_96376179bf25706e" formatted="false">"FeliCa詳細スキャン"</string>
     <string name="text_3194003bd2b01f52" formatted="false">"FeliCa 改札履歴の形式。サービス `108F`（カード通信時はリトルエンディアン `8F10`）。バイト `0–1`：動作・サブタイプ、`2–3`：駅コード、`4–5`：端末番号、`6–7`：圧縮日付、`8–9`：BCD 時刻、`10–11`：金額、`12–13`：定期券区間境界の運賃、`14–15`：境界駅。"</string>
@@ -350,6 +359,7 @@
     <string name="text_6012aa50b377e287" formatted="false">"無効な DESFire 応答"</string>
     <string name="text_496372bfbc726e11" formatted="false">"発行日"</string>
     <string name="text_5a3e34481390f14e" formatted="false">"発行日の生データ"</string>
+    <string name="text_39e02c46a08382b7" formatted="false">"発行者"</string>
     <string name="text_991ed8b90d565858" formatted="false">"発行者 ID"</string>
     <string name="text_184a55d5723c1b2c" formatted="false">"発行都市"</string>
     <string name="text_647294383b2cbc24" formatted="false">"日本"</string>
@@ -407,6 +417,11 @@
     <string name="text_5875cac9bc1836b2" formatted="false">"ログ種別"</string>
     <string name="text_b6429462bd7ba37c" formatted="false">"MM/DD/YYYY"</string>
     <string name="text_44058dd7d279d035" formatted="false">"MMM d, yyyy"</string>
+    <string name="text_a1018acc62c9e3da" formatted="false">"Macau Pass アプリケーション"</string>
+    <string name="text_8447f2a3a1248d9e" formatted="false">"Macau Pass 情報（SFI 15）"</string>
+    <string name="text_d6bdbbe65ac659a4" formatted="false">"Macau Pass 読み取り状況"</string>
+    <string name="text_2f01dd86456511e6" formatted="false">"Macau Pass の未対応履歴レコード"</string>
+    <string name="text_e2ab0d74b23c5a80" formatted="false">"Macau Pass のデコードは TU-Reader（MIT）を基にしています。Copyright 2026 HaoTian22。"</string>
     <string name="text_6ead8d1d6f1c6445" formatted="false">"磁気券購入"</string>
     <string name="text_b31d6d779f9863c2" formatted="false">"カードデザインを管理"</string>
     <string name="text_b0b9fe24ffa96291" formatted="false">"手動"</string>
@@ -542,6 +557,7 @@
     <string name="text_f6096b0b022c0af9" formatted="false">"処理 %lld"</string>
     <string name="text_cab123ad068a0c41" formatted="false">"処理日付"</string>
     <string name="text_24ba74a663e65699" formatted="false">"処理時刻"</string>
+    <string name="text_fb9ef894175c3274" formatted="false">"商品"</string>
     <string name="text_e7160a0e72ccf3e8" formatted="false">"商品 %@、ゾーン %@"</string>
     <string name="text_9994e57546dfb974" formatted="false">"商品 %lld"</string>
     <string name="text_0123f7e78f101348" formatted="false">"商品 %lld、ゾーン %lld"</string>
@@ -616,6 +632,7 @@
     <string name="text_5864885934940b16" formatted="false">"乗車マップ"</string>
     <string name="text_c3613b1704f54c8b" formatted="false">"回転"</string>
     <string name="text_b3b566413ca802ab" formatted="false">"路線 %@"</string>
+    <string name="text_e6333ac1c8b4c2df" formatted="false">"路線 0x%X"</string>
     <string name="text_2c5b669bcdeb51bf" formatted="false">"経路"</string>
     <string name="text_50a369c7e56b94b6" formatted="false">"琉球バス交通"</string>
     <string name="text_0055bd3734f302ed" formatted="false">"S/N"</string>
@@ -722,6 +739,7 @@
     <string name="text_8f9aabd679bb72c2" formatted="false">"T-Union 対応都市"</string>
     <string name="text_fa1570d532773447" formatted="false">"T-Union の路線接続"</string>
     <string name="text_1b0e610b495d865d" formatted="false">"T-Union の駅"</string>
+    <string name="text_adfe2a088075ae44" formatted="false">"TU-Reader のソースとライセンス"</string>
     <string name="text_78590556d5b7ae9a" formatted="false">"取引種別"</string>
     <string name="text_1503916a2ab2b0fd" formatted="false">"タグ"</string>
     <string name="text_1ca36a90c342fa4f" formatted="false">"写真を撮る"</string>
@@ -757,6 +775,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"チケット"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"改札機"</string>
     <string name="text_a4a454897222f91f" formatted="false">"乗車券の状態"</string>
+    <string name="text_5a918ce6f7f22691" formatted="false">"券種"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"乗車券確認"</string>
     <string name="text_3d131368b43397ff" formatted="false">"チケット"</string>
     <string name="text_33b93476cf597a33" formatted="false">"時刻"</string>
@@ -780,6 +799,7 @@
     <string name="text_3e5136fd4b11c0dd" formatted="false">"取引"</string>
     <string name="text_dde8bef78cbb7206" formatted="false">"乗り換え・振替"</string>
     <string name="text_51f4081f11a8b7dc" formatted="false">"乗り換え精算機"</string>
+    <string name="text_40dc5e8d2bbd2a91" formatted="false">"乗り継ぎ有効期限"</string>
     <string name="text_99da84d9adf64d31" formatted="false">"乗車"</string>
     <string name="text_e255fef680215120" formatted="false">"交通利用履歴"</string>
     <string name="text_a4e4377c1895ca01" formatted="false">"交通アトラス"</string>
@@ -797,6 +817,7 @@
     <string name="text_3ab1df0173d809e8" formatted="false">"乗車イベント"</string>
     <string name="text_b673fbd678a7323e" formatted="false">"乗車状態"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"乗車履歴"</string>
+    <string name="text_36ad6bc8245efca9" formatted="false">"残り利用回数"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"種別"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"開発用サンプルを読み込めません"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"開発用サンプルを読み込めません：%@"</string>
@@ -859,6 +880,7 @@
     <string name="text_2c81c25a819d0715" formatted="false">"訪れた都道府県がここで輝きます"</string>
     <string name="text_fa86d119f5d55862" formatted="false">"ゆいレール"</string>
     <string name="text_7dc5bb225c93d47d" formatted="false">"ゆいレールチャージ"</string>
+    <string name="text_5279cdfd8afab7c7" formatted="false">"ゾーン %d"</string>
     <string name="text_509c517ede79fef0" formatted="false">"拡大"</string>
     <string name="text_0e47f09a748fa132" formatted="false">"拡大"</string>
     <string name="text_bc7b631a689b45ca" formatted="false">"縮小"</string>

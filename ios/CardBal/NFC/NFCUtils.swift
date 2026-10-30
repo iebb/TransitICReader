@@ -3,13 +3,14 @@ import os
 import SwiftUI
 
 public enum ICCardRegion: String, Codable, CaseIterable {
-    case japan, korea, mongolia, hongkong, china, singapore, newZealand, indonesia, europe, other
+    case japan, korea, mongolia, hongkong, macau, china, singapore, usa, newZealand, indonesia, europe, other
     public var currencyCode: String {
         switch self {
         case .japan: return "JPY"
         case .korea: return "KRW"
         case .mongolia: return "MNT"
         case .hongkong: return "HKD"
+        case .macau: return "MOP"
         case .china: return "CNY"
         case .singapore: return "SGD"
         case .newZealand: return "NZD"
@@ -27,6 +28,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
     case ezlink, netsFlashPay
+    case clipper, macauPass
     case tUnion, tianfuTong
     case snapperPlus, kmt
     case other
@@ -37,6 +39,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .umoney: return .mongolia
         case .octopus: return .hongkong
         case .ezlink, .netsFlashPay: return .singapore
+        case .clipper: return .usa
+        case .macauPass: return .macau
         case .tUnion, .tianfuTong: return .china
         case .snapperPlus: return .newZealand
         case .kmt: return .indonesia
@@ -97,6 +101,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         
         if f.hasPrefix("ez-link") || f.hasPrefix("ezlink") || f.hasPrefix("cepas") { return .ezlink }
         if f == "nets flashpay" { return .netsFlashPay }
+        if f == "clipper" || f == "clipper ticket" { return .clipper }
+        if ["macau pass", "macaupass", "macau-pass", "澳门通", "澳門通"].contains(f) { return .macauPass }
         if let directMatch = exactMap[f] { return directMatch }
         if japaneseFeliCaFamilies.contains(f) { return .japaneseFeliCa }
         
@@ -132,7 +138,7 @@ enum WalletCountryVisibility {
             case .japan: return "JP"
             case .korea: return "KR"
             case .mongolia: return "MN"
-            case .hongkong, .china: return "CN"
+            case .hongkong, .macau, .china: return "CN"
             case .singapore: return "SG"
             default: return nil
             }
@@ -186,6 +192,7 @@ enum TransactionCategory: String, Codable {
     case busOn
     case busOff
     case train
+    case ferry
     case trainOn
     case trainOff
     case unknown
@@ -259,6 +266,12 @@ struct TransactionDecoderRegistry {
         // Skip empty/all-zeros block check
         if data.allSatisfy({ $0 == 0x00 }) && !raw.isEmpty { return nil }
 
+        if ICCardBrand.from(family: family) == .clipper {
+            if technology == "MIFARE Ultralight" { return ClipperUltralightDecoder.decodeTransaction(data) }
+            if data.count == 33 {
+                return ClipperDecoder.decodeTransaction(data, context: context.map { Data(hexString: $0) }, index: index)
+            }
+        }
         if AdditionalCardHistory.handles(family) {
             return kind == .transactions ? AdditionalCardHistory.decode(raw: raw, family: family, context: context) : nil
         }
@@ -266,6 +279,10 @@ struct TransactionDecoderRegistry {
         let relatedContextData = relatedContext.compactMap { Data(hexString: $0) }
 
         let brand = ICCardBrand.from(family: family)
+        if brand == .macauPass {
+            return technology == "ISO7816" && kind == .transactions
+                ? MacauPassDecoder.decodeTransaction(data) : nil
+        }
         if brand == .tianfuTong {
             return technology == "ISO7816" && kind == .transactions
                 ? TianfuTongDecoder.decodeRecord(data: data, index: index) : nil
@@ -340,6 +357,7 @@ extension TransitTransaction {
         case .trainOn: return ("tram.fill", .blue)
         case .trainOff: return ("tram", .indigo)
         case .train: return ("tram.fill", .blue)
+        case .ferry: return ("ferry.fill", .blue)
         case .purchase: return ("cart.fill", .orange)
         case .adjustment: return ("hammer.fill", .brown)
         case .refund: return ("arrow.uturn.left.circle.fill", .red)

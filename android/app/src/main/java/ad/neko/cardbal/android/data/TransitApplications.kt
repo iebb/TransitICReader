@@ -25,6 +25,7 @@ data class TransitApplication(
     val isCityUnion get() = selectedAID == "A00000000386980701"
     val isTUnion get() = selectedAID == "A000000632010105"
     val isOctopus get() = technology == "FeliCa" && systemCode == "8008"
+    val isMacauPass get() = selectedAID == "B0C4C3C5CDA8C7AEB0FC"
     companion object {
         fun from(snapshot: TransitCardSnapshot, records: List<TransitApplicationRecord>? = null, city: String? = null) = TransitApplication(
             technology=snapshot.technology,cardFamily=snapshot.cardFamily,identifier=snapshot.rawIdentifierValue,
@@ -67,9 +68,10 @@ data class TransitApplication(
                 rawTransactions=apps.flatMap { it.records.filter { r -> r.kind=="transaction" }.map { r -> r.hex } },
                 rawTransitHistory=apps.flatMap { it.records.filter { r -> r.kind=="transit" }.map { r -> r.hex } }, applications=apps)
         }
-        fun primary(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.firstOrNull { it.isTUnion } ?: apps.firstOrNull()
+        fun primary(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.firstOrNull { it.isMacauPass } ?: apps.firstOrNull { it.isTUnion } ?: apps.firstOrNull()
         fun family(apps: List<TransitApplication>) = if(apps.any{it.isOctopus} && apps.any{it.isTUnion || it.isCityUnion}) "Octopus + ${apps.first{it.isTUnion || it.isCityUnion}.cardFamily}" else primary(apps)?.cardFamily.orEmpty()
         fun balanceSource(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus }
+            ?: apps.firstOrNull { it.isMacauPass }
             ?: apps.filter { it.balanceText != null }.maxWithOrNull(
                 compareBy<TransitApplication> { it.balanceReadAt ?: it.scannedAt }.thenBy { it.isTUnion })
         fun balanceDetail(apps: List<TransitApplication>) = apps.mapNotNull { a -> a.balanceText?.let { "${a.cardFamily}: $it" } }.joinToString("\n")

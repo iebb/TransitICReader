@@ -999,3 +999,27 @@
 
 /* Shared interface and decoded record labels. */
 "spending" = "spending";
+
+/* Clipper and Macau Pass */
+"Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22." = "Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22.";
+"TU-Reader source and licence" = "TU-Reader source and licence";
+"Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later)." = "Clipper decoding is adapted from FareBot and Metrodroid (GPL-3.0-or-later).";
+"FareBot source and licence" = "FareBot source and licence";
+"Clipper station data attributions" = "Clipper station data attributions";
+"End of line" = "End of line";
+"Zone %d" = "Zone %d";
+"Clipper Read Status" = "Clipper Read Status";
+"Ticket Type" = "Ticket Type";
+"Product" = "Product";
+"Agency" = "Agency";
+"Trips Remaining" = "Trips Remaining";
+"Transfer Expiry" = "Transfer Expiry";
+"Clipper Ticket Pages 0-15" = "Clipper Ticket Pages 0-15";
+"Application Version" = "Application Version";
+"Macau Pass Read Status" = "Macau Pass Read Status";
+"Macau Pass Application" = "Macau Pass Application";
+"Macau Pass Information (SFI 15)" = "Macau Pass Information (SFI 15)";
+"Macau Pass Unrecognized History Record" = "Macau Pass Unrecognized History Record";
+"Application Serial" = "Application Serial";
+"Issuer" = "Issuer";
+"Route 0x%X" = "Route 0x%X";

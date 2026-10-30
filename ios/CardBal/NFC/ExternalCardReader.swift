@@ -56,6 +56,8 @@ final class ExternalCardReader {
             // CEPAS uses the implicitly selected application. Probe before any
             // explicit SELECT, which can change the card's application state.
             if let snapshot = try? await CEPASDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            if let snapshot = try? await MacauPassDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            if let snapshot = try? await ClipperDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await StoredValueDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await TianfuTongDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             let aids = [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID,
@@ -73,10 +75,36 @@ final class ExternalCardReader {
                        let snapshot = try? await decoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
                 }
             }
+            if supportsFeliCa, uid.count == 7 {
+                try Task.checkCancellation()
+                let ticket = ACR122UltralightCard(connection: connection, identifier: uid)
+                if let snapshot = try? await ClipperUltralightDecoder.decode(tag: .miFare(ticket), scannedAt: Date()) {
+                    return snapshot
+                }
+            }
         }
         try Task.checkCancellation()
         if !supportsFeliCa && options == [.iso18092] { throw ExternalReaderError.unsupportedReader }
         throw NFCTestError.unsupportedCard
+    }
+}
+
+struct ACR122UltralightCard: MiFareCard {
+    let connection: any CardCommandChannel
+    let identifier: Data
+    var mifareFamily: MiFareFamily { .ultralight }
+
+    func sendMiFareCommand(commandPacket: Data) async throws -> Data {
+        guard commandPacket.count == 2, commandPacket.first == 0x30 else {
+            throw ExternalReaderError.malformedResponse
+        }
+        let response = [UInt8](try await connection.pn532(Data([0xD4, 0x40, 1]) + commandPacket))
+        guard response.count >= 3, response[0] == 0xD5, response[1] == 0x41 else {
+            throw ExternalReaderError.malformedResponse
+        }
+        guard response[2] == 0 else { throw ExternalReaderError.readerStatus(response[2]) }
+        guard response.count == 19 else { throw ExternalReaderError.malformedResponse }
+        return Data(response.dropFirst(3))
     }
 }
 

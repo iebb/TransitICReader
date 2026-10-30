@@ -1027,7 +1027,18 @@ private final class StationGraphDatabase {
         loadKoreanCatalog()
         loadUlaanbaatarCatalog()
         loadSingaporeCatalog()
+        loadClipperCatalog()
         isReady = !stationsByLookupCode.isEmpty
+    }
+
+    private func loadClipperCatalog() {
+        for station in ClipperTransitCatalog.shared.stations where station.hasLocation {
+            let graph = StationGraphStation(hexCode: station.lookupCode, stationCode: station.lookupCode,
+                                            stationName: station.name, latitude: station.latitude,
+                                            longitude: station.longitude, isPseudo: false)
+            stationsByLookupCode[station.lookupCode] = graph
+            stationsByStationCode[station.lookupCode] = graph
+        }
     }
 
     private func loadSingaporeCatalog() {
@@ -1686,6 +1697,17 @@ private struct RideMapBuilder {
     }
 
     private func pointCandidates(for card: SavedCardRecord) -> [RidePointCandidate] {
+        if ICCardBrand.from(family: card.cardFamily) == .clipper {
+            var seen = Set<String>()
+            return (card.transitHistory + card.transactions).compactMap { transaction in
+                guard seen.insert(transaction.stableID).inserted,
+                      (transaction.entryStationCode == nil) != (transaction.exitStationCode == nil),
+                      let code = transaction.entryStationCode ?? transaction.exitStationCode else { return nil }
+                return RidePointCandidate(transaction: transaction, lookupCode: code,
+                    stationName: transaction.entryStation ?? transaction.exitStation, eventRaw: nil,
+                    role: transaction.entryStationCode == nil ? "end" : "start")
+            }
+        }
         guard ICCardBrand.from(family: card.cardFamily).isKorean else { return [] }
         return koreanMapEvents(for: card).map { event in
             RidePointCandidate(

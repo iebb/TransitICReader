@@ -39,6 +39,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     var isCityUnion: Bool { selectedAID == "A00000000386980701" }
     var isTUnion: Bool { selectedAID == "A000000632010105" }
     var isOctopus: Bool { technology == "FeliCa" && systemCode == "8008" }
+    var isMacauPass: Bool { selectedAID == "B0C4C3C5CDA8C7AEB0FC" }
     var label: String { isCityUnion ? "City Union" : isTUnion ? "T-Union" : cardFamily }
     var identityAlias: String { "\(technology)|\(serialNumber?.isEmpty == false ? serialNumber! : identifier)" }
     var identityAliases: Set<String> {
@@ -46,7 +47,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
         if isOctopus, !identifier.isEmpty {
             aliases.insert("FeliCa|\(identifier.uppercased())")
         }
-        if (isCityUnion || isTUnion), !identifier.isEmpty,
+        if (isCityUnion || isTUnion || isMacauPass), !identifier.isEmpty,
            identifier.contains(where: { $0 != "0" && $0 != "F" }) {
             // A stable UID can match a partial read that could not recover the
             // serial. Do not extend this fallback to other ISO card families.
@@ -121,7 +122,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     }
 
     static func primary(in apps: [Self]) -> Self? {
-        apps.first(where: \.isOctopus) ?? apps.first(where: \.isTUnion) ?? apps.first
+        apps.first(where: \.isOctopus) ?? apps.first(where: \.isMacauPass) ?? apps.first(where: \.isTUnion) ?? apps.first
     }
 
     static func family(_ apps: [Self]) -> String {
@@ -138,6 +139,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
             // products expose application readings in their separate details.
             return octopus.balanceText
         }
+        if let macau = apps.first(where: \.isMacauPass) { return macau.balanceText }
         return apps.filter { $0.balanceText != nil }.sorted {
             let lhsDate = $0.balanceReadAt ?? $0.scannedAt
             let rhsDate = $1.balanceReadAt ?? $1.scannedAt

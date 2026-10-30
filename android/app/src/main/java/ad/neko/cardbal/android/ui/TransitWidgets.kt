@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Remove
@@ -776,6 +777,7 @@ private fun DetailTextRow(label: String, value: String) {
 }
 
 private fun categoryIcon(category: TransactionCategory): ImageVector = when (category) {
+    TransactionCategory.ferry -> Icons.Filled.DirectionsBoat
     TransactionCategory.bus, TransactionCategory.busOn, TransactionCategory.busOff -> Icons.Filled.DirectionsBus
     TransactionCategory.train, TransactionCategory.trainOn, TransactionCategory.trainOff, TransactionCategory.tapOn, TransactionCategory.tapOff -> Icons.Filled.Train
     TransactionCategory.topUp, TransactionCategory.refund -> Icons.Filled.Payments
@@ -786,7 +788,7 @@ private fun categoryIcon(category: TransactionCategory): ImageVector = when (cat
 private fun categoryColor(category: TransactionCategory): Color = when (category) {
     TransactionCategory.topUp, TransactionCategory.refund -> Color(0xFF2E7D32)
     TransactionCategory.bus, TransactionCategory.busOn, TransactionCategory.busOff -> Color(0xFF00796B)
-    TransactionCategory.train, TransactionCategory.trainOn, TransactionCategory.trainOff -> Color(0xFF1565C0)
+    TransactionCategory.train, TransactionCategory.trainOn, TransactionCategory.trainOff, TransactionCategory.ferry -> Color(0xFF1565C0)
     TransactionCategory.purchase, TransactionCategory.payment -> Color(0xFF8B3D50)
     else -> Color(0xFF5F6368)
 }
