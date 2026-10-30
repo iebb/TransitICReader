@@ -435,13 +435,11 @@
 "Read Using" = "Read Using";
 "iPhone NFC" = "iPhone NFC";
 "External Reader" = "External Reader";
-"External reader connected" = "External reader connected";
 "Hold the card near the top of your iPhone." = "Hold the card near the top of your iPhone.";
 "Place a card on your selected external reader, then choose Scan." = "Place a card on your selected external reader, then choose Scan.";
 "Countries" = "Countries";
 "Reset atlas view" = "Reset atlas view";
 "Singapore" = "Singapore";
 "%@ — Disconnected" = "%@ — Disconnected";
-"EZLink can be read with an external reader. SimplyGo account balances cannot be read from the card." = "EZLink can be read with an external reader. SimplyGo account balances cannot be read from the card.";
 "Ready to scan." = "Ready to scan.";
 "NFC reading is not available." = "NFC reading is not available.";

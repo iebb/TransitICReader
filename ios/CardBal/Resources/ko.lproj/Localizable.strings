@@ -482,13 +482,11 @@
 "Read Using" = "읽기 방식";
 "iPhone NFC" = "iPhone NFC";
 "External Reader" = "외부 리더";
-"External reader connected" = "외부 리더 연결됨";
 "Hold the card near the top of your iPhone." = "카드를 iPhone 상단에 가까이 대세요.";
 "Place a card on your selected external reader, then choose Scan." = "선택한 외부 리더에 카드를 놓고 스캔하세요.";
 "Countries" = "국가 및 지역";
 "Reset atlas view" = "지도 보기 재설정";
 "Singapore" = "싱가포르";
 "%@ — Disconnected" = "%@ — 연결 끊김";
-"EZLink can be read with an external reader. SimplyGo account balances cannot be read from the card." = "EZLink는 외부 리더로 읽을 수 있습니다. SimplyGo 계정 잔액은 카드에서 읽을 수 없습니다.";
 "Ready to scan." = "스캔할 준비가 되었습니다.";
 "NFC reading is not available." = "NFC 읽기를 사용할 수 없습니다.";

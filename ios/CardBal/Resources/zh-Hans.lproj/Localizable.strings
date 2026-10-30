@@ -478,13 +478,11 @@
 "Read Using" = "读取方式";
 "iPhone NFC" = "iPhone NFC";
 "External Reader" = "外接读卡器";
-"External reader connected" = "外接读卡器已连接";
 "Hold the card near the top of your iPhone." = "请将卡片靠近 iPhone 顶部。";
 "Place a card on your selected external reader, then choose Scan." = "将卡片放在所选外接读卡器上，然后扫描。";
 "Countries" = "国家和地区";
 "Reset atlas view" = "重置地图视图";
 "Singapore" = "新加坡";
 "%@ — Disconnected" = "%@ — 已断开";
-"EZLink can be read with an external reader. SimplyGo account balances cannot be read from the card." = "可通过外接读卡器读取 EZLink。无法从卡片读取 SimplyGo 账户余额。";
 "Ready to scan." = "准备扫描。";
 "NFC reading is not available." = "NFC 读取不可用。";

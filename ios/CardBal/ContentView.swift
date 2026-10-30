@@ -313,21 +313,15 @@ struct ScanHomeView: View {
                                 }
                             }.disabled(reader.isScanning)
                         }
-                        if reader.isNFCAvailable {
-                            Label("External reader connected", systemImage: "checkmark.circle")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
                     } else {
                         Label("Hold the card near the top of your iPhone.", systemImage: "iphone.radiowaves.left.and.right")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
-                    Text("EZLink can be read with an external reader. SimplyGo account balances cannot be read from the card.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    if reader.isNFCAvailable || reader.isScanning {
+                    if reader.showsScanStatus {
                         Label(reader.statusMessage, systemImage: reader.statusSymbol)
                             .foregroundStyle(reader.statusColor)
                             .font(.footnote)
-                    } else if !reader.usesExternalReader {
+                    } else if !reader.isNFCAvailable && !reader.usesExternalReader {
                         Text("NFC reading is not available.")
                             .foregroundStyle(.secondary).font(.footnote)
                     }

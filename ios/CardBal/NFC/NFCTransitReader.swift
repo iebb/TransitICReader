@@ -108,6 +108,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
 
     func cancelExternalScan() { externalScanTask?.cancel() }
 
+    var showsScanStatus: Bool { isScanning || latestStatusKind == .error }
+
     var statusSymbol: String {
         switch latestStatusKind {
         case .idle: return "dot.radiowaves.left.and.right"
