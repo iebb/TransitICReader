@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import ad.neko.cardbal.android.data.RawRecordExplanation
+import ad.neko.cardbal.android.data.RemoteCardFaces
 import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.StationPoint
 import ad.neko.cardbal.android.data.StationRoute
@@ -1004,7 +1005,10 @@ private fun cardFaceBitmap(context: Context, card: SavedCardRecord): Bitmap? {
     }
     val drawableId = presetDrawableFor(card.faceImageFileName ?: card.cardFamily)
         ?.takeIf { card.finalIsUsingImage || card.faceImageFileName == null }
-    return drawableId?.let { BitmapFactory.decodeResource(context.resources, it) }
+    drawableId?.let { return BitmapFactory.decodeResource(context.resources, it) }
+    // Markers never download; the wallet card fetches published faces.
+    val faces = RemoteCardFaces.get(context)
+    return faces.manifest.value?.faceTokenFor(card)?.let(faces::cachedFace)
 }
 
 private fun drawCenterCropped(canvas: Canvas, source: Bitmap, destination: RectF, paint: Paint) {
