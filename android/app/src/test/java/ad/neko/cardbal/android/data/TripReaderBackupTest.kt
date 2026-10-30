@@ -4,6 +4,7 @@ import ad.neko.cardbal.android.data.TripReaderBackup.CITY_UNION_AID
 import ad.neko.cardbal.android.data.TripReaderBackup.CardRow
 import ad.neko.cardbal.android.data.TripReaderBackup.TransactionRow
 import ad.neko.cardbal.android.data.TripReaderBackup.T_UNION_AID
+import ad.neko.cardbal.android.util.hexToBytes
 import kotlinx.datetime.Instant
 import org.junit.Assert.*
 import org.junit.Test
@@ -70,6 +71,8 @@ class TripReaderBackupTest {
         assertEquals("123456789", apps.getValue(CITY_UNION_AID).serialNumber)
         assertEquals(formatCardMoney(1234, "CNY", 2), apps.getValue(CITY_UNION_AID).balanceText)
         assertEquals(formatCardMoney(-150, "CNY", 2), apps.getValue(T_UNION_AID).balanceText)
+        assertEquals(formatCardMoney(-150, "CNY", 2), dual.balanceText)
+        assertEquals(T_UNION_AID, TransitApplication.balanceSource(apps.values.reversed())?.selectedAID)
         // More than the 30 records a card file holds, newest first.
         val cityRecords = apps.getValue(CITY_UNION_AID).records.filter { it.sfi == 0x18 }
         assertEquals(36, cityRecords.size)
@@ -112,5 +115,15 @@ class TripReaderBackupTest {
         val refreshed = older.mergingImported(imported)
         assertEquals(formatCardMoney(200, "CNY", 2), refreshed.balanceText)
         assertEquals("01020304", refreshed.applications!!.single().identifier)
+    }
+
+    @Test fun malformedBalancesCannotOverflowTheReplayedPurse() {
+        for (balance in listOf(Long.MIN_VALUE, Long.MAX_VALUE, -0x1_0000_0000L, 0x1_0000_0000L)) {
+            val replay = TripReaderBackup.ReplayCard(mapOf(T_UNION_AID to TripReaderBackup.Application(null, balance)))
+            replay.exchange(("00A4040008" + T_UNION_AID).hexToBytes())
+            for (command in listOf("805C000204", "805C010204")) {
+                assertArrayEquals("Invalid balance $balance", "6A82".hexToBytes(), replay.exchange(command.hexToBytes()))
+            }
+        }
     }
 }

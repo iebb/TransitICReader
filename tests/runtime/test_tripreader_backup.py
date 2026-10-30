@@ -214,6 +214,7 @@ func masked(_ value: String?) -> String { value.map { String(repeating: "•", c
         check(apps[cu]?.balanceText?.contains("12.34") == true, "City Union balance: \(apps[cu]?.balanceText ?? "nil")")
         check(apps[tu]?.balanceText?.contains("1.50") == true && apps[tu]?.balanceText?.contains("-") == true,
               "T-Union overdraft was not read as debt: \(apps[tu]?.balanceText ?? "nil")")
+        check(dual.balanceText == apps[tu]?.balanceText, "Equal-time applications must prefer the T-Union balance")
         let ledger = apps[cu]?.records.filter { $0.sfi == 0x18 } ?? []
         check(ledger.count == 36 && ledger.map(\.index) == Array(1...36), "Full City Union history beyond 30 records was not kept")
         check(ledger.first?.hex.hasSuffix("20260128120000") == true, "History is not newest first")
@@ -223,6 +224,16 @@ func masked(_ value: String?) -> String { value.map { String(repeating: "•", c
         check(single.balanceText?.contains("2.00") == true, "Single-application balance: \(single.balanceText ?? "nil")")
         check(single.rawTransactions.count == 5 && single.rawTransitHistory.count == 4, "Single-application history")
         check(single.scannedAt == Date(timeIntervalSince1970: 1_790_000_000), "Backup update time was not used as the reading time")
+
+        // Invalid database integers cannot overflow the four-byte purse or debt response.
+        for balance in [Int.min, Int.max, -0x1_0000_0000, 0x1_0000_0000] {
+            let replay = TripReaderBackup.ReplayCard(applications: [tu: .init(balanceCents: balance)])
+            _ = try await replay.sendCommand(apdu: CardAPDU(data: Data(hexString: "00A4040008" + tu))!)
+            for command in ["805C000204", "805C010204"] {
+                let (payload, sw1, sw2) = try await replay.sendCommand(apdu: CardAPDU(data: Data(hexString: command))!)
+                check(payload.isEmpty && sw1 == 0x6A && sw2 == 0x82, "Invalid balance was replayed: \(balance)")
+            }
+        }
 
         // A newer local reading keeps its balance, UID, title and place; the backup adds history.
         let wallet = Wallet()

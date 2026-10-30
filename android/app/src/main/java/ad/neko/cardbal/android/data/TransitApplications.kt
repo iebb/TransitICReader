@@ -69,7 +69,9 @@ data class TransitApplication(
         }
         fun primary(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.firstOrNull { it.isTUnion } ?: apps.firstOrNull()
         fun family(apps: List<TransitApplication>) = if(apps.any{it.isOctopus} && apps.any{it.isTUnion || it.isCityUnion}) "Octopus + ${apps.first{it.isTUnion || it.isCityUnion}.cardFamily}" else primary(apps)?.cardFamily.orEmpty()
-        fun balanceSource(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.filter { it.balanceText!=null }.maxByOrNull { it.balanceReadAt ?: it.scannedAt }
+        fun balanceSource(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus }
+            ?: apps.filter { it.balanceText != null }.maxWithOrNull(
+                compareBy<TransitApplication> { it.balanceReadAt ?: it.scannedAt }.thenBy { it.isTUnion })
         fun balanceDetail(apps: List<TransitApplication>) = apps.mapNotNull { a -> a.balanceText?.let { "${a.cardFamily}: $it" } }.joinToString("\n")
     }
 }

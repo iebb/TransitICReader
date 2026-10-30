@@ -263,7 +263,8 @@ enum TripReaderBackup {
             case (0x80, 0x5C):
                 // P1 0 is the purse; T-Union reports overdraft debt at P1 1.
                 guard apdu.p2Parameter == 0x02, apdu.expectedResponseLength == 4,
-                      let cents = selected?.balanceCents else { return notFound }
+                      let cents = selected?.balanceCents,
+                      (-Int(UInt32.max)...Int(UInt32.max)).contains(cents) else { return notFound }
                 let isTUnion = selectedAID == TUnionDecoder.applicationAID
                 let value: Int
                 switch apdu.p1Parameter {

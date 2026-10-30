@@ -234,7 +234,8 @@ object TripReaderBackup {
                     val cents = selected?.balanceCents
                     val isTUnion = selectedAid == T_UNION_AID
                     val value = when {
-                        cents == null || p2 != 2 || apdu.size != 5 || apdu[4] != 4.toByte() -> null
+                        cents == null || cents !in -0xffff_ffffL..0xffff_ffffL ||
+                            p2 != 2 || apdu.size != 5 || apdu[4] != 4.toByte() -> null
                         p1 == 0 && (cents >= 0 || isTUnion) -> maxOf(cents, 0)
                         p1 == 1 && isTUnion -> maxOf(-cents, 0)
                         else -> null
