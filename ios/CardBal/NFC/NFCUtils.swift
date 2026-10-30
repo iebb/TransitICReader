@@ -27,7 +27,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
     case ezlink, netsFlashPay
-    case tUnion
+    case tUnion, tianfuTong
     case snapperPlus, kmt
     case other
     public var region: ICCardRegion {
@@ -37,7 +37,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .umoney: return .mongolia
         case .octopus: return .hongkong
         case .ezlink, .netsFlashPay: return .singapore
-        case .tUnion: return .china
+        case .tUnion, .tianfuTong: return .china
         case .snapperPlus: return .newZealand
         case .kmt: return .indonesia
         case .other: return .other
@@ -91,7 +91,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "okica": .okica,
             "snapper+": .snapperPlus, "snapper plus": .snapperPlus,
             "kmt": .kmt, "kartu multi trip": .kmt,
-            "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion
+            "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion,
+            "天府通": .tianfuTong, "tianfu tong": .tianfuTong, "tianfutong": .tianfuTong
         ]
         
         if f.hasPrefix("ez-link") || f.hasPrefix("ezlink") || f.hasPrefix("cepas") { return .ezlink }
@@ -265,6 +266,10 @@ struct TransactionDecoderRegistry {
         let relatedContextData = relatedContext.compactMap { Data(hexString: $0) }
 
         let brand = ICCardBrand.from(family: family)
+        if brand == .tianfuTong {
+            return technology == "ISO7816" && kind == .transactions
+                ? TianfuTongDecoder.decodeRecord(data: data, index: index) : nil
+        }
         // These families have their own layouts. Their records must never be
         // interpreted as Japanese station codes or Korean transaction files.
         if brand == .kmt { return nil }

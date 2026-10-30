@@ -8,7 +8,9 @@ iOS 16 and iPadOS 16.1; ACS lists ACR122U as CCID compliant. Actual iPhone/iPad
 compatibility still depends on the unit, adapter, OS driver and available power;
 a powered hub may be necessary. Those physical configurations remain untested.
 Mac Catalyst with the connected ACR122U has been physically verified with Edy
-and an EZ-Link CEPAS v2 card. Native iPhone CEPAS discovery remains supported
+and an EZ-Link CEPAS v2 card, plus a local 天府通 CPU card. The latter uses its
+own application and cash/top-up files; see the [Trip Reader comparison](../decoding/tianfutong.md).
+Native iPhone CEPAS discovery remains supported
 where Core NFC exposes the implicit application through ISO 7816 or MIFARE.
 SimplyGo backend account balances are outside this local reader.
 

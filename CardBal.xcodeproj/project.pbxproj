@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15000000000000000000001 /* TianfuTongDecoder.swift */; };
 		66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */; };
 		E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */; };
 		F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */; };
@@ -82,6 +83,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B15000000000000000000001 /* TianfuTongDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TianfuTongDecoder.swift; sourceTree = "<group>"; };
 		B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetailFeliCaRead.swift; sourceTree = "<group>"; };
 		BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredValueDecoder.swift; sourceTree = "<group>"; };
 		24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEPASDecoder.swift; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 			children = (
 				BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */,
 				24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */,
+				B15000000000000000000001 /* TianfuTongDecoder.swift */,
 				8C4692202F6F2ACB0071B6C4 /* TransitCardDecoder.swift */,
 				8C46920D2F6F2ACB0071B6C4 /* TUnionDecoder.swift */,
 				8C4692212F6F2ACB0071B6C4 /* KSX6924Decoder.swift */,
@@ -497,6 +500,7 @@
 				66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */,
 				E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */,
 				F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */,
+				B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */,
 				D6B7C69B665549A7918A778B /* StoredValueProtocol.swift in Sources */,
 				228ABCD6943E90BACE595248 /* CalypsoProtocol.swift in Sources */,
 				32E0B4290CEF2EC957062F28 /* CEPASProtocol.swift in Sources */,

@@ -57,6 +57,7 @@ final class ExternalCardReader {
             // explicit SELECT, which can change the card's application state.
             if let snapshot = try? await CEPASDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await StoredValueDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            if let snapshot = try? await TianfuTongDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             let aids = [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID,
                         "D4100000030001", "D4100000140001", "D410000029000001", "D4100000300001", "D4106509900020",
                         "A0000004520001", "A000000291", "A000000404"]

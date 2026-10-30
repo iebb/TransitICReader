@@ -26,6 +26,7 @@ import os
 struct SavedCardRecord { static func rawRecordHasContent(_ raw: String) -> Bool { !raw.isEmpty } }
 enum JapaneseICDecoder { static func decodeTransaction(block: Data, context: [Data], index: Int, family: String, kind: RawHistoryKind, relatedContext: [Data]) -> TransitTransaction? { fatalError("Japan fallback used") } }
 enum CityUnionDecoder { static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("China fallback used") } }
+enum TianfuTongDecoder { static func decodeRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("Tianfu fallback used") } }
 enum TUnionDecoder {
  static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("China fallback used") }
  static func decodePBOC(data: Data, index: Int, resolveTUnionTerminals: Bool) -> TransitTransaction? { fatalError("China fallback used") }
@@ -41,6 +42,10 @@ precondition(ICCardBrand.from(family: "Snapper+") == .snapperPlus)
 precondition(ICCardBrand.from(family: "Kartu Multi Trip") == .kmt)
 precondition(ICCardBrand.snapperPlus.region.currencyCode == "NZD")
 precondition(ICCardBrand.kmt.region.currencyCode == "IDR")
+precondition(ICCardBrand.from(family: "天府通") == .tianfuTong)
+precondition(ICCardBrand.from(family: "Tianfu Tong").region.currencyCode == "CNY")
+precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["天府通"]) == ["CN"])
+precondition(CardDateFormatting.issuerTimeZone(for: .tianfuTong)?.identifier == "Asia/Shanghai")
 precondition(!ICCardBrand.snapperPlus.isKorean && !ICCardBrand.kmt.isJapan)
 precondition(defaultFractionDigits(for: "NZD") == 2 && defaultFractionDigits(for: "IDR") == 0)
 precondition(CardDateFormatting.issuerTimeZone(for: .snapperPlus)?.identifier == "Pacific/Auckland")

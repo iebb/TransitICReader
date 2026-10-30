@@ -2244,7 +2244,9 @@ private struct CityAtlasVisitResolver {
                 )
             }
 
-            if hasChinaTransitApplication {
+            // Local Tianfu Tong terminals do not encode T-Union city IDs.
+            // Owning the card enables China, but its issuer alone is not a visit.
+            if hasChinaTransitApplication && brand != .tianfuTong {
                 addChineseEvidence(
                     from: card,
                     usesTUnionTerminals: !isCityUnion,
