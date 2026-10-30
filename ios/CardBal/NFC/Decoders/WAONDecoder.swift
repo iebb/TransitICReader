@@ -1,13 +1,12 @@
 import Foundation
-import CoreNFC
 
 struct WAONDecoder: TransitCardDecoder {
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .feliCa = tag else { return false }
         return true
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .feliCa(let feliCa) = tag else { throw NFCTestError.unsupportedCard }
         
         // 1. Switch to FE00 system
@@ -91,7 +90,7 @@ struct WAONDecoder: TransitCardDecoder {
         )
     }
 
-    private static func readHistoryRecords(feliCa: NFCFeliCaTag) async -> [String] {
+    private static func readHistoryRecords(feliCa: FeliCaCard) async -> [String] {
         let serviceCode = Data([0x0B, 0x68])
         var records: [String] = []
         for start in stride(from: 0, to: 6, by: 2) {

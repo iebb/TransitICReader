@@ -1,5 +1,4 @@
 import Foundation
-import CoreNFC
 
 public struct FeliCaProfile {
     let displayName: String

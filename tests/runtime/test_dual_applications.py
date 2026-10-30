@@ -38,13 +38,30 @@ class DualApplicationTests(unittest.TestCase):
         storage_id = re.search(r"    var storageIdentifier: String \{.*?^    }", content, re.M | re.S).group()
         reader = (ROOT / "ios/CardBal/NFC/NFCTransitReader.swift").read_text()
         reader = reader[:reader.index("extension NFCTransitReader {\n    private func performEnhancedFeliCaHandshake")]
+        # Exercise the built-in reader state machine independently of UIKit and
+        # the external-reader service. Hardware transports have separate tests.
+        start = reader.index("    @Published private(set) var externalReaderNames")
+        end = reader.index("    var statusSymbol:", start)
+        reader = reader[:start] + '''
+    var isNFCAvailable: Bool { true }
+    func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
+        startInternalScanning(options: options)
+    }
+''' + reader[end:]
+        reader = reader.replace("CEPASDecoder.self, StoredValueDecoder.self, ", "")
         reader = "\n".join(line for line in reader.splitlines()
-                           if not line.startswith("import ") and "logger" not in line)
+                           if not line.startswith("import ") and "logger" not in line
+                           and not line.strip().startswith(("#if", "#endif")))
         reader = reader.replace(", ObservableObject", "").replace("@Published private(set) ", "").replace("private ", "")
         nfc_stubs = (ROOT / "tests/runtime/fixtures/nfc_reader_stubs.swift").read_text()
         adapters = r'''
 import Foundation
 import SQLite3
+typealias CardTag = NFCTag
+typealias CardAPDU = NFCISO7816APDU
+typealias CardResponseAPDU = NFCISO7816ResponseAPDU
+typealias ISO7816Card = NFCISO7816Tag
+extension NFCTag { init?(_ tag: NFCTag) { self = tag } }
 func resourceURL(forResource name: String, withExtension ext: String) -> URL? {
     let root = URL(fileURLWithPath: CommandLine.arguments[1])
     return ["build/stations", "ios/CardBal/Resources"].map { root.appendingPathComponent($0 + "/" + name + "." + ext) }
@@ -374,8 +391,9 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             swift = directory / "test.swift"
             chongqing = (ROOT / "tests/runtime/fixtures/chongqing_history.swift").read_text()
             swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing)
+            shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test-dual"
-            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             run = subprocess.run([str(binary), str(ROOT)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

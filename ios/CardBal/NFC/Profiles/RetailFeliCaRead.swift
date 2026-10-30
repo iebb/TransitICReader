@@ -1,16 +1,15 @@
 import Foundation
-import CoreNFC
 
 /// Shared read guards for the FE00 stored-value services. Metadata services are
 /// optional; callers decide which single service establishes their balance.
 enum RetailFeliCaRead {
-    static func select(_ tag: NFCFeliCaTag) async -> Bool {
+    static func select(_ tag: FeliCaCard) async -> Bool {
         let system = Data([0xFE, 0x00])
         guard let response = try? await tag.polling(systemCode: system, requestCode: .systemCode, timeSlot: .max1) else { return false }
         return response.1 == system
     }
 
-    static func block(_ tag: NFCFeliCaTag, service: Data, index: UInt8 = 0) async -> Data? {
+    static func block(_ tag: FeliCaCard, service: Data, index: UInt8 = 0) async -> Data? {
         guard let response = try? await tag.readWithoutEncryption(
             serviceCodeList: [service], blockList: [Data([0x80, index])]
         ), response.0 == 0, response.1 == 0, response.2.count == 1,

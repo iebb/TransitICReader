@@ -1,5 +1,4 @@
 import Foundation
-import CoreNFC
 import os
 
 struct NAMANEDecoder {

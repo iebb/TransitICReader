@@ -168,7 +168,7 @@ static func main() async throws {
             "ios/CardBal/NFC/Decoders/NanacoDecoder.swift",
             "ios/CardBal/NFC/Decoders/WAONDecoder.swift",
         ]
-        production = "\n".join((ROOT / name).read_text().replace("import CoreNFC", "") for name in files)
+        production = "\n".join((ROOT / name).read_text().replace("import CoreNFC", "").replace("CardTag", "NFCTag").replace("FeliCaCard", "NFCFeliCaTag") for name in files)
         with tempfile.TemporaryDirectory(prefix="cardbal-retail-felica-") as directory:
             path = Path(directory)
             source = path / "main.swift"

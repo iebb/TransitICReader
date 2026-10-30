@@ -1,19 +1,24 @@
+#if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
 import CoreNFC
+#endif
+import UIKit
 import Foundation
 import os
 import SwiftUI
 
 @MainActor
 final class NFCTransitReader: NSObject, ObservableObject {
+    private var latestStatusKind: StatusKind = .idle
     private let logger = Logger(subsystem: "ad.neko.cardbal", category: "NFC")
 
     @Published private(set) var latestSnapshot: TransitCardSnapshot?
-    @Published private(set) var statusMessage = "Ready to scan."
+    @Published private(set) var statusMessage = String(localized: "Ready to scan.")
     @Published private(set) var isScanning = false
 
     var isEnhancedFeliCaDecodingEnabled = false
     var checkIfCardAlreadyEnhanced: ((String) -> Bool)?
 
+    #if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
     private enum ScanPhase { case regular, octopus, mainland }
     private var phase: ScanPhase = .regular
     private var readsCompanionProtocol = false
@@ -21,10 +26,87 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private var restartForCompanion = false
     private var secondSideTimeout: Task<Void, Never>?
     private var isReadingTag = false
-    private var latestStatusKind: StatusKind = .idle
     private var session: NFCTagReaderSession?
 
-    var isNFCAvailable: Bool { NFCTagReaderSession.readingAvailable }
+    #endif
+
+    @Published private(set) var externalReaderNames: [String] = []
+    @Published var selectedExternalReaderName = UserDefaults.standard.string(forKey: "selectedExternalReaderName") {
+        didSet {
+            UserDefaults.standard.set(selectedExternalReaderName, forKey: "selectedExternalReaderName")
+            updateStatus(String(localized: "Ready to scan."), kind: .idle)
+        }
+    }
+    @Published var prefersExternalReader = UserDefaults.standard.bool(forKey: "prefersExternalReader") {
+        didSet {
+            UserDefaults.standard.set(prefersExternalReader, forKey: "prefersExternalReader")
+            updateStatus(String(localized: "Ready to scan."), kind: .idle)
+        }
+    }
+    private let externalReader = ExternalCardReader()
+    private var externalScanTask: Task<Void, Never>?
+
+    override init() {
+        super.init()
+        externalReader.observeReaders { [weak self] names in
+            Task { @MainActor in self?.externalReaderNames = names }
+        }
+    }
+
+    var requiresExternalReader: Bool {
+        #if targetEnvironment(macCatalyst)
+        return true
+        #else
+        return UIDevice.current.userInterfaceIdiom == .pad
+        #endif
+    }
+    var usesExternalReader: Bool { requiresExternalReader || prefersExternalReader }
+    var isNFCAvailable: Bool {
+        if usesExternalReader {
+            return (try? ExternalReaderSelection.choose(preferred: selectedExternalReaderName, available: externalReaderNames)) != nil
+        }
+        #if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
+        return NFCTagReaderSession.readingAvailable
+        #else
+        return false
+        #endif
+    }
+
+    func startScanning(options: CardPollingOption = [.iso18092, .iso14443, .iso15693]) {
+        guard !isScanning else { return }
+        if usesExternalReader {
+            isScanning = true
+            updateStatus(String(localized: "Reading card on external reader…"), kind: .idle)
+            externalScanTask = Task { [weak self] in
+                guard let self else { return }
+                defer { self.isScanning = false; self.externalScanTask = nil }
+                do {
+                    let snapshot = try await self.externalReader.scan(readerName: self.selectedExternalReaderName, options: options)
+                    try Task.checkCancellation()
+                    self.latestSnapshot = snapshot
+                    self.updateStatus(String(localized: "Read successful: ") + snapshot.cardFamily, kind: .success)
+                } catch is CancellationError {
+                    self.updateStatus(String(localized: "Scan cancelled."), kind: .idle)
+                } catch {
+                    let message = (error as? NFCTestError) != nil
+                        ? String(localized: "Could not read any supported transit card data.") : error.localizedDescription
+                    self.updateStatus(message, kind: .error)
+                }
+            }
+            return
+        }
+        #if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
+        var nativeOptions: NFCTagReaderSession.PollingOption = []
+        if options.contains(.iso18092) { nativeOptions.insert(.iso18092) }
+        if options.contains(.iso14443) { nativeOptions.insert(.iso14443) }
+        if options.contains(.iso15693) { nativeOptions.insert(.iso15693) }
+        startInternalScanning(options: nativeOptions)
+        #else
+        updateStatus(ExternalReaderError.noReader.localizedDescription, kind: .error)
+        #endif
+    }
+
+    func cancelExternalScan() { externalScanTask?.cancel() }
 
     var statusSymbol: String {
         switch latestStatusKind {
@@ -42,7 +124,15 @@ final class NFCTransitReader: NSObject, ObservableObject {
         }
     }
 
-    func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
+    private func updateStatus(_ message: String, kind: StatusKind) {
+        statusMessage = message
+        latestStatusKind = kind
+        logger.log("Status: \(message, privacy: .public)")
+    }
+
+
+    #if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
+    private func startInternalScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
         guard !isScanning else { return }
         phase = .regular
         readsCompanionProtocol = options.contains([.iso18092, .iso14443])
@@ -113,11 +203,6 @@ final class NFCTransitReader: NSObject, ObservableObject {
         isScanning = false
     }
 
-    private func updateStatus(_ message: String, kind: StatusKind) {
-        statusMessage = message
-        latestStatusKind = kind
-        logger.log("Status: \(message, privacy: .public)")
-    }
 
     private func finish(with snapshot: TransitCardSnapshot, session: NFCTagReaderSession) {
         guard self.session === session else { return }
@@ -184,8 +269,10 @@ final class NFCTransitReader: NSObject, ObservableObject {
             finish(with: combined, session: session)
         }
     }
+    #endif
 }
 
+#if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
 extension NFCTransitReader: NFCTagReaderSessionDelegate {
     nonisolated func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         logger.log("NFC session active.")
@@ -207,7 +294,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
             self.session = nil
             self.resetScan()
             if (error as NSError).code == 200 {
-                self.updateStatus("Ready to scan.", kind: .idle)
+                self.updateStatus(String(localized: "Ready to scan."), kind: .idle)
             } else {
                 self.updateStatus("Session invalidated: \(error.localizedDescription)", kind: .error)
             }
@@ -235,6 +322,10 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
             self.secondSideTimeout?.cancel()
             do {
                 try await session.connect(to: tag)
+                guard let cardTag = CardTag(tag) else {
+                    self.fail("Could not read any supported transit card data.", session: session)
+                    return
+                }
                 let decoders: [TransitCardDecoder.Type] = phase == .mainland
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [JapaneseICDecoder.self] : [
@@ -243,8 +334,8 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                     ]
                 var snapshot: TransitCardSnapshot?
                 for decoder in decoders {
-                    if await decoder.canDecode(tag: tag) {
-                        snapshot = try? await decoder.decode(tag: tag, scannedAt: Date())
+                    if await decoder.canDecode(tag: cardTag) {
+                        snapshot = try? await decoder.decode(tag: cardTag, scannedAt: Date())
                         if snapshot != nil { break }
                     }
                 }
@@ -314,7 +405,7 @@ extension NFCTransitReader {
         }
 
         let idm = tag.currentIDm.hexString.uppercased()
-        let (_, pmmData) = try await tag.polling(
+        let (pmmData, _) = try await tag.polling(
             systemCode: Data(hexString: "0003"),
             requestCode: .noRequest,
             timeSlot: .max1
@@ -388,3 +479,5 @@ extension NFCFeliCaTag {
         }
     }
 }
+
+#endif

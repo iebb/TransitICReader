@@ -1,16 +1,15 @@
 import Foundation
-import CoreNFC
 import SQLite3
 
 struct ChineseTransitDecoder: TransitCardDecoder {
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         if ["A00000000386980701", TUnionDecoder.applicationAID].contains(iso.initialSelectedAID.uppercased()) { return true }
         if await PBOCApplicationReader.select(iso, aid: "A00000000386980701") != nil { return true }
         return await PBOCApplicationReader.select(iso, aid: TUnionDecoder.applicationAID) != nil
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         var snapshots: [TransitCardSnapshot] = []
         // Both applications belong to this same connected ISO 7816 tag. Each
         // decoder explicitly selects its AID, independently of initialSelectedAID.
@@ -22,28 +21,28 @@ struct ChineseTransitDecoder: TransitCardDecoder {
 }
 
 enum PBOCApplicationReader {
-    static func select(_ iso: NFCISO7816Tag, aid: String) async -> Data? {
+    static func select(_ iso: ISO7816Card, aid: String) async -> Data? {
         await command(iso, cla: 0, ins: 0xA4, p1: 4, p2: 0, data: Data(hexString: aid), length: 256)
     }
 
-    static func command(_ iso: NFCISO7816Tag, cla: UInt8 = 0, ins: UInt8, p1: UInt8, p2: UInt8,
+    static func command(_ iso: ISO7816Card, cla: UInt8 = 0, ins: UInt8, p1: UInt8, p2: UInt8,
                         data: Data = Data(), length: Int) async -> Data? {
-        let apdu = NFCISO7816APDU(instructionClass: cla, instructionCode: ins, p1Parameter: p1,
+        let apdu = CardAPDU(instructionClass: cla, instructionCode: ins, p1Parameter: p1,
                                  p2Parameter: p2, data: data, expectedResponseLength: length)
         guard let response = try? await iso.sendCommand(apdu: apdu) else { return nil }
         if response.1 == 0x90 && response.2 == 0 { return response.0 }
         guard response.1 == 0x6C else { return nil }
-        let retry = NFCISO7816APDU(instructionClass: cla, instructionCode: ins, p1Parameter: p1,
+        let retry = CardAPDU(instructionClass: cla, instructionCode: ins, p1Parameter: p1,
                                   p2Parameter: p2, data: data, expectedResponseLength: response.2 == 0 ? 256 : Int(response.2))
         guard let corrected = try? await iso.sendCommand(apdu: retry), corrected.1 == 0x90, corrected.2 == 0 else { return nil }
         return corrected.0
     }
 
-    static func binary(_ iso: NFCISO7816Tag, sfi: UInt8, length: Int) async -> Data? {
+    static func binary(_ iso: ISO7816Card, sfi: UInt8, length: Int) async -> Data? {
         await command(iso, ins: 0xB0, p1: 0x80 | sfi, p2: 0, length: length)
     }
 
-    static func records(_ iso: NFCISO7816Tag, sfi: Int, length: Int,
+    static func records(_ iso: ISO7816Card, sfi: Int, length: Int,
                         kind: TransitApplicationRecord.Kind, indices: [Int] = Array(1...30)) async -> [TransitApplicationRecord] {
         var result: [TransitApplicationRecord] = []
         for index in indices {
@@ -56,7 +55,7 @@ enum PBOCApplicationReader {
         return result
     }
 
-    static func shanghaiAuxiliary(_ iso: NFCISO7816Tag) async -> [TransitApplicationRecord] {
+    static func shanghaiAuxiliary(_ iso: ISO7816Card) async -> [TransitApplicationRecord] {
         var result = await records(iso, sfi: 0x07, length: 16, kind: .auxiliary)
         result += await records(iso, sfi: 0x11, length: 16, kind: .auxiliary, indices: [1, 2])
         result += await records(iso, sfi: 0x14, length: 16, kind: .auxiliary, indices: [4, 5])
@@ -69,14 +68,14 @@ struct CityUnionDecoder: TransitCardDecoder {
     static let applicationAID = "A00000000386980701"
     private static let shanghaiCityCode = 0x2000
 
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         let selectedAID = iso.initialSelectedAID.uppercased()
         if selectedAID == applicationAID { return true }
         return await selectApplication(iso: iso) != nil
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
         let initialSelectedAID = iso.initialSelectedAID.uppercased()
         guard let selectResponse = await selectApplication(iso: iso) else { throw NFCTestError.unsupportedCard }
@@ -161,10 +160,10 @@ struct CityUnionDecoder: TransitCardDecoder {
         return snapshot
     }
 
-    private static func readBalances(iso: NFCISO7816Tag) async -> [Int: Data] {
+    private static func readBalances(iso: ISO7816Card) async -> [Int: Data] {
         var payloads: [Int: Data] = [:]
         for index in 0...3 {
-            let apdu = NFCISO7816APDU(
+            let apdu = CardAPDU(
                 instructionClass: 0x80,
                 instructionCode: 0x5C,
                 p1Parameter: UInt8(index),
@@ -182,8 +181,8 @@ struct CityUnionDecoder: TransitCardDecoder {
         return payloads
     }
 
-    private static func selectApplication(iso: NFCISO7816Tag) async -> (Data, UInt8, UInt8)? {
-        let selectApdu = NFCISO7816APDU(
+    private static func selectApplication(iso: ISO7816Card) async -> (Data, UInt8, UInt8)? {
+        let selectApdu = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xA4,
             p1Parameter: 0x04,
@@ -266,7 +265,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         )
     }
 
-    private static func readFile15(iso: NFCISO7816Tag) async -> Data? {
+    private static func readFile15(iso: ISO7816Card) async -> Data? {
         if let data = await PBOCApplicationReader.binary(iso, sfi: 0x15, length: 30),
            data.contains(where: { $0 != 0 }) { return data }
         for path in [[0x1001, 0x0015], [0x0015]] {
@@ -277,7 +276,7 @@ struct CityUnionDecoder: TransitCardDecoder {
             }
         }
 
-        let sfiRead = NFCISO7816APDU(
+        let sfiRead = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xB0,
             p1Parameter: 0x80 | 0x15,
@@ -295,10 +294,10 @@ struct CityUnionDecoder: TransitCardDecoder {
         return nil
     }
 
-    private static func selectPath(_ path: [Int], iso: NFCISO7816Tag) async -> Bool {
+    private static func selectPath(_ path: [Int], iso: ISO7816Card) async -> Bool {
         for fileID in path {
             let data = Data([UInt8((fileID >> 8) & 0xFF), UInt8(fileID & 0xFF)])
-            let apdu = NFCISO7816APDU(
+            let apdu = CardAPDU(
                 instructionClass: 0x00,
                 instructionCode: 0xA4,
                 p1Parameter: 0x00,
@@ -315,8 +314,8 @@ struct CityUnionDecoder: TransitCardDecoder {
         return true
     }
 
-    private static func readBinary(iso: NFCISO7816Tag) async -> Data? {
-        let apdu = NFCISO7816APDU(
+    private static func readBinary(iso: ISO7816Card) async -> Data? {
+        let apdu = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xB0,
             p1Parameter: 0x00,
@@ -327,7 +326,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         guard let response = try? await iso.sendCommand(apdu: apdu) else { return nil }
         if response.1 == 0x90, response.2 == 0x00 { return response.0 }
         if response.1 == 0x6C {
-            let retry = NFCISO7816APDU(
+            let retry = CardAPDU(
                 instructionClass: 0x00,
                 instructionCode: 0xB0,
                 p1Parameter: 0x00,
@@ -344,8 +343,8 @@ struct CityUnionDecoder: TransitCardDecoder {
         return nil
     }
 
-    private static func readRecord(iso: NFCISO7816Tag, recordNumber: UInt8, p2: UInt8) async -> Data? {
-        let apdu = NFCISO7816APDU(
+    private static func readRecord(iso: ISO7816Card, recordNumber: UInt8, p2: UInt8) async -> Data? {
+        let apdu = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xB2,
             p1Parameter: recordNumber,
@@ -356,7 +355,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         guard let response = try? await iso.sendCommand(apdu: apdu) else { return nil }
         if response.1 == 0x90, response.2 == 0x00 { return response.0 }
         if response.1 == 0x6C {
-            let retry = NFCISO7816APDU(
+            let retry = CardAPDU(
                 instructionClass: 0x00,
                 instructionCode: 0xB2,
                 p1Parameter: recordNumber,
@@ -458,19 +457,19 @@ struct CityUnionDecoder: TransitCardDecoder {
 
 struct TUnionDecoder: TransitCardDecoder {
     static let applicationAID = "A000000632010105"
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         return await PBOCApplicationReader.select(iso, aid: applicationAID) != nil
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
         let selectedAID = applicationAID
-        let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
+        let selectApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
         guard let initialResponse = try? await iso.sendCommand(apdu: selectApdu),
               initialResponse.1 == 0x90, initialResponse.2 == 0 else { throw NFCTestError.unsupportedCard }
         let applicationAID = selectedAID
-        let initialSelectResponse = NFCISO7816ResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
+        let initialSelectResponse = CardResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
         
         print("[TUnion] Decoding. AID=\(applicationAID), Selected=\(selectedAID)")
         
@@ -482,14 +481,14 @@ struct TUnionDecoder: TransitCardDecoder {
         // P1=0x01, P2=0x02 -> Negative Balance / Debt (8.00)
         
         print("[TUnion] Reading Primary Purse (P1=00, P2=02)...")
-        let apdu00 = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
+        let apdu00 = CardAPDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
         if let resp = try? await iso.sendCommand(apdu: apdu00), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
             balancePayloads[0x02] = resp.0
             print("[TUnion]   Success: \(resp.0.hexString)")
         }
 
         print("[TUnion] Reading Negative Balance (P1=01, P2=02)...")
-        let apdu01 = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x01, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
+        let apdu01 = CardAPDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x01, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
         if let resp = try? await iso.sendCommand(apdu: apdu01), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
             balancePayloads[0x82] = resp.0
             print("[TUnion]   Success: \(resp.0.hexString)")
@@ -637,7 +636,7 @@ struct TUnionDecoder: TransitCardDecoder {
         if let cityCode, issuingCity == nil {
             resultFields.append(ResultField(title: "Issuing City", value: TUnionCityDatabase.lookupCityName(for: cityCode) ?? cityCode))
         }
-        let extended = NFCISO7816APDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 5, p2Parameter: 2, data: Data(), expectedResponseLength: 16)
+        let extended = CardAPDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 5, p2Parameter: 2, data: Data(), expectedResponseLength: 16)
         if let response = try? await iso.sendCommand(apdu: extended), response.1 == 0x90, response.2 == 0, response.0.count == 16 {
             rawSections.append(RawDataSection(title: "Extended Balance", fields: [
                 RawDataField(title: "Command", value: "805C050210"),
@@ -756,8 +755,8 @@ struct TUnionDecoder: TransitCardDecoder {
         )
     }
 
-    private static func readRecord(iso: NFCISO7816Tag, recordNumber: UInt8, p2: UInt8) async -> Data? {
-        let baseAPDU = NFCISO7816APDU(
+    private static func readRecord(iso: ISO7816Card, recordNumber: UInt8, p2: UInt8) async -> Data? {
+        let baseAPDU = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xB2,
             p1Parameter: recordNumber,
@@ -771,7 +770,7 @@ struct TUnionDecoder: TransitCardDecoder {
 
         // Some cards reply with 6Cxx to request a specific Le for READ RECORD.
         if resp.1 == 0x6C {
-            let retryAPDU = NFCISO7816APDU(
+            let retryAPDU = CardAPDU(
                 instructionClass: 0x00,
                 instructionCode: 0xB2,
                 p1Parameter: recordNumber,

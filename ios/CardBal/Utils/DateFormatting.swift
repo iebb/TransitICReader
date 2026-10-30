@@ -27,6 +27,8 @@ struct CardDateFormatting {
             return TimeZone(identifier: "Asia/Ulaanbaatar")
         case .japan:
             return TimeZone(identifier: "Asia/Tokyo")
+        case .singapore:
+            return TimeZone(identifier: "Asia/Singapore")
         case .hongkong:
             return TimeZone(identifier: "Asia/Hong_Kong")
         case .newZealand:

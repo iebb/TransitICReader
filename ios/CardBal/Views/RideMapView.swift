@@ -1026,7 +1026,18 @@ private final class StationGraphDatabase {
         // catalog updates take effect immediately without relying on a cache-version bump.
         loadKoreanCatalog()
         loadUlaanbaatarCatalog()
+        loadSingaporeCatalog()
         isReady = !stationsByLookupCode.isEmpty
+    }
+
+    private func loadSingaporeCatalog() {
+        for (code, station) in SingaporeTransitCatalog.shared.lookupStations {
+            let graph = StationGraphStation(hexCode: "SG:\(code)", stationCode: "SG:\(station.id)",
+                                            stationName: station.displayName, latitude: station.latitude,
+                                            longitude: station.longitude, isPseudo: false)
+            stationsByLookupCode["SG:\(code)"] = graph
+            stationsByStationCode[graph.stationCode] = graph
+        }
     }
 
     func station(forLookupCode rawCode: String?, eventRaw: Int? = nil) -> StationGraphStation? {

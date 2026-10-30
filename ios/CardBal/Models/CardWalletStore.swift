@@ -70,6 +70,10 @@ class CardWalletStore: ObservableObject {
         migrateIfNeeded()
         load()
         applyOKICADefaultToExistingCards()
+        for card in cards where ICCardBrand.from(family: card.cardFamily) == .ezlink
+            && card.faceImageFileName == nil && card.isUsingImage == nil {
+            autoApplyPresetIfMatching(id: card.id)
+        }
         startAutomaticiCloudSync()
     }
 
@@ -350,7 +354,9 @@ class CardWalletStore: ObservableObject {
 
         // Keep the bundled card faces as deterministic defaults for both
         // punctuation variants, then fall back to the general family match.
-        if normalizedFamily.contains("umoney"),
+        if normalizedFamily.contains("ezlink"), let match = allPresets.first(where: { $0.id == "EZLINK" }) {
+            applyPreset(match, to: id)
+        } else if normalizedFamily.contains("umoney"),
            let match = allPresets.first(where: { $0.id == "UMONEY" }) {
             applyPreset(match, to: id)
         } else if normalizedFamily.contains("tmoney"),
@@ -568,6 +574,7 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
             CardPreset(id: "TOICA", name: "TOICA", fileName: "toica"),
             CardPreset(id: "OKICA", name: "OKICA", fileName: "okica"),
+            CardPreset(id: "EZLINK", name: "EZLink", fileName: "ezlink"),
             CardPreset(id: "EDY", name: "Edy", fileName: "edy"),
             CardPreset(id: "WAON", name: "WAON", fileName: "waon"),
             CardPreset(id: "NANACO", name: "nanaco", fileName: "nanaco"),

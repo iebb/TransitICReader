@@ -80,14 +80,49 @@ precondition(wallet.mergeRawRecords(existing: [opal], incoming: [movedOpal], fam
 let opalEvent = TransactionDecoderRegistry.decode(raw: opal, family: "Opal", technology: "DESFire", context: [opal], at: 0)!
 precondition(opalEvent.currencyCode == "AUD" && !opalEvent.amountKnown && opalEvent.balanceAfter == Decimal(string: "-1.25"))
 precondition(opalEvent.issuerTimeZone == "Australia/Sydney")
+
+let catalog = SingaporeTransitCatalog.shared
+precondition(catalog.stations.count == 181)
+precondition(catalog.station(code: "PMN")?.name == "Promenade")
+precondition(catalog.station(code: "NTD")?.id == catalog.station(code: "NEW")?.id)
+precondition(catalog.station(code: "CTH")?.name == "City Hall")
+precondition(catalog.station(code: "CTH")!.latitude > 1.2)
+precondition(catalog.station(code: "QQQ") == nil)
+precondition(catalog.route(userData: "MCSD AV") == nil)
+precondition(WalletCountryVisibility.countryCodes(cardFamilies: []).isEmpty)
+precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["Edy", "EZLink"]) == ["JP", "SG"])
+precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["U-Money"]) == ["MN"])
+precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["Edy"]) == ["JP"])
+precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["NETS FlashPay"]) == ["SG"])
+var sgRecord = Data(repeating: 0, count: 16)
+sgRecord[0] = 0x30; sgRecord[1] = 0xFF; sgRecord[2] = 0xFF; sgRecord[3] = 0x89
+sgRecord.replaceSubrange(8..<16, with: Array("PMN-NTD ".utf8))
+let legacy = sgRecord.hexString
+let sgRaw = CEPASProtocol.encodeHistory(sgRecord)!.hexString
+for family in ["EZLink", "EZ-Link", "EZ-Link (CEPAS)"] {
+    let tx = TransactionDecoderRegistry.decode(raw: sgRaw, family: family, technology: "ISO7816", context: [sgRaw], at: 0)!
+    precondition(tx.entryStation == "Promenade" && tx.exitStation == "Newton")
+    precondition(tx.entryStationCode == "SG:PMN" && tx.exitStationCode == "SG:NTD")
+    precondition(tx.amount == Decimal(string: "-1.19"))
+    precondition(TransactionDecoderRegistry.decode(raw: legacy, family: family, technology: "ISO7816", context: [legacy], at: 0)!.entryStation == "Promenade")
+}
+precondition(AdditionalCardHistory.merge([legacy, sgRaw]).count == 1)
+for kind: UInt8 in [0xF0, 0x05] {
+    sgRecord[0] = kind; sgRecord[1] = 1; sgRecord[2] = 0; sgRecord[3] = 0
+    let raw = CEPASProtocol.encodeHistory(sgRecord)!.hexString
+    let event = TransactionDecoderRegistry.decode(raw: raw, family: "EZLink", technology: "ISO7816", context: [raw], at: 0)!
+    precondition(event.amount == 0 && event.category == .adjustment && event.entryStationCode == nil)
+}
+
 print("PASS new-card production integration")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-additional-") as directory:
             directory = Path(directory)
             program = directory / "main.swift"
             program.write_text(stubs + brands + models + registry + data + digits + "\nclass Wallet {\n" + merge + "\n}\n" + main)
+            shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test"
-            build = subprocess.run(["swiftc", str(program), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), str(ROOT / "ios/CardBal/Utils/DateFormatting.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", str(program), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), str(ROOT / "ios/CardBal/Utils/DateFormatting.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             result = subprocess.run([str(binary)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

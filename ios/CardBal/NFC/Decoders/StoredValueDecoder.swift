@@ -1,9 +1,8 @@
 import Foundation
-import CoreNFC
 
 /// Public-file DESFire reader. No ISO SELECT AID, authentication or card writes.
 struct StoredValueDecoder: TransitCardDecoder {
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         switch tag {
         case .miFare(let card): return card.mifareFamily == .desfire
         case .iso7816: return true
@@ -11,7 +10,7 @@ struct StoredValueDecoder: TransitCardDecoder {
         }
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         let uid: Data
         let exchange: (Data) async throws -> Data
         switch tag {
@@ -23,7 +22,7 @@ struct StoredValueDecoder: TransitCardDecoder {
         case .iso7816(let card):
             uid = card.identifier
             exchange = { request in
-                guard let apdu = NFCISO7816APDU(data: request) else { throw DesfireReadError.malformedResponse }
+                guard let apdu = CardAPDU(data: request) else { throw DesfireReadError.malformedResponse }
                 let reply = try await card.sendCommand(apdu: apdu)
                 return reply.0 + Data([reply.1, reply.2])
             }

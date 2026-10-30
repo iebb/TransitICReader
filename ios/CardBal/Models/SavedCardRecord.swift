@@ -247,6 +247,8 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
 
         let brand = ICCardBrand.from(family: cardFamily)
 
+        if brand == .ezlink { return "EZLink" }
+
         // For T-Union cards, prefer the specific brand name (e.g. "羊城通") over generic family
         if brand == .tUnion {
             if let region, !region.isEmpty, region != "T-Union Cities" { return Self.displayBrandName(region) }

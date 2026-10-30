@@ -1,9 +1,8 @@
 import Foundation
-import CoreNFC
 import os
 
 struct KSX6924Decoder: TransitCardDecoder {
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         let aid = iso.initialSelectedAID.uppercased()
         let can = aid.hasPrefix("A0000000014B4F52") || aid == "A0000004520001" || aid.hasPrefix("D4100000") || aid.hasPrefix("D41065")
@@ -12,19 +11,19 @@ struct KSX6924Decoder: TransitCardDecoder {
         return can
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
         let selectedAID = iso.initialSelectedAID.uppercased()
         
         let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
         logger.error("[KSX6924] Starting decode for AID: \(selectedAID, privacy: .public)")
         
-        let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
+        let selectApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
         logger.error("[KSX6924_APDU] TX Select AID: \(selectedAID, privacy: .public)")
         let initialResponse = try await iso.sendCommand(apdu: selectApdu)
         logger.error("[KSX6924_APDU] RX Select AID: SW=\(String(format: "%02X%02X", initialResponse.1, initialResponse.2)), Data=\(initialResponse.0.hexString)")
         
-        let initialSelectResponse = NFCISO7816ResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
+        let initialSelectResponse = CardResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
         guard initialResponse.1 == 0x90, initialResponse.2 == 0 else { throw NFCTestError.unsupportedCard }
         var applicationFCI = initialResponse.0
         
@@ -32,7 +31,7 @@ struct KSX6924Decoder: TransitCardDecoder {
         let applicationAID = configInfo?.mainApplicationAID ?? selectedAID
         
         if applicationAID != selectedAID {
-            let selectApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: applicationAID), expectedResponseLength: 256)
+            let selectApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: applicationAID), expectedResponseLength: 256)
             logger.error("[KSX6924_APDU] TX Select App AID: \(applicationAID, privacy: .public)")
             let res = try await iso.sendCommand(apdu: selectApdu)
             logger.error("[KSX6924_APDU] RX Select App AID: SW=\(String(format: "%02X%02X", res.1, res.2)), Data=\(res.0.hexString)")
@@ -40,7 +39,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             applicationFCI = res.0
         }
         
-        let balanceApdu = NFCISO7816APDU(instructionClass: 0x90, instructionCode: 0x4C, p1Parameter: 0x00, p2Parameter: 0x00, data: Data(), expectedResponseLength: 4)
+        let balanceApdu = CardAPDU(instructionClass: 0x90, instructionCode: 0x4C, p1Parameter: 0x00, p2Parameter: 0x00, data: Data(), expectedResponseLength: 4)
         logger.error("[KSX6924_APDU] TX Get Balance")
         let balanceResponse = try await iso.sendCommand(apdu: balanceApdu)
         logger.error("[KSX6924_APDU] RX Get Balance: SW=\(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2)), Data=\(balanceResponse.0.hexString)")
@@ -52,7 +51,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             return snapper
         }
         
-        let infoApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x0C, data: Data(), expectedResponseLength: 256)
+        let infoApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x0C, data: Data(), expectedResponseLength: 256)
         logger.error("[KSX6924_APDU] TX Get Info (P1:01, P2:0C)")
         let infoResponse = try? await iso.sendCommand(apdu: infoApdu)
         if let infoRes = infoResponse {
@@ -96,14 +95,14 @@ struct KSX6924Decoder: TransitCardDecoder {
                 
                 for i in 1...20 {
                     let le = 256
-                    let recApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: le)
+                    let recApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: le)
                     logger.error("[KSX6924_APDU] TX Read Record SFI:\(sfi) P2:\(String(format: "%02X", p2)) Rec:\(i)")
                     guard var res = try? await iso.sendCommand(apdu: recApdu) else { break }
                     logger.error("[KSX6924_APDU] RX Read Record: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
                     
                     if res.1 == 0x6C {
                         let newLe = Int(res.2)
-                        let retryApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: newLe)
+                        let retryApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: newLe)
                         guard let resRetry = try? await iso.sendCommand(apdu: retryApdu) else { break }
                         res = resRetry
                     }
@@ -117,7 +116,7 @@ struct KSX6924Decoder: TransitCardDecoder {
                 }
                 
                 if !foundViaRecord && p2 != 0x00 {
-                    let binApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 256)
+                    let binApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 256)
                     logger.error("[KSX6924_APDU] TX Read Binary SFI:\(sfi)")
                     if let res = try? await iso.sendCommand(apdu: binApdu) {
                         logger.error("[KSX6924_APDU] RX Read Binary: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
@@ -225,7 +224,7 @@ struct KSX6924Decoder: TransitCardDecoder {
     }
 
     private static func snapperSnapshot(
-        iso: NFCISO7816Tag, aid: String, fci: Data,
+        iso: ISO7816Card, aid: String, fci: Data,
         balance: (Data, UInt8, UInt8), scannedAt: Date
     ) async -> TransitCardSnapshot? {
         guard aid.uppercased() == SnapperPlusProtocol.applicationAID,
@@ -257,7 +256,7 @@ struct KSX6924Decoder: TransitCardDecoder {
     }
 
     private static func readAllReadableBlocks(
-        from tag: NFCISO7816Tag,
+        from tag: ISO7816Card,
         logger: os.Logger
     ) async -> [RawDataField] {
         var blocks: [RawDataField] = []
@@ -300,9 +299,9 @@ struct KSX6924Decoder: TransitCardDecoder {
     private static func readRecord(
         recordNumber: UInt8,
         p2: UInt8,
-        from tag: NFCISO7816Tag
+        from tag: ISO7816Card
     ) async -> (data: Data, sw1: UInt8, sw2: UInt8)? {
-        let apdu = NFCISO7816APDU(
+        let apdu = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xB2,
             p1Parameter: recordNumber,
@@ -313,7 +312,7 @@ struct KSX6924Decoder: TransitCardDecoder {
         guard var response = try? await tag.sendCommand(apdu: apdu) else { return nil }
         if response.1 == 0x6C {
             let expectedLength = response.2 == 0 ? 256 : Int(response.2)
-            let retry = NFCISO7816APDU(
+            let retry = CardAPDU(
                 instructionClass: 0x00,
                 instructionCode: 0xB2,
                 p1Parameter: recordNumber,
@@ -329,9 +328,9 @@ struct KSX6924Decoder: TransitCardDecoder {
 
     private static func readBinary(
         sfi: UInt8,
-        from tag: NFCISO7816Tag
+        from tag: ISO7816Card
     ) async -> (data: Data, sw1: UInt8, sw2: UInt8)? {
-        let apdu = NFCISO7816APDU(
+        let apdu = CardAPDU(
             instructionClass: 0x00,
             instructionCode: 0xB0,
             p1Parameter: sfi | 0x80,
@@ -342,7 +341,7 @@ struct KSX6924Decoder: TransitCardDecoder {
         guard var response = try? await tag.sendCommand(apdu: apdu) else { return nil }
         if response.1 == 0x6C {
             let expectedLength = response.2 == 0 ? 256 : Int(response.2)
-            let retry = NFCISO7816APDU(
+            let retry = CardAPDU(
                 instructionClass: 0x00,
                 instructionCode: 0xB0,
                 p1Parameter: sfi | 0x80,

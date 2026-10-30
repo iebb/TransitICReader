@@ -73,6 +73,12 @@
 		D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */; };
 		D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */; };
 		E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */; };
+		B13000000000000000000002 /* CardTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000001; };
+		B13000000000000000000004 /* CoreNFCCardTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000003; };
+		B13000000000000000000006 /* ExternalCardReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000005; };
+		B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000001; };
+		B14000000000000000000004 /* SingaporeTransit.json in Resources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000003; };
+		B14000000000000000000006 /* ezlink.png in Resources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000005; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -148,6 +154,12 @@
 		E1CFC46C45DB7BAB5A38F0E8 /* pasmo.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = pasmo.png; path = Presets/pasmo.png; sourceTree = "<group>"; };
 		E2A025C39CE4288213529485 /* kitaca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = kitaca.png; path = Presets/kitaca.png; sourceTree = "<group>"; };
 		EC38266AABB2DF946A942826 /* JPStationCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPStationCodes.csv; sourceTree = "<group>"; };
+		B13000000000000000000001 /* CardTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/CardTransport.swift; sourceTree = "<group>"; };
+		B13000000000000000000003 /* CoreNFCCardTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/CoreNFCCardTransport.swift; sourceTree = "<group>"; };
+		B13000000000000000000005 /* ExternalCardReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/ExternalCardReader.swift; sourceTree = "<group>"; };
+		B14000000000000000000001 /* SingaporeTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers/SingaporeTransitCatalog.swift; sourceTree = "<group>"; };
+		B14000000000000000000003 /* SingaporeTransit.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = data/stations/SingaporeTransit.json; sourceTree = SOURCE_ROOT; };
+		B14000000000000000000005 /* ezlink.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ios/CardBal/Resources/Presets/ezlink.png; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -313,6 +325,12 @@
 				8C4692132F6F2ACB0071B6C4 /* Resources */,
 				8C46922F2F6F2ACB0071B6C4 /* Utils */,
 				A00000000000000000000001 /* CardBalApp.swift */,
+				B13000000000000000000001 /* CardTransport.swift */,
+				B13000000000000000000003 /* CoreNFCCardTransport.swift */,
+				B13000000000000000000005 /* ExternalCardReader.swift */,
+				B14000000000000000000001 /* SingaporeTransitCatalog.swift */,
+				B14000000000000000000003 /* SingaporeTransit.json */,
+				B14000000000000000000005 /* ezlink.png */,
 				A00000000000000000000002 /* ContentView.swift */,
 				A00000000000000000000004 /* Assets.xcassets */,
 				A00000000000000000000005 /* Info.plist */,
@@ -439,6 +457,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B14000000000000000000006 /* ezlink.png in Resources */,
+				B14000000000000000000004 /* SingaporeTransit.json in Resources */,
 				A00000000000000000000015 /* Assets.xcassets/AppIcon.icon in Resources */,
 				A00000000000000000000014 /* Assets.xcassets in Resources */,
 				0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */,
@@ -470,6 +490,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */,
+				B13000000000000000000006 /* ExternalCardReader.swift in Sources */,
+				B13000000000000000000004 /* CoreNFCCardTransport.swift in Sources */,
+				B13000000000000000000002 /* CardTransport.swift in Sources */,
 				66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */,
 				E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */,
 				F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */,
@@ -573,7 +597,11 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+                SUPPORTS_MACCATALYST = YES;
+                SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+                DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
+                "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "ios/CardBal/CardBal-MacCatalyst.entitlements";
 			};
 			name = Debug;
 		};
@@ -609,7 +637,11 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+                SUPPORTS_MACCATALYST = YES;
+                SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+                DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
+                "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "ios/CardBal/CardBal-MacCatalyst.entitlements";
 			};
 			name = Release;
 		};

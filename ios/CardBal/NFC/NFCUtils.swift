@@ -1,10 +1,9 @@
 import Foundation
-import CoreNFC
 import os
 import SwiftUI
 
 public enum ICCardRegion: String, Codable, CaseIterable {
-    case japan, korea, mongolia, hongkong, china, newZealand, indonesia, europe, other
+    case japan, korea, mongolia, hongkong, china, singapore, newZealand, indonesia, europe, other
     public var currencyCode: String {
         switch self {
         case .japan: return "JPY"
@@ -12,6 +11,7 @@ public enum ICCardRegion: String, Codable, CaseIterable {
         case .mongolia: return "MNT"
         case .hongkong: return "HKD"
         case .china: return "CNY"
+        case .singapore: return "SGD"
         case .newZealand: return "NZD"
         case .indonesia: return "IDR"
         default: return "USD"
@@ -26,6 +26,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case japaneseFeliCa
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
+    case ezlink, netsFlashPay
     case tUnion
     case snapperPlus, kmt
     case other
@@ -35,6 +36,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .tmoney, .ezl, .namane, .climateCard, .moiba, .kCash: return .korea
         case .umoney: return .mongolia
         case .octopus: return .hongkong
+        case .ezlink, .netsFlashPay: return .singapore
         case .tUnion: return .china
         case .snapperPlus: return .newZealand
         case .kmt: return .indonesia
@@ -92,6 +94,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion
         ]
         
+        if f.hasPrefix("ez-link") || f.hasPrefix("ezlink") || f.hasPrefix("cepas") { return .ezlink }
+        if f == "nets flashpay" { return .netsFlashPay }
         if let directMatch = exactMap[f] { return directMatch }
         if japaneseFeliCaFamilies.contains(f) { return .japaneseFeliCa }
         
@@ -116,6 +120,22 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         if f.hasSuffix("transit ic") || f.hasSuffix("feli") || f.hasSuffix("japan") { return .suica }
         
         return .other
+    }
+}
+
+/// Availability follows owned card applications, independently of trip history.
+enum WalletCountryVisibility {
+    static func countryCodes(cardFamilies: [String]) -> Set<String> {
+        Set(cardFamilies.compactMap { family in
+            switch ICCardBrand.from(family: family).region {
+            case .japan: return "JP"
+            case .korea: return "KR"
+            case .mongolia: return "MN"
+            case .hongkong, .china: return "CN"
+            case .singapore: return "SG"
+            default: return nil
+            }
+        })
     }
 }
 

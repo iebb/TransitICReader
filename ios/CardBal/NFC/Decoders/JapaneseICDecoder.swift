@@ -1,13 +1,12 @@
 import Foundation
-import CoreNFC
 
 struct JapaneseICDecoder: TransitCardDecoder {
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .feliCa = tag else { return false }
         return true
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .feliCa(let feliCa) = tag else { throw NFCTestError.unsupportedCard }
 
         var primarySnapshot: TransitCardSnapshot?
@@ -39,8 +38,8 @@ struct JapaneseICDecoder: TransitCardDecoder {
         throw NFCTestError.unsupportedCard
     }
     
-    private static func createSnapshot(feliCa: NFCFeliCaTag, profile: FeliCaProfile, parsedBalance: ParsedBalance, scannedAt: Date) async -> TransitCardSnapshot {
-        let feliCaTag = feliCa as NFCFeliCaTag
+    private static func createSnapshot(feliCa: FeliCaCard, profile: FeliCaProfile, parsedBalance: ParsedBalance, scannedAt: Date) async -> TransitCardSnapshot {
+        let feliCaTag = feliCa as FeliCaCard
         let idm = feliCaTag.currentIDm.hexString.uppercased()
         let formattedIDm = formatFeliCaIDm(idm)
         
@@ -130,7 +129,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         return snapshot
     }
 
-    private static func readKMTBlock(feliCa: NFCFeliCaTag, service: Data, index: Int) async -> Data? {
+    private static func readKMTBlock(feliCa: FeliCaCard, service: Data, index: Int) async -> Data? {
         guard let response = try? await feliCa.readWithoutEncryption(
             serviceCodeList: [service], blockList: [Data([0x80, UInt8(index)])]
         ) else { return nil }
@@ -142,7 +141,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
 
     /// Generic reader for a FeliCa service — reads up to 20 blocks, stops at empty.
     private static func readServiceRecords(
-        feliCa: NFCFeliCaTag,
+        feliCa: FeliCaCard,
         serviceCode: Data,
         maxBlocks: Int = 20,
         stopAtEmptyPrefix: Bool = true
@@ -159,7 +158,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         return results
     }
 
-    private static func readOctopusRawTransactions(feliCa: NFCFeliCaTag) async -> [String] {
+    private static func readOctopusRawTransactions(feliCa: FeliCaCard) async -> [String] {
         let serviceCode = Data([0x17, 0x01]) // Service 0117 (Little-Endian)
         var results: [String] = []
         // Octopus history usually starts from block 1. Block 0 is the current balance.

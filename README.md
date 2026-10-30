@@ -6,6 +6,11 @@ Transit IC-card readers for iPhone and Android. The apps read supported on-card
 balances and records through Core NFC, ISO-DEP, and FeliCa; the available fields
 depend on the card family and phone. No card-writing or top-up feature is included.
 
+**iPad and macOS (Mac Catalyst) require a compatible external NFC card reader.**
+iPhone supports built-in NFC and external USB CCID readers. ACR122U has been
+verified on Mac with physical Edy and EZLink cards. See [external readers and
+Singapore maps](docs/development/external-nfc-readers.md).
+
 ## Repository layout
 
 | Directory | Purpose |

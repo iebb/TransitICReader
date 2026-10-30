@@ -285,6 +285,57 @@ struct ScanHomeView: View {
                     }
                 }
 
+                Section("Card Reader") {
+                    if !reader.requiresExternalReader {
+                        Picker("Read Using", selection: $reader.prefersExternalReader) {
+                            Text("iPhone NFC").tag(false)
+                            Text("External Reader").tag(true)
+                        }
+                            .pickerStyle(.segmented)
+                            .disabled(reader.isScanning)
+                    }
+                    if reader.requiresExternalReader {
+                        Label("iPad and macOS require an external NFC card reader.", systemImage: "cable.connector")
+                            .font(.subheadline)
+                    }
+                    if reader.usesExternalReader {
+                        if !reader.isNFCAvailable {
+                            Text("Connect a compatible USB smart-card reader.").foregroundStyle(.secondary)
+                        }
+                        if !reader.externalReaderNames.isEmpty || reader.selectedExternalReaderName != nil {
+                            Picker("Reader", selection: $reader.selectedExternalReaderName) {
+                                Text("Automatic").tag(nil as String?)
+                                if let selected = reader.selectedExternalReaderName, !reader.externalReaderNames.contains(selected) {
+                                    Text("\(selected) — Disconnected").tag(Optional(selected))
+                                }
+                                ForEach(reader.externalReaderNames, id: \.self) { name in
+                                    Text(name).tag(Optional(name))
+                                }
+                            }.disabled(reader.isScanning)
+                        }
+                        if reader.isNFCAvailable {
+                            Label("External reader connected", systemImage: "checkmark.circle")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Label("Hold the card near the top of your iPhone.", systemImage: "iphone.radiowaves.left.and.right")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Text("EZLink can be read with an external reader. SimplyGo account balances cannot be read from the card.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    if reader.isNFCAvailable || reader.isScanning {
+                        Label(reader.statusMessage, systemImage: reader.statusSymbol)
+                            .foregroundStyle(reader.statusColor)
+                            .font(.footnote)
+                    } else if !reader.usesExternalReader {
+                        Text("NFC reading is not available.")
+                            .foregroundStyle(.secondary).font(.footnote)
+                    }
+                    if reader.usesExternalReader && reader.isScanning {
+                        Button("Cancel Scan") { reader.cancelExternalScan() }
+                    }
+                }
+
                 if let snapshot = reader.latestSnapshot {
                     let cardToDisplay = bestDisplayCard(for: snapshot)
                     Section("Card Preview") {
@@ -394,7 +445,7 @@ struct ScanHomeView: View {
                     }
                 } else if !reader.isScanning {
                     Section {
-                        ScanPromptView { reader.startScanning() }
+                        ScanPromptView(isExternal: reader.usesExternalReader, isReady: reader.isNFCAvailable) { reader.startScanning() }
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
                     }
@@ -417,7 +468,11 @@ struct ScanHomeView: View {
                 }
 
                 Section("How to Scan") {
-                    Label("Hold the card flat against the top of your iPhone", systemImage: "iphone.radiowaves.left.and.right")
+                    if reader.usesExternalReader {
+                        Label("Place one card on the external reader, then press Scan.", systemImage: "externaldrive.connected.to.line.below")
+                    } else {
+                        Label("Hold the card flat against the top of your iPhone", systemImage: "iphone.radiowaves.left.and.right")
+                    }
                     Label("Keep it still until the scan finishes", systemImage: "hand.raised.fill")
                     Label("For Apple Wallet cards, turn on Service Mode on the other device", systemImage: "wallet.pass")
                 }.font(.footnote).foregroundStyle(.secondary)
@@ -445,8 +500,10 @@ struct ScanHomeView: View {
                 guard !didAutoStartScan else { return }
                 didAutoStartScan = true
                 guard scanOnLaunch else { return }
+                guard reader.isNFCAvailable else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     guard scanOnLaunch else { return }
+                    guard reader.isNFCAvailable else { return }
                     reader.startScanning()
                 } 
             }
@@ -917,6 +974,11 @@ struct SettingsView: View {
         List {
             Section("Credits") {
                 VStack(alignment: .leading, spacing: 6) {
+                    Text("Singapore station names and locations: LTA Train Station Codes and Chinese Names and TrainStation, accessed 31 October 2026, under the Singapore Open Data Licence v1.0. Country outline: Natural Earth (public domain).")
+                        .font(.footnote)
+                    Link("Singapore station data and licence", destination: URL(string: "https://datamall.lta.gov.sg/content/datamall/en/SingaporeOpenDataLicence.html")!)
+                        .font(.footnote)
+
                     Text("Japan station data is based on Seo-4d696b75/station_database with supplemental matching against station20240426.csv.")
                         .font(.footnote)
                     Link("Open station_database on GitHub", destination: URL(string: "https://github.com/Seo-4d696b75/station_database")!)
@@ -1162,6 +1224,8 @@ private struct RawDataSectionList: View {
 
 /// Empty-state call to action on the Scan tab.
 struct ScanPromptView: View {
+    var isExternal = false
+    var isReady = true
     let startScan: () -> Void
 
     var body: some View {
@@ -1178,7 +1242,7 @@ struct ScanPromptView: View {
             VStack(spacing: 6) {
                 Text("Ready to Read a Card")
                     .font(.title3.weight(.semibold))
-                Text("Hold a supported card to the top of your iPhone to read its balance, history and details.")
+                Text(isExternal ? String(localized: "Place a card on your selected external reader, then choose Scan.") : String(localized: "Hold a supported card to the top of your iPhone to read its balance, history and details."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -1189,6 +1253,7 @@ struct ScanPromptView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
+            .disabled(!isReady)
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
         }
@@ -1213,7 +1278,7 @@ struct ScanToolbarItem: ToolbarContent {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
             }
-            .disabled(reader.isScanning)
+            .disabled(reader.isScanning || !reader.isNFCAvailable)
             .accessibilityLabel(Text("Scan a Card"))
             .contextMenu {
                 Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }

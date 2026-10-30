@@ -1,21 +1,20 @@
 import Foundation
-import CoreNFC
 
 struct CalypsoDecoder: TransitCardDecoder {
-    static func canDecode(tag: NFCTag) async -> Bool {
+    static func canDecode(tag: CardTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         let aid = iso.initialSelectedAID.uppercased()
         if CalypsoCardProfile.matches(aid: aid) || CalypsoProtocol.selectionAIDs.contains(aid) { return true }
         return await CalypsoProtocol.canSelect { command in
-            guard let apdu = NFCISO7816APDU(data: command) else { throw NFCTestError.unsupportedCard }
+            guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
             return try await iso.sendCommand(apdu: apdu)
         }
     }
 
-    static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag,
               let result = await CalypsoProtocol.read(initialAID: iso.initialSelectedAID, exchange: { command in
-                  guard let apdu = NFCISO7816APDU(data: command) else { throw NFCTestError.unsupportedCard }
+                  guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
                   return try await iso.sendCommand(apdu: apdu)
               }), result.hasDecodedData else { throw NFCTestError.unsupportedCard }
         let uid = iso.identifier.hexString

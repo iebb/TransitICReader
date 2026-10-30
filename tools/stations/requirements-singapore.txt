@@ -1,0 +1,4 @@
+# Optional dependencies for explicitly refreshing Singapore LTA source data.
+xlrd>=2.0.1,<3
+pyshp>=2.3,<4
+pyproj>=3.6,<4
