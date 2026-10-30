@@ -113,7 +113,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var isUsingImage: Bool?
     var hideTitleOnImage: Bool?
     var hideSerialNumber: Bool?
-    /// Opt-in blur behind the card text on photo and design faces.
+    /// Blur and shadow behind image-face text, enabled unless explicitly disabled.
     var frostedHeader: Bool?
     var imageFaceEnhancer: ImageFaceEnhancer
     var autoImageTextColors: Bool
@@ -436,7 +436,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var finalIsUsingImage: Bool { isUsingImage ?? (faceImageFileName != nil) }
     var finalHideTitle: Bool { hideTitleOnImage ?? false }
     var finalHideSN: Bool { hideSerialNumber ?? false }
-    var finalFrostedHeader: Bool { frostedHeader ?? false }
+    var finalFrostedHeader: Bool { frostedHeader ?? true }
 
     var displayedSerialNumber: String {
         let raw: String
