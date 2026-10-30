@@ -1223,15 +1223,15 @@ struct ScanPromptView: View {
     let startScan: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             ZStack {
-                Circle().fill(Color.accentColor.opacity(0.12)).frame(width: 112, height: 112)
-                Circle().stroke(Color.accentColor.opacity(0.25), lineWidth: 1).frame(width: 140, height: 140)
+                Circle().fill(Color.accentColor.opacity(0.12)).frame(width: 64, height: 64)
+                Circle().stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
                 Image(systemName: "wave.3.right")
-                    .font(.system(size: 40, weight: .semibold))
+                    .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(Color.accentColor)
             }
-            .frame(height: 144)
+            .frame(width: 80, height: 80)
             .accessibilityHidden(true)
             VStack(spacing: 6) {
                 Text("Ready to Read a Card")
@@ -1252,9 +1252,10 @@ struct ScanPromptView: View {
             .controlSize(.large)
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 28)
-        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .frame(maxWidth: WalletCardLayout.maximumWidth)
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .frame(maxWidth: .infinity)
     }
 }
 
