@@ -331,7 +331,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 let decoders: [TransitCardDecoder.Type] = phase == .mainland
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [JapaneseICDecoder.self] : [
-                        CEPASDecoder.self, StoredValueDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
+                        CEPASDecoder.self, StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
                     ]
                 var snapshot: TransitCardSnapshot?

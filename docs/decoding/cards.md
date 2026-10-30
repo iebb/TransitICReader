@@ -37,6 +37,7 @@ presentation logic.
 | Snapper+ (New Zealand) | ISO 7816 | ISO 7816 | Positively identified KS X 6924 variant; NZD balance and paired transaction/history records. |
 | Kartu Multi Trip / KMT (Indonesia, FeliCa generation) | FeliCa | FeliCa | Whole-IDR balance, optional printable card number, and raw history; history timestamps remain unresolved. |
 | China T-Union | ISO 7816 | ISO 7816 | PBOC transaction records plus travel records on both platforms. |
+| Local 天府通 CPU | ISO 7816 / CCID | Not implemented | CNY cash purse, purchase/top-up history and dated monthly ride allocations; [format review](tianfutong.md). |
 | Named Calypso networks | ISO 7816 | ISO 7816 | Network-specific public contracts, counters and travel events. |
 | IruCa / PASPY / SAPICA / OKICA / Ryuto | FeliCa | FeliCa | Balance and their configured record services on both. |
 | CEPAS / NETS FlashPay / stored-value EZ-Link | ISO/MIFARE | ISO-DEP | SGD balance and records; no SimplyGo backend balance. |

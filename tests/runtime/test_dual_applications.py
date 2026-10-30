@@ -87,11 +87,15 @@ final class NFCISO7816Tag {
     var selectedAIDs: [String] = []
     var files: [String: [Int: [Data]]] = [:]
     var info: [String: Data] = [:]
+    var binaryFiles: [String: [Int: Data]] = [:]
+    var balances: [String: Data] = [:]
+    var commands: [NFCISO7816APDU] = []
     var failBalances = false
     var wrongLengthOnce = false
     var incorrectSuccessStatus = false
     var correctedLength: Int?
     func sendCommand(apdu: NFCISO7816APDU) async throws -> (Data, UInt8, UInt8) {
+        commands.append(apdu)
         if incorrectSuccessStatus { return (Data([1,2,3,4]), 0x90, 0x01) }
         if wrongLengthOnce {
             wrongLengthOnce = false
@@ -106,10 +110,12 @@ final class NFCISO7816Tag {
             return (Data(), 0x90, 0)
         }
         if apdu.instructionCode == 0x5C, !failBalances {
+            if let balance = balances[selected] { return (balance, 0x90, 0) }
             if apdu.p1Parameter == 5 { return (Data(repeating: 0, count: 16), 0x90, 0) }
             return (apdu.p1Parameter == 0 ? Data(hexString: "00000C80") : Data(repeating: 0, count: 4), 0x90, 0)
         }
         if apdu.instructionCode == 0xB0, apdu.p1Parameter == 0x95, let data = info[selected] { return (data, 0x90, 0) }
+        if apdu.instructionCode == 0xB0, let data = binaryFiles[selected]?[Int(apdu.p1Parameter & 0x1F)] { return (data, 0x90, 0) }
         if apdu.instructionCode == 0xB2 {
             let sfi = Int(apdu.p2Parameter >> 3), index = Int(apdu.p1Parameter) - 1
             if let records = files[selected]?[sfi], records.indices.contains(index) { return (records[index], 0x90, 0) }
@@ -118,8 +124,8 @@ final class NFCISO7816Tag {
     }
 }
 enum ICCardBrand {
-    case tUnion, octopus, snapperPlus, other
-    static func from(family: String) -> Self { family.contains("Octopus") ? .octopus : family.contains("Union") ? .tUnion : .other }
+    case tUnion, tianfuTong, octopus, snapperPlus, other
+    static func from(family: String) -> Self { family == "天府通" ? .tianfuTong : family.contains("Octopus") ? .octopus : family.contains("Union") ? .tUnion : .other }
     var region: Region { Region(currencyCode: self == .octopus ? "HKD" : "CNY") }
 }
 struct Region { let currencyCode: String }
@@ -135,6 +141,7 @@ struct TransactionDecoderRegistry {
     static func decode(raw: String, family: String, technology: String, context: [String], at index: Int,
                        kind: RawHistoryKind = .transactions, relatedContext: [String] = []) -> TransitTransaction? {
         let data = Data(hexString: raw)
+        if family == "天府通" { return TianfuTongDecoder.decodeRecord(data: data, index: index) }
         if AdditionalCardHistory.handles(family) { return AdditionalCardHistory.decode(raw: raw, family: family, context: context) }
         if technology == "FeliCa" {
             precondition(family == "Octopus", "Wrong family dispatched to FeliCa history")
@@ -382,6 +389,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         check(!opalHistory[0].amountKnown && opalHistory[0].issuerTimeZone == "Australia/Sydney", "Unavailable Opal fare became free travel or lost issuer timezone")
         let movedOpal = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 3, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
         check(AdditionalCardHistory.merge([opalRaw, movedOpal]).count == 1, "Moving DESFire slot duplicated history")
+        try await testTianfuTong()
         print("PASS: dual applications, strict correlation, currencies, partial rescans, persistence, and APDU selection/status")
     }
 }
@@ -390,7 +398,9 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             directory = Path(temporary)
             swift = directory / "test.swift"
             chongqing = (ROOT / "tests/runtime/fixtures/chongqing_history.swift").read_text()
-            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing)
+            tianfu = (ROOT / "ios/CardBal/NFC/Decoders/TianfuTongDecoder.swift").read_text()
+            tianfu_tests = (ROOT / "tests/runtime/fixtures/tianfutong.swift").read_text()
+            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing + tianfu + tianfu_tests)
             shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test-dual"
             build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)

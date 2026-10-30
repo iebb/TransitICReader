@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15000000000000000000001 /* TianfuTongDecoder.swift */; };
 		66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */; };
 		E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */; };
 		F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */; };
@@ -36,6 +37,7 @@
 		8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */; };
 		E1A7B0C02F7A3D0100A1B2C1 /* TripReaderBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */; };
 		8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */; };
+		C4F0CE0A0000000000000002 /* RemoteCardFaceCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F0CE0A0000000000000001 /* RemoteCardFaceCatalog.swift */; };
 		8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692032F6F2ACB0071B6C4 /* WalletCardView.swift */; };
 		8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692012F6F2ACB0071B6C4 /* SavedCardDetailView.swift */; };
 		8C46920B2F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692002F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift */; };
@@ -83,6 +85,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B15000000000000000000001 /* TianfuTongDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TianfuTongDecoder.swift; sourceTree = "<group>"; };
 		B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetailFeliCaRead.swift; sourceTree = "<group>"; };
 		BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredValueDecoder.swift; sourceTree = "<group>"; };
 		24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEPASDecoder.swift; sourceTree = "<group>"; };
@@ -115,6 +118,7 @@
 		8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardWalletStore.swift; sourceTree = "<group>"; };
 		E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripReaderBackup.swift; sourceTree = "<group>"; };
 		8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCardRecord.swift; sourceTree = "<group>"; };
+		C4F0CE0A0000000000000001 /* RemoteCardFaceCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCardFaceCatalog.swift; sourceTree = "<group>"; };
 		8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCUtils.swift; sourceTree = "<group>"; };
 		B0A1C10E0000000000000001 /* StationReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationReportView.swift; sourceTree = "<group>"; };
 		8C4692002F6F2ACB0071B6C4 /* FeliCaSNScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeliCaSNScannerView.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 				8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */,
 				8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */,
 				E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */,
+				C4F0CE0A0000000000000001 /* RemoteCardFaceCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -279,6 +284,7 @@
 			children = (
 				BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */,
 				24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */,
+				B15000000000000000000001 /* TianfuTongDecoder.swift */,
 				8C4692202F6F2ACB0071B6C4 /* TransitCardDecoder.swift */,
 				8C46920D2F6F2ACB0071B6C4 /* TUnionDecoder.swift */,
 				8C4692212F6F2ACB0071B6C4 /* KSX6924Decoder.swift */,
@@ -500,6 +506,7 @@
 				66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */,
 				E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */,
 				F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */,
+				B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */,
 				D6B7C69B665549A7918A778B /* StoredValueProtocol.swift in Sources */,
 				228ABCD6943E90BACE595248 /* CalypsoProtocol.swift in Sources */,
 				32E0B4290CEF2EC957062F28 /* CEPASProtocol.swift in Sources */,
@@ -511,6 +518,7 @@
 				8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */,
 				E1A7B0C02F7A3D0100A1B2C1 /* TripReaderBackup.swift in Sources */,
 				8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */,
+				C4F0CE0A0000000000000002 /* RemoteCardFaceCatalog.swift in Sources */,
 				8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */,
 				8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */,
 				D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */,

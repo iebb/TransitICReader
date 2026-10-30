@@ -8,7 +8,7 @@ depend on the card family and phone. No card-writing or top-up feature is includ
 
 **iPad and macOS (Mac Catalyst) require a compatible external NFC card reader.**
 iPhone supports built-in NFC and external USB CCID readers. ACR122U has been
-verified on Mac with physical Edy and EZLink cards. See [external readers and
+verified on Mac with physical Edy, EZLink and 天府通 CPU cards. See [external readers and
 Singapore maps](docs/development/external-nfc-readers.md).
 
 ## Repository layout

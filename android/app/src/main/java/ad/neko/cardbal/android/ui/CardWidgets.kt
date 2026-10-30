@@ -50,6 +50,8 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
         importedFaceImageFor(context, card.faceImageFileName)
     }?.takeIf { card.finalIsUsingImage }
     val image = presetDrawableFor(card.faceImageFileName ?: card.cardFamily)?.takeIf { card.finalIsUsingImage || card.faceImageFileName == null }
+    // Published faces fill in cards with no imported photo or bundled preset.
+    val bitmap = importedImage ?: if (image == null) rememberRemoteFace(card) else null
     val color = Color(
         red = card.color.red.toFloat(),
         green = card.color.green.toFloat(),
@@ -71,9 +73,9 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
         elevation = CardDefaults.cardElevation(defaultElevation = if (mode == WalletCardMode.Hero) 2.dp else 0.dp),
     ) {
         Box(Modifier.fillMaxSize()) {
-            if (importedImage != null) {
+            if (bitmap != null) {
                 Image(
-                    bitmap = importedImage,
+                    bitmap = bitmap,
                     contentDescription = null,
                     modifier = Modifier.matchParentSize(),
                     contentScale = ContentScale.Crop,

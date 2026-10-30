@@ -113,7 +113,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var isUsingImage: Bool?
     var hideTitleOnImage: Bool?
     var hideSerialNumber: Bool?
-    /// Opt-in blur behind the card text on photo and design faces.
+    /// Blur and shadow behind image-face text, enabled unless explicitly disabled.
     var frostedHeader: Bool?
     var imageFaceEnhancer: ImageFaceEnhancer
     var autoImageTextColors: Bool
@@ -248,6 +248,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         let brand = ICCardBrand.from(family: cardFamily)
 
         if brand == .ezlink { return "EZLink" }
+        if brand == .tianfuTong { return "天府通" }
 
         // For T-Union cards, prefer the specific brand name (e.g. "羊城通") over generic family
         if brand == .tUnion {
@@ -436,7 +437,7 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
     var finalIsUsingImage: Bool { isUsingImage ?? (faceImageFileName != nil) }
     var finalHideTitle: Bool { hideTitleOnImage ?? false }
     var finalHideSN: Bool { hideSerialNumber ?? false }
-    var finalFrostedHeader: Bool { frostedHeader ?? false }
+    var finalFrostedHeader: Bool { frostedHeader ?? true }
 
     var displayedSerialNumber: String {
         let raw: String

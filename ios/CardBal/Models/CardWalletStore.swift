@@ -45,6 +45,9 @@ class CardWalletStore: ObservableObject {
     private var iCloudChangeObserver: NSObjectProtocol?
     private var isApplyingCloudSync = false
     private var imageCache: [String: UIImage] = [:]
+    private let remoteFaces = RemoteCardFaceCatalog.shared
+    // In-flight or recently failed face downloads; failures retry after five minutes.
+    private var remoteFaceRequests: [String: Date] = [:]
 
     private let iCloudBackupKey = "icloud_card_backup"
     private let iCloudBackupUpdatedAtKey = "icloud_card_backup_updated_at"
@@ -74,6 +77,7 @@ class CardWalletStore: ObservableObject {
             && card.faceImageFileName == nil && card.isUsingImage == nil {
             autoApplyPresetIfMatching(id: card.id)
         }
+        startRemoteFaces()
         startAutomaticiCloudSync()
     }
 
@@ -389,6 +393,12 @@ class CardWalletStore: ObservableObject {
                 }
             }
         }
+
+        // Cards without a bundled face, such as Chinese city cards, use the
+        // published collection. A face the user removed stays removed.
+        if let card = cards.first(where: { $0.id == id }), card.faceImageFileName == nil, card.isUsingImage != false {
+            applyRemoteDefault(to: id)
+        }
     }
 
     func setCustomTitle(_ title: String, for id: String) {
@@ -601,6 +611,99 @@ class CardWalletStore: ObservableObject {
         save()
     }
 
+    func applyRemoteFace(_ token: String, to id: String) {
+        guard RemoteFaceManifest.isToken(token), let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        cards[index].faceImageFileName = token
+        cards[index].isUsingImage = true
+        if let image = loadFaceImage(fileName: token) {
+            applyAutoImageTextColors(to: &cards[index], image: image)
+            applyAutoMarkerColor(to: &cards[index], image: image)
+        } else {
+            // Filled in when the download finishes.
+            cards[index].autoTitleTextColor = nil
+            cards[index].autoBalanceTextColor = nil
+        }
+        save()
+    }
+
+    func remoteFaceEntries(for card: SavedCardRecord) -> (matched: [RemoteFaceManifest.Entry], others: [RemoteFaceManifest.Entry]) {
+        guard let manifest = remoteFaces.manifest else { return ([], []) }
+        let matched = manifest.match(card.remoteFaceMatchInput)
+        let entries = manifest.pickerEntries(matching: matched) { UIImage(named: $0) != nil }
+        return (entries.filter { $0.card.id == matched?.id }, entries.filter { $0.card.id != matched?.id })
+    }
+
+    func remoteFaceTitle(for token: String) -> String? {
+        remoteFaces.manifest?.entry(for: token)?.title()
+    }
+
+    private func applyRemoteDefault(to id: String) {
+        guard let card = cards.first(where: { $0.id == id }),
+              let match = remoteFaces.manifest?.match(card.remoteFaceMatchInput),
+              let design = match.designs.first else { return }
+        if let asset = design.bundledAsset, UIImage(named: asset) != nil,
+           let preset = presets().first(where: { $0.fileName == asset }) {
+            applyPreset(preset, to: id)
+        } else {
+            applyRemoteFace(RemoteFaceManifest.token(cardID: match.id, designID: design.id), to: id)
+        }
+    }
+
+    private func startRemoteFaces() {
+        applyRemoteDefaultsToExistingCards()
+        Task { [weak self] in
+            let stale = await RemoteCardFaceCatalog.shared.refreshIfNeeded()
+            await MainActor.run { self?.remoteFacesDidRefresh(stale: stale ?? []) }
+        }
+    }
+
+    private func remoteFacesDidRefresh(stale: Set<String>) {
+        for token in stale {
+            imageCache.removeValue(forKey: token)
+        }
+        applyRemoteDefaultsToExistingCards()
+        // Restored backups carry tokens whose files are not on this device yet.
+        for token in Set(cards.compactMap(\.faceImageFileName)) where RemoteFaceManifest.isToken(token) {
+            _ = loadFaceImage(fileName: token)
+        }
+        if !stale.isEmpty {
+            objectWillChange.send()
+        }
+    }
+
+    private func applyRemoteDefaultsToExistingCards() {
+        // Same rule as the OKICA upgrade: only untouched defaults.
+        let cardIDs = cards.filter { $0.faceImageFileName == nil && $0.isUsingImage == nil }.map(\.id)
+        for id in cardIDs {
+            applyRemoteDefault(to: id)
+        }
+    }
+
+    private func requestRemoteFace(_ token: String) {
+        if let requestedAt = remoteFaceRequests[token], Date().timeIntervalSince(requestedAt) < 300 { return }
+        remoteFaceRequests[token] = Date()
+        Task { [weak self] in
+            let image = await RemoteCardFaceCatalog.shared.image(for: token)
+            await MainActor.run {
+                guard let self, let image else { return }
+                self.remoteFaceRequests.removeValue(forKey: token)
+                self.imageCache[token] = image
+                var changed = false
+                for index in self.cards.indices
+                where self.cards[index].faceImageFileName == token && self.cards[index].autoTitleTextColor == nil {
+                    self.applyAutoImageTextColors(to: &self.cards[index], image: image)
+                    self.applyAutoMarkerColor(to: &self.cards[index], image: image)
+                    changed = true
+                }
+                if changed {
+                    self.save()
+                } else {
+                    self.objectWillChange.send()
+                }
+            }
+        }
+    }
+
     func isFaceAssetUsed(_ fileName: String) -> Bool {
         cards.contains { $0.faceImageFileName == fileName }
     }
@@ -612,7 +715,21 @@ class CardWalletStore: ObservableObject {
     func loadFaceImage(fileName: String?) -> UIImage? {
         guard let fileName = fileName else { return nil }
         if let cached = imageCache[fileName] { return cached }
-        
+
+        if RemoteFaceManifest.isToken(fileName) {
+            let image = remoteFaces.cachedImage(for: fileName)
+            // The ride map builds off the main thread; only the main thread
+            // touches the cache and starts downloads.
+            if Thread.isMainThread {
+                if let image {
+                    imageCache[fileName] = image
+                } else {
+                    requestRemoteFace(fileName)
+                }
+            }
+            return image
+        }
+
         // Try loading from Assets first (for presets)
         if let assetImage = UIImage(named: fileName) {
             imageCache[fileName] = assetImage
