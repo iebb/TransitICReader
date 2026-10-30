@@ -276,6 +276,9 @@ enum TransitApplicationHistory {
             if ICCardBrand.from(family: app.cardFamily) == .snapperPlus {
                 let records = Dictionary(originalLedger.map { ($0.hex, $0) }, uniquingKeysWith: { first, _ in first })
                 ledger = SnapperPlusProtocol.mergeHistory(originalLedger.map(\.hex)).compactMap { records[$0] }
+            } else if AdditionalCardHistory.handles(app.cardFamily) {
+                let records = Dictionary(originalLedger.map { ($0.hex, $0) }, uniquingKeysWith: { first, _ in first })
+                ledger = AdditionalCardHistory.merge(originalLedger.map(\.hex)).compactMap { records[$0] }
             } else {
                 ledger = originalLedger
             }
@@ -295,7 +298,7 @@ enum TransitApplicationHistory {
                 guard var tx = decoded else { continue }
                 tx.sourceApplicationID = app.id
                 tx.sourceCardFamily = app.cardFamily
-                tx.currencyCode = ICCardBrand.from(family: app.cardFamily).region.currencyCode
+                tx.currencyCode = tx.currencyCode ?? ICCardBrand.from(family: app.cardFamily).region.currencyCode
                 tx.sourceRecordIDs = ["\(app.id)|\(record.identity)"]
                 let item = Item(app: app, record: record, transaction: tx)
                 if record.kind == .transaction { purchases.append(item) } else { trips.append(item) }

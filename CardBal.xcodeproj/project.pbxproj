@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */; };
+		E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */; };
+		F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */; };
+		D6B7C69B665549A7918A778B /* StoredValueProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCF7E4C2068403798A4A14D /* StoredValueProtocol.swift */; };
+		228ABCD6943E90BACE595248 /* CalypsoProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20290B553C701A8BD665B22 /* CalypsoProtocol.swift */; };
+		32E0B4290CEF2EC957062F28 /* CEPASProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CDE4F7D2DC975F09118D5D3 /* CEPASProtocol.swift */; };
+		41B84B8A633DCE7ECC3CF5AD /* AdditionalCardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF6BB41DA21BF325CCD29C /* AdditionalCardHistory.swift */; };
+		6274B1BEA26275340B00EBA2 /* RyutoCardFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228DB146941972BDD5D49908 /* RyutoCardFormat.swift */; };
 		5E445C1A4B0547D1B24A1A00 /* SnapperPlusProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E445C1A4B0547D1B24A1A01 /* SnapperPlusProtocol.swift */; };
 		5E445C1A4B0547D1B24A1A02 /* KMTCardFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E445C1A4B0547D1B24A1A03 /* KMTCardFormat.swift */; };
 		E5A100042F6F2ACB0071B6C4 /* GeohashPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */; };
@@ -68,6 +76,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetailFeliCaRead.swift; sourceTree = "<group>"; };
+		BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredValueDecoder.swift; sourceTree = "<group>"; };
+		24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEPASDecoder.swift; sourceTree = "<group>"; };
+		9BCF7E4C2068403798A4A14D /* StoredValueProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredValueProtocol.swift; sourceTree = "<group>"; };
+		C20290B553C701A8BD665B22 /* CalypsoProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoProtocol.swift; sourceTree = "<group>"; };
+		1CDE4F7D2DC975F09118D5D3 /* CEPASProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEPASProtocol.swift; sourceTree = "<group>"; };
+		28EF6BB41DA21BF325CCD29C /* AdditionalCardHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdditionalCardHistory.swift; sourceTree = "<group>"; };
+		228DB146941972BDD5D49908 /* RyutoCardFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RyutoCardFormat.swift; sourceTree = "<group>"; };
 		5E445C1A4B0547D1B24A1A01 /* SnapperPlusProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapperPlusProtocol.swift; sourceTree = "<group>"; };
 		5E445C1A4B0547D1B24A1A03 /* KMTCardFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KMTCardFormat.swift; sourceTree = "<group>"; };
 		E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GeohashPath.swift; path = Helpers/GeohashPath.swift; sourceTree = "<group>"; };
@@ -183,6 +199,12 @@
 		8C4691FD2F6F2ACB0071B6C4 /* Profiles */ = {
 			isa = PBXGroup;
 			children = (
+				B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */,
+				9BCF7E4C2068403798A4A14D /* StoredValueProtocol.swift */,
+				C20290B553C701A8BD665B22 /* CalypsoProtocol.swift */,
+				1CDE4F7D2DC975F09118D5D3 /* CEPASProtocol.swift */,
+				28EF6BB41DA21BF325CCD29C /* AdditionalCardHistory.swift */,
+				228DB146941972BDD5D49908 /* RyutoCardFormat.swift */,
 				8C46920F2F6F2ACB0071B6C4 /* KSX6924Enums.swift */,
 				D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */,
 				A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */,
@@ -240,6 +262,8 @@
 		8C46921F2F6F2ACB0071B6C4 /* Decoders */ = {
 			isa = PBXGroup;
 			children = (
+				BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */,
+				24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */,
 				8C4692202F6F2ACB0071B6C4 /* TransitCardDecoder.swift */,
 				8C46920D2F6F2ACB0071B6C4 /* TUnionDecoder.swift */,
 				8C4692212F6F2ACB0071B6C4 /* KSX6924Decoder.swift */,
@@ -446,6 +470,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */,
+				E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */,
+				F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */,
+				D6B7C69B665549A7918A778B /* StoredValueProtocol.swift in Sources */,
+				228ABCD6943E90BACE595248 /* CalypsoProtocol.swift in Sources */,
+				32E0B4290CEF2EC957062F28 /* CEPASProtocol.swift in Sources */,
+				41B84B8A633DCE7ECC3CF5AD /* AdditionalCardHistory.swift in Sources */,
+				6274B1BEA26275340B00EBA2 /* RyutoCardFormat.swift in Sources */,
 				E5A100042F6F2ACB0071B6C4 /* GeohashPath.swift in Sources */,
 				A00000000000000000000011 /* CardBalApp.swift in Sources */,
 				8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */,

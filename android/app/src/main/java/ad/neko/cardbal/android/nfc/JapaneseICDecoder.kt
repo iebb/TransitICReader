@@ -31,25 +31,56 @@ class JapaneseICDecoder : TransitCardDecoder {
                 val systemCodes = felica.requestSystemCodes().ifEmpty { listOf(profile.systemCode) }
                 val detected = profile.detectedBrand(systemCodes)
                 val transactions = when (profile) {
-                    FeliCaProfile.JapanTransit -> readService(felica, "0F09", 20)
+                    FeliCaProfile.JapanTransit, FeliCaProfile.IruCa, FeliCaProfile.Paspy, FeliCaProfile.Sapica -> readService(felica, "0F09", 20)
                     FeliCaProfile.Octopus -> readService(felica, "1701", 10, start = 1)
                     FeliCaProfile.Waon -> readPairedServiceRecords(felica, "0B68", 6)
-                    FeliCaProfile.Edy, FeliCaProfile.Nanaco -> readService(felica, profile.historyService ?: profile.balanceService, 20)
+                    FeliCaProfile.Edy -> readService(felica, "0F17", 6)
+                    FeliCaProfile.Nanaco -> readService(felica, "4F56", 5)
+                    FeliCaProfile.Okica -> readService(felica, "8F02", 20)
+                    FeliCaProfile.Ryuto -> readService(felica, "8F89", 20)
                 }
-                val transitHistory = if (profile == FeliCaProfile.JapanTransit) {
+                val transitHistory = if (profile in setOf(FeliCaProfile.JapanTransit, FeliCaProfile.IruCa, FeliCaProfile.Paspy, FeliCaProfile.Sapica)) {
                     readService(felica, "8F10", 20) + readService(felica, "CB10", 20)
+                } else if (profile == FeliCaProfile.Okica) {
+                    readService(felica, "0F05", 3) + readService(felica, "0B06", 2)
                 } else {
                     emptyList()
                 }
-                val extraFields = if (profile == FeliCaProfile.Waon) waonExtraFields(felica) else emptyList()
+                val extraFields = when (profile) {
+                    FeliCaProfile.Waon -> waonExtraFields(felica)
+                    FeliCaProfile.Edy -> buildList {
+                        felica.readWithoutEncryption("0B11", 0)?.let { data ->
+                            JapaneseCardFormats.number(data, 2)?.let { add(ResultField("Edy ID", it)) }
+                            val clock=JapaneseCardFormats.uint(data,10,4)
+                            val seconds=(clock and 0x1ffff).toInt()
+                            if(clock!=0L && seconds<86400) {
+                                val day=java.time.LocalDate.of(2000,1,1).plusDays(clock shr 17)
+                                JapaneseCardFormats.date(day.year,day.monthValue,day.dayOfMonth,seconds/3600,seconds/60%60,seconds%60)?.let { date ->
+                                    val formatted=java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(java.time.ZoneId.of("Asia/Tokyo")).format(java.time.Instant.ofEpochMilli(date.toEpochMilliseconds()))
+                                    add(ResultField("Issue Date","$formatted JST"))
+                                }
+                            }
+                        }
+                    }
+                    FeliCaProfile.Nanaco -> buildList {
+                        JapaneseCardFormats.number(felica.readWithoutEncryption("8B55", 0))?.let { add(ResultField("nanaco Number", it)) }
+                        felica.readWithoutEncryption("0B56", 1)?.takeIf { it.size == 16 }?.let { add(ResultField("Points", "${JapaneseCardFormats.uint(it, 0, 3, true)} pts")) }
+                        felica.readWithoutEncryption("CB55", 0)?.takeIf { it.size == 16 }?.let {
+                            JapaneseCardFormats.packedDate(JapaneseCardFormats.uint(it, 0, 2).toInt())?.let { day -> add(ResultField("Last Use Date", day)) }
+                            JapaneseCardFormats.packedDate(JapaneseCardFormats.uint(it, 4, 2).toInt())?.let { day -> add(ResultField("Issue Date", day)) }
+                        }
+                    }
+                    else -> emptyList()
+                }
 
                 return TransitCardSnapshot(
                     technology = "FeliCa",
                     cardFamily = detected,
-                    identifierLabel = if (profile == FeliCaProfile.Waon) "WAON No." else "IDm",
-                    identifierValue = extraFields.firstOrNull { it.title == "WAON Number" }?.value ?: formatFeliCaId(felica.idmHex),
+                    identifierLabel = when (profile) { FeliCaProfile.Waon -> "WAON No."; FeliCaProfile.Nanaco -> "nanaco No."; FeliCaProfile.Edy -> "Edy ID"; else -> "IDm" },
+                    identifierValue = extraFields.firstOrNull { it.title in setOf("WAON Number", "nanaco Number", "Edy ID") }?.value ?: formatFeliCaId(felica.idmHex),
                     rawIdentifierValue = felica.idmHex,
                     pmm = null,
+                    realSerialNumber = extraFields.firstOrNull { it.title in setOf("WAON Number", "nanaco Number", "Edy ID") }?.value,
                     systemCode = profile.systemCode,
                     balanceText = parsed.balanceText,
                     balanceDetail = parsed.detail,
@@ -121,19 +152,23 @@ class JapaneseICDecoder : TransitCardDecoder {
         val records = mutableListOf<String>()
         for (i in start until start + limit) {
             val block = felica.readWithoutEncryption(service, i) ?: break
-            if (block.size >= 2 && block[0] == 0.toByte() && block[1] == 0.toByte()) break
+            if (block.size != 16) break
+            if (block.all { it == 0.toByte() }) continue
             records.add(block.hexString())
         }
         return records
     }
 
     private fun readPairedServiceRecords(felica: FeliCaTransceiver, service: String, blockLimit: Int): List<String> {
-        val blocks = (0 until blockLimit).mapNotNull { index -> felica.readWithoutEncryption(service, index) }
-        return blocks.chunked(2).mapNotNull { pair ->
-            if (pair.size < 2) return@mapNotNull null
-            val record = pair[0] + pair[1]
-            if (record.all { it == 0.toByte() }) null else record.hexString()
+        val records = mutableListOf<String>()
+        for (index in 0 until blockLimit step 2) {
+            val first = felica.readWithoutEncryption(service, index) ?: break
+            val second = felica.readWithoutEncryption(service, index + 1) ?: break
+            if (first.size != 16 || second.size != 16) break
+            val record = first + second
+            if (record.any { it != 0.toByte() }) records.add(record.hexString())
         }
+        return records
     }
 
     private fun waonExtraFields(felica: FeliCaTransceiver): List<ResultField> {
@@ -166,6 +201,11 @@ private enum class FeliCaProfile(
     val historyService: String? = null,
 ) {
     JapanTransit("Japan Transit IC", "0003", "8B00", "0F09"),
+    IruCa("IruCa", "80DE", "8B00", "0F09"),
+    Paspy("PASPY", "8592", "8B00", "0F09"),
+    Sapica("SAPICA", "865E", "8B00", "0F09"),
+    Okica("OKICA", "8FC1", "8F02", "8F02"),
+    Ryuto("Ryuto", "8B5D", "8F89", "8F89"),
     Octopus("Octopus", "8008", "1701", "1701"),
     Edy("Rakuten Edy", "FE00", "1713", "0F17"),
     Waon("WAON", "FE00", "1768", "0B68"),
@@ -174,13 +214,18 @@ private enum class FeliCaProfile(
     fun parseBalance(block: ByteArray, scannedAt: Instant): ParsedBalance? {
         if (block.size < 16) return null
         return when (this) {
-            JapanTransit -> {
+            JapanTransit, IruCa, Paspy, Sapica -> {
                 val balance = (block[11].toInt() and 0xff) or ((block[12].toInt() and 0xff) shl 8)
                 ParsedBalance(
                     "¥%,d".format(balance),
                     "Parsed from bytes 11-12 in little-endian order.",
                     listOf(RawDataField("Balance", balance.toString()), RawDataField("Bytes 11-12", "%02X%02X".format(block[11], block[12]))),
                 )
+            }
+            Okica, Ryuto -> {
+                val amount = if (this == Okica) JapaneseCardFormats.uint(block, 10, 2, true) else JapaneseCardFormats.uint(block, 14, 2)
+                if (this == Ryuto && JapaneseCardFormats.ryuto(block, block.hexString()) == null) return null
+                ParsedBalance("¥%,d".format(amount), "Stored balance from the latest transaction.", listOf(RawDataField("Balance", amount.toString())))
             }
             Octopus -> {
                 val raw = ((block[0].toInt() and 0xff) shl 24) or
@@ -227,15 +272,5 @@ private fun ByteArray.leInt(start: Int, length: Int): Int {
     return value
 }
 
-private fun octopusOffset(scannedAt: Instant): Int {
-    val date = scannedAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
-    return if (
-        date.year > 2010 ||
-        (date.year == 2010 && date.monthNumber > 12) ||
-        (date.year == 2010 && date.monthNumber == 12 && date.dayOfMonth >= 1)
-    ) {
-        350
-    } else {
-        35
-    }
-}
+internal fun octopusOffset(scannedAt: Instant): Int =
+    if(scannedAt >= Instant.parse("2017-09-30T16:00:00Z")) 500 else 350

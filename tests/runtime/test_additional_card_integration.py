@@ -74,6 +74,12 @@ let reversed = SnapperPlusProtocol.encodeHistory(transaction: tx, trip: nil, rec
 let credit = TransactionDecoderRegistry.decode(raw: reversed, family: "Snapper+", technology: "ISO7816", context: [reversed], at: 0)!
 precondition(credit.amount == Decimal(string: "2.75") && credit.category == .payment)
 precondition(TransactionDecoderRegistry.decode(raw: String(repeating: "01", count: 16), family: "KMT", technology: "FeliCa", context: [], at: 0) == nil)
+let opal = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 0, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
+let movedOpal = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 7, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
+precondition(wallet.mergeRawRecords(existing: [opal], incoming: [movedOpal], family: "Opal", technology: "DESFire", kind: .transactions) == [movedOpal])
+let opalEvent = TransactionDecoderRegistry.decode(raw: opal, family: "Opal", technology: "DESFire", context: [opal], at: 0)!
+precondition(opalEvent.currencyCode == "AUD" && !opalEvent.amountKnown && opalEvent.balanceAfter == Decimal(string: "-1.25"))
+precondition(opalEvent.issuerTimeZone == "Australia/Sydney")
 print("PASS new-card production integration")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-additional-") as directory:
@@ -81,7 +87,7 @@ print("PASS new-card production integration")
             program = directory / "main.swift"
             program.write_text(stubs + brands + models + registry + data + digits + "\nclass Wallet {\n" + merge + "\n}\n" + main)
             binary = directory / "test"
-            build = subprocess.run(["swiftc", str(program), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), str(ROOT / "ios/CardBal/Utils/DateFormatting.swift"), "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", str(program), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), str(ROOT / "ios/CardBal/Utils/DateFormatting.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             result = subprocess.run([str(binary)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

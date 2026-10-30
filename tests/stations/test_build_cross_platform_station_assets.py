@@ -35,14 +35,14 @@ class UnifiedAssetRoutingTests(unittest.TestCase):
                 "TUnionCityCodes.json", "TUnionLineStations.json", "KOTRISTransportModes.json",
                 "cardbal_transit.sqlite",
             })
-            expected_android = {"JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite", "tunion_stations.sqlite"}
+            expected_android = {"JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite", "tunion_stations.sqlite", "KOTRISTransportModes.json", "cardbal_transit.sqlite"}
             self.assertEqual({p.name for p in android.iterdir()}, expected_android | {"manifest.json"})
             self.assertEqual(set(json.loads((android / "manifest.json").read_text())["files"]), expected_android)
 
     def test_platform_lists_contain_only_actual_runtime_readers(self) -> None:
         self.assertEqual(set(packager.platform_asset_names("all")), {
             "JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite",
-            "tunion_stations.sqlite",
+            "tunion_stations.sqlite", "cardbal_transit.sqlite", "KOTRISTransportModes.json",
         })
         self.assertEqual(set(packager.ios_asset_names("all")), {
             "JPBusCodes.csv", "JPStationCodes.csv", "TUnionCardNames.json",
@@ -50,13 +50,13 @@ class UnifiedAssetRoutingTests(unittest.TestCase):
             "KOTRISTransportModes.json", "cardbal_transit.sqlite",
         })
 
-    def test_one_unified_database_is_cardbal_ios_and_portable_only(self) -> None:
+    def test_one_unified_database_is_shared_by_both_platforms(self) -> None:
         self.assertEqual(packager.UNIFIED_ASSETS, ["cardbal_transit.sqlite"])
         unified = set(packager.UNIFIED_ASSETS)
 
         self.assertTrue(unified.issubset(packager.asset_names("all")))
         self.assertTrue(unified.issubset(packager.ios_asset_names("all")))
-        self.assertTrue(unified.isdisjoint(packager.platform_asset_names("all")))
+        self.assertTrue(unified.issubset(packager.platform_asset_names("all")))
 
     def test_partial_targets_never_copy_the_unified_database(self) -> None:
         unified = set(packager.UNIFIED_ASSETS)

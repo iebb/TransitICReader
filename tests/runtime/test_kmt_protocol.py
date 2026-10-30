@@ -93,7 +93,7 @@ print("Verified KMT unsigned IDR, selection, statuses, identifiers and raw histo
             (directory / "main.swift").write_text(main)
             executable = directory / "kmt-tests"
             build = subprocess.run([
-                "swiftc", str(helper), str(directory / "Stubs.swift"),
+                "swiftc", str(helper), str(ROOT / "ios/CardBal/NFC/Profiles/RyutoCardFormat.swift"), str(directory / "Stubs.swift"),
                 str(directory / "Profiles.swift"), str(directory / "main.swift"),
                 "-o", str(executable),
             ], capture_output=True, text=True)

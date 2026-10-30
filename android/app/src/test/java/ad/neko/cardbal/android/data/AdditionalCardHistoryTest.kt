@@ -77,7 +77,7 @@ class AdditionalCardHistoryTest {
         assertEquals("ISO7816|0102 0304 A5B6 C7D8", snapshot.storageIdentifier)
         assertEquals("ISO7816|01020304", snapshot.copy(realSerialNumber = "0000 0000 0000 0000").storageIdentifier)
         assertEquals("ISO7816|01020304", snapshot.copy(realSerialNumber = "FFFF FFFF FFFF FFFF").storageIdentifier)
-        assertEquals("ISO7816|01020304", snapshot.copy(cardFamily = "T-money").storageIdentifier)
+        assertEquals("ISO7816|0102 0304 A5B6 C7D8", snapshot.copy(cardFamily = "T-money").storageIdentifier)
         assertEquals("FeliCa|01020304", snapshot.copy(cardFamily = "KMT", technology = "FeliCa").storageIdentifier)
     }
 

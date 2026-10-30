@@ -1,5 +1,10 @@
 # Additional card support research
 
+The [2026-10-31 platform matrix](platform-parity.md) records the implemented
+readers, decoded fields and generation limits. The ranked candidates below are
+the initial research snapshot; Snapper+, KMT, CEPAS, DESFire and named Calypso
+readers have since been implemented.
+
 Reviewed 2026-10-28 against the Android and iPhone readers and current primary
 platform documentation. These are implementation candidates, not claims that
 additional cards have been tested on hardware. Recognition, balance and history

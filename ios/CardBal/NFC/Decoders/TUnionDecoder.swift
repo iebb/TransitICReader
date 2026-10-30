@@ -246,7 +246,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         let exit = station != nil && directions == [false]
         let isBus = station?.type == "BRT" || station?.type == "公交"
         let category: TransactionCategory = entry ? (isBus ? .busOn : .trainOn)
-            : exit ? (isBus ? .busOff : .trainOff) : (station != nil && isBus ? .bus : decodedType.category)
+            : exit ? (isBus ? .busOff : .trainOff) : (station != nil ? (isBus ? .bus : .train) : decodedType.category)
 
         return TransitTransaction(
             date: date,
@@ -426,9 +426,9 @@ struct CityUnionDecoder: TransitCardDecoder {
         case 0x02:
             return ("City Union Top-up", .topUp, true)
         case 0x06:
-            return ("City Union Transit", .train, false)
+            return ("City Union Transit", .purchase, false)
         case 0x09:
-            return ("City Union Composite Transit", .train, false)
+            return ("City Union Composite Transit", .purchase, false)
         case 0x04:
             return ("City Union Adjustment", .adjustment, false)
         case 0x05:

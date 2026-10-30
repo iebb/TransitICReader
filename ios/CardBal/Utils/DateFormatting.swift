@@ -74,11 +74,11 @@ struct CardDateFormatting {
         return formatter.date(from: value)
     }
 
-    static func formatDisplayDate(_ date: Date, brand: ICCardBrand) -> String {
+    static func formatDisplayDate(_ date: Date, brand: ICCardBrand, issuerTimeZone: String? = nil) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale.autoupdatingCurrent
-        formatter.timeZone = displayTimeZone(for: brand)
+        formatter.timeZone = timeZonePreference() == .issuer ? (issuerTimeZone.flatMap(TimeZone.init(identifier:)) ?? displayTimeZone(for: brand)) : .current
         formatter.dateStyle = .short
         formatter.timeStyle = .none
         return formatter.string(from: date)
@@ -88,11 +88,11 @@ struct CardDateFormatting {
         formatDisplayDateTime(date, brand: brand, resolution: includeTime ? .second : .date)
     }
 
-    static func formatDisplayDateTime(_ date: Date, brand: ICCardBrand, resolution: DateDisplayResolution) -> String {
+    static func formatDisplayDateTime(_ date: Date, brand: ICCardBrand, resolution: DateDisplayResolution, issuerTimeZone: String? = nil) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale.autoupdatingCurrent
-        formatter.timeZone = displayTimeZone(for: brand)
+        formatter.timeZone = timeZonePreference() == .issuer ? (issuerTimeZone.flatMap(TimeZone.init(identifier:)) ?? displayTimeZone(for: brand)) : .current
         formatter.dateStyle = .short
         switch resolution {
         case .date:
@@ -109,11 +109,11 @@ struct CardDateFormatting {
         formatDisplayTime(date, brand: brand, resolution: .second)
     }
 
-    static func formatDisplayTime(_ date: Date, brand: ICCardBrand, resolution: DateDisplayResolution) -> String {
+    static func formatDisplayTime(_ date: Date, brand: ICCardBrand, resolution: DateDisplayResolution, issuerTimeZone: String? = nil) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale.autoupdatingCurrent
-        formatter.timeZone = displayTimeZone(for: brand)
+        formatter.timeZone = timeZonePreference() == .issuer ? (issuerTimeZone.flatMap(TimeZone.init(identifier:)) ?? displayTimeZone(for: brand)) : .current
         formatter.dateStyle = .none
         formatter.timeStyle = resolution == .second ? .medium : .short
         return formatter.string(from: date)

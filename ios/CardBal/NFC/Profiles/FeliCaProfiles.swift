@@ -137,6 +137,16 @@ public struct FeliCaProfile {
             }
         ),
         FeliCaProfile(
+            displayName: "Ryuto", systemCode: RyutoCardFormat.systemCode,
+            serviceCode: "898F", serviceCodeLittleEndian: RyutoCardFormat.service,
+            brandOverrides: [:], parseBalance: { block, _ in
+                guard let record = RyutoCardFormat.decode(block) else { return nil }
+                return ParsedBalance(formatted: formatCurrency(amount: Decimal(record.balance), code: "JPY"),
+                                     detail: "Stored balance from the latest Ryuto transaction.",
+                                     rawFields: [RawDataField(title: "Balance", value: String(record.balance))])
+            }
+        ),
+        FeliCaProfile(
             displayName: "IruCa",
             systemCode: "80DE",
             serviceCode: "008B",

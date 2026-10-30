@@ -85,6 +85,7 @@ android {
     }
 
     sourceSets.getByName("main").assets.setSrcDirs(listOf(stationAssetsDirectory))
+    sourceSets.getByName("test").resources.srcDir("../../tests/runtime/fixtures")
 
     lint {
         disable += "NullSafeMutableLiveData"
@@ -143,7 +144,7 @@ val prepareStationAssets by tasks.registering(Exec::class) {
         "--portable-assets", portableStationDirectory.get().asFile.absolutePath)
     doLast {
         val required = setOf("JPStationCodes.csv", "JPBusCodes.csv", "jp_stations.sqlite",
-            "tunion_stations.sqlite", "manifest.json")
+            "tunion_stations.sqlite", "cardbal_transit.sqlite", "KOTRISTransportModes.json", "manifest.json")
         required.forEach { name ->
             check(stationAssetsDirectory.get().file(name).asFile.isFile) {
                 "Shared station build did not produce the required Android asset: $name"

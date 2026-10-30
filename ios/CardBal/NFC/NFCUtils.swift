@@ -192,6 +192,9 @@ struct TransitTransaction: Identifiable, Hashable, Codable {
     var sourceApplicationID: String? = nil
     var sourceCardFamily: String? = nil
     var currencyCode: String? = nil
+    var issuerTimeZone: String? = nil
+    var amountIsSigned: Bool = false
+    var amountKnown: Bool = true
     var sourceRecordIDs: [String]? = nil
 
     /// Stable identity derived from content, not the random UUID. Used by ForEach to avoid
@@ -235,6 +238,9 @@ struct TransactionDecoderRegistry {
         // Skip empty/all-zeros block check
         if data.allSatisfy({ $0 == 0x00 }) && !raw.isEmpty { return nil }
 
+        if AdditionalCardHistory.handles(family) {
+            return kind == .transactions ? AdditionalCardHistory.decode(raw: raw, family: family, context: context) : nil
+        }
         let contextData = context.compactMap { Data(hexString: $0) }
         let relatedContextData = relatedContext.compactMap { Data(hexString: $0) }
 
@@ -453,7 +459,7 @@ struct TransitTransactionRow: View {
                         let resolution = CardDateFormatting.resolution(forTimeText: tx.time)
 
                         if let date = tx.date, date.timeIntervalSince1970 > 86400 {
-                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: brand, resolution: resolution))
+                            Text(CardDateFormatting.formatDisplayDateTime(date, brand: brand, resolution: resolution, issuerTimeZone: tx.issuerTimeZone))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         } else if let time = tx.time, !isRecordOnly {
@@ -473,8 +479,10 @@ struct TransitTransactionRow: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    if tx.amount != 0 {
-                        let isTopUp = brand == .snapperPlus ? tx.amount > 0 : tx.category == .topUp
+                    if !tx.amountKnown {
+                        Text("Fare unavailable").font(.headline).foregroundStyle(.secondary)
+                    } else if tx.amount != 0 {
+                        let isTopUp = (brand == .snapperPlus || tx.amountIsSigned) ? tx.amount > 0 : (tx.category == .topUp || tx.category == .refund)
                         
                         Text((isTopUp ? "+" : "-") + 
                              formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: currencyFractionDigits))
@@ -605,7 +613,7 @@ struct TransactionDetailView: View {
                     
                     if let date = tx.date, !isNAMANE, !isRecordOnly {
                         LabeledContent {
-                            Text(CardDateFormatting.formatDisplayDate(date, brand: brand))
+                            Text(CardDateFormatting.formatDisplayDate(date, brand: brand, issuerTimeZone: tx.issuerTimeZone))
                         } label: {
                             HStack {
                                 Text("Date")
@@ -614,7 +622,7 @@ struct TransactionDetailView: View {
                     }
                     let resolution = CardDateFormatting.resolution(forTimeText: tx.time)
                     let displayTime = tx.date.flatMap { date -> String? in
-                        resolution == .date ? nil : CardDateFormatting.formatDisplayTime(date, brand: brand, resolution: resolution)
+                        resolution == .date ? nil : CardDateFormatting.formatDisplayTime(date, brand: brand, resolution: resolution, issuerTimeZone: tx.issuerTimeZone)
                     } ?? tx.time
                     let hasDisplayTime = displayTime?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "n/a"
                     if !isNAMANE, !isRecordOnly, hasDisplayTime, let displayTime {
@@ -628,7 +636,7 @@ struct TransactionDetailView: View {
                     }
                     if let amount = tx.amount != 0 ? tx.amount : nil {
                         LabeledContent {
-                            let isTopUp = brand == .snapperPlus ? tx.amount > 0 : tx.category == .topUp
+                            let isTopUp = (brand == .snapperPlus || tx.amountIsSigned) ? tx.amount > 0 : (tx.category == .topUp || tx.category == .refund)
                             let signedAmount = (isTopUp ? "+" : "-") + 
                                                formatCurrency(amount: abs(amount), code: currencyCode, fractionDigits: currencyFractionDigits)
                             Text(signedAmount)
@@ -1574,7 +1582,9 @@ func defaultFractionDigits(for currencyCode: String) -> Int {
 }
 
 func octopusOffset(for date: Date) -> Int {
-    500
+    // Public purse units are HK$0.10; the public reference uses the scan date
+    // for the 2017-10-01 Hong Kong offset transition (350 -> 500 units).
+    date >= Date(timeIntervalSince1970: 1_506_787_200) ? 500 : 350
 }
 
 func formatFeliCaIDm(_ idm: String) -> String {

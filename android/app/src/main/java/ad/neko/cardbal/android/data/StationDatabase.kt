@@ -14,6 +14,7 @@ data class StationPoint(
 
 class StationDatabase private constructor(private val context: Context) {
     private val jpDb by lazy { openAssetDatabase("jp_stations.sqlite") }
+    private val unifiedDb by lazy { openAssetDatabase("cardbal_transit.sqlite") }
     private val tUnionDb by lazy { openAssetDatabase("tunion_stations.sqlite") }
 
     fun findJapaneseStation(code: String?): StationPoint? {
@@ -40,50 +41,29 @@ class StationDatabase private constructor(private val context: Context) {
         }
     }
 
+    private val japaneseGraph by lazy {
+        val graph=mutableMapOf<String,MutableList<TransitGeometry.Edge>>()
+        unifiedDb.rawQuery("SELECT e.from_station_code,e.to_station_code,e.distance_km,p.geohash_path FROM station_graph_edges e LEFT JOIN station_edge_paths p USING(country_code,line_code,from_station_code,to_station_code) WHERE e.country_code='JP'",emptyArray()).use { c ->
+            while(c.moveToNext()) {
+                val from=c.getString(0);val to=c.getString(1);val distance=c.getDouble(2);val packed=c.getString(3)
+                graph.getOrPut(from){mutableListOf()}.add(TransitGeometry.Edge(to,distance,packed))
+                graph.getOrPut(to){mutableListOf()}.add(TransitGeometry.Edge(from,distance,packed,true))
+            }
+        }
+        graph
+    }
+
     fun shortestJapanesePath(from: StationPoint, to: StationPoint): List<StationPoint> {
-        if (from.stationCode == to.stationCode) return listOf(from)
-        val start = from.stationCode
-        val target = to.stationCode
-        val adjacency = mutableMapOf<String, MutableList<String>>()
-        jpDb.rawQuery(
-            """
-            SELECT from_station_code, to_station_code
-            FROM station_edges
-            WHERE from_station_code != '0' AND to_station_code != '0'
-            """.trimIndent(),
-            emptyArray(),
-        ).use { cursor ->
-            while (cursor.moveToNext()) {
-                val a = cursor.getString(0)
-                val b = cursor.getString(1)
-                adjacency.getOrPut(a) { mutableListOf() }.add(b)
-                adjacency.getOrPut(b) { mutableListOf() }.add(a)
-            }
+        if(from.stationCode==to.stationCode) return listOf(from)
+        val steps=TransitGeometry.shortest(from.stationCode,to.stationCode,japaneseGraph) ?: return listOf(from,to)
+        val result=mutableListOf(from)
+        for((_,edge) in steps) {
+            val points=edge.packed?.let(TransitGeometry::decodePath)?.let{if(edge.reversed) it.reversed() else it}
+            if(points!=null) result+=points.mapIndexed { i,p -> StationPoint("geometry:${edge.to}:$i","", "",p.latitude,p.longitude) }
+            else findJapaneseStationByStationCode(edge.to)?.let(result::add)
         }
-
-        val queue = ArrayDeque<String>()
-        val previous = mutableMapOf<String, String?>()
-        queue.add(start)
-        previous[start] = null
-        while (queue.isNotEmpty()) {
-            val current = queue.removeFirst()
-            if (current == target) break
-            for (next in adjacency[current].orEmpty()) {
-                if (previous.containsKey(next)) continue
-                previous[next] = current
-                queue.add(next)
-            }
-        }
-        if (!previous.containsKey(target)) return listOf(from, to)
-
-        val stationCodes = mutableListOf<String>()
-        var cursor: String? = target
-        while (cursor != null) {
-            stationCodes.add(cursor)
-            cursor = previous[cursor]
-        }
-        stationCodes.reverse()
-        return stationCodes.mapNotNull(::findJapaneseStationByStationCode).ifEmpty { listOf(from, to) }
+        result.add(to)
+        return result
     }
 
     fun findTUnionStation(code: String?): StationPoint? {
@@ -127,6 +107,44 @@ class StationDatabase private constructor(private val context: Context) {
                 latitude = cursor.getDouble(2),
                 longitude = cursor.getDouble(3),
             )
+        }
+    }
+
+    fun locationName(namespace: String, code: String, event: Int? = null): String? {
+        val kind = if (event == 0) "entry" else if (event == 1) "exit" else "any"
+        unifiedDb.rawQuery("SELECT COALESCE(i.lookup_name,s.name) FROM station_identifiers i JOIN stations s ON s.id=i.station_id WHERE i.namespace=? AND i.code=? AND i.event_kind IN ('any',?) ORDER BY i.event_kind='any' LIMIT 1", arrayOf(namespace,code.uppercase(),kind)).use {
+            return if(it.moveToFirst()) it.getString(0) else null
+        }
+    }
+
+    fun findCatalogStation(namespace: String, code: String?, event: Int? = null): StationPoint? {
+        if(code==null) return null
+        val kind=if(event==0) "entry" else if(event==1) "exit" else "any"
+        unifiedDb.rawQuery("SELECT i.code,s.id,COALESCE(i.lookup_name,s.name),s.latitude,s.longitude FROM station_identifiers i JOIN stations s ON s.id=i.station_id WHERE i.namespace=? AND i.code=? AND i.event_kind IN ('any',?) AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL ORDER BY i.event_kind='any' LIMIT 1",arrayOf(namespace,code.uppercase(),kind)).use {
+            return if(it.moveToFirst()) StationPoint(it.getString(0),it.getString(1),it.getString(2),it.getDouble(3),it.getDouble(4)) else null
+        }
+    }
+
+    data class ChineseLocation(val name:String,val key:String?,val type:String?)
+    fun tUnionLocation(code:String):ChineseLocation? {
+        val normalized=normalizeCode(code) ?: return null
+        tUnionDb.rawQuery("SELECT COALESCE(display_name,station_name),station_key,source_type FROM tunion_stations WHERE station_key=? OR ? LIKE station_key || '%' ORDER BY length(station_key) DESC LIMIT 1",arrayOf(normalized,normalized)).use {
+            return if(it.moveToFirst()) ChineseLocation(it.getString(0),it.getString(1),it.getString(2)) else null
+        }
+    }
+    fun tUnionTerminal(kind:String,terminal:String,city:String?=null):ChineseLocation? {
+        if(kind=="1e" && city==null) return null
+        val rows=mutableListOf<ChineseLocation>()
+        val sql="SELECT station_name,station_key,station_type FROM tunion_terminal_stations WHERE record_kind=? AND terminal_code=?"+(if(city!=null) " AND city_id=?" else "")
+        val args=if(city!=null) arrayOf(kind,terminal,city) else arrayOf(kind,terminal)
+        unifiedDb.rawQuery(sql,args).use { c -> while(c.moveToNext()) rows.add(ChineseLocation(c.getString(0),c.getString(1),c.getString(2))) }
+        return rows.distinct().singleOrNull()
+    }
+
+    fun cityUnionTerminal(terminal: String, date: kotlinx.datetime.Instant?): ChineseLocation? {
+        if(terminal.length!=12 || !terminal.startsWith("2000") || date==null || date.epochSeconds<1483200000) return null
+        unifiedDb.rawQuery("SELECT station_name,station_key,station_type FROM cityunion_terminal_prefixes WHERE ? LIKE terminal_prefix || '%' ORDER BY length(terminal_prefix) DESC LIMIT 1",arrayOf(terminal)).use {
+            return if(it.moveToFirst()) ChineseLocation(it.getString(0),it.getString(1),it.getString(2)) else null
         }
     }
 

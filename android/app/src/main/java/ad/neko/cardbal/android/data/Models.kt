@@ -104,10 +104,12 @@ data class TransitTransaction(
     val entryStationCode: String? = null,
     val exitStationCode: String? = null,
     val rawData: String? = null,
+    val sourceApplicationID: String? = null,
     val currencyCode: String? = null,
     val fractionDigits: Int = 0,
     val issuerTimeZone: String? = null,
     val amountIsSigned: Boolean = false,
+    val amountKnown: Boolean = true,
     val recordCounter: Long? = null,
 )
 
@@ -153,12 +155,18 @@ data class TransitCardSnapshot(
     val rawSections: List<RawDataSection> = emptyList(),
     val rawTransactions: List<String> = emptyList(),
     val rawTransitHistory: List<String> = emptyList(),
+    val applications: List<TransitApplication>? = null,
     val scannedAt: Instant = Clock.System.now(),
 ) {
     val storageIdentifier: String get() {
-        val snapper = cardFamily.equals("Snapper+", true) || cardFamily.equals("Snapper Plus", true)
-        val serial = if (snapper && technology == "ISO7816") SnapperPlusProtocol.normalizedSerial(realSerialNumber) else null
-        return "$technology|${serial ?: rawIdentifierValue}"
+        val primary=applications?.firstOrNull{it.isOctopus} ?: applications?.firstOrNull{it.isTUnion} ?: applications?.firstOrNull()
+        if(primary!=null) return "${primary.technology}|${primary.serialNumber?.takeIf{it.isNotBlank()} ?: primary.identifier}"
+        val serial=realSerialNumber?.trim()?.takeIf{it.isNotEmpty() && it.any{c->c!='0' && c!=' ' && c!='F' && c!='f'}}
+        if(technology=="ISO7816" && serial!=null) {
+            val normalized=if(cardFamily.equals("Snapper+",true) || cardFamily.equals("Snapper Plus",true)) SnapperPlusProtocol.normalizedSerial(serial) else serial
+            if(normalized!=null) return "$technology|$normalized"
+        }
+        return "$technology|$rawIdentifierValue"
     }
 }
 
@@ -192,6 +200,7 @@ data class SavedCardRecord(
     val balanceDetail: String? = null,
     val realSerialNumber: String? = null,
     val region: String? = null,
+    val applications: List<TransitApplication>? = null,
     val enhancedFeliCaDecoded: Boolean? = null,
     val issuingCity: String? = null,
     val cardTypeStr: String? = null,
@@ -262,6 +271,7 @@ data class SavedCardRecord(
             region = snapshot.region
                 ?: snapshot.resultFields.firstOrNull { it.title == "Brand" }?.value
                 ?: snapshot.resultFields.firstOrNull { it.title == "Region" }?.value,
+            applications = snapshot.applications,
             rawTransactions = snapshot.rawTransactions,
             rawTransitHistory = snapshot.rawTransitHistory,
             resultFields = snapshot.resultFields.map { SavedCardField(it.title, it.value) },

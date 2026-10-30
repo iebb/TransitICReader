@@ -80,7 +80,8 @@ UNIFIED_PORTABLE_INPUT_ASSETS = {
 }
 
 # The unified iOS runtime combines generated station inputs and the canonical
-# boundary catalogs. Android consumes only its four legacy runtime assets.
+# boundary catalogs. Android also uses the unified catalog for Korean/Mongolian
+# names, Chinese terminal aliases and precise geohash route geometry.
 
 
 def asset_names(target: str) -> list[str]:
@@ -105,6 +106,10 @@ def platform_asset_names(target: str) -> list[str]:
         names.extend(["JPBusCodes.csv", "JPStationCodes.csv", "jp_stations.sqlite"])
     if target in ("all", "tunion"):
         names.append("tunion_stations.sqlite")
+    if target in ("all", "korean"):
+        names.append("KOTRISTransportModes.json")
+    if target == "all":
+        names.append("cardbal_transit.sqlite")
     return names
 
 

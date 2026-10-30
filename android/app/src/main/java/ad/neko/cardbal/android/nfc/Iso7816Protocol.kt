@@ -19,6 +19,7 @@ internal object Iso7816Protocol {
         Application("D4100000140001", "EZL / Cashbee", "KRW"),
         Application("D410000029000001", "NAMANE", "KRW"),
         Application("A000000632010105", "China T-Union", "CNY"),
+        Application("A00000000386980701", "City Union", "CNY"),
     )
     val selectionAids = applications.map { it.aid } + CONFIGURATION_AID
 

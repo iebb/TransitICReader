@@ -1,6 +1,9 @@
 package ad.neko.cardbal.android.data
 
 import android.content.Context
+import ad.neko.cardbal.android.nfc.JapaneseCardFormats
+import ad.neko.cardbal.android.nfc.KoreanCardFormat
+import org.json.JSONObject
 import ad.neko.cardbal.android.util.beInt
 import ad.neko.cardbal.android.util.hexToBytes
 import ad.neko.cardbal.android.util.leInt
@@ -11,16 +14,32 @@ import java.time.ZoneId
 class TransactionDecoder(context: Context) {
     private val stationDb = StationDatabase.get(context)
     private val busResolver = BusResolver.get(context)
+    private val modeClasses by lazy {
+        val json=JSONObject(context.assets.open("KOTRISTransportModes.json").bufferedReader().use{it.readText()})
+        val result=mutableMapOf<Int,String>()
+        for(key in listOf("modes","supplementaryModes")) {
+            val rows=json.optJSONArray(key) ?: continue
+            for(i in 0 until rows.length()) { val row=rows.getJSONObject(i);result[row.getInt("code")]=row.getString("transportClass") }
+        }
+        result
+    }
 
-    fun transactionsFor(card: SavedCardRecord): List<TransitTransaction> {
+    fun transactionsFor(card: SavedCardRecord, application: TransitApplication? = null): List<TransitTransaction> {
+        if (application==null && !card.applications.isNullOrEmpty()) {
+            return ChineseHistoryMerge.reconcile(card.applications.flatMap { app ->
+                transactionsFor(card.copy(technology=app.technology,cardFamily=app.cardFamily,applications=null,
+                    rawTransactions=app.records.filter{it.kind=="transaction"}.map{it.hex},
+                    rawTransitHistory=app.records.filter{it.kind=="transit"}.map{it.hex}),app).map{it.copy(sourceApplicationID=app.id)}
+            })
+        }
         val records = mergeCardHistory(card.cardFamily, emptyList(), card.rawTransactions)
         val regular = records.mapIndexedNotNull { index, raw ->
-            decode(raw, card, records, index, RawHistoryKind.Transactions, relatedContext = emptyList())
+            decode(raw, card, records, index, RawHistoryKind.Transactions, relatedContext = emptyList(), auxiliary = application?.records.orEmpty())
         }
         val transit = card.rawTransitHistory.mapIndexedNotNull { index, raw ->
-            decode(raw, card, card.rawTransitHistory, index, RawHistoryKind.Transit, relatedContext = card.rawTransactions)
+            decode(raw, card, card.rawTransitHistory, index, RawHistoryKind.Transit, relatedContext = card.rawTransactions, auxiliary = application?.records.orEmpty())
         }
-        return (regular + transit).sortedWith(
+        return ChineseHistoryMerge.reconcile(regular + transit).sortedWith(
             compareByDescending<TransitTransaction> { it.date?.toEpochMilliseconds() ?: Long.MIN_VALUE }
                 .thenByDescending { it.recordCounter ?: it.recordNumber?.toLong() ?: Long.MIN_VALUE },
         )
@@ -80,6 +99,9 @@ class TransactionDecoder(context: Context) {
         if (data.isEmpty()) return null
         val family = card.cardFamily.lowercase()
         return when {
+            AdditionalCardHistory.handles(family) -> RawRecordExplanation(
+                title = "$family on-card record", summary = "Versioned card-specific record; unverified identifiers are not station locations.",
+                values = listOf(RawRecordValue("Currency",tx.currencyCode ?: "Unknown","Original purse units"),RawRecordValue("Record",raw,"Exact persisted envelope")))
             family == "snapper+" || family == "snapper plus" -> RawRecordExplanation(
                 title = "Snapper+ raw record",
                 summary = "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes.",
@@ -101,7 +123,11 @@ class TransactionDecoder(context: Context) {
 
     private fun resolvePoint(card: SavedCardRecord, code: String?): StationPoint? {
         val family = card.cardFamily.lowercase()
-        return if ("union" in family || "china" in family) {
+        return if (family == "u-money") {
+            stationDb.findCatalogStation("mn.ubsmartbus.station_id",code)
+        } else if (family.contains("t-money") || family.contains("ezl") || family.contains("cashbee") || family=="namane") {
+            stationDb.findCatalogStation("kr.ksx.location",code)
+        } else if ("union" in family || "china" in family) {
             stationDb.findTUnionStation(code)
         } else {
             stationDb.findJapaneseStation(code)
@@ -124,20 +150,50 @@ class TransactionDecoder(context: Context) {
         index: Int,
         kind: RawHistoryKind,
         relatedContext: List<String>,
+        auxiliary: List<TransitApplicationRecord> = emptyList(),
     ): TransitTransaction? {
         val data = raw.hexToBytes()
         if (data.isEmpty() || data.all { it == 0.toByte() }) return null
         val family = card.cardFamily.lowercase()
         return when {
+            AdditionalCardHistory.handles(family) -> if(kind==RawHistoryKind.Transactions) AdditionalCardHistory.decode(raw,family,context) else null
             family == "snapper+" || family == "snapper plus" ->
                 if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) decodeSnapperHistory(data, raw) else null
             family == "kmt" || family == "kartu multi trip" -> null
+            card.technology == "FeliCa" && family == "ryuto" -> if(kind==RawHistoryKind.Transactions) JapaneseCardFormats.ryuto(data,raw) else null
+            card.technology == "FeliCa" && family == "okica" -> if(kind==RawHistoryKind.Transactions) JapaneseCardFormats.okica(data,raw,context.getOrNull(index+1)?.hexToBytes())?.let { tx ->
+                tx.copy(entryStation=tx.entryStationCode?.let{stationDb.findJapaneseStation(it)?.name} ?: tx.entryStation,
+                    exitStation=tx.exitStationCode?.let{stationDb.findJapaneseStation(it)?.name} ?: tx.exitStation)
+            } else null
+            card.technology == "FeliCa" && "edy" in family -> if(kind==RawHistoryKind.Transactions) JapaneseCardFormats.edy(data,raw) else null
+            card.technology == "FeliCa" && "nanaco" in family -> if(kind==RawHistoryKind.Transactions) JapaneseCardFormats.nanaco(data,raw) else null
             card.technology == "FeliCa" && kind == RawHistoryKind.Transit -> decodeJapaneseTransitActivity(data, raw, relatedContext)
             card.technology == "FeliCa" && "octopus" in family -> decodeOctopus(data, raw, context, index)
             card.technology == "FeliCa" && "waon" in family -> decodeWaonHistory(data, raw)
             card.technology == "FeliCa" && data.size >= 16 -> decodeJapaneseUse(data, raw, context, index)
+            card.technology == "ISO7816" && "city union" in family -> decodeTUnionPboc(data,raw,index)?.let { tx ->
+                val isPurchase=data.size==23 && (data[9]==6.toByte() || data[9]==9.toByte())
+                val station=if(isPurchase) stationDb.cityUnionTerminal(tx.terminalID.orEmpty(),tx.date) else null
+                val direction=if(station!=null) ChineseHistoryMerge.cityUnionDirection(data,auxiliary) else null
+                val bus=station?.type in setOf("BRT","公交","bus")
+                val category=when {
+                    direction==true -> if(bus) TransactionCategory.busOn else TransactionCategory.trainOn
+                    direction==false -> if(bus) TransactionCategory.busOff else TransactionCategory.trainOff
+                    station!=null -> if(bus) TransactionCategory.bus else TransactionCategory.train
+                    else -> tx.category
+                }
+                tx.copy(type=if(direction==true) "Entry" else if(direction==false) "Exit" else "City Union ${tx.type}",category=category,
+                    location=station?.name,entryStation=station?.name.takeIf{direction==true},exitStation=station?.name.takeIf{direction==false},
+                    entryStationCode=station?.key.takeIf{direction==true},exitStationCode=station?.key.takeIf{direction==false})
+            }
             card.technology == "ISO7816" && ("union" in family || "china" in family) -> decodeTUnion(data, raw, index, kind)
-            card.technology == "ISO7816" -> decodeIsoRecord(data, raw, index, family)
+            card.technology == "ISO7816" && (family.contains("t-money") || family.contains("cashbee") || family.contains("ezl") || family=="u-money" || family=="namane" || family=="climate card") -> {
+                val mode=if(data.size==52) JapaneseCardFormats.uint(data,9,2).toInt() else null
+                val location=if(data.size==52) data.copyOfRange(5,11).joinToString(""){"%02X".format(it)} else null
+                val event=if(data.size==52) data[2].toInt() and 255 else null
+                val station=if(family=="u-money") null else location?.let{stationDb.locationName("kr.ksx.location",it,event)}
+                KoreanCardFormat.decode(data,raw,family,index,card.scannedAt,mode?.let{modeClasses[it]},station,kind==RawHistoryKind.Transit)
+            }
             else -> null
         }
     }
@@ -263,14 +319,15 @@ class TransactionDecoder(context: Context) {
 
     private fun decodeOctopus(data: ByteArray, raw: String, context: List<String>, index: Int): TransitTransaction? {
         if (data.size < 14) return null
-        val balance = data.beInt(10, 4).toLong() / 10
-        val previous = context.getOrNull(index + 1)?.hexToBytes()?.takeIf { it.size >= 14 }?.beInt(10, 4)?.toLong()?.div(10)
+        val balance = JapaneseCardFormats.uint(data,10,4)
+        val previous = context.getOrNull(index + 1)?.hexToBytes()?.takeIf { it.size >= 14 }?.let { JapaneseCardFormats.uint(it,10,4) }
         val diff = previous?.let { balance - it } ?: 0
         return TransitTransaction(
             amount = kotlin.math.abs(diff),
             type = if (diff > 0) "Transaction / Top-up" else "Transaction",
             category = if (diff > 0) TransactionCategory.topUp else TransactionCategory.payment,
             balanceAfter = balance,
+            currencyCode = "HKD", fractionDigits = 1, issuerTimeZone = "Asia/Hong_Kong",
             rawData = raw,
         )
     }
@@ -312,10 +369,12 @@ class TransactionDecoder(context: Context) {
 
     private fun decodeTUnionPboc(data: ByteArray, raw: String, index: Int): TransitTransaction? {
         if (data.size < 23) return null
-        val amount = data.beInt(5, 4).toLong() / 100
+        val amount = JapaneseCardFormats.uint(data,5,4)
         val typeByte = data[9].toInt() and 0xff
         val date = bcdDateTime(data, dateStart = 16, timeStart = 20, zoneId = "Asia/Shanghai")
         val type = tUnionPbocType(typeByte)
+        val terminal=data.copyOfRange(10,16).joinToString(""){"%02X".format(it)}
+        val station=if(typeByte==6 || typeByte==9) stationDb.tUnionTerminal("18",terminal) else null
         return TransitTransaction(
             date = date,
             time = bcdTime(data, 20),
@@ -324,6 +383,8 @@ class TransactionDecoder(context: Context) {
             recordNumber = index + 1,
             type = type.label,
             category = type.category,
+            currencyCode = "CNY", fractionDigits = 2, issuerTimeZone = "Asia/Shanghai",
+            location = station?.name,
             rawData = raw,
         )
     }
@@ -333,11 +394,11 @@ class TransactionDecoder(context: Context) {
         val typeByte = data[0].toInt() and 0xff
         val subType = data[9].toInt() and 0xff
         val stationId = data.copyOfRange(10, 17).joinToString("") { "%02X".format(it) }
-        val amount = data.beInt(17, 4).toLong() / 100
-        val balance = data.beInt(21, 4).toLong() / 100
+        val amount = JapaneseCardFormats.uint(data,17,4)
+        val balance = JapaneseCardFormats.uint(data,21,4)
         val cityId = data.copyOfRange(32, 34).joinToString("") { "%02X".format(it) }
-        val station = stationDb.findTUnionStation(cityId + stationId)
-            ?: stationDb.findTUnionStation(stationId)
+        val station = stationDb.tUnionLocation(cityId + stationId)
+            ?: stationDb.tUnionTerminal("1e",data.copyOfRange(1,9).joinToString(""){"%02X".format(it)},cityId)
         val travelType = tUnionTravelType(typeByte, subType)
         val stationLabel = station?.name ?: "Station $stationId"
         return TransitTransaction(
@@ -352,21 +413,9 @@ class TransactionDecoder(context: Context) {
             location = stationLabel,
             entryStation = if (travelType.isEntry) stationLabel else null,
             exitStation = if (travelType.isExit) stationLabel else null,
-            entryStationCode = if (travelType.isEntry) station?.code ?: (cityId + stationId) else null,
-            exitStationCode = if (travelType.isExit) station?.code ?: (cityId + stationId) else null,
-            rawData = raw,
-        )
-    }
-
-    private fun decodeIsoRecord(data: ByteArray, raw: String, index: Int, family: String): TransitTransaction? {
-        val balance = if (data.size >= 8) data.takeLast(4).fold(0L) { acc, b -> (acc shl 8) or (b.toLong() and 0xff) } else null
-        return TransitTransaction(
-            amount = 0,
-            terminalID = "Record #${index + 1}",
-            recordNumber = index + 1,
-            type = if ("tmoney" in family || "t-money" in family) "Korean transit record" else "Card record",
-            category = TransactionCategory.unknown,
-            balanceAfter = balance,
+            entryStationCode = if (travelType.isEntry) station?.key ?: (if(station==null) cityId+stationId else null) else null,
+            exitStationCode = if (travelType.isExit) station?.key ?: (if(station==null) cityId+stationId else null) else null,
+            currencyCode = "CNY", fractionDigits = 2, issuerTimeZone = "Asia/Shanghai",
             rawData = raw,
         )
     }
@@ -376,7 +425,7 @@ class TransactionDecoder(context: Context) {
         val month = (rawDate shr 5) and 0x0f
         val day = rawDate and 0x1f
         if (month !in 1..12 || day !in 1..31) return null
-        val local = LocalDateTime.of(year, month, day, hour?.takeIf { it in 0..23 } ?: 0, minute?.takeIf { it in 0..59 } ?: 0)
+        val local = runCatching { LocalDateTime.of(year, month, day, hour?.takeIf { it in 0..23 } ?: 0, minute?.takeIf { it in 0..59 } ?: 0) }.getOrNull() ?: return null
         return Instant.fromEpochMilliseconds(local.atZone(ZoneId.of("Asia/Tokyo")).toInstant().toEpochMilli())
     }
 
@@ -442,20 +491,8 @@ class TransactionDecoder(context: Context) {
         return "%02d:%02d".format(hour, minute)
     }
 
-    private fun bcdDateTime(data: ByteArray, dateStart: Int, timeStart: Int, zoneId: String): Instant? {
-        if (data.size < dateStart + 4 || data.size < timeStart + 3) return null
-        val century = bcd(data[dateStart])
-        val year = bcd(data[dateStart + 1])
-        val month = bcd(data[dateStart + 2])
-        val day = bcd(data[dateStart + 3])
-        val hour = bcd(data[timeStart])
-        val minute = bcd(data[timeStart + 1])
-        val second = bcd(data[timeStart + 2])
-        if (century < 0 || year < 0 || month !in 1..12 || day !in 1..31) return null
-        if (hour !in 0..23 || minute !in 0..59 || second !in 0..59) return null
-        val local = LocalDateTime.of(century * 100 + year, month, day, hour, minute, second)
-        return Instant.fromEpochMilliseconds(local.atZone(ZoneId.of(zoneId)).toInstant().toEpochMilli())
-    }
+    private fun bcdDateTime(data: ByteArray, dateStart: Int, timeStart: Int, zoneId: String): Instant? =
+        ChineseHistoryMerge.timestamp(data,dateStart,timeStart,zoneId)
 
     private data class TUnionType(
         val label: String,

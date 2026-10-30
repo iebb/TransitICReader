@@ -118,6 +118,7 @@ struct TransactionDecoderRegistry {
     static func decode(raw: String, family: String, technology: String, context: [String], at index: Int,
                        kind: RawHistoryKind = .transactions, relatedContext: [String] = []) -> TransitTransaction? {
         let data = Data(hexString: raw)
+        if AdditionalCardHistory.handles(family) { return AdditionalCardHistory.decode(raw: raw, family: family, context: context) }
         if technology == "FeliCa" {
             precondition(family == "Octopus", "Wrong family dispatched to FeliCa history")
             return TransitTransaction(date: nil, amount: -5, terminalID: nil, type: "Octopus", rawData: raw)
@@ -357,6 +358,13 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         timedOut.accept(octopus, session: timedOut.session!)
         await timedOut.secondSideTimeout?.value
         check(!timedOut.isScanning && timedOut.latestSnapshot?.storageIdentifier == octopus.storageIdentifier, "Companion timeout lost the first application")
+        let opalRaw = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 0, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
+        let opalSnapshot = TransitCardSnapshot(technology: "DESFire", cardFamily: "Opal", identifierLabel: "UID", identifierValue: "test", rawIdentifierValue: "test", pmm: nil, systemCode: nil, selectedAID: nil, balanceText: "AUD -1.25", balanceDetail: nil, realSerialNumber: nil, region: nil, resultFields: [], rawSections: [], rawTransactions: [opalRaw], rawTransitHistory: [], scannedAt: Date())
+        let opalHistory = TransitApplicationHistory.decode([TransitApplication(snapshot: opalSnapshot)], kind: .transactions)
+        check(opalHistory.count == 1 && opalHistory[0].currencyCode == "AUD", "Application wrapper replaced explicit currency")
+        check(!opalHistory[0].amountKnown && opalHistory[0].issuerTimeZone == "Australia/Sydney", "Unavailable Opal fare became free travel or lost issuer timezone")
+        let movedOpal = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 3, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
+        check(AdditionalCardHistory.merge([opalRaw, movedOpal]).count == 1, "Moving DESFire slot duplicated history")
         print("PASS: dual applications, strict correlation, currencies, partial rescans, persistence, and APDU selection/status")
     }
 }
@@ -367,7 +375,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             chongqing = (ROOT / "tests/runtime/fixtures/chongqing_history.swift").read_text()
             swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing)
             binary = directory / "test-dual"
-            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             run = subprocess.run([str(binary), str(ROOT)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

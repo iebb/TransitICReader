@@ -11,50 +11,35 @@ struct WAONDecoder: TransitCardDecoder {
         guard case .feliCa(let feliCa) = tag else { throw NFCTestError.unsupportedCard }
         
         // 1. Switch to FE00 system
-        _ = try? await feliCa.polling(systemCode: Data([0xFE, 0x00]), requestCode: .systemCode, timeSlot: .max1)
+        guard await RetailFeliCaRead.select(feliCa) else { throw NFCTestError.unsupportedCard }
         
         // 2. Read balance (6817), number (684F), and points (684B)
         let svcBalance = Data([0x17, 0x68])
         let svcNumber = Data([0x4F, 0x68])
         let svcPoints = Data([0x4B, 0x68])
         
-        let readResult = try? await feliCa.readWithoutEncryption(
-            serviceCodeList: [svcBalance, svcNumber, svcPoints],
-            blockList: [Data([0x80, 0x00]), Data([0x81, 0x00]), Data([0x82, 0x00])]
-        )
-        
-        guard let blocks = readResult?.2, blocks.count >= 2 else {
+        guard let balanceBlock = await RetailFeliCaRead.block(feliCa, service: svcBalance) else {
             throw NFCTestError.unsupportedCard
         }
-        
-        let balanceBlock = blocks[0]
-        let numberBlock = blocks[1]
+        let numberBlock = await RetailFeliCaRead.block(feliCa, service: svcNumber)
+        let pointsBlock = await RetailFeliCaRead.block(feliCa, service: svcPoints)
         
         // Balance: 2 bytes Little Endian at offset 0 of svc 6817
         let balance = Int(balanceBlock[0]) | (Int(balanceBlock[1]) << 8)
         
         // WAON Number: 8 bytes BCD at offset 0 of svc 684F
-        let waonNumber = numberBlock.prefix(8).hexString.uppercased()
+        let waonNumber = RetailFeliCaRead.number(numberBlock, bytes: 0..<8)
         
         // Points: Bytes 0-2 (3 bytes LE?) of svc 684B
-        var pointsText = "Unavailable"
-        var pointsVal: Int?
-        if blocks.count >= 3 {
-            let pBlock = blocks[2]
-            pointsVal = Int(pBlock[0]) | (Int(pBlock[1]) << 8) | (Int(pBlock[2]) << 16)
-            pointsText = "\(pointsVal!) pts"
-        }
+        let pointsVal = pointsBlock.map { Int($0[0]) | (Int($0[1]) << 8) | (Int($0[2]) << 16) }
         
         let idm = feliCa.currentIDm.hexString.uppercased()
         let formattedIDm = formatFeliCaIDm(idm)
         
-        var resultFields = [
-            ResultField(title: "WAON Number", value: waonNumber),
-            ResultField(title: "Card Number (IDm)", value: formattedIDm)
-        ]
-        if pointsVal != nil {
-            resultFields.insert(ResultField(title: "Points", value: pointsText), at: 1)
-        }
+        var resultFields: [ResultField] = []
+        if let waonNumber { resultFields.append(ResultField(title: "WAON Number", value: waonNumber)) }
+        if let pointsVal { resultFields.append(ResultField(title: "Points", value: "\(pointsVal) pts")) }
+        resultFields.append(ResultField(title: "Card Number (IDm)", value: formattedIDm))
 
         let transactions = await readHistoryRecords(feliCa: feliCa)
         
@@ -68,18 +53,19 @@ struct WAONDecoder: TransitCardDecoder {
                 RawDataField(title: "Block 0", value: balanceBlock.hexString),
                 RawDataField(title: "Parsed", value: "\(balance)")
             ]),
-            RawDataSection(title: "WAON Number (684F)", fields: [
-                RawDataField(title: "Block 0", value: numberBlock.hexString),
-                RawDataField(title: "BCD Parsed", value: waonNumber)
-            ]),
             RawDataSection(title: "History (680B)", fields: [
                 RawDataField(title: "Records", value: "\(transactions.count)"),
                 RawDataField(title: "Format", value: "3 x 32-byte records")
             ])
         ]
-        if let pVal = pointsVal, blocks.count >= 3 {
+        if let numberBlock {
+            var fields = [RawDataField(title: "Block 0", value: numberBlock.hexString)]
+            if let waonNumber { fields.append(RawDataField(title: "BCD Parsed", value: waonNumber)) }
+            rawSections.insert(RawDataSection(title: "WAON Number (684F)", fields: fields), at: 2)
+        }
+        if let pVal = pointsVal, let pointsBlock {
              rawSections.append(RawDataSection(title: "Points (684B)", fields: [
-                 RawDataField(title: "Block 0", value: blocks[2].hexString),
+                 RawDataField(title: "Block 0", value: pointsBlock.hexString),
                  RawDataField(title: "Parsed", value: "\(pVal)")
              ]))
         }
@@ -87,8 +73,8 @@ struct WAONDecoder: TransitCardDecoder {
         return TransitCardSnapshot(
             technology: "FeliCa",
             cardFamily: "WAON",
-            identifierLabel: "WAON No.",
-            identifierValue: waonNumber,
+            identifierLabel: waonNumber == nil ? "Card Number (IDm)" : "WAON No.",
+            identifierValue: waonNumber ?? formattedIDm,
             rawIdentifierValue: idm,
             pmm: "Unavailable",
             systemCode: "FE00",
@@ -107,23 +93,14 @@ struct WAONDecoder: TransitCardDecoder {
 
     private static func readHistoryRecords(feliCa: NFCFeliCaTag) async -> [String] {
         let serviceCode = Data([0x0B, 0x68])
-        var blocks: [Data] = []
-
-        for blockIndex in 0..<6 {
-            let blockList = [Data([0x80, UInt8(blockIndex)])]
-            guard let readResult = try? await feliCa.readWithoutEncryption(
-                serviceCodeList: [serviceCode],
-                blockList: blockList
-            ), let block = readResult.2.first, block.count >= 16 else {
-                break
-            }
-            blocks.append(block)
-        }
-
         var records: [String] = []
-        for start in stride(from: 0, to: blocks.count, by: 2) {
-            guard start + 1 < blocks.count else { break }
-            let record = blocks[start] + blocks[start + 1]
+        for start in stride(from: 0, to: 6, by: 2) {
+            // Keep each record's addressed pair together even if an earlier
+            // pair is unreadable; never compact blocks across a missing slot.
+            let first = await RetailFeliCaRead.block(feliCa, service: serviceCode, index: UInt8(start))
+            let second = await RetailFeliCaRead.block(feliCa, service: serviceCode, index: UInt8(start + 1))
+            guard let first, let second else { continue }
+            let record = first + second
             if record.allSatisfy({ $0 == 0 }) {
                 continue
             }

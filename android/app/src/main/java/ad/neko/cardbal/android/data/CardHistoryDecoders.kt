@@ -7,22 +7,21 @@ import kotlinx.datetime.Instant
 internal fun cardIndexForSnapshot(cards: List<SavedCardRecord>, snapshot: TransitCardSnapshot): Int {
     val exact = cards.indexOfFirst { it.id == snapshot.storageIdentifier }
     if (exact >= 0) return exact
-    if (!snapshot.cardFamily.equals("Snapper+", true) || snapshot.technology != "ISO7816" ||
-        !snapshot.selectedAID.equals(SnapperPlusProtocol.APPLICATION_AID, true)) return -1
-    return cards.indices.filter { index ->
-        val old = cards[index]
-        old.technology == "ISO7816" && old.rawIdentifierValue.equals(snapshot.rawIdentifierValue, true) &&
-            old.selectedAID.equals(snapshot.selectedAID, true) &&
-            (old.cardFamily.equals("T-money", true) || old.cardFamily.equals("Snapper+", true))
-    }.singleOrNull() ?: -1
+    val matching=cards.indices.filter { index ->
+        val old=cards[index]
+        val sameFamily=old.cardFamily.equals(snapshot.cardFamily,true) || snapshot.cardFamily.equals("Snapper+",true) && old.cardFamily.equals("T-money",true)
+        sameFamily && old.technology==snapshot.technology && old.rawIdentifierValue.equals(snapshot.rawIdentifierValue,true) &&
+            old.selectedAID.equals(snapshot.selectedAID,true) &&
+            (old.realSerialNumber.isNullOrBlank() || snapshot.realSerialNumber.isNullOrBlank() || old.realSerialNumber==snapshot.realSerialNumber)
+    }
+    return matching.singleOrNull() ?: -1
 }
 
 internal fun mergeCardHistory(family: String, existing: List<String>, incoming: List<String>): List<String> {
     if (family.equals("Snapper+", ignoreCase = true) || family.equals("Snapper Plus", ignoreCase = true)) {
         return SnapperPlusProtocol.mergeHistory(incoming + existing)
     }
-    if (existing.isEmpty()) return incoming
-    if (incoming.isEmpty()) return existing
+    if (AdditionalCardHistory.handles(family)) return AdditionalCardHistory.merge(incoming + existing)
     return (incoming + existing).distinct()
 }
 

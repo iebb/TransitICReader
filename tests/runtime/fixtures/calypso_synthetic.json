@@ -1,0 +1,331 @@
+{
+  "note": "Invented bit-level fixtures; no personal card captures. Dates are days from1997-01-01; local minutes or RavKav UTCseconds.",
+  "environments": {
+    "navigo": "042928480D5F0000000000000000000000000000000000000000000000",
+    "opus": "042892000D5F0000000000000000000000000000000000000000000000",
+    "mobib": "0C002B00082AF800000000000000000000000000000000000000000000",
+    "ravKav": "26EC040000004E2157C000000000000000000000000000000000000000",
+    "intercode": "04292803255F0000000000000000000000000000000000000000000000"
+  },
+  "contracts": [
+    {
+      "name": "generic-intercode-ticket",
+      "network": "intercode",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "6E0A017E0003C481CE2138D00800000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000003"
+        },
+        {
+          "sfi": 30,
+          "number": 1,
+          "payload": "1C08C01000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "product": 191,
+      "trips": 3,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    },
+    {
+      "name": "navigo-tickets",
+      "network": "navigo",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "AE0600C80002ACCDCE2138D20000002800000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "1C0000"
+        },
+        {
+          "sfi": 30,
+          "number": 1,
+          "payload": "1C08C01000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "product": 100,
+      "trips": 7,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    },
+    {
+      "name": "opus-pass",
+      "network": "opus",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "0E0609A5CE2138D0000000000000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "00000C"
+        }
+      ],
+      "product": 1234,
+      "trips": null,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    },
+    {
+      "name": "opus-trips",
+      "network": "opus",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "0E0609A4CE200000000000000000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "00000C"
+        }
+      ],
+      "product": 1234,
+      "trips": 12,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": null
+    },
+    {
+      "name": "mobib-old",
+      "network": "mobib",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "08000000324E2000000000000001F40000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000004"
+        }
+      ],
+      "product": 100,
+      "trips": 4,
+      "balance": null,
+      "start": null,
+      "end": null
+    },
+    {
+      "name": "mobib-new",
+      "network": "mobib",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "10000000C8000000000000007D0049C400000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000004"
+        }
+      ],
+      "product": 100,
+      "trips": 4,
+      "balance": null,
+      "start": null,
+      "end": null
+    },
+    {
+      "name": "rav-value",
+      "network": "ravKav",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3388028C09C3C0000002271A0000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "003039"
+        }
+      ],
+      "product": 192,
+      "trips": null,
+      "balance": 12345,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    },
+    {
+      "name": "rav-zero",
+      "network": "ravKav",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3388028C09C3C0000002271A0000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000000"
+        }
+      ],
+      "product": 192,
+      "trips": null,
+      "balance": 0,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    },
+    {
+      "name": "rav-trips",
+      "network": "ravKav",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3388028809C3C000000000000000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000009"
+        }
+      ],
+      "product": 128,
+      "trips": 9,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": null
+    },
+    {
+      "name": "navigo-type20",
+      "network": "navigo",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "2E0601920003C481CE2138D00000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000001"
+        },
+        {
+          "sfi": 30,
+          "number": 1,
+          "payload": "1C04001000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "product": 201,
+      "trips": null,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    },
+    {
+      "name": "navigo-typeFF",
+      "network": "navigo",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "020072509010300CA42CE2138D00050000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "140000"
+        },
+        {
+          "sfi": 30,
+          "number": 1,
+          "payload": "1C1FE01000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "product": 202,
+      "trips": 5,
+      "balance": null,
+      "start": "2024-05-19",
+      "end": "2024-05-29"
+    }
+  ],
+  "histories": [
+    {
+      "name": "navigo-entry",
+      "network": "navigo",
+      "payload": "9C4168040048A188180210003807D00000000000000000000000000000",
+      "millis": 1716112800000,
+      "amount": -250,
+      "code": 49
+    },
+    {
+      "name": "known-metro-generic-entry",
+      "network": "intercode",
+      "payload": "9C4168040048B128032188180210003807D00000000000000000000000",
+      "millis": 1716112800000,
+      "amount": -250,
+      "code": 49
+    },
+    {
+      "name": "opus-validation",
+      "network": "opus",
+      "payload": "9C4186000004A01801B840000000000000000000000000000000000000",
+      "millis": 1716138000000,
+      "amount": null,
+      "code": null
+    },
+    {
+      "name": "mobib-old",
+      "network": "mobib",
+      "payload": "0A7104B00000008000000002A10064000000001EC0000027104B000000",
+      "millis": 1716105600000,
+      "amount": null,
+      "code": null
+    },
+    {
+      "name": "mobib-new",
+      "network": "mobib",
+      "payload": "0E7104B0000000024002A10064000080003E0000000000000000000000",
+      "millis": 1716105600000,
+      "amount": null,
+      "code": null
+    },
+    {
+      "name": "rav-entry",
+      "network": "ravKav",
+      "payload": "20A2639C01250338024A00000000006006400104010201450000000000",
+      "millis": 1716112800000,
+      "amount": -325,
+      "code": 49
+    },
+    {
+      "name": "invalid-minute",
+      "network": "navigo",
+      "payload": "9C43FF8000000000000000000000000000000000000000000000000000",
+      "invalid": true
+    },
+    {
+      "name": "zero-day",
+      "network": "navigo",
+      "payload": "0000000000000000000000000000000000000000000000000000000000",
+      "invalid": true
+    },
+    {
+      "name": "paris-dst-repeat",
+      "network": "navigo",
+      "payload": "AA244B0000000000000000000000000000000000000000000000000000",
+      "invalid": true
+    }
+  ]
+}

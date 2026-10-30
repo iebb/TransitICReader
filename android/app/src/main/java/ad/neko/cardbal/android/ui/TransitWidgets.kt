@@ -276,8 +276,8 @@ fun TransactionRow(tx: TransitTransaction, modifier: Modifier = Modifier) {
                 tx.terminalID?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, maxLines = 1) }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (tx.amount != 0L) {
-                    Text(formatTransactionAmount(tx), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (!tx.amountKnown || tx.amount != 0L) {
+                    Text(if (tx.amountKnown) formatTransactionAmount(tx) else "Fare unavailable", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 tx.balanceAfter?.let {
                     Text(formatCardMoney(it, tx.currencyCode, tx.fractionDigits), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

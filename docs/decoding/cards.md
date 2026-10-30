@@ -2,7 +2,8 @@
 
 This document summarizes how CardBal reads and decodes each supported card
 family. It reflects the current iOS implementation and the Android native port.
-It is an implementation reference, not an official specification for any card
+The [platform matrix](../research/platform-parity.md) records the current
+cross-platform scope. It is an implementation reference, not an official specification for any card
 network.
 
 ## Decode Pipeline
@@ -30,18 +31,19 @@ presentation logic.
 | WAON | FeliCa | FeliCa | Balance, WAON number, points, and paired-block history. |
 | nanaco | FeliCa | FeliCa | Balance, points where available, metadata, and history. |
 | T-money | ISO 7816 | ISO 7816 | KS X 6924 transaction records. |
-| U-Money | ISO 7816 | ISO 7816 partial | iOS uses issuer `0x01` plus a `16` card-number prefix for MNT display; Android currently treats the shared application as T-money. |
+| U-Money | ISO 7816 | ISO 7816 | Issuer `01` plus a `16` serial prefix selects MNT and Ulaanbaatar time on both. |
 | EZL / Cashbee | ISO 7816 | ISO 7816 | KS X 6924 transaction records. |
-| NAMANE | ISO 7816 | ISO 7816 | NAMANE-specific records on iOS; Android captures ISO records under the same AID. |
+| NAMANE | ISO 7816 | ISO 7816 | SFI 14 compact amounts and counters on both; dates remain unknown. |
 | Snapper+ (New Zealand) | ISO 7816 | ISO 7816 | Positively identified KS X 6924 variant; NZD balance and paired transaction/history records. |
 | Kartu Multi Trip / KMT (Indonesia, FeliCa generation) | FeliCa | FeliCa | Whole-IDR balance, optional printable card number, and raw history; history timestamps remain unresolved. |
 | China T-Union | ISO 7816 | ISO 7816 | PBOC transaction records plus travel records on both platforms. |
-| Calypso / Lignes d'Azur | ISO 7816 | ISO 7816 partial | iOS reads Calypso sections; Android currently selects known AIDs and captures records where exposed. |
-| Additional FeliCa transit variants | FeliCa | Not fully ported | iOS has profile data for IruCa, PASPY, SAPICA, and related balance-oriented profiles. |
+| Named Calypso networks | ISO 7816 | ISO 7816 | Network-specific public contracts, counters and travel events. |
+| IruCa / PASPY / SAPICA / OKICA / Ryuto | FeliCa | FeliCa | Balance and their configured record services on both. |
+| CEPAS / NETS FlashPay / stored-value EZ-Link | ISO/MIFARE | ISO-DEP | SGD balance and records; no SimplyGo backend balance. |
+| Opal / HSL / Waltti / older Clipper | DESFire | DESFire | Public purse, journey or ticket files according to the generation. |
 
-The iOS reader tries decoders in this order: T-Union, Calypso, KS X 6924, Edy,
-WAON, nanaco, then generic Japanese/FeliCa transit profiles. Android currently
-tries ISO 7816 first, then FeliCa.
+Both platforms try CEPAS before readers that change the implicit application,
+then the appropriate DESFire, Chinese, Calypso, Korean and FeliCa readers.
 
 ## Snapper+ and KMT
 
@@ -87,13 +89,13 @@ FeliCa cards are read by polling known system codes and services.
 | --- | --- | --- | --- | --- |
 | Japanese Transit IC | `0003` | `8B00` | `0F09` | Transit activity services `8F10`, `CB10`. |
 | Octopus | `8008` | `1701` | `1701` | History starts from block 1. |
-| IruCa | `80DE` | `8B00` | `0F09` | iOS profile; Suica-style balance and history path. |
-| PASPY | `8592` | `8B00` | `0F09` | iOS profile; Suica-style balance and history path. |
-| SAPICA | `865E` | `8B00` | `0F09` | iOS profile; Suica-style balance and history path. |
+| IruCa | `80DE` | `8B00` | `0F09` | Both platforms; configured balance and history path. |
+| PASPY | `8592` | `8B00` | `0F09` | Both platforms; configured balance and history path. |
+| SAPICA | `865E` | `8B00` | `0F09` | Both platforms; configured balance and history path. |
 | OKICA | `8FC1` | `8F02` | `8F02` | Gate activity `0F05`; SF entry `0B06`. |
-| Edy | `FE00` | `1713` | `0F17` | Card number service on iOS. |
+| Edy | `FE00` | `1713` | `0F17` | Optional card number service on both. |
 | WAON | `FE00` | `1768` | `0B68` | WAON number `4F68`, points `4B68`; history is read as paired blocks. |
-| nanaco | `FE00` | `9755` | `4F56` | Number, points, and metadata services on iOS. |
+| nanaco | `FE00` | `9755` | `4F56` | Optional number, points, and metadata on both. |
 
 FeliCa reads stop when a block is empty or clearly zero-filled. Raw blocks are
 stored with the service code so the transaction decoder can choose the correct
@@ -146,7 +148,7 @@ location data.
 
 ## IruCa, PASPY, and SAPICA
 
-iOS carries explicit FeliCa profiles for these Japanese transit variants:
+Both platforms carry explicit FeliCa profiles for these Japanese transit variants:
 
 | Card | System code | Balance service | Balance bytes |
 | --- | --- | --- | --- |
@@ -156,9 +158,7 @@ iOS carries explicit FeliCa profiles for these Japanese transit variants:
 
 These profiles use the same Suica-style raw history path as Japanese Transit IC:
 standard history service `0F09` plus gate activity services `8F10` and `CB10`
-when available. Android does not yet expose these as first-class profiles, so
-the portable backup should keep raw FeliCa records intact when they are scanned
-on iOS.
+when available. Portable backups keep their raw FeliCa records intact.
 
 ## Octopus
 
@@ -168,9 +168,9 @@ Read process:
 - Read service `1701`.
 - Treat block 0 as the balance source and subsequent blocks as history.
 
-Balance is decoded from a big-endian value, divided by 10. On iOS, the Octopus
-profile applies the historical offset rule: cards after 2010-12-01 use an
-offset of 350, older cards use 35. Transaction amounts are inferred from
+Balance is decoded from a big-endian value, divided by 10. On both platforms, the Octopus
+profile applies the historical offset rule: the public scan-date compatibility rule uses an
+offset of 500 from 2017-10-01 in Hong Kong time, and 350 before that scan-date transition. Transaction amounts are inferred from
 successive balance deltas when the card does not expose an explicit signed
 amount.
 
@@ -180,7 +180,7 @@ Read process:
 
 - Poll FeliCa system `FE00`.
 - Read balance from service `1713`.
-- Read card number from the Edy number service on iOS.
+- Read card number from the optional Edy number service.
 - Read history from service `0F17`.
 
 Edy history records are 16 bytes:
@@ -218,7 +218,7 @@ Read process:
 
 - Poll FeliCa system `FE00`.
 - Read balance from service `9755`.
-- Read number, points, and metadata services on iOS.
+- Read optional number, points, and metadata services.
 - Read history from service `4F56`.
 
 nanaco history records are 16 bytes:
@@ -244,7 +244,7 @@ Supported AIDs:
 Read process:
 
 - Select the matching ISO 7816 AID.
-- Read balance with `90DA000004`; fall back to `805C000204` when needed.
+- Read the KS X 6924 balance with `904C000004` and require exact success/length.
 - Read the configured SFI records with `READ RECORD`.
 - Skip all-zero records.
 
@@ -315,23 +315,18 @@ IDs; SFI `1E` lookups also require the transaction city. Terminal-only stops
 without a reviewed station-code match have names but no invented map position.
 See [Trip Reader data](../data/tripreader.md) for sources and refresh instructions.
 
-## Calypso and Lignes d'Azur
+## Calypso public records
 
-Calypso cards are ISO 7816 cards. iOS matches common Calypso AID prefixes such
-as `A000000291` and `A000000404`, plus the known Lignes d'Azur application
-identifier `315449432E494341`.
+Both apps read network-specific public ticket and travel files. Generic RIDs or
+`1TIC.ICA` alone do not identify a city. The codecs use versioned envelopes,
+strict network/layout identification, checked status words and corrected-Le
+retries. See [Calypso sources and supported layouts](../research/calypso-public-records.md).
 
-Read process:
+## CEPAS and DESFire
 
-- Select the Calypso application.
-- Probe GET DATA tags `004F`, `006F`, `0062`, `C030`, and `D020`.
-- Read common data sections from SFI `07` records 1 and 2, plus SFI `01`,
-  `02`, and `08` record 1.
-- Store raw sections and extract card identifiers, public data, contracts, and
-  events when the section parser recognizes them.
-
-Android currently recognizes the Lignes d'Azur AID in the ISO reader and can
-capture exposed records, but the full Calypso section parser remains iOS-led.
+See the [CEPAS purse/history protocol](../research/cepas.md) and
+[Opal, HSL/Waltti and Clipper layout notes](../research/desfire-stored-value.md).
+These include exact commands, units, timestamps, source revisions and bounds.
 
 ## Generic ISO 7816 Handling
 
@@ -353,14 +348,15 @@ Japanese and Chinese station data are built into portable assets before being
 copied into each platform:
 
 ```sh
-python3 scripts/build_cross_platform_station_assets.py --target all --skip-tunion-osm --offline-tunion-source
+python3 -m tools.stations.build --source csv --target all
 ```
 
-The source-of-truth output is `build/stations/`. The build then syncs the same
-portable databases and manifest into:
+The source is the public CSV catalog pinned by `data/stations/card-stations.lock.json`.
+Derived portable exports live under `build/stations/`. App builds package the
+consumed databases and manifests into:
 
 - `ios/CardBal/Resources/`
-- `android/app/src/main/assets/`
+- `android/app/build/generated/stationAssets/`
 
 Important generated files:
 
@@ -375,19 +371,23 @@ Both platforms should use the portable SQLite databases instead of platform-only
 station builders. The Android station database refreshes its copied asset cache
 when assets change so regenerated station data is picked up after rebuilds.
 
-## Shanghai dual applications and dual Octopus (iOS)
+## Shanghai applications and Octopus companion protocols
 
-The iOS Chinese reader probes both CU and TU AIDs on the connected card and
+Both Chinese readers probe CU and TU AIDs on the connected card and
 stores their metadata and raw records separately. Shanghai CU terminal prefixes
 use their own catalog namespace. Combined history retains source application,
 SFI and index; only unambiguous mirrored transactions are reconciled. Partial
 rescans retain the other application's saved history. Balance readings are never
 summed across applications.
 
-Normal all-protocol scans automatically read a recognized Octopus/CU/TU card's
+On iPhone, normal all-protocol scans automatically read a recognized Octopus/CU/TU card's
 companion protocol, in either order. iOS 26.4+ changes polling configuration
 within one session; older iOS releases open the second session only after the
 first has ended. The first result survives a missing, failed or cancelled second
 read. Linked entries are merged into one saved card on scan, reload and restore,
 including entries saved separately before a combined read. HKD and CNY histories
 remain independently decoded. See [the protocol review and validation boundaries](shanghai.md).
+
+Android preserves the same application records and probes both interfaces when
+the Android tag exposes ISO-DEP and NFC-F together. Hardware that discovers one
+interface at a time still needs a separate scan; cross-card links are not guessed.

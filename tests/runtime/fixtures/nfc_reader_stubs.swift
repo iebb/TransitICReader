@@ -63,6 +63,8 @@ enum UnsupportedTestDecoder: TransitCardDecoder {
     }
 }
 typealias CalypsoDecoder = UnsupportedTestDecoder
+typealias CEPASDecoder = UnsupportedTestDecoder
+typealias StoredValueDecoder = UnsupportedTestDecoder
 typealias KSX6924Decoder = UnsupportedTestDecoder
 typealias EdyDecoder = UnsupportedTestDecoder
 typealias WAONDecoder = UnsupportedTestDecoder

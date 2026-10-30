@@ -197,6 +197,7 @@ class CardWalletStore: ObservableObject {
         if ICCardBrand.from(family: family) == .snapperPlus, technology == "ISO7816", kind == .transactions {
             return SnapperPlusProtocol.mergeHistory(incoming + existing)
         }
+        if AdditionalCardHistory.handles(family) { return AdditionalCardHistory.merge(incoming + existing) }
         guard !existing.isEmpty else { return incoming }
         guard !incoming.isEmpty else { return existing }
 

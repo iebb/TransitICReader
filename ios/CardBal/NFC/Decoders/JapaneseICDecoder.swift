@@ -99,6 +99,8 @@ struct JapaneseICDecoder: TransitCardDecoder {
              let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0F, 0x05]), maxBlocks: 3, stopAtEmptyPrefix: false) // 050F
              let sfEntry = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0B, 0x06]), maxBlocks: 2, stopAtEmptyPrefix: false)     // 060B
              transitHistory = gateHistory + sfEntry
+        } else if profile.displayName == "Ryuto" {
+             transactions = await readServiceRecords(feliCa: feliCa, serviceCode: RyutoCardFormat.service, stopAtEmptyPrefix: false)
         } else if profile.displayName == "Octopus" {
              transactions = await readOctopusRawTransactions(feliCa: feliCa)
         }
@@ -175,6 +177,17 @@ struct JapaneseICDecoder: TransitCardDecoder {
         // KMT's history epoch is not verified. Preserve its raw blocks without
         // interpreting them as Japanese IC records or fabricating dates/fares.
         if KMTCardFormat.matchesFamily(family) { return nil }
+        if family.caseInsensitiveCompare("Ryuto") == .orderedSame {
+            guard kind == .transactions, let record = RyutoCardFormat.decode(block) else { return nil }
+            let formatter = DateFormatter()
+            formatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+            formatter.dateFormat = "HH:mm"
+            return TransitTransaction(date: record.date, time: formatter.string(from: record.date), amount: Decimal(record.amount),
+                terminalID: nil, type: record.isTopUp ? "Top-up" : "Bus", category: record.isTopUp ? .topUp : .bus,
+                balanceAfter: Decimal(record.balance), location: record.isTopUp ? nil : "Bus stop \(record.boardingStop) → \(record.alightingStop)",
+                entryStation: record.isTopUp ? nil : "Bus stop \(record.boardingStop)",
+                exitStation: record.isTopUp ? nil : "Bus stop \(record.alightingStop)", rawData: block.hexString)
+        }
         let brand = ICCardBrand.from(family: family)
         switch brand {
         case .edy:
@@ -595,6 +608,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     private static func dateFromElapsedDays(sinceYear year: Int, elapsedDays: Int, elapsedSeconds: Int) -> Date? {
+        guard elapsedDays >= 0, (0..<86400).contains(elapsedSeconds) else { return nil }
         var components = DateComponents()
         components.year = year
         components.month = 1
@@ -624,7 +638,12 @@ struct JapaneseICDecoder: TransitCardDecoder {
         components.minute = minute
         components.timeZone = TimeZone(identifier: "Asia/Tokyo")
 
-        return Calendar(identifier: .gregorian).date(from: components)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        guard let date = calendar.date(from: components) else { return nil }
+        let actual = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        guard actual.year == year, actual.month == month, actual.day == day, actual.hour == hour, actual.minute == minute else { return nil }
+        return date
     }
 
     private static func decodeTransitActivity(block: Data, relatedContext: [Data]) -> TransitTransaction? {

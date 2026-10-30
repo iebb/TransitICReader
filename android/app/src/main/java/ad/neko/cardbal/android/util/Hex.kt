@@ -3,8 +3,8 @@ package ad.neko.cardbal.android.util
 fun ByteArray.hexString(): String = joinToString("") { "%02X".format(it) }
 
 fun String.hexToBytes(): ByteArray {
-    val clean = filter { it.isLetterOrDigit() }
-    if (clean.length % 2 != 0) return byteArrayOf()
+    val clean = filterNot { it.isWhitespace() }
+    if (clean.length % 2 != 0 || clean.any { it.digitToIntOrNull(16) == null }) return byteArrayOf()
     return clean.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 }
 

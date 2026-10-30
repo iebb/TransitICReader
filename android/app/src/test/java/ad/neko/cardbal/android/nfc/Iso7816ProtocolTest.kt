@@ -9,7 +9,7 @@ class Iso7816ProtocolTest {
         Iso7816Protocol.applications.filter { it.currency == "KRW" }.forEach {
             assertArrayEquals("904C000004".hexToBytes(), Iso7816Protocol.balanceCommand(it))
         }
-        val chinese = Iso7816Protocol.applications.single { it.currency == "CNY" }
+        val chinese = Iso7816Protocol.applications.first { it.currency == "CNY" }
         assertArrayEquals("805C000204".hexToBytes(), Iso7816Protocol.balanceCommand(chinese))
         assertEquals(12345L, Iso7816Protocol.balanceValue("000030399000".hexToBytes()))
         assertEquals(0L, Iso7816Protocol.balanceValue("000000009000".hexToBytes()))

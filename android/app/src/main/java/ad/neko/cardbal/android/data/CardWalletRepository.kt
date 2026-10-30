@@ -46,6 +46,7 @@ class CardWalletRepository(context: Context) {
             existing.copy(
                 id = snapshot.storageIdentifier,
                 cardFamily = snapshot.cardFamily,
+                applications = if(snapshot.applications.isNullOrEmpty()) existing.applications else TransitApplication.merge(existing.applications ?: listOf(TransitApplication.fromSaved(existing)), snapshot.applications),
                 balanceText = snapshot.balanceText,
                 balanceDetail = snapshot.balanceDetail,
                 resultFields = incomingFields,

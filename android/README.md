@@ -37,12 +37,14 @@ asset task rebuilds whenever that override is set.
 
 Generated Android assets live under `app/build/generated/stationAssets`.
 Intermediate portable exports live under `app/build/generated/portableStationAssets`.
-Neither directory belongs in Git. The Android package consumes exactly:
+Neither directory belongs in Git. The Android package consumes:
 
 - `JPStationCodes.csv`
 - `JPBusCodes.csv`
 - `jp_stations.sqlite`
 - `tunion_stations.sqlite`
+- `cardbal_transit.sqlite`
+- `KOTRISTransportModes.json`
 - `manifest.json`
 
 The build verifies that these files exist and that no unused station exports
@@ -52,9 +54,10 @@ retained under `third_party/`.
 
 ## NFC scope
 
-The app currently implements FeliCa readers for standard Japanese transit IC,
-Octopus, Rakuten Edy, WAON, nanaco and KMT, and ISO7816 readers for T-money,
-EZL/Cashbee, NAMANE, positively identified Snapper+ and T-Union. Recognition, readable balance and decoded
+The app implements the same card-format decoders as iPhone, including the
+additional Japanese FeliCa profiles, U-Money, City Union, CEPAS, named Calypso
+networks, Opal, HSL/Waltti and older Clipper. See the
+[card capability matrix](../docs/research/platform-parity.md). Recognition, readable balance and decoded
 history are separate capabilities; a successful application selection does not
 establish that every card version exposes all records.
 
