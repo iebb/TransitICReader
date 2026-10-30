@@ -404,3 +404,8 @@
 "Orange" = "Orange";
 "Graphite" = "Graphite";
 "Custom Color" = "Custom Color";
+
+/* Settings community links */
+"Community" = "Community";
+"Support" = "Support";
+"Telegram Group" = "Telegram Group";

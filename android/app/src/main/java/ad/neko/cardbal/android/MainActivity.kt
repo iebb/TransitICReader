@@ -30,8 +30,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Map
@@ -71,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -572,12 +575,23 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         }
         item {
             SettingsSectionCard(
+                icon = Icons.Filled.Forum,
+                title = "Community",
+                subtitle = "Help, source code, and chat.",
+            ) {
+                SettingsLinkRow("Support", "cardb.al/support", "https://cardb.al/support/")
+                SettingsLinkRow("GitHub", "iebb/TransitICReader", "https://github.com/iebb/TransitICReader")
+                SettingsLinkRow("Telegram Group", "t.me/cardbal", "https://t.me/cardbal")
+            }
+        }
+        item {
+            SettingsSectionCard(
                 icon = Icons.Filled.Info,
                 title = "Information",
                 subtitle = "Unofficial transit card reader.",
             ) {
                 SettingsInfoRow("App", "CardBal Android")
-                SettingsInfoRow("Version", "0.1.0")
+                SettingsInfoRow("Version", BuildConfig.VERSION_NAME)
                 Text(
                     "CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -628,6 +642,38 @@ private fun SettingsSectionCard(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             content()
+        }
+    }
+}
+
+@Composable
+private fun SettingsLinkRow(label: String, value: String, url: String) {
+    val uriHandler = LocalUriHandler.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { runCatching { uriHandler.openUri(url) } }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                value,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.size(6.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }

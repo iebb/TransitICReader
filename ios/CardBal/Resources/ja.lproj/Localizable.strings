@@ -447,3 +447,8 @@
 "Orange" = "オレンジ";
 "Graphite" = "グラファイト";
 "Custom Color" = "カスタムカラー";
+
+/* Settings community links */
+"Community" = "コミュニティ";
+"Support" = "サポート";
+"Telegram Group" = "Telegramグループ";

@@ -726,6 +726,17 @@ struct SettingsView: View {
                         Label("About", systemImage: "info.circle")
                     }
                 }
+                Section("Community") {
+                    Link(destination: URL(string: "https://cardb.al/support/")!) {
+                        Label("Support", systemImage: "questionmark.circle")
+                    }
+                    Link(destination: URL(string: "https://github.com/iebb/TransitICReader")!) {
+                        Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    Link(destination: URL(string: "https://t.me/cardbal")!) {
+                        Label("Telegram Group", systemImage: "paperplane")
+                    }
+                }
                 Section("Station Data") {
                     Link(destination: URL(string: "https://cardbal.ieb.app")!) {
                         Label("View Station Requests", systemImage: "mappin.and.ellipse")

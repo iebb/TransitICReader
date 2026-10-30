@@ -447,3 +447,8 @@
 "Orange" = "橙色";
 "Graphite" = "石墨色";
 "Custom Color" = "自定义颜色";
+
+/* Settings community links */
+"Community" = "社区";
+"Support" = "支持";
+"Telegram Group" = "Telegram 群组";

@@ -451,3 +451,8 @@
 "Orange" = "주황";
 "Graphite" = "그래파이트";
 "Custom Color" = "사용자 지정 색상";
+
+/* Settings community links */
+"Community" = "커뮤니티";
+"Support" = "고객 지원";
+"Telegram Group" = "Telegram 그룹";
