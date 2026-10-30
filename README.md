@@ -1,5 +1,7 @@
 # CardBal / TransitICReader
 
+English | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
+
 Transit IC-card readers for iPhone and Android. The apps read supported on-card
 balances and records through Core NFC, ISO-DEP, and FeliCa; the available fields
 depend on the card family and phone. No card-writing or top-up feature is included.
@@ -65,3 +67,44 @@ included. See [Android setup](android/README.md).
 
 The compatibility command `python3 scripts/build_cross_platform_station_assets.py`
 continues to forward to the shared compiler.
+
+## Station sources
+
+Both apps compile station, line, and route data from the public
+[iebb/card-stations](https://github.com/iebb/card-stations) CSV catalog, at the
+revision pinned in `data/stations/card-stations.lock.json`. Send corrections there
+as pull requests with a source. The catalog combines:
+
+| Data | Source | License |
+| --- | --- | --- |
+| Japanese stations, lines, and rail geometry | [station_database](https://github.com/Seo-4d696b75/station_database) by Seo-4d696b75 | CC BY-SA 4.0 |
+| Japanese FeliCa station and bus codes | CardBal code registries | No upstream grant recorded |
+| T-Union and Shanghai City Union stations, lines, and gates | [Trip Reader / 读卡识途 data](https://github.com/domosekai/tripreader-data), Domosekai Limited and contributors | CC BY 4.0 |
+| China and Korea coordinates, names, and map references | [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) | ODbL 1.0 |
+| Korean station codes and names | KORAIL KOTRIS, MOLIT, Seoul Metropolitan Government, Busan BIMS, KRIC, and Daegu Transportation Corporation | Publisher terms; Seoul data is KOGL Type 1 |
+| Supplementary Korean names | [Wikidata](https://www.wikidata.org/wiki/Wikidata:Licensing) | CC0 1.0 |
+| Ulaanbaatar stops and routes | UB Smart Bus, Ulaanbaatar Smart Card LLC | No license recorded |
+
+City and province outlines in `data/boundaries/` come from
+[geoBoundaries](https://www.geoboundaries.org) (CC BY 4.0; Runfola et al. 2020),
+OpenStreetMap (ODbL 1.0), and [Natural Earth](https://www.naturalearthdata.com)
+(public domain). Each JSON catalog records the underlying license of every
+country layer. The reviewed inputs in `data/maintenance/` come from OpenStreetMap
+and Trip Reader.
+
+Per-path licenses and full license texts are in
+[card-stations/licenses](https://github.com/iebb/card-stations/blob/master/licenses/README.md).
+See also [Trip Reader provenance](docs/data/tripreader.md) and
+[UB Smart Bus data](docs/data/ub-smart-bus.md).
+
+## License
+
+The source code is available under the [BSD 3-Clause License](LICENSE).
+
+Station, map, and boundary data keep the upstream licenses listed above; the BSD
+license does not apply to them. The bundled `cardbal_transit.sqlite` and the
+Android station assets are adapted from those sources and keep their attribution
+and share-alike terms. The Manrope font in the Android app is licensed under the
+[SIL Open Font License 1.1](android/third_party/Manrope-OFL.txt). Card artwork,
+card names, and logos belong to their issuers and are not covered by the BSD
+license.
