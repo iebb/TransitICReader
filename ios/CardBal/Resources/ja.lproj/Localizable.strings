@@ -1025,3 +1025,9 @@
 "Application Serial" = "アプリケーション製造番号";
 "Issuer" = "発行者";
 "Route 0x%X" = "路線 0x%X";
+"Return" = "返品";
+"Point Download" = "ポイントダウンロード";
+"Refund" = "返金";
+"Auto Charge" = "オートチャージ";
+"Move to New Card" = "新カードへ移行";
+"Point Exchange" = "ポイント交換";

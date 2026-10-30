@@ -1025,3 +1025,9 @@
 "Application Serial" = "应用序列号";
 "Issuer" = "发行方";
 "Route 0x%X" = "线路 0x%X";
+"Return" = "退货";
+"Point Download" = "积分下载";
+"Refund" = "退款";
+"Auto Charge" = "自动充值";
+"Move to New Card" = "转移至新卡";
+"Point Exchange" = "积分兑换";

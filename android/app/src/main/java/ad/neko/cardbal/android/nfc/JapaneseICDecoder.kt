@@ -64,7 +64,7 @@ class JapaneseICDecoder : TransitCardDecoder {
                     }
                     FeliCaProfile.Nanaco -> buildList {
                         JapaneseCardFormats.number(felica.readWithoutEncryption("8B55", 0))?.let { add(ResultField("nanaco Number", it)) }
-                        felica.readWithoutEncryption("0B56", 1)?.takeIf { it.size == 16 }?.let { add(ResultField("Points", "${JapaneseCardFormats.uint(it, 0, 3, true)} pts")) }
+                        JapaneseCardFormats.nanacoPoints(felica.readWithoutEncryption("0B56", 1))?.let { add(ResultField("Points", "$it pts")) }
                         felica.readWithoutEncryption("CB55", 0)?.takeIf { it.size == 16 }?.let {
                             JapaneseCardFormats.packedDate(JapaneseCardFormats.uint(it, 0, 2).toInt())?.let { day -> add(ResultField("Last Use Date", day)) }
                             JapaneseCardFormats.packedDate(JapaneseCardFormats.uint(it, 4, 2).toInt())?.let { day -> add(ResultField("Issue Date", day)) }
@@ -176,13 +176,8 @@ class JapaneseICDecoder : TransitCardDecoder {
         felica.readWithoutEncryption("4F68", 0)?.let { numberBlock ->
             fields.add(ResultField("WAON Number", numberBlock.take(8).toByteArray().hexString()))
         }
-        felica.readWithoutEncryption("4B68", 0)?.let { pointsBlock ->
-            if (pointsBlock.size >= 3) {
-                val points = (pointsBlock[0].toInt() and 0xff) or
-                    ((pointsBlock[1].toInt() and 0xff) shl 8) or
-                    ((pointsBlock[2].toInt() and 0xff) shl 16)
-                fields.add(ResultField("Points", "$points pts"))
-            }
+        JapaneseCardFormats.waonPoints(felica.readWithoutEncryption("4B68", 0))?.let { points ->
+            fields.add(ResultField("Points", "$points pts"))
         }
         return fields
     }

@@ -74,6 +74,7 @@
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"앱 사용 중 활성화"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"인증이 필요한 파일은 읽을 수 없습니다"</string>
     <string name="text_0286249762f7c943" formatted="false">"자동"</string>
+    <string name="text_4a3b85014ad6ab31" formatted="false">"자동 충전"</string>
     <string name="text_466182175de2299d" formatted="false">"자동 충전 (승차)"</string>
     <string name="text_1a6844d41033b914" formatted="false">"자동 충전 (하차)"</string>
     <string name="text_d461a493a3753877" formatted="false">"자동"</string>
@@ -444,6 +445,7 @@
     <string name="text_f42007b6c2eefbbc" formatted="false">"월간 승차 횟수 (%@)"</string>
     <string name="text_91de94d82c99d8a7" formatted="false">"추가 정보(선택)"</string>
     <string name="text_3e79aa76da420fcc" formatted="false">"경로를 그리려면 역이 확인된 기록이 더 필요합니다."</string>
+    <string name="text_06eab011be32929d" formatted="false">"새 카드로 이전"</string>
     <string name="text_ff0f72fc068a14e9" formatted="false">"NFC 활성화"</string>
     <string name="text_eb3dae4cfb113b21" formatted="false">"NFC 대기 중"</string>
     <string name="text_542fd34494a29650" formatted="false">"NFC를 사용할 수 없습니다."</string>
@@ -540,6 +542,8 @@
     <string name="text_385f2c754dee22d1" formatted="false">"선택한 외부 리더에 카드를 놓고 스캔하세요."</string>
     <string name="text_ad16937edcb8e02c" formatted="false">"외부 리더에 카드 한 장을 놓고 스캔을 누르세요."</string>
     <string name="text_27bf25d593443193" formatted="false">"외부 리더에 카드 한 장을 놓고 다시 스캔하세요."</string>
+    <string name="text_05754a234a7e4638" formatted="false">"포인트 다운로드"</string>
+    <string name="text_15eba826aee595c3" formatted="false">"포인트 교환"</string>
     <string name="text_aaffe2f2312b6cd9" formatted="false">"포인트 충전"</string>
     <string name="text_77deabe238de2f6d" formatted="false">"포인트"</string>
     <string name="text_b8658a17dd4bc8db" formatted="false">"포인트 사용"</string>
@@ -604,6 +608,7 @@
     <string name="text_47a84e92d5b225ee" formatted="false">"기록"</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"빨강"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"참조: %@"</string>
+    <string name="text_6b37bd35081fcbc6" formatted="false">"환불"</string>
     <string name="text_d3a008ef1335692d" formatted="false">"지역"</string>
     <string name="text_da692a86e0d600aa" formatted="false">"지역 코드"</string>
     <string name="text_96a987644a7d2486" formatted="false">"거부됨: %@"</string>
@@ -627,6 +632,7 @@
     <string name="text_82da4103a1f56541" formatted="false">"iCloud에서 복원"</string>
     <string name="text_6e7d50e84f4731ef" formatted="false">"결과"</string>
     <string name="text_aa19dcdb7b2d9f52" formatted="false">"상품 구매"</string>
+    <string name="text_6b0143d03864993f" formatted="false">"반품"</string>
     <string name="text_3011a85d67ea0b46" formatted="false">"디자인 재사용"</string>
     <string name="text_ef58e3c9c762774a" formatted="false">"보상 / 포인트 사용"</string>
     <string name="text_5864885934940b16" formatted="false">"승차 지도"</string>

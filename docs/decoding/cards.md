@@ -206,6 +206,12 @@ Read process:
 - Read points from service `4B68`.
 - Read transaction history from service `0B68`.
 
+The point count is a big-endian 24-bit value at bytes `0..2` of points
+block 0. History also names returns, point downloads, refunds, automatic
+charges, moves to a new card, and point exchanges. These less common operations
+retain an unknown transaction category because their balance effect is not
+inferred from the label.
+
 WAON history is decoded as a 32-byte paired-block record:
 
 | Field | Bytes | Decode |
@@ -223,6 +229,18 @@ Read process:
 - Read balance from service `9755`.
 - Read optional number, points, and metadata services.
 - Read history from service `4F56`.
+
+Points service `0B56` (service ID `560B` before little-endian encoding for
+card I/O) stores two big-endian 24-bit counters in block 1, at bytes `0..2`
+and `5..7`; the displayed point total is their sum. Transaction types `5C`,
+`6F`, and `70` represent top-ups.
+
+These retail point layouts and transaction names follow the
+[nanaco](https://github.com/treastrain/TRETJapanNFCReader/blob/03470a515c0b06d762de39e6d80f9a07ed502cae/Sources/FeliCa/Nanaco/NanacoCardData.swift)
+and
+[WAON](https://github.com/treastrain/TRETJapanNFCReader/blob/03470a515c0b06d762de39e6d80f9a07ed502cae/Sources/FeliCa/Waon/WaonCardData.swift)
+formats in TRETJapanNFCReader. Optional point reads may be unavailable on
+individual cards; failure does not prevent a balance or history read.
 
 nanaco history records are 16 bytes:
 

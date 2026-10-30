@@ -29,8 +29,8 @@ struct WAONDecoder: TransitCardDecoder {
         // WAON Number: 8 bytes BCD at offset 0 of svc 684F
         let waonNumber = RetailFeliCaRead.number(numberBlock, bytes: 0..<8)
         
-        // Points: Bytes 0-2 (3 bytes LE?) of svc 684B
-        let pointsVal = pointsBlock.map { Int($0[0]) | (Int($0[1]) << 8) | (Int($0[2]) << 16) }
+        // Points: bytes 0-2, big-endian, of service 684B block 0.
+        let pointsVal = pointsBlock.map { $0.bigEndianInt(start: 0, length: 3) }
         
         let idm = feliCa.currentIDm.hexString.uppercased()
         let formattedIDm = formatFeliCaIDm(idm)

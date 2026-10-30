@@ -78,6 +78,7 @@ included. See [Android setup](android/README.md).
 - [Macau Pass / 澳门通](docs/decoding/macau-pass.md)
 - [FareBot publicly readable card survey](docs/research/farebot-public-card-survey.md)
 - [Additional-card feasibility and platform gaps](docs/research/card-support.md)
+- [Apple Watch card-reading feasibility](docs/research/apple-watch-feasibility.md)
 - [Station data and attribution](docs/data/station-assets.md)
 - [Station-report service](services/station-reports/README.md)
 

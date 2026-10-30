@@ -1023,3 +1023,9 @@
 "Application Serial" = "Application Serial";
 "Issuer" = "Issuer";
 "Route 0x%X" = "Route 0x%X";
+"Return" = "Return";
+"Point Download" = "Point Download";
+"Refund" = "Refund";
+"Auto Charge" = "Auto Charge";
+"Move to New Card" = "Move to New Card";
+"Point Exchange" = "Point Exchange";

@@ -359,15 +359,14 @@ class TransactionDecoder(context: Context) {
         val balance = readMsbPackedBits(packed, 25, 18).toLong()
         val usageAmount = readMsbPackedBits(packed, 43, 18).toLong()
         val chargeAmount = readMsbPackedBits(packed, 61, 17).toLong()
-        val isTopUp = type == 0x0C || type == 0x10
-        val amount = if (isTopUp) chargeAmount else usageAmount
+        val (label, category, amount) = JapaneseCardFormats.waonType(type, usageAmount, chargeAmount)
         return TransitTransaction(
             date = localInstant(year, month, day, hour, minute),
             amount = amount,
             terminalID = formatUtf8OrHex(data.copyOfRange(0, 13)),
             recordNumber = sequence,
-            type = waonTransactionTypeName(type),
-            category = if (isTopUp) TransactionCategory.topUp else if (type == 0x04) TransactionCategory.payment else TransactionCategory.unknown,
+            type = label,
+            category = category,
             balanceAfter = balance,
             rawData = raw,
         )
@@ -569,7 +568,7 @@ class TransactionDecoder(context: Context) {
             values = listOf(
                 RawRecordValue("Terminal", formatUtf8OrHex(terminal), terminal.hex(), byteRange = 0..12),
                 RawRecordValue("Sequence", sequence.toString(), data.copyOfRange(13, 15).hex(), byteRange = 13..14),
-                RawRecordValue("Transaction Type", waonTransactionTypeName(type), "0x%02X".format(type), byteRange = 17..17),
+                RawRecordValue("Transaction Type", JapaneseCardFormats.waonTypeName(type), "0x%02X".format(type), byteRange = 17..17),
                 RawRecordValue("Packed DateTime", "%04d-%02d-%02d %02d:%02d".format(year, month, day, hour, minute), packed.hex(), byteRange = 18..28),
                 RawRecordValue("Balance After", "¥%,d".format(balance), "bits 25-42", byteRange = 21..23, bitRange = 25..42),
                 RawRecordValue("Usage Amount", "¥%,d".format(usageAmount), "bits 43-60", byteRange = 23..25, bitRange = 43..60),
@@ -670,12 +669,6 @@ class TransactionDecoder(context: Context) {
     private fun localInstant(year: Int, month: Int, day: Int, hour: Int, minute: Int): Instant? {
         if (month !in 1..12 || day !in 1..31 || hour !in 0..23 || minute !in 0..59) return null
         return Instant.fromEpochMilliseconds(LocalDateTime.of(year, month, day, hour, minute).atZone(ZoneId.of("Asia/Tokyo")).toInstant().toEpochMilli())
-    }
-
-    private fun waonTransactionTypeName(type: Int): String = when (type) {
-        0x04 -> "Payment"
-        0x0C, 0x10 -> "Top-up"
-        else -> "Transaction 0x%02X".format(type)
     }
 
     private fun japaneseTerminalName(code: Int): String = when (code) {

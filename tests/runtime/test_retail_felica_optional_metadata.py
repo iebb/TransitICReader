@@ -1,5 +1,6 @@
 """Drive the production retail FeliCa decoders with invented RF callbacks."""
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -123,6 +124,24 @@ static func main() async throws {
     let nc = try await snapshot(NanacoDecoder.self, nanaco)
     precondition(field(nc, "Points") == "0 pts" && field(nc, "Last Use Date") == "2026-02-28")
     precondition(field(nc, "Issue Date") == nil && nc.realSerialNumber == nil)
+    // Points are big-endian. nanaco sums the buckets at bytes 0-2 and 5-7 of
+    // block 1; WAON reads bytes 0-2 of block 0. Little-endian reads would give
+    // 591621 and 197121, and the filler bytes outside the buckets are ignored.
+    let nanacoPoints = fixture("9755")
+    var buckets = Data(repeating: 0xEE, count: 16)
+    buckets.replaceSubrange(0..<3, with: [1, 2, 3]); buckets.replaceSubrange(5..<8, with: [4, 5, 6])
+    nanacoPoints.responses["0B56:0"] = (0, 0, [Data(repeating: 0x7F, count: 16)])
+    nanacoPoints.responses["0B56:1"] = (0, 0, [buckets])
+    let np = try await snapshot(NanacoDecoder.self, nanacoPoints)
+    precondition(field(np, "Points") == "329481 pts" && !nanacoPoints.requests.contains("0B56:0"))
+    let waonPoints = fixture("1768")
+    var waonPointBlock = Data(repeating: 0xEE, count: 16)
+    waonPointBlock.replaceSubrange(0..<3, with: [1, 2, 3])
+    waonPoints.responses["4B68:0"] = (0, 0, [waonPointBlock])
+    let wp = try await snapshot(WAONDecoder.self, waonPoints)
+    precondition(field(wp, "Points") == "66051 pts")
+    precondition(wp.rawSections.first(where: { $0.title == "Points (684B)" })?
+        .fields.first(where: { $0.title == "Parsed" })?.value == "66051")
     // Valid BCD metadata and the original big-endian packed Edy issue clock.
     let edy = fixture("1713")
     var number = block()
@@ -158,7 +177,7 @@ static func main() async throws {
     let wc = try await snapshot(WAONDecoder.self, waon)
     precondition(wc.rawTransactions == [(block(0xCC) + block(0xDD)).hexString])
     precondition(waon.requests.filter { $0.hasPrefix("0B68:") } == (0..<6).map { "0B68:\($0)" })
-    print("PASS retail FeliCa optional metadata and exact addressed read guards")
+    print("PASS retail FeliCa optional metadata, big-endian points and exact addressed read guards")
 }
 }
 '''
@@ -168,7 +187,11 @@ static func main() async throws {
             "ios/CardBal/NFC/Decoders/NanacoDecoder.swift",
             "ios/CardBal/NFC/Decoders/WAONDecoder.swift",
         ]
-        production = "\n".join((ROOT / name).read_text().replace("import CoreNFC", "").replace("CardTag", "NFCTag").replace("FeliCaCard", "NFCFeliCaTag") for name in files)
+        # Points parsing uses the production Data helper, not a stub copy.
+        utils = (ROOT / "ios/CardBal/NFC/NFCUtils.swift").read_text()
+        big_endian = re.search(r"^    func bigEndianInt\(.*?^    }", utils, re.M | re.S)
+        self.assertIsNotNone(big_endian)
+        production = "extension Data {\n" + big_endian.group() + "\n}\n" + "\n".join((ROOT / name).read_text().replace("import CoreNFC", "").replace("CardTag", "NFCTag").replace("FeliCaCard", "NFCFeliCaTag") for name in files)
         with tempfile.TemporaryDirectory(prefix="cardbal-retail-felica-") as directory:
             path = Path(directory)
             source = path / "main.swift"

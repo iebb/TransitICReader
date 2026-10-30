@@ -586,6 +586,19 @@ struct JapaneseICDecoder: TransitCardDecoder {
             return ("Payment", .payment, usageAmount)
         case 0x0C, 0x10:
             return ("Top-up", .topUp, chargeAmount)
+        // Retain the existing unknown category and amount handling for these named operations.
+        case 0x08:
+            return ("Return", .unknown, max(usageAmount, chargeAmount))
+        case 0x18:
+            return ("Point Download", .unknown, max(usageAmount, chargeAmount))
+        case 0x28:
+            return ("Refund", .unknown, max(usageAmount, chargeAmount))
+        case 0x1C, 0x20, 0x30:
+            return ("Auto Charge", .unknown, max(usageAmount, chargeAmount))
+        case 0x3C:
+            return ("Move to New Card", .unknown, max(usageAmount, chargeAmount))
+        case 0x7C:
+            return ("Point Exchange", .unknown, max(usageAmount, chargeAmount))
         default:
             return (String(format: "Transaction %02X", typeByte), .unknown, max(usageAmount, chargeAmount))
         }
@@ -595,7 +608,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         switch typeByte {
         case 0x47:
             return ("Payment", .payment)
-        case 0x6F, 0x70:
+        case 0x5C, 0x6F, 0x70:
             return ("Top-up", .topUp)
         case 0x83:
             return ("Points Redemption", .topUp)

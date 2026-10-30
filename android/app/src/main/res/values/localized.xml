@@ -74,6 +74,7 @@
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"Armed while foregrounded"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"Authenticated file is not readable"</string>
     <string name="text_0286249762f7c943" formatted="false">"Auto"</string>
+    <string name="text_4a3b85014ad6ab31" formatted="false">"Auto Charge"</string>
     <string name="text_466182175de2299d" formatted="false">"Auto-charge (Entry Gate)"</string>
     <string name="text_1a6844d41033b914" formatted="false">"Auto-charge (Exit Gate)"</string>
     <string name="text_d461a493a3753877" formatted="false">"Automatic"</string>
@@ -444,6 +445,7 @@
     <string name="text_f42007b6c2eefbbc" formatted="false">"Monthly Rides (%@)"</string>
     <string name="text_91de94d82c99d8a7" formatted="false">"More Details (Optional)"</string>
     <string name="text_3e79aa76da420fcc" formatted="false">"More resolved station records are needed to draw a route."</string>
+    <string name="text_06eab011be32929d" formatted="false">"Move to New Card"</string>
     <string name="text_ff0f72fc068a14e9" formatted="false">"NFC active"</string>
     <string name="text_eb3dae4cfb113b21" formatted="false">"NFC idle"</string>
     <string name="text_542fd34494a29650" formatted="false">"NFC is not available."</string>
@@ -540,6 +542,8 @@
     <string name="text_385f2c754dee22d1" formatted="false">"Place a card on your selected external reader, then choose Scan."</string>
     <string name="text_ad16937edcb8e02c" formatted="false">"Place one card on the external reader, then press Scan."</string>
     <string name="text_27bf25d593443193" formatted="false">"Place one card on the external reader, then scan again."</string>
+    <string name="text_05754a234a7e4638" formatted="false">"Point Download"</string>
+    <string name="text_15eba826aee595c3" formatted="false">"Point Exchange"</string>
     <string name="text_aaffe2f2312b6cd9" formatted="false">"Point Top-up"</string>
     <string name="text_77deabe238de2f6d" formatted="false">"Points"</string>
     <string name="text_b8658a17dd4bc8db" formatted="false">"Points Redemption"</string>
@@ -604,6 +608,7 @@
     <string name="text_47a84e92d5b225ee" formatted="false">"Records"</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"Red"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"Reference: %@"</string>
+    <string name="text_6b37bd35081fcbc6" formatted="false">"Refund"</string>
     <string name="text_d3a008ef1335692d" formatted="false">"Region"</string>
     <string name="text_da692a86e0d600aa" formatted="false">"Region Code"</string>
     <string name="text_96a987644a7d2486" formatted="false">"Rejected %@"</string>
@@ -627,6 +632,7 @@
     <string name="text_82da4103a1f56541" formatted="false">"Restore from iCloud"</string>
     <string name="text_6e7d50e84f4731ef" formatted="false">"Result"</string>
     <string name="text_aa19dcdb7b2d9f52" formatted="false">"Retail purchase"</string>
+    <string name="text_6b0143d03864993f" formatted="false">"Return"</string>
     <string name="text_3011a85d67ea0b46" formatted="false">"Reuse Design"</string>
     <string name="text_ef58e3c9c762774a" formatted="false">"Reward/Points Redemption"</string>
     <string name="text_5864885934940b16" formatted="false">"Ride map"</string>

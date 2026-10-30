@@ -24,6 +24,31 @@ internal object JapaneseCardFormats {
 
     fun packedDate(value: Int): String? = runCatching { LocalDate.of(2000 + (value shr 9), (value shr 5) and 15, value and 31).toString() }.getOrNull()
 
+    /** nanaco service 560B block 1 holds two big-endian 24-bit point buckets at bytes 0-2 and 5-7. */
+    fun nanacoPoints(block: ByteArray?): Long? = block?.takeIf { it.size == 16 }?.let { uint(it, 0, 3) + uint(it, 5, 3) }
+
+    /** WAON service 684B block 0 holds points as a big-endian 24-bit value. */
+    fun waonPoints(block: ByteArray?): Long? = block?.takeIf { it.size >= 3 }?.let { uint(it, 0, 3) }
+
+    fun waonTypeName(type: Int): String = when (type) {
+        0x04 -> "Payment"
+        0x0C, 0x10 -> "Top-up"
+        0x08 -> "Return"
+        0x18 -> "Point Download"
+        0x28 -> "Refund"
+        0x1C, 0x20, 0x30 -> "Auto Charge"
+        0x3C -> "Move to New Card"
+        0x7C -> "Point Exchange"
+        else -> "Transaction 0x%02X".format(type)
+    }
+
+    /** Payments use the usage field and top-ups the charge field; other operations keep the larger of the two. */
+    fun waonType(type: Int, usage: Long, charge: Long): Triple<String, TransactionCategory, Long> = when (type) {
+        0x04 -> Triple(waonTypeName(type), TransactionCategory.payment, usage)
+        0x0C, 0x10 -> Triple(waonTypeName(type), TransactionCategory.topUp, charge)
+        else -> Triple(waonTypeName(type), TransactionCategory.unknown, maxOf(usage, charge))
+    }
+
     fun edy(data: ByteArray, raw: String): TransitTransaction? {
         if (data.size != 16) return null
         val clock = uint(data, 4, 4)
@@ -48,7 +73,7 @@ internal object JapaneseCardFormats {
         val timestamp = date(2000 + ((clock shr 21) and 2047).toInt(), ((clock shr 17) and 15).toInt(), ((clock shr 12) and 31).toInt(), ((clock shr 6) and 63).toInt(), (clock and 63).toInt())
         val (label, category) = when (data[0].toInt() and 255) {
             0x47 -> "Payment" to TransactionCategory.payment
-            0x6f, 0x70 -> "Top-up" to TransactionCategory.topUp
+            0x5c, 0x6f, 0x70 -> "Top-up" to TransactionCategory.topUp
             0x83 -> "Points exchange" to TransactionCategory.topUp
             0x35 -> "Transfer" to TransactionCategory.adjustment
             else -> "nanaco transaction" to TransactionCategory.unknown

@@ -1222,7 +1222,7 @@ struct NanacoRawBreakdownView: View {
     private func nanacoTransactionTypeName(_ type: UInt8) -> String {
         switch type {
         case 0x47: return "Payment"
-        case 0x6F, 0x70: return "Top-up"
+        case 0x5C, 0x6F, 0x70: return "Top-up"
         case 0x83: return "Points Redemption"
         case 0x35: return "Transfer"
         default: return String(format: "0x%02X", type)
@@ -1286,6 +1286,12 @@ struct WAONRawBreakdownView: View {
         switch type {
         case 0x04: return "Payment"
         case 0x0C, 0x10: return "Top-up"
+        case 0x08: return "Return"
+        case 0x18: return "Point Download"
+        case 0x28: return "Refund"
+        case 0x1C, 0x20, 0x30: return "Auto Charge"
+        case 0x3C: return "Move to New Card"
+        case 0x7C: return "Point Exchange"
         default: return String(format: "0x%02X", type)
         }
     }

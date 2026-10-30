@@ -74,6 +74,7 @@
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"アプリ使用中に有効"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"認証が必要なファイルは読み取れません"</string>
     <string name="text_0286249762f7c943" formatted="false">"自動"</string>
+    <string name="text_4a3b85014ad6ab31" formatted="false">"オートチャージ"</string>
     <string name="text_466182175de2299d" formatted="false">"オートチャージ（入場）"</string>
     <string name="text_1a6844d41033b914" formatted="false">"オートチャージ（出場）"</string>
     <string name="text_d461a493a3753877" formatted="false">"自動"</string>
@@ -444,6 +445,7 @@
     <string name="text_f42007b6c2eefbbc" formatted="false">"月間乗車回数（%@）"</string>
     <string name="text_91de94d82c99d8a7" formatted="false">"追加情報（任意）"</string>
     <string name="text_3e79aa76da420fcc" formatted="false">"経路の描画には、駅を特定できる履歴がさらに必要です。"</string>
+    <string name="text_06eab011be32929d" formatted="false">"新カードへ移行"</string>
     <string name="text_ff0f72fc068a14e9" formatted="false">"NFC 有効"</string>
     <string name="text_eb3dae4cfb113b21" formatted="false">"NFC 待機中"</string>
     <string name="text_542fd34494a29650" formatted="false">"NFC を使用できません。"</string>
@@ -540,6 +542,8 @@
     <string name="text_385f2c754dee22d1" formatted="false">"選択した外部リーダーにカードを置いて、スキャンしてください。"</string>
     <string name="text_ad16937edcb8e02c" formatted="false">"外部リーダーにカードを1枚置いてから「スキャン」を押してください。"</string>
     <string name="text_27bf25d593443193" formatted="false">"外部リーダーにカードを1枚置いて、もう一度スキャンしてください。"</string>
+    <string name="text_05754a234a7e4638" formatted="false">"ポイントダウンロード"</string>
+    <string name="text_15eba826aee595c3" formatted="false">"ポイント交換"</string>
     <string name="text_aaffe2f2312b6cd9" formatted="false">"ポイントチャージ"</string>
     <string name="text_77deabe238de2f6d" formatted="false">"ポイント"</string>
     <string name="text_b8658a17dd4bc8db" formatted="false">"ポイント交換"</string>
@@ -604,6 +608,7 @@
     <string name="text_47a84e92d5b225ee" formatted="false">"記録"</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"赤"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"参照：%@"</string>
+    <string name="text_6b37bd35081fcbc6" formatted="false">"返金"</string>
     <string name="text_d3a008ef1335692d" formatted="false">"地域"</string>
     <string name="text_da692a86e0d600aa" formatted="false">"地域コード"</string>
     <string name="text_96a987644a7d2486" formatted="false">"拒否：%@"</string>
@@ -627,6 +632,7 @@
     <string name="text_82da4103a1f56541" formatted="false">"iCloudから復元"</string>
     <string name="text_6e7d50e84f4731ef" formatted="false">"結果"</string>
     <string name="text_aa19dcdb7b2d9f52" formatted="false">"買い物"</string>
+    <string name="text_6b0143d03864993f" formatted="false">"返品"</string>
     <string name="text_3011a85d67ea0b46" formatted="false">"デザインを再利用"</string>
     <string name="text_ef58e3c9c762774a" formatted="false">"特典・ポイント交換"</string>
     <string name="text_5864885934940b16" formatted="false">"乗車マップ"</string>

@@ -74,6 +74,7 @@
     <string name="text_9f80be3a5c9f1a6a" formatted="false">"前台运行时启用"</string>
     <string name="text_7dc818b00a75e523" formatted="false">"无法读取需要认证的文件"</string>
     <string name="text_0286249762f7c943" formatted="false">"自动"</string>
+    <string name="text_4a3b85014ad6ab31" formatted="false">"自动充值"</string>
     <string name="text_466182175de2299d" formatted="false">"自动充值（进站）"</string>
     <string name="text_1a6844d41033b914" formatted="false">"自动充值（出站）"</string>
     <string name="text_d461a493a3753877" formatted="false">"自动"</string>
@@ -444,6 +445,7 @@
     <string name="text_f42007b6c2eefbbc" formatted="false">"月票次数（%@）"</string>
     <string name="text_91de94d82c99d8a7" formatted="false">"更多信息（选填）"</string>
     <string name="text_3e79aa76da420fcc" formatted="false">"需要更多已识别车站的记录才能绘制线路。"</string>
+    <string name="text_06eab011be32929d" formatted="false">"转移至新卡"</string>
     <string name="text_ff0f72fc068a14e9" formatted="false">"NFC 已启用"</string>
     <string name="text_eb3dae4cfb113b21" formatted="false">"NFC 待机"</string>
     <string name="text_542fd34494a29650" formatted="false">"NFC 不可用。"</string>
@@ -540,6 +542,8 @@
     <string name="text_385f2c754dee22d1" formatted="false">"将卡片放在所选外接读卡器上，然后扫描。"</string>
     <string name="text_ad16937edcb8e02c" formatted="false">"将一张卡片放在外接读卡器上，然后点击「扫描」。"</string>
     <string name="text_27bf25d593443193" formatted="false">"将一张卡片放在外接读卡器上，然后重新扫描。"</string>
+    <string name="text_05754a234a7e4638" formatted="false">"积分下载"</string>
+    <string name="text_15eba826aee595c3" formatted="false">"积分兑换"</string>
     <string name="text_aaffe2f2312b6cd9" formatted="false">"积分充值"</string>
     <string name="text_77deabe238de2f6d" formatted="false">"积分"</string>
     <string name="text_b8658a17dd4bc8db" formatted="false">"积分兑换"</string>
@@ -604,6 +608,7 @@
     <string name="text_47a84e92d5b225ee" formatted="false">"记录"</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"红色"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"参考：%@"</string>
+    <string name="text_6b37bd35081fcbc6" formatted="false">"退款"</string>
     <string name="text_d3a008ef1335692d" formatted="false">"地区"</string>
     <string name="text_da692a86e0d600aa" formatted="false">"地区代码"</string>
     <string name="text_96a987644a7d2486" formatted="false">"已拒绝：%@"</string>
@@ -627,6 +632,7 @@
     <string name="text_82da4103a1f56541" formatted="false">"从 iCloud 恢复"</string>
     <string name="text_6e7d50e84f4731ef" formatted="false">"结果"</string>
     <string name="text_aa19dcdb7b2d9f52" formatted="false">"零售消费"</string>
+    <string name="text_6b0143d03864993f" formatted="false">"退货"</string>
     <string name="text_3011a85d67ea0b46" formatted="false">"复用设计"</string>
     <string name="text_ef58e3c9c762774a" formatted="false">"奖励／积分兑换"</string>
     <string name="text_5864885934940b16" formatted="false">"乘车地图"</string>

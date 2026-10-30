@@ -1026,3 +1026,9 @@
 "Application Serial" = "애플리케이션 일련번호";
 "Issuer" = "발급사";
 "Route 0x%X" = "노선 0x%X";
+"Return" = "반품";
+"Point Download" = "포인트 다운로드";
+"Refund" = "환불";
+"Auto Charge" = "자동 충전";
+"Move to New Card" = "새 카드로 이전";
+"Point Exchange" = "포인트 교환";

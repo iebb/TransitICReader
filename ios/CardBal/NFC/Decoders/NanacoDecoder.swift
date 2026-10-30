@@ -51,8 +51,8 @@ struct NanacoDecoder: TransitCardDecoder {
         // Issue Date: Bytes 4-5 of 55CB
         let issueDate = metaBlock.flatMap { parseFeliCaDate($0[4], $0[5]) }
 
-        // Points: Bytes 0-2 (3 bytes LE) of svc 560B block 1
-        let pointsVal = pointsBlock.map { Int($0[0]) | (Int($0[1]) << 8) | (Int($0[2]) << 16) }
+        // Points: sum two 3-byte BE buckets at bytes 0-2 and 5-7 of service 560B block 1.
+        let pointsVal = pointsBlock.map { $0.bigEndianInt(start: 0, length: 3) + $0.bigEndianInt(start: 5, length: 3) }
         
         let idm = feliCa.currentIDm.hexString.uppercased()
         let formattedIDm = formatFeliCaIDm(idm)
