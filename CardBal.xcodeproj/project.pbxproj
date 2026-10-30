@@ -34,6 +34,7 @@
 		7C588C84FA6A6B418087AC0D /* suica.png in Resources */ = {isa = PBXBuildFile; fileRef = 61F8D27C459BCDC1BC1CA738 /* suica.png */; };
 		8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692022F6F2ACB0071B6C4 /* SecondaryViews.swift */; };
 		8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */; };
+		E1A7B0C02F7A3D0100A1B2C1 /* TripReaderBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */; };
 		8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */; };
 		8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692032F6F2ACB0071B6C4 /* WalletCardView.swift */; };
 		8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692012F6F2ACB0071B6C4 /* SavedCardDetailView.swift */; };
@@ -112,6 +113,7 @@
 		778D6BD48FAABE736183556A /* sugoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = sugoca.png; path = Presets/sugoca.png; sourceTree = "<group>"; };
 		80112233445566778899AA01 /* TUnionCityCodes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TUnionCityCodes.json; sourceTree = "<group>"; };
 		8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardWalletStore.swift; sourceTree = "<group>"; };
+		E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripReaderBackup.swift; sourceTree = "<group>"; };
 		8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCardRecord.swift; sourceTree = "<group>"; };
 		8C4691FE2F6F2ACB0071B6C4 /* NFCUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCUtils.swift; sourceTree = "<group>"; };
 		B0A1C10E0000000000000001 /* StationReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationReportView.swift; sourceTree = "<group>"; };
@@ -204,6 +206,7 @@
 			children = (
 				8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */,
 				8C4691FA2F6F2ACB0071B6C4 /* SavedCardRecord.swift */,
+				E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -506,6 +509,7 @@
 				A00000000000000000000011 /* CardBalApp.swift in Sources */,
 				8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */,
 				8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */,
+				E1A7B0C02F7A3D0100A1B2C1 /* TripReaderBackup.swift in Sources */,
 				8C4692082F6F2ACB0071B6C4 /* SavedCardRecord.swift in Sources */,
 				8C4692092F6F2ACB0071B6C4 /* WalletCardView.swift in Sources */,
 				8C46920A2F6F2ACB0071B6C4 /* SavedCardDetailView.swift in Sources */,

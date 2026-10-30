@@ -957,10 +957,10 @@ class CardWalletStore: ObservableObject {
         return changed
     }
 
-    private func mergedCard(local: SavedCardRecord, incoming: SavedCardRecord) -> SavedCardRecord {
+    private func mergedCard(local: SavedCardRecord, incoming: SavedCardRecord, keepsLocal: Bool = false) -> SavedCardRecord {
         // A second protocol must not replace the existing card's appearance,
         // pin, position or ID. Same-ID cloud updates retain their usual ordering.
-        let useIncoming = local.id == incoming.id && incoming.scannedAt > local.scannedAt
+        let useIncoming = !keepsLocal && local.id == incoming.id && incoming.scannedAt > local.scannedAt
         var merged = useIncoming ? incoming : local
         let other = useIncoming ? local : incoming
         merged.scannedAt = max(local.scannedAt, incoming.scannedAt)
@@ -1060,6 +1060,32 @@ class CardWalletStore: ObservableObject {
             throw CocoaError(.fileWriteUnknown)
         }
         return CardBackupImportResult(imported: backup.cards.count, replaced: replaced)
+    }
+
+    /// Merge cards decoded from another app's backup. A matching card keeps its
+    /// appearance and place, and each application keeps its newest reading, so
+    /// an older backup adds history without rolling back a balance.
+    @discardableResult
+    func importSnapshots(_ snapshots: [TransitCardSnapshot]) throws -> CardBackupImportResult {
+        var replaced = 0
+        for snapshot in snapshots {
+            let incoming = SavedCardRecord(snapshot: snapshot)
+            // A user-selected file import explicitly restores this card.
+            for alias in incoming.identityAliases { deletedCards.removeValue(forKey: alias) }
+            if let index = cards.firstIndex(where: { !$0.identityAliases.isDisjoint(with: incoming.identityAliases) }) {
+                cards[index] = mergedCard(local: cards[index], incoming: incoming, keepsLocal: true)
+                replaced += 1
+            } else {
+                cards.insert(incoming, at: 0)
+                autoApplyPresetIfMatching(id: incoming.id)
+            }
+        }
+        consolidateMatchingCards()
+        markMapDataChanged()
+        guard save() else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        return CardBackupImportResult(imported: snapshots.count, replaced: replaced)
     }
 
     func exportBackup() -> Data? {

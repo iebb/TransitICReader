@@ -21,7 +21,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     }
     let technology: String
     let cardFamily: String
-    let identifier: String
+    var identifier: String
     let selectedAID: String?
     let systemCode: String?
     var serialNumber: String?
@@ -103,6 +103,8 @@ struct TransitApplication: Codable, Hashable, Identifiable {
             var seen = Set<String>()
             latest.records = (latest.records + other.records).filter { $0.hasContent && seen.insert($0.identity).inserted }
             latest.serialNumber = latest.serialNumber ?? other.serialNumber
+            // An imported backup has no UID; keep the one a scan read.
+            if latest.identifier.isEmpty { latest.identifier = other.identifier }
             latest.cityCode = latest.cityCode ?? other.cityCode
             latest.region = latest.region ?? other.region
             let currentTitles = Set(latest.fields.map(\.title))

@@ -339,6 +339,20 @@
 
 "Import Backup" = "백업 가져오기";
 
+"Import Trip Reader Backup" = "Trip Reader 백업 가져오기";
+
+"Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history." = "Trip Reader(读卡识途) 백업에서 중국 T-Union 및 City Union 카드를 저장된 기록과 함께 추가합니다.";
+
+"Reading Trip Reader backup…" = "Trip Reader 백업을 읽는 중…";
+
+"No China T-Union or City Union cards were found in this Trip Reader backup." = "이 Trip Reader 백업에는 중국 T-Union 또는 City Union 카드가 없습니다.";
+
+"Imported %lld cards and %lld records from Trip Reader." = "Trip Reader에서 카드 %lld장과 기록 %lld건을 가져왔습니다.";
+
+"Skipped %lld cards of other types." = "다른 종류의 카드 %lld장을 건너뛰었습니다.";
+
+"This file is not a Trip Reader backup." = "이 파일은 Trip Reader 백업이 아닙니다.";
+
 "Help Improve Korean Cards" = "한국 카드 읽기 개선에 참여";
 
 "What is shared?" = "어떤 데이터가 공유되나요?";

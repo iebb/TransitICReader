@@ -146,6 +146,38 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
         return CardImportResult(imported = backup.cards.size, replaced = replaced)
     }
 
+    /**
+     * Merge cards decoded from another app's backup. A matching card keeps its id,
+     * appearance and place, and each application keeps its newest reading, so an
+     * older backup adds history without rolling back a balance.
+     */
+    fun importSnapshots(snapshots: List<TransitCardSnapshot>): CardImportResult {
+        val current = _cards.value.toMutableList()
+        var replaced = 0
+        db.beginTransaction()
+        try {
+            for (snapshot in snapshots) {
+                val incoming = SavedCardRecord.from(snapshot)
+                val index = current.indexOfFirst { it.id == incoming.id || it.sharesApplication(incoming) }
+                if (index < 0) {
+                    current.add(0, incoming)
+                    persist(incoming)
+                    continue
+                }
+                val existing = current[index]
+                val merged = existing.mergingImported(incoming)
+                current[index] = merged
+                persist(merged)
+                replaced += 1
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        _cards.value = current.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
+        return CardImportResult(imported = snapshots.size, replaced = replaced)
+    }
+
     private fun update(id: String, mutate: (SavedCardRecord) -> SavedCardRecord) {
         val cards = _cards.value.toMutableList()
         val index = cards.indexOfFirst { it.id == id }
@@ -175,6 +207,22 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
         return cards.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
     }
 }
+
+/** The same application of the same card, identified by its serial. */
+internal fun SavedCardRecord.sharesApplication(other: SavedCardRecord): Boolean {
+    fun SavedCardRecord.keys() = (applications ?: listOf(TransitApplication.fromSaved(this)))
+        .mapNotNull { app -> app.serialNumber?.takeIf { it.isNotBlank() }?.let { "${app.id}|$it" } }.toSet()
+    return keys().any(other.keys()::contains)
+}
+
+/** Keep this card's id and appearance; each application keeps its newest reading. */
+internal fun SavedCardRecord.mergingImported(incoming: SavedCardRecord): SavedCardRecord =
+    withApplications(TransitApplication.merge(
+        applications ?: listOf(TransitApplication.fromSaved(this)), incoming.applications.orEmpty(),
+    )).copy(
+        scannedAt = maxOf(scannedAt, incoming.scannedAt),
+        resultFields = if (incoming.scannedAt > scannedAt) incoming.resultFields else resultFields,
+    )
 
 private class CardDb(context: Context, name: String) : SQLiteOpenHelper(context, name, null, 1) {
     override fun onCreate(db: SQLiteDatabase) {

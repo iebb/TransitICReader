@@ -335,6 +335,20 @@
 
 "Import Backup" = "Import Backup";
 
+"Import Trip Reader Backup" = "Import Trip Reader Backup";
+
+"Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history." = "Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history.";
+
+"Reading Trip Reader backup…" = "Reading Trip Reader backup…";
+
+"No China T-Union or City Union cards were found in this Trip Reader backup." = "No China T-Union or City Union cards were found in this Trip Reader backup.";
+
+"Imported %lld cards and %lld records from Trip Reader." = "Imported %lld cards and %lld records from Trip Reader.";
+
+"Skipped %lld cards of other types." = "Skipped %lld cards of other types.";
+
+"This file is not a Trip Reader backup." = "This file is not a Trip Reader backup.";
+
 "Help Improve Korean Cards" = "Help Improve Korean Cards";
 
 "What is shared?" = "What is shared?";

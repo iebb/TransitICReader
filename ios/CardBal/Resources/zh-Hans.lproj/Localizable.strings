@@ -335,6 +335,20 @@
 
 "Import Backup" = "导入备份";
 
+"Import Trip Reader Backup" = "导入读卡识途备份";
+
+"Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history." = "读卡识途备份可导入交通联合和城市一卡通卡片及其保存的记录。";
+
+"Reading Trip Reader backup…" = "正在读取读卡识途备份…";
+
+"No China T-Union or City Union cards were found in this Trip Reader backup." = "此读卡识途备份中没有交通联合或城市一卡通卡片。";
+
+"Imported %lld cards and %lld records from Trip Reader." = "已从读卡识途导入 %lld 张卡片和 %lld 条记录。";
+
+"Skipped %lld cards of other types." = "已跳过 %lld 张其他类型的卡片。";
+
+"This file is not a Trip Reader backup." = "此文件不是读卡识途备份。";
+
 "Help Improve Korean Cards" = "帮助改进韩国卡片读取";
 
 "What is shared?" = "会共享哪些数据？";

@@ -66,6 +66,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,6 +83,7 @@ import androidx.compose.ui.zIndex
 import ad.neko.cardbal.android.data.CardWalletRepository
 import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.TransactionDecoder
+import ad.neko.cardbal.android.data.TripReaderBackup
 import ad.neko.cardbal.android.nfc.CardBalNfcReader
 import ad.neko.cardbal.android.ui.CardBalTheme
 import ad.neko.cardbal.android.ui.CardDetailScreen
@@ -90,6 +92,9 @@ import ad.neko.cardbal.android.ui.RideMapSurface
 import ad.neko.cardbal.android.ui.WalletCard
 import ad.neko.cardbal.android.ui.WalletCardMode
 import ad.neko.cardbal.android.ui.swipeUpAction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import android.os.Build
@@ -471,6 +476,31 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             Toast.makeText(context, "Import failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
         }
     }
+    val scope = rememberCoroutineScope()
+    var isImportingTripReader by remember { mutableStateOf(false) }
+    val tripReaderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        isImportingTripReader = true
+        scope.launch {
+            val message = runCatching {
+                val plan = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { TripReaderBackup.importPlan(context, it) }
+                        ?: error("Unable to open selected backup")
+                }
+                if (plan.snapshots.isEmpty()) {
+                    "No China T-Union or City Union cards were found in this Trip Reader backup."
+                } else {
+                    repository.importSnapshots(plan.snapshots)
+                    val skipped = if (plan.skippedCards > 0) " Skipped ${plan.skippedCards} cards of other types." else ""
+                    "Imported ${plan.snapshots.size} cards and ${plan.recordCount} records from Trip Reader.$skipped"
+                }
+            }.getOrElse { "Import failed: ${it.localizedMessage}" }
+            isImportingTripReader = false
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -520,6 +550,31 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                         Spacer(Modifier.size(8.dp))
                         Text("Import")
                     }
+                }
+            }
+        }
+        item {
+            SettingsSectionCard(
+                icon = Icons.Filled.Train,
+                title = "Trip Reader backup",
+                subtitle = "读卡识途 · China T-Union and City Union",
+            ) {
+                Text(
+                    "Adds the cards in a Trip Reader backup with their saved history. Cards already in CardBal keep their appearance and newest balance.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                FilledTonalButton(
+                    onClick = {
+                        tripReaderLauncher.launch(arrayOf("application/x-sqlite3", "application/vnd.sqlite3", "application/octet-stream", "*/*"))
+                    },
+                    enabled = !isImportingTripReader,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.size(8.dp))
+                    Text(if (isImportingTripReader) "Importing..." else "Import Trip Reader Backup")
                 }
             }
         }

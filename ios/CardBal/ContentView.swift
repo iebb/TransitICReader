@@ -741,6 +741,8 @@ struct SettingsView: View {
     @State private var backupDocument = CardBalBackupDocument()
     @State private var isExportingBackup = false
     @State private var isImportingBackup = false
+    @State private var importsTripReaderBackup = false
+    @State private var isImportingTripReaderBackup = false
     @State private var backupMessage: String?
 
     var body: some View {
@@ -811,8 +813,12 @@ struct SettingsView: View {
         }
         .fileImporter(
             isPresented: $isImportingBackup,
-            allowedContentTypes: [.json]
+            allowedContentTypes: importsTripReaderBackup ? [.data] : [.json]
         ) { result in
+            if importsTripReaderBackup {
+                importTripReaderBackup(result)
+                return
+            }
             switch result {
             case .success(let url):
                 let didAccess = url.startAccessingSecurityScopedResource()
@@ -827,6 +833,33 @@ struct SettingsView: View {
                     backupMessage = "Import failed: \(error.localizedDescription)"
                 }
             case .failure(let error):
+                backupMessage = "Import failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func importTripReaderBackup(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else {
+            if case .failure(let error) = result { backupMessage = "Import failed: \(error.localizedDescription)" }
+            return
+        }
+        isImportingTripReaderBackup = true
+        backupMessage = String(localized: "Reading Trip Reader backup…")
+        Task {
+            defer { isImportingTripReaderBackup = false }
+            do {
+                let plan = try await TripReaderBackup.importPlan(from: url)
+                guard !plan.snapshots.isEmpty else {
+                    backupMessage = String(localized: "No China T-Union or City Union cards were found in this Trip Reader backup.")
+                    return
+                }
+                try store.importSnapshots(plan.snapshots)
+                var message = String(localized: "Imported \(plan.snapshots.count) cards and \(plan.recordCount) records from Trip Reader.")
+                if plan.skippedCards > 0 {
+                    message += " " + String(localized: "Skipped \(plan.skippedCards) cards of other types.")
+                }
+                backupMessage = message
+            } catch {
                 backupMessage = "Import failed: \(error.localizedDescription)"
             }
         }
@@ -876,7 +909,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Section("File Backup") {
+            Section {
                 Button {
                     if let data = store.exportBackup() {
                         backupDocument = CardBalBackupDocument(data: data)
@@ -886,15 +919,29 @@ struct SettingsView: View {
                     Label("Export Backup", systemImage: "square.and.arrow.up")
                 }
                 .disabled(store.isSyncing)
-                Button { isImportingBackup = true } label: {
+                Button {
+                    importsTripReaderBackup = false
+                    isImportingBackup = true
+                } label: {
                     Label("Import Backup", systemImage: "square.and.arrow.down")
                 }
                 .disabled(store.isSyncing)
+                Button {
+                    importsTripReaderBackup = true
+                    isImportingBackup = true
+                } label: {
+                    Label("Import Trip Reader Backup", systemImage: "tray.and.arrow.down")
+                }
+                .disabled(store.isSyncing || isImportingTripReaderBackup)
                 if let backupMessage {
                     Text(backupMessage)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            } header: {
+                Text("File Backup")
+            } footer: {
+                Text("Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history.")
             }
         }
         .navigationTitle("Backup")

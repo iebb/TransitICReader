@@ -120,3 +120,49 @@ parity, SQLite integrity, and relational invariants before publishing a build.
 The Swift regression harness executes the production resolver and record
 decoders with station prefixes, terminal collisions, wrong cities, unmatched
 gates, and purchase versus top-up records.
+
+## Backup import
+
+Settings imports a Trip Reader backup on iOS (Backup › File Backup) and Android
+(Trip Reader backup). The backup, `tripreader_yyyyMMdd.sqlite`, is the app's
+Room history database, often in WAL mode; the importer reads a temporary copy.
+The format was identified from the 1.7.17 APK above and confirmed with a real
+backup. Neither is included.
+
+| Table | Columns used | Meaning |
+| --- | --- | --- |
+| `card_table` | `cdRawNo` | Card key: hex of SFI `15` bytes 10–20 |
+| | `isCU`, `isTU` | City Union and T-Union applications present |
+| | `cdCURawInfo`, `cdTURawInfo` | Each application's 30-byte SFI `15` file, hex |
+| | `cdBalance`, `cdCUBalance`, `cdTUBalance` | Fen; `-99999999` is no reading |
+| | `cdLastUpdate` | Last read, epoch milliseconds |
+| `tran_table` | `txCUResult`, `txSFI` | 23-byte PBOC ledger record and its file (`18`, `10`, …) |
+| | `txCU`, `txCUTopUp`, `txCUForeign` | Ledger record belongs to City Union |
+| | `txTU18`, `txTUTopUp` | Ledger record belongs to T-Union |
+| | `txTU`, `txTUResult` | 48-byte T-Union SFI `1E` travel record |
+
+A dual card stores each application's balance separately and their sum in
+`cdBalance`; otherwise `cdBalance` is the last application read. A ledger row
+flagged for both applications belongs to City Union, which Trip Reader reads
+first. A negative T-Union balance is overdraft debt.
+
+CardBal does not reinterpret these columns. It replays the files through its
+own City Union and T-Union readers as a read-only virtual card, so an imported
+card has the same serial, storage identity, fields and balance as a scan, then
+attaches every backed-up record. The backup can hold more than the 30 records a
+card file returns. Records are deduplicated and ordered by their own timestamps.
+The backup's last-update time becomes the reading time.
+
+An imported card merges with a matching saved card. The saved card keeps its id,
+appearance and wallet place; each application keeps its newer reading, so an
+older backup adds history without rolling back a balance. On iOS a file import
+also restores a previously deleted card. The backup has no UID: a UID from an
+earlier scan is kept. Beijing, Shenzhen Tong, Lingnan Pass, Suzhou and Tianfu
+Tong cards, and cards without a readable serial, are counted as skipped. Trip
+Reader's titles, comments, colors and trip annotations are not imported.
+
+`tests/runtime/test_tripreader_backup.py` builds a synthetic WAL backup with
+this schema and imports it through the production iOS readers and wallet merge;
+`TripReaderBackupTest` covers the Android reader. To check a local backup without
+committing it, run the runtime test with `CARDBAL_TRIPREADER_BACKUP=/path/to/file`;
+it prints a masked summary.

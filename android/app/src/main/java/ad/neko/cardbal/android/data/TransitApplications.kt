@@ -46,7 +46,9 @@ data class TransitApplication(
                 val index=result.indexOfFirst { it.id==app.id }
                 if(index<0) { result.add(app);continue }
                 val old=result[index];val latest=if(app.scannedAt>=old.scannedAt) app else old;val other=if(latest===app) old else app
-                result[index]=latest.copy(serialNumber=latest.serialNumber ?: other.serialNumber,cityCode=latest.cityCode ?: other.cityCode,
+                // An imported backup has no UID; keep the one a scan read.
+                result[index]=latest.copy(identifier=latest.identifier.ifEmpty { other.identifier },
+                    serialNumber=latest.serialNumber ?: other.serialNumber,cityCode=latest.cityCode ?: other.cityCode,
                     balanceText=latest.balanceText ?: other.balanceText,balanceDetail=if(latest.balanceText==null) other.balanceDetail else latest.balanceDetail,
                     balanceReadAt=if(latest.balanceText==null) other.balanceReadAt else latest.balanceReadAt,
                     fields=(latest.fields+other.fields).distinctBy { it.title },records=(latest.records+other.records).distinctBy { it.identity })
@@ -57,15 +59,27 @@ data class TransitApplication(
             if(snapshots.isEmpty()) return null
             if(snapshots.size==1) return snapshots.first()
             val apps=snapshots.flatMap { it.applications ?: listOf(from(it)) }
-            val primary=apps.firstOrNull { it.isOctopus } ?: apps.firstOrNull { it.isTUnion } ?: apps.first()
+            val primary=primary(apps)!!
             val base=snapshots.first { snapshot -> (snapshot.applications ?: listOf(from(snapshot))).any { it.id==primary.id } }
-            val balance=apps.firstOrNull { it.isOctopus } ?: apps.filter { it.balanceText!=null }.maxByOrNull { it.balanceReadAt ?: it.scannedAt }
             return base.copy(technology=if(apps.map{it.technology}.distinct().size>1) "Dual Mode" else base.technology,
-                cardFamily=if(apps.any{it.isOctopus} && apps.any{it.isTUnion || it.isCityUnion}) "Octopus + ${apps.first{it.isTUnion || it.isCityUnion}.cardFamily}" else primary.cardFamily,
-                balanceText=balance?.balanceText,balanceDetail=apps.mapNotNull { a -> a.balanceText?.let { "${a.cardFamily}: $it" } }.joinToString("\n"),
+                cardFamily=family(apps),balanceText=balanceSource(apps)?.balanceText,balanceDetail=balanceDetail(apps),
                 selectedAID=primary.selectedAID,realSerialNumber=primary.serialNumber,
                 rawTransactions=apps.flatMap { it.records.filter { r -> r.kind=="transaction" }.map { r -> r.hex } },
                 rawTransitHistory=apps.flatMap { it.records.filter { r -> r.kind=="transit" }.map { r -> r.hex } }, applications=apps)
         }
+        fun primary(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.firstOrNull { it.isTUnion } ?: apps.firstOrNull()
+        fun family(apps: List<TransitApplication>) = if(apps.any{it.isOctopus} && apps.any{it.isTUnion || it.isCityUnion}) "Octopus + ${apps.first{it.isTUnion || it.isCityUnion}.cardFamily}" else primary(apps)?.cardFamily.orEmpty()
+        fun balanceSource(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.filter { it.balanceText!=null }.maxByOrNull { it.balanceReadAt ?: it.scannedAt }
+        fun balanceDetail(apps: List<TransitApplication>) = apps.mapNotNull { a -> a.balanceText?.let { "${a.cardFamily}: $it" } }.joinToString("\n")
     }
+}
+
+/** Recompute a saved card's summary from its merged applications, as a combined scan does. */
+fun SavedCardRecord.withApplications(apps: List<TransitApplication>): SavedCardRecord {
+    val primary=TransitApplication.primary(apps) ?: return this
+    return copy(applications=apps,technology=if(apps.map{it.technology}.distinct().size>1) "Dual Mode" else primary.technology,
+        cardFamily=TransitApplication.family(apps),selectedAID=primary.selectedAID,realSerialNumber=primary.serialNumber ?: realSerialNumber,
+        balanceText=TransitApplication.balanceSource(apps)?.balanceText ?: balanceText,balanceDetail=TransitApplication.balanceDetail(apps).ifEmpty { balanceDetail },
+        rawTransactions=apps.flatMap { it.records.filter { r -> r.kind=="transaction" }.map { r -> r.hex } },
+        rawTransitHistory=apps.flatMap { it.records.filter { r -> r.kind=="transit" }.map { r -> r.hex } })
 }

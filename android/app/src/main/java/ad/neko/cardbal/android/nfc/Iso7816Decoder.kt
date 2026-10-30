@@ -58,6 +58,8 @@ class Iso7816Decoder : TransitCardDecoder {
                         if(IsoRecordReader.command("00A4000002001500".hexToBytes(),exchange)!=null) IsoRecordReader.command("00B0000000".hexToBytes(),exchange) else null
                     }
             } else KoreanCardFormat.tlv(select.dropLast(2).toByteArray(),0x9f0c)
+                // Without FCI metadata, the issuer file has the same layout, as read on iOS.
+                ?: IsoRecordReader.command("00B095001E".hexToBytes(),exchange)
             if(info!=null) {
                 city=info.takeIf{it.size>=4}?.copyOfRange(2,4)?.hexString()
                 if(family=="City Union" && info.size>=20) serial=JapaneseCardFormats.uint(info,16,4,city!="2000").takeIf{it!=0L}?.toString()
