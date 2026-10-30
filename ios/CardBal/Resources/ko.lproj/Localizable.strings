@@ -341,8 +341,6 @@
 
 "Import Trip Reader Backup" = "Trip Reader 백업 가져오기";
 
-"Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history." = "Trip Reader(读卡识途) 백업에서 중국 T-Union 및 City Union 카드를 저장된 기록과 함께 추가합니다.";
-
 "Reading Trip Reader backup…" = "Trip Reader 백업을 읽는 중…";
 
 "No China T-Union or City Union cards were found in this Trip Reader backup." = "이 Trip Reader 백업에는 중국 T-Union 또는 City Union 카드가 없습니다.";

@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Train
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -507,7 +506,7 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { ScreenHeader(title = "Settings", subtitle = "Backup, privacy, station data") }
+        item { ScreenHeader(title = "Settings") }
         item {
             SummaryStrip(
                 firstLabel = "Cards",
@@ -521,14 +520,8 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         item {
             SettingsSectionCard(
                 icon = Icons.Filled.Wallet,
-                title = "Cross-platform backup",
-                subtitle = "Compatible with CardBal on iOS.",
+                title = "Backup",
             ) {
-                Text(
-                    "Exports use the shared CardBal JSON envelope: version, cards, and faceAssets. Imports merge by card id and replace matching records.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = { exportLauncher.launch("cardbal-backup.json") },
@@ -551,19 +544,6 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                         Text("Import")
                     }
                 }
-            }
-        }
-        item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Train,
-                title = "Trip Reader backup",
-                subtitle = "读卡识途 · China T-Union and City Union",
-            ) {
-                Text(
-                    "Adds the cards in a Trip Reader backup with their saved history. Cards already in CardBal keep their appearance and newest balance.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
                 FilledTonalButton(
                     onClick = {
                         tripReaderLauncher.launch(arrayOf("application/x-sqlite3", "application/vnd.sqlite3", "application/octet-stream", "*/*"))
@@ -582,45 +562,31 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             SettingsSectionCard(
                 icon = Icons.Filled.PhotoLibrary,
                 title = "Card faces",
-                subtitle = "Artwork travels with backups.",
             ) {
                 SettingsInfoRow("Imported faces", cards.count { it.faceImageFileName != null }.toString())
-                SettingsInfoRow("Rendered on", "Cards and map markers")
-                Text(
-                    "Android uses the same faceAssets payload as iOS, so restored cards keep their custom artwork.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
             }
         }
         item {
             SettingsSectionCard(
                 icon = Icons.Filled.Settings,
                 title = "App behavior",
-                subtitle = "Native Android defaults.",
             ) {
                 SettingsInfoRow("NFC reader", "Armed while foregrounded")
                 SettingsInfoRow("Scan action", "Tap the card surface")
                 SettingsInfoRow("Card ordering", "Wallet stack")
-                Text(
-                    "The Android app keeps NFC ready without a separate scan button, matching the card-first interaction model.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
             }
         }
         item {
             SettingsSectionCard(
                 icon = Icons.Filled.Storage,
                 title = "Station data",
-                subtitle = stationAssetSummary?.format ?: "Portable station assets",
             ) {
                 SettingsInfoRow("Japanese stations", stationAssetSummary?.jpStations?.toString() ?: "Bundled")
                 SettingsInfoRow("Japanese edges", stationAssetSummary?.jpEdges?.toString() ?: "Bundled")
                 SettingsInfoRow("T-Union stations", stationAssetSummary?.tUnionStations?.toString() ?: "Bundled")
                 SettingsInfoRow("T-Union edges", stationAssetSummary?.tUnionEdges?.toString() ?: "Bundled")
                 Text(
-                    "Japan station data is built from JPStationCodes and station_database. China T-Union station data is based on domosekai/tripreader-data with OpenStreetMap-derived coordinates.",
+                    "Sources: JPStationCodes, station_database, Trip Reader and © OpenStreetMap contributors.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -630,10 +596,9 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             SettingsSectionCard(
                 icon = Icons.Filled.Security,
                 title = "Privacy",
-                subtitle = "Local by default.",
             ) {
                 Text(
-                    "CardBal stores scans on-device. Android imports and exports only the backup file you explicitly choose, and does not upload card data from this app.",
+                    "Scans are stored on this device.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -643,7 +608,6 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             SettingsSectionCard(
                 icon = Icons.Filled.Forum,
                 title = "Community",
-                subtitle = "Help, source code, and chat.",
             ) {
                 SettingsLinkRow("Support", "cardb.al/support", "https://cardb.al/support/")
                 SettingsLinkRow("GitHub", "iebb/TransitICReader", "https://github.com/iebb/TransitICReader")
@@ -654,12 +618,11 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             SettingsSectionCard(
                 icon = Icons.Filled.Info,
                 title = "Information",
-                subtitle = "Unofficial transit card reader.",
             ) {
                 SettingsInfoRow("App", "CardBal Android")
                 SettingsInfoRow("Version", BuildConfig.VERSION_NAME)
                 Text(
-                    "CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing.",
+                    "Unofficial transit card reader.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -672,7 +635,6 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
 private fun SettingsSectionCard(
     icon: ImageVector,
     title: String,
-    subtitle: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ElevatedCard(
@@ -695,16 +657,12 @@ private fun SettingsSectionCard(
                 ) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Text(
+                    title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             content()
@@ -764,7 +722,6 @@ private fun SettingsInfoRow(label: String, value: String) {
 }
 
 private data class StationAssetSummary(
-    val format: String,
     val jpStations: Int,
     val jpEdges: Int,
     val tUnionStations: Int,
@@ -777,7 +734,6 @@ private fun loadStationAssetSummary(context: android.content.Context): StationAs
         val root = JSONObject(text)
         val sqlite = root.getJSONObject("sqlite")
         StationAssetSummary(
-            format = root.optString("format", "Portable station assets"),
             jpStations = sqlite.optInt("jp_stations"),
             jpEdges = sqlite.optInt("jp_station_edges"),
             tUnionStations = sqlite.optInt("tunion_stations"),
@@ -800,7 +756,7 @@ private fun CardDetails(card: SavedCardRecord, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ScreenHeader(title: String, subtitle: String) {
+private fun ScreenHeader(title: String, subtitle: String? = null) {
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -808,13 +764,15 @@ private fun ScreenHeader(title: String, subtitle: String) {
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

@@ -337,8 +337,6 @@
 
 "Import Trip Reader Backup" = "Trip Reader のバックアップを読み込む";
 
-"Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history." = "Trip Reader（读卡识途）のバックアップから、China T-Union と City Union のカードを保存済みの履歴とともに追加します。";
-
 "Reading Trip Reader backup…" = "Trip Reader のバックアップを読み取り中…";
 
 "No China T-Union or City Union cards were found in this Trip Reader backup." = "この Trip Reader のバックアップに China T-Union または City Union のカードはありません。";

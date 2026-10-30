@@ -909,7 +909,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Section {
+            Section("File Backup") {
                 Button {
                     if let data = store.exportBackup() {
                         backupDocument = CardBalBackupDocument(data: data)
@@ -938,10 +938,6 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } header: {
-                Text("File Backup")
-            } footer: {
-                Text("Trip Reader (读卡识途) backups add China T-Union and City Union cards with their saved history.")
             }
         }
         .navigationTitle("Backup")

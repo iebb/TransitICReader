@@ -124,8 +124,8 @@ gates, and purchase versus top-up records.
 ## Backup import
 
 Settings imports a Trip Reader backup on iOS (Backup › File Backup) and Android
-(Trip Reader backup). The backup, `tripreader_yyyyMMdd.sqlite`, is the app's
-Room history database, often in WAL mode; the importer reads a temporary copy.
+(Backup › Import Trip Reader Backup). The backup, `tripreader_yyyyMMdd.sqlite`,
+is the app's Room history database, often in WAL mode; the importer reads a temporary copy.
 The format was identified from the 1.7.17 APK above and confirmed with a real
 backup. Neither is included.
 
