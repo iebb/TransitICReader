@@ -481,8 +481,9 @@ struct CardCustomizeView: View {
         let current = card.faceImageFileName
         let presets = store.presets()
         let savedFaces = store.faceAssets().filter { $0.fileName != current }
+        let remoteFaces = store.remoteFaceEntries(for: card)
         return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 12) {
+            LazyHStack(alignment: .top, spacing: 12) {
                 faceTile(Text("Color"), isSelected: !isPhotoFace) {
                     store.setIsUsingImage(false, for: card.id)
                 } face: {
@@ -490,7 +491,7 @@ struct CardCustomizeView: View {
                 }
 
                 if let current, let image = store.loadFaceImage(fileName: current) {
-                    let presetName = presets.first { $0.fileName == current }?.name
+                    let presetName = presets.first { $0.fileName == current }?.name ?? store.remoteFaceTitle(for: current)
                     faceTile(presetName.map { Text(verbatim: $0) } ?? Text("Photo"), isSelected: isPhotoFace) {
                         store.setIsUsingImage(true, for: card.id)
                     } face: {
@@ -508,6 +509,8 @@ struct CardCustomizeView: View {
                     }
                 }
 
+                remoteFaceTiles(remoteFaces.matched, card: card)
+
                 ForEach(presets.filter { $0.fileName != current }) { preset in
                     if let image = UIImage(named: preset.fileName) {
                         faceTile(Text(verbatim: preset.name), isSelected: false) {
@@ -517,8 +520,20 @@ struct CardCustomizeView: View {
                         }
                     }
                 }
+
+                remoteFaceTiles(remoteFaces.others, card: card)
             }
             .padding(.horizontal, 16)
+        }
+    }
+
+    private func remoteFaceTiles(_ entries: [RemoteFaceManifest.Entry], card: SavedCardRecord) -> some View {
+        ForEach(entries.filter { $0.token != card.faceImageFileName }) { entry in
+            faceTile(Text(verbatim: entry.title()), isSelected: false) {
+                store.applyRemoteFace(entry.token, to: card.id)
+            } face: {
+                RemoteFaceThumbnail(token: entry.token)
+            }
         }
     }
 
@@ -681,6 +696,32 @@ enum CalypsoOnlineLookupState {
     var isLoading: Bool {
         if case .loading = self { return true }
         return false
+    }
+}
+
+/// Downloads a published face when its tile scrolls into view.
+private struct RemoteFaceThumbnail: View {
+    let token: String
+    @State private var image: UIImage?
+    @State private var failed = false
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Rectangle().fill(Color(uiColor: .tertiarySystemFill))
+                if failed {
+                    Image(systemName: "photo").foregroundStyle(.secondary)
+                } else {
+                    ProgressView()
+                }
+            }
+        }
+        .task(id: token) {
+            image = await RemoteCardFaceCatalog.shared.image(for: token)
+            failed = image == nil
+        }
     }
 }
 

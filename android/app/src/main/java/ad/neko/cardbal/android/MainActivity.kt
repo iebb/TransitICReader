@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import ad.neko.cardbal.android.data.CardWalletRepository
+import ad.neko.cardbal.android.data.RemoteCardFaces
 import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.TransactionDecoder
 import ad.neko.cardbal.android.nfc.CardBalNfcReader
@@ -148,6 +149,9 @@ private fun CardBalApp(
 
     LaunchedEffect(latestSnapshot?.storageIdentifier, latestSnapshot?.scannedAt) {
         latestSnapshot?.let(repository::upsert)
+    }
+    LaunchedEffect(Unit) {
+        RemoteCardFaces.get(activity).refreshIfNeeded()
     }
 
     if (selectedCard != null) {

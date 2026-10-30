@@ -1062,6 +1062,11 @@ struct ArchiveButton: View {
 
 
 func loadCardFaceImage(fileName: String) -> UIImage? {
+    // Published faces download through CardWalletStore; this only reads the cache.
+    if RemoteFaceManifest.isToken(fileName) {
+        return RemoteCardFaceCatalog.shared.cachedImage(for: fileName)
+    }
+
     // 1. Try loading from Assets first (for presets)
     if let assetImage = UIImage(named: fileName) {
         return assetImage
