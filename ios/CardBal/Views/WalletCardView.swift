@@ -21,6 +21,7 @@ struct WalletCardLayout: Layout {
 struct WalletCardView: View {
     private let cardCornerRadius: CGFloat = 22
     let card: SavedCardRecord
+    @ObservedObject var store: CardWalletStore
     let isExpanded: Bool
     let cardHeight: CGFloat
     let visiblePartHeight: CGFloat
@@ -32,7 +33,8 @@ struct WalletCardView: View {
     @State private var copied = false
 
     private var faceImage: UIImage? {
-        card.faceImageFileName.flatMap(loadCardFaceImage)
+        guard card.finalIsUsingImage else { return nil }
+        return store.loadFaceImage(fileName: card.faceImageFileName)
     }
 
     private var isPhotoFace: Bool { faceImage != nil && card.finalIsUsingImage }

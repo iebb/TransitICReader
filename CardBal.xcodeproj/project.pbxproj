@@ -22,17 +22,10 @@
 		7A21867ED31B404BB36291A1 /* TransitApplications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A21867ED31B404BB36291A2 /* TransitApplications.swift */; };
 		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
 		0A9B9E8A6B5A4A8E9F001001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */; };
-		0EFAFB50E232381B6246D786 /* icoca.png in Resources */ = {isa = PBXBuildFile; fileRef = DD02F5701AE4C47C4D43B861 /* icoca.png */; };
 		1B6A2C8BF37E5CB823EB883C /* Localizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118B2F4C7E32F920855B0DF5 /* Localizer.swift */; };
-		1B8F4CB55CA980FA310E0F04 /* hayakaken.png in Resources */ = {isa = PBXBuildFile; fileRef = 3720A3E74F7150E885F94341 /* hayakaken.png */; };
-		1E8A3B8F88C5C33521F23130 /* kitaca.png in Resources */ = {isa = PBXBuildFile; fileRef = E2A025C39CE4288213529485 /* kitaca.png */; };
-		28254D4A4A63A4C4FD66E301 /* sugoca.png in Resources */ = {isa = PBXBuildFile; fileRef = 778D6BD48FAABE736183556A /* sugoca.png */; };
 		2AED4A0FC79275A0DFE44FED /* StationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 454A3A745671012F6C832F91 /* StationResolver.swift */; };
-		2B9BDBA0585A33004FA93FBC /* toica.png in Resources */ = {isa = PBXBuildFile; fileRef = 0BA3AB59E280822BC0508F6C /* toica.png */; };
 		2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = EC38266AABB2DF946A942826 /* JPStationCodes.csv */; };
-		4F507C60A307F5EE638737C5 /* pasmo.png in Resources */ = {isa = PBXBuildFile; fileRef = E1CFC46C45DB7BAB5A38F0E8 /* pasmo.png */; };
 		62A4280F4F3DFCBAB17B785D /* BusResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280A750331F0F722A143051F /* BusResolver.swift */; };
-		7C588C84FA6A6B418087AC0D /* suica.png in Resources */ = {isa = PBXBuildFile; fileRef = 61F8D27C459BCDC1BC1CA738 /* suica.png */; };
 		8C4692052F6F2ACB0071B6C4 /* SecondaryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692022F6F2ACB0071B6C4 /* SecondaryViews.swift */; };
 		8C4692062F6F2ACB0071B6C4 /* CardWalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */; };
 		E1A7B0C02F7A3D0100A1B2C1 /* TripReaderBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */; };
@@ -67,10 +60,8 @@
 		A00000000000000000000107 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000010A /* FirebaseAnalytics */; };
 		A00000000000000000000108 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000010B /* FirebaseCore */; };
 		A0000CB5D9D53022E4B40B45 /* CalypsoProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */; };
-		AAEEA38E1C01D912373060D4 /* manaca.png in Resources */ = {isa = PBXBuildFile; fileRef = 74B3BF2807E457CDC85FCEF1 /* manaca.png */; };
 		E5A100012F6F2ACB0071B6C4 /* cardbal_transit.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = E5A100002F6F2ACB0071B6C4 /* cardbal_transit.sqlite */; };
 		B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11B0256184978348338611A /* FeliCaProfiles.swift */; };
-		C8B201E5325832FA793E6AC8 /* nimoca.png in Resources */ = {isa = PBXBuildFile; fileRef = 3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */; };
 		CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */ = {isa = PBXBuildFile; fileRef = C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */; };
 		D3A110012F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */; };
 		D3A110032F6F2ACB0071B6C4 /* KOTRISTransportModes.json in Resources */ = {isa = PBXBuildFile; fileRef = D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */; };
@@ -81,7 +72,6 @@
 		B13000000000000000000006 /* ExternalCardReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000005; };
 		B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000001; };
 		B14000000000000000000004 /* SingaporeTransit.json in Resources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000003; };
-		B14000000000000000000006 /* ezlink.png in Resources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000005; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -101,19 +91,13 @@
 		0A9B9E8A6B5A4A8E9F001003 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = ios/CardBal/Resources/ja.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
 		0A9B9E8A6B5A4A8E9F001004 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "ios/CardBal/Resources/zh-Hans.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
 		B0A1C10E0000000000000003 /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ios/CardBal/Resources/ko.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
-		0BA3AB59E280822BC0508F6C /* toica.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = toica.png; path = Presets/toica.png; sourceTree = "<group>"; };
 		118B2F4C7E32F920855B0DF5 /* Localizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Localizer.swift; path = Helpers/Localizer.swift; sourceTree = "<group>"; };
 		1549B4485C7F51C95EF084A7 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = ios/CardBal/Resources/en.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
 		280A750331F0F722A143051F /* BusResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BusResolver.swift; path = Helpers/BusResolver.swift; sourceTree = "<group>"; };
-		3720A3E74F7150E885F94341 /* hayakaken.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = hayakaken.png; path = Presets/hayakaken.png; sourceTree = "<group>"; };
 		3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NAMANEDecoder.swift; sourceTree = "<group>"; };
-		3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = nimoca.png; path = Presets/nimoca.png; sourceTree = "<group>"; };
 		454A3A745671012F6C832F91 /* StationResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StationResolver.swift; path = Helpers/StationResolver.swift; sourceTree = "<group>"; };
 		4B309782727CA0A2F1BE5974 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = ios/CardBal/Resources/ja.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
 		4B309782727CA0A2F1BE5975 /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ios/CardBal/Resources/ko.lproj/Localizable.strings; sourceTree = SOURCE_ROOT; };
-		61F8D27C459BCDC1BC1CA738 /* suica.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = suica.png; path = Presets/suica.png; sourceTree = "<group>"; };
-		74B3BF2807E457CDC85FCEF1 /* manaca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = manaca.png; path = Presets/manaca.png; sourceTree = "<group>"; };
-		778D6BD48FAABE736183556A /* sugoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = sugoca.png; path = Presets/sugoca.png; sourceTree = "<group>"; };
 		80112233445566778899AA01 /* TUnionCityCodes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TUnionCityCodes.json; sourceTree = "<group>"; };
 		8C4691F92F6F2ACB0071B6C4 /* CardWalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardWalletStore.swift; sourceTree = "<group>"; };
 		E1A7B0C02F7A3D0100A1B2C2 /* TripReaderBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripReaderBackup.swift; sourceTree = "<group>"; };
@@ -156,16 +140,12 @@
 		D3A110022F6F2ACB0071B6C4 /* KOTRISTransportModes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = KOTRISTransportModes.json; sourceTree = "<group>"; };
 		D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityAtlasView.swift; sourceTree = "<group>"; };
 		D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
-		DD02F5701AE4C47C4D43B861 /* icoca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = icoca.png; path = Presets/icoca.png; sourceTree = "<group>"; };
-		E1CFC46C45DB7BAB5A38F0E8 /* pasmo.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = pasmo.png; path = Presets/pasmo.png; sourceTree = "<group>"; };
-		E2A025C39CE4288213529485 /* kitaca.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; name = kitaca.png; path = Presets/kitaca.png; sourceTree = "<group>"; };
 		EC38266AABB2DF946A942826 /* JPStationCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPStationCodes.csv; sourceTree = "<group>"; };
 		B13000000000000000000001 /* CardTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/CardTransport.swift; sourceTree = "<group>"; };
 		B13000000000000000000003 /* CoreNFCCardTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/CoreNFCCardTransport.swift; sourceTree = "<group>"; };
 		B13000000000000000000005 /* ExternalCardReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/ExternalCardReader.swift; sourceTree = "<group>"; };
 		B14000000000000000000001 /* SingaporeTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers/SingaporeTransitCatalog.swift; sourceTree = "<group>"; };
 		B14000000000000000000003 /* SingaporeTransit.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = data/stations/SingaporeTransit.json; sourceTree = SOURCE_ROOT; };
-		B14000000000000000000005 /* ezlink.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ios/CardBal/Resources/Presets/ezlink.png; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -182,22 +162,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		4C875E6334212CEA9F4A99A9 /* Presets */ = {
-			isa = PBXGroup;
-			children = (
-				3720A3E74F7150E885F94341 /* hayakaken.png */,
-				DD02F5701AE4C47C4D43B861 /* icoca.png */,
-				E2A025C39CE4288213529485 /* kitaca.png */,
-				74B3BF2807E457CDC85FCEF1 /* manaca.png */,
-				3DAAA80A35AA92AEC5CC4A71 /* nimoca.png */,
-				E1CFC46C45DB7BAB5A38F0E8 /* pasmo.png */,
-				778D6BD48FAABE736183556A /* sugoca.png */,
-				61F8D27C459BCDC1BC1CA738 /* suica.png */,
-				0BA3AB59E280822BC0508F6C /* toica.png */,
-			);
-			name = Presets;
-			sourceTree = "<group>";
-		};
 		8C4691F82F6F2ACB0071B6C4 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
@@ -272,7 +236,6 @@
 				B0A1C10E0000000000000011 /* PrivacyInfo.xcprivacy */,
 				EC38266AABB2DF946A942826 /* JPStationCodes.csv */,
 				C5FA5F66F7A76B1DBE3164F6 /* JPBusCodes.csv */,
-				4C875E6334212CEA9F4A99A9 /* Presets */,
 				0A9B9E8A6B5A4A8E9F001002 /* InfoPlist.strings */,
 				B92C7A81DE3948B73C63013F /* Localizable.strings */,
 			);
@@ -339,7 +302,6 @@
 				B13000000000000000000005 /* ExternalCardReader.swift */,
 				B14000000000000000000001 /* SingaporeTransitCatalog.swift */,
 				B14000000000000000000003 /* SingaporeTransit.json */,
-				B14000000000000000000005 /* ezlink.png */,
 				A00000000000000000000002 /* ContentView.swift */,
 				A00000000000000000000004 /* Assets.xcassets */,
 				A00000000000000000000005 /* Info.plist */,
@@ -466,7 +428,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B14000000000000000000006 /* ezlink.png in Resources */,
 				B14000000000000000000004 /* SingaporeTransit.json in Resources */,
 				A00000000000000000000015 /* Assets.xcassets/AppIcon.icon in Resources */,
 				A00000000000000000000014 /* Assets.xcassets in Resources */,
@@ -479,15 +440,6 @@
 				B0A1C10E0000000000000010 /* PrivacyInfo.xcprivacy in Resources */,
 				2DA577E350BCEA8A2C398B6A /* JPStationCodes.csv in Resources */,
 				CDFAA81F6C21D295FF39685D /* JPBusCodes.csv in Resources */,
-				1B8F4CB55CA980FA310E0F04 /* hayakaken.png in Resources */,
-				0EFAFB50E232381B6246D786 /* icoca.png in Resources */,
-				1E8A3B8F88C5C33521F23130 /* kitaca.png in Resources */,
-				AAEEA38E1C01D912373060D4 /* manaca.png in Resources */,
-				C8B201E5325832FA793E6AC8 /* nimoca.png in Resources */,
-				4F507C60A307F5EE638737C5 /* pasmo.png in Resources */,
-				28254D4A4A63A4C4FD66E301 /* sugoca.png in Resources */,
-				7C588C84FA6A6B418087AC0D /* suica.png in Resources */,
-				2B9BDBA0585A33004FA93FBC /* toica.png in Resources */,
 				9C4A3EE3F8BC44B67D8D33AC /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

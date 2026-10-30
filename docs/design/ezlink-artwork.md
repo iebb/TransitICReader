@@ -12,17 +12,18 @@ right-hand blue card is the separate SimplyGo EZ-Link product.
 
 Source SHA-256: `c814645fe9f5b17aa9558961515b824507d14487b188e9d845437ee59c564db9`.
 
-The bundled asset is `ios/CardBal/Resources/Presets/ezlink.png`: **512 x 323,
-16-color indexed PNG, 38,357 bytes (37.5 KiB)**. The full comparison sheet is
-not bundled. The printed logo, repeating pattern and layout come from the real
+The asset is now downloaded as `faces/sg/ezlink/default.png` from
+`https://faces.cardb.al/` and stored as `remote.sg.ezlink.default.png`. It was
+previously bundled as `ezlink`. The full comparison sheet is not shipped.
+The printed logo, repeating pattern and layout come from the real
 card artwork; no image generation or invented illustration is used.
 
 Preparation: crop the 1107 x 1960 source to `(169, 60, 486, 260)`, isolate the
 rounded card from the surrounding comparison-sheet shadow on white, resize
 with Lanczos, quantize to 16 colors with median cut and no dithering, and save
-with PNG optimization and level-9 compression. The standard preset name stays
-`ezlink`, so cards already using it receive the corrected face automatically.
-Custom card photos are unaffected.
+with PNG optimization and level-9 compression. The shared repository normalizes
+it to 30:19 and enforces the 24-color / under-40,000-byte budgets. Existing
+`ezlink` selections resolve to the remote design. Custom card photos are unaffected.
 
 The card design and EZ-Link marks belong to their respective owners. The
 artwork identifies the supported card; authorship or official endorsement is

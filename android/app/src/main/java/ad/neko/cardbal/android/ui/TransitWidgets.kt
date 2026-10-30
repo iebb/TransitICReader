@@ -62,6 +62,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -389,10 +390,14 @@ private fun MapLibreRouteMap(
     var renderedMapKey by remember { mutableStateOf<String?>(null) }
     var cameraIdleListener by remember { mutableStateOf<MapLibreMap.OnCameraIdleListener?>(null) }
     val currentOnViewportChanged = rememberUpdatedState(onViewportChanged)
-    val mapContentKey = remember(points, routes) {
+    val markerFaces = markerCardsByPointCode.values.distinctBy { it.id }.map { card ->
+        key(card.id) { card.id to rememberRemoteFace(card) }
+    }
+    val mapContentKey = remember(points, routes, markerCardsByPointCode, markerFaces) {
         points.joinToString(separator = "|") { it.code } +
             "::" + routes.joinToString(separator = "|") { it.id } +
-            "::" + markerCardsByPointCode.entries.sortedBy { it.key }.joinToString(separator = "|") { "${it.key}:${it.value.id}" }
+            "::" + markerCardsByPointCode.hashCode() +
+            "::" + markerFaces.hashCode()
     }
     val mapView = remember {
         MapLibre.getInstance(context)
@@ -1003,12 +1008,10 @@ private fun cardFaceBitmap(context: Context, card: SavedCardRecord): Bitmap? {
             BitmapFactory.decodeFile(file.absolutePath)?.let { return it }
         }
     }
-    val drawableId = presetDrawableFor(card.faceImageFileName ?: card.cardFamily)
-        ?.takeIf { card.finalIsUsingImage || card.faceImageFileName == null }
-    drawableId?.let { return BitmapFactory.decodeResource(context.resources, it) }
-    // Markers never download; the wallet card fetches published faces.
+    // Drawing reads the cache; the composable map requests its marker faces.
     val faces = RemoteCardFaces.get(context)
-    return faces.manifest.value?.faceTokenFor(card)?.let(faces::cachedFace)
+    faces.faceTokenFor(card)?.let(faces::cachedFace)?.let { return it }
+    return offlineDrawableFor(card)?.let { BitmapFactory.decodeResource(context.resources, it) }
 }
 
 private fun drawCenterCropped(canvas: Canvas, source: Bitmap, destination: RectF, paint: Paint) {
