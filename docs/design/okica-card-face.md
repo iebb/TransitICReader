@@ -1,10 +1,11 @@
 # OKICA default card face
 
-The bundled image is `ios/CardBal/Assets.xcassets/okica.imageset/okica.png`:
-796 × 500 pixels, an indexed PNG with 32 colors. The `OKICA` preset applies
-automatically when scanning a card, and previously saved OKICA cards with an
-untouched default appearance receive it on launch. Existing custom images and
-explicitly disabled images are preserved during that upgrade.
+The image now downloads as `faces/jp/okica/default.png` from
+`https://faces.cardb.al/` and is stored as `remote.jp.okica.default.png`.
+The earlier bundled master was 796 x 500 with 32 colors; the shared repository
+normalizes it to 30:19 and at most 24 colors under 40,000 bytes. New OKICA cards
+use this remote default, and old `okica` selections resolve to it. Existing
+custom images and explicitly disabled images are preserved.
 
 The artwork is an adapted illustration, not an exact reproduction of a physical
 card. Its yellow field, decorative waves, flowers, and mascots reference the

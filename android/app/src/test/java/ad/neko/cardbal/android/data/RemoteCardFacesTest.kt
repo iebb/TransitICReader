@@ -123,6 +123,9 @@ class RemoteCardFacesTest {
         val shanghai = card("China T-Union", applications = listOf(application("A000000632010105", "2900")))
         assertEquals("remote.cn.2900.default.png", manifest.faceTokenFor(shanghai))
         assertEquals("remote.jp.okica.default.png", manifest.faceTokenFor(card("OKICA")))
+        assertEquals("remote.jp.suica.default.png", manifest.faceTokenFor(card("Suica")))
+        assertEquals("remote.kr.ezl.default.png", manifest.faceTokenFor(card("EZL / Cashbee")))
+        assertEquals("remote.kr.tmoney.default.png", manifest.faceTokenFor(card("T-money")))
     }
 
     @Test
@@ -142,6 +145,43 @@ class RemoteCardFacesTest {
         assertEquals(8, tokens.size)
         assertNotNull(manifest.entry("remote.kr.tmoney.logo.png"))
         assertNull(manifest.entry("remote.kr.tmoney.missing.png"))
+    }
+
+    @Test
+    fun removedBundlesAndRetainedBundlesBothResolveToDownloads() {
+        assertEquals("remote.jp.suica.default.png", manifest.faceTokenFor(card("Suica", face = "suica")))
+        assertEquals("remote.jp.hayakaken.default.png", manifest.faceTokenFor(card("Hayakaken", face = "hayakaken")))
+        assertEquals("remote.fr.la-carte.blue.png", manifest.faceTokenFor(card("La Carte", face = "la-carte-blue")))
+        assertEquals("remote.mn.umoney.default.png", RemoteFaceManifest.publishedToken("umoney"))
+        assertNull(RemoteFaceManifest.publishedToken("my-photo.png"))
+    }
+
+    @Test
+    fun offlineFallbackIsLimitedToFiveDefaults() {
+        assertEquals("suica", RemoteFaceManifest.offlineAssetFor(card("Transit IC", serial = "JE12345")))
+        assertEquals("ezl", RemoteFaceManifest.offlineAssetFor(card("Cashbee")))
+        assertEquals("tmoney", RemoteFaceManifest.offlineAssetFor(card("T-money", face = "remote.kr.tmoney.default.png")))
+        assertEquals("pasmo", RemoteFaceManifest.offlineAssetFor(card("Suica", face = "pasmo")))
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("Hayakaken")))
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("EZLink")))
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("EZ-Link")))
+    }
+
+    @Test
+    fun offlineFallbackPreservesPhotosAlternatesAndDisabledChoices() {
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("Suica", face = "photo.jpg")))
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("T-money", face = "remote.kr.tmoney.logo.png")))
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("Suica", usingImage = false)))
+        assertNull(RemoteFaceManifest.offlineAssetFor(card("Suica", face = "suica", usingImage = false)))
+        assertNull(manifest.faceTokenFor(card("Suica", face = "remote.jp.suica.default.png", usingImage = false)))
+    }
+
+    @Test
+    fun defaultDoesNotDependOnManifestDesignOrder() {
+        val reordered = manifest.copy(cards = manifest.cards.map {
+            if (it.id == "kr/tmoney") it.copy(designs = it.designs.reversed()) else it
+        })
+        assertEquals("remote.kr.tmoney.default.png", reordered.faceTokenFor(card("T-money")))
     }
 
     @Test

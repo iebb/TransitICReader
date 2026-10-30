@@ -338,6 +338,7 @@ struct ScanHomeView: View {
                                 let cardHeight = proxy.size.height
                                 WalletCardView(
                                     card: cardToDisplay,
+                                    store: cardStore,
                                     isExpanded: true,
                                     cardHeight: cardHeight,
                                     visiblePartHeight: cardHeight,
@@ -672,6 +673,7 @@ struct CardsView: View {
     private func walletCard(_ card: SavedCardRecord, height: CGFloat, expanded: Bool, visibleHeight: CGFloat) -> some View {
         WalletCardView(
             card: card,
+            store: store,
             isExpanded: expanded,
             cardHeight: height,
             visiblePartHeight: visibleHeight,
@@ -1103,24 +1105,6 @@ struct ArchiveButton: View {
     }
 }
 
-
-func loadCardFaceImage(fileName: String) -> UIImage? {
-    // Published faces download through CardWalletStore; this only reads the cache.
-    if RemoteFaceManifest.isToken(fileName) {
-        return RemoteCardFaceCatalog.shared.cachedImage(for: fileName)
-    }
-
-    // 1. Try loading from Assets first (for presets)
-    if let assetImage = UIImage(named: fileName) {
-        return assetImage
-    }
-    
-    // 2. Fallback to local file system
-    let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-        ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-    let url = base.appendingPathComponent("CardBal/CardFaces", isDirectory: true).appendingPathComponent(fileName)
-    return UIImage(contentsOfFile: url.path)
-}
 
 extension TransitCardSnapshot {
     var storageIdentifier: String {

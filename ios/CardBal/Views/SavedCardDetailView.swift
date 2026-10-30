@@ -131,6 +131,7 @@ struct SavedCardDetailView: View {
             GeometryReader { proxy in
                 WalletCardView(
                     card: card,
+                    store: store,
                     isExpanded: true,
                     cardHeight: proxy.size.height,
                     visiblePartHeight: 0,
@@ -458,6 +459,7 @@ struct CardCustomizeView: View {
                 // Compact history chips keep the smaller preview from wrapping.
                 WalletCardView(
                     card: card,
+                    store: store,
                     isExpanded: false,
                     cardHeight: proxy.size.height,
                     visiblePartHeight: 0,
@@ -511,7 +513,9 @@ struct CardCustomizeView: View {
 
                 remoteFaceTiles(remoteFaces.matched, card: card)
 
-                ForEach(presets.filter { $0.fileName != current }) { preset in
+                ForEach(store.unpublishedPresets().filter {
+                    $0.fileName != current && RemoteFaceManifest.publishedToken(for: $0.fileName) != current
+                }) { preset in
                     if let image = UIImage(named: preset.fileName) {
                         faceTile(Text(verbatim: preset.name), isSelected: false) {
                             store.applyPreset(preset, to: card.id)

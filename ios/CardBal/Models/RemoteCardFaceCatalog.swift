@@ -73,6 +73,43 @@ struct RemoteFaceManifest: Codable, Equatable {
         entries.first { $0.token == token }
     }
 
+    // Older backups store bundle names. Keep those choices working after the
+    // artwork moves out of the app, including before the first manifest fetch.
+    static let legacyCardIDs = [
+        "suica": "jp/suica", "pasmo": "jp/pasmo", "icoca": "jp/icoca",
+        "hayakaken": "jp/hayakaken", "sugoca": "jp/sugoca", "manaca": "jp/manaca",
+        "kitaca": "jp/kitaca", "nimoca": "jp/nimoca", "toica": "jp/toica",
+        "okica": "jp/okica", "edy": "jp/edy", "waon": "jp/waon", "nanaco": "jp/nanaco",
+        "ezlink": "sg/ezlink", "ezl": "kr/ezl", "tmoney": "kr/tmoney",
+        "climate-card": "kr/climate-card", "la-carte": "fr/la-carte",
+        "la-carte-blue": "fr/la-carte", "umoney": "mn/umoney",
+    ]
+    static let offlineAssets: Set<String> = ["suica", "pasmo", "icoca", "tmoney", "ezl"]
+
+    static func publishedToken(for fileName: String) -> String? {
+        if isToken(fileName) { return fileName }
+        guard let cardID = legacyCardIDs[fileName] else { return nil }
+        return token(cardID: cardID, designID: fileName == "la-carte-blue" ? "blue" : "default")
+    }
+
+    static func offlineAsset(for fileName: String) -> String? {
+        offlineAssets.first { $0 == fileName || publishedToken(for: $0) == fileName }
+    }
+
+    func faceToken(for card: SavedCardRecord) -> String? {
+        guard card.isUsingImage != false else { return nil }
+        if let fileName = card.faceImageFileName {
+            return entryForBundledAsset(fileName)?.token ?? Self.publishedToken(for: fileName)
+        }
+        guard let matched = match(card.remoteFaceMatchInput),
+              let design = matched.designs.first(where: { $0.id == "default" }) else { return nil }
+        return Self.token(cardID: matched.id, designID: design.id)
+    }
+
+    func entryForBundledAsset(_ asset: String) -> Entry? {
+        entries.first { $0.design.bundledAsset == asset }
+    }
+
     /// T-Union city code, then City Union city code, then the longest card
     /// number prefix, then the longest family-name substring, then the serial
     /// prefix that Japanese cards print before their number.
@@ -96,10 +133,8 @@ struct RemoteFaceManifest: Codable, Equatable {
     }
 
     /// Picker order: the matched card's designs first, then everything else.
-    /// Designs the app already bundles are left out.
-    func pickerEntries(matching matched: Card?, isBundled: (String) -> Bool) -> [Entry] {
-        let available = entries.filter { entry in entry.design.bundledAsset.map { !isBundled($0) } ?? true }
-        return available.filter { $0.card.id == matched?.id } + available.filter { $0.card.id != matched?.id }
+    func pickerEntries(matching matched: Card?) -> [Entry] {
+        entries.filter { $0.card.id == matched?.id } + entries.filter { $0.card.id != matched?.id }
     }
 
     private func longestMatch(_ key: KeyPath<Match, [String]>, where matches: (String) -> Bool) -> Card? {
@@ -169,7 +204,7 @@ final class RemoteCardFaceCatalog: @unchecked Sendable {
     private let defaults: UserDefaults
     private let lock = NSLock()
     private var cachedManifest: RemoteFaceManifest?
-    private var isRefreshing = false
+    private var refreshRequest: (id: UUID, task: Task<Set<String>?, Never>)?
 
     init(directory: URL? = nil, session: URLSession = .shared, defaults: UserDefaults = .standard) {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -199,17 +234,25 @@ final class RemoteCardFaceCatalog: @unchecked Sendable {
     /// file no longer matches it, or nil when nothing was fetched.
     @discardableResult
     func refreshIfNeeded(force: Bool = false) async -> Set<String>? {
-        let shouldRefresh: Bool = lock.withLock {
+        let request = lock.withLock { () -> (id: UUID, task: Task<Set<String>?, Never>)? in
+            if let refreshRequest { return refreshRequest }
             let last = defaults.object(forKey: Self.lastRefreshKey) as? Date ?? .distantPast
-            guard !isRefreshing, force || cachedManifest == nil || Date().timeIntervalSince(last) > Self.refreshInterval else {
-                return false
+            guard force || cachedManifest == nil || Date().timeIntervalSince(last) > Self.refreshInterval else {
+                return nil
             }
-            isRefreshing = true
-            return true
+            let request = (id: UUID(), task: Task { await self.fetchManifest() })
+            refreshRequest = request
+            return request
         }
-        guard shouldRefresh else { return nil }
-        defer { lock.withLock { isRefreshing = false } }
+        guard let request else { return nil }
+        let stale = await request.task.value
+        lock.withLock {
+            if refreshRequest?.id == request.id { refreshRequest = nil }
+        }
+        return stale
+    }
 
+    private func fetchManifest() async -> Set<String>? {
         for base in Self.baseURLs {
             let request = URLRequest(url: base.appendingPathComponent("manifest.json"),
                                      cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)

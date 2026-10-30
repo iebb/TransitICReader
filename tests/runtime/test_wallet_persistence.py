@@ -57,6 +57,7 @@ final class Wallet {
     init(_ path: String) { dbPath = path; openDatabase(); load() }
     deinit { sqlite3_close(db) }
     func markMapDataChanged() {}
+    func resolveRemoteFaceSelections() -> Bool { false }
     func scheduleAutomaticiCloudBackup() {}
     func mergedCard(local: SavedCardRecord, incoming: SavedCardRecord) -> SavedCardRecord {
         var merged = local

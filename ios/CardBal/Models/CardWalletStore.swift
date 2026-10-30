@@ -72,9 +72,7 @@ class CardWalletStore: ObservableObject {
         }
         migrateIfNeeded()
         load()
-        applyOKICADefaultToExistingCards()
-        for card in cards where ICCardBrand.from(family: card.cardFamily) == .ezlink
-            && card.faceImageFileName == nil && card.isUsingImage == nil {
+        for card in cards where card.faceImageFileName == nil && card.isUsingImage == nil {
             autoApplyPresetIfMatching(id: card.id)
         }
         startRemoteFaces()
@@ -331,73 +329,35 @@ class CardWalletStore: ObservableObject {
         }
     }
 
-    private func applyOKICADefaultToExistingCards() {
-        // Previously scanned OKICA cards had no bundled face. Only upgrade
-        // untouched defaults; an explicit choice to disable images stays intact.
-        let cardIDs = cards.filter {
-            ICCardBrand.from(family: $0.cardFamily) == .okica
-                && $0.faceImageFileName == nil && $0.isUsingImage == nil
-        }.map(\.id)
-        for id in cardIDs {
-            autoApplyPresetIfMatching(id: id)
-        }
-    }
-
     private func autoApplyPresetIfMatching(id: String) {
-        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
+        guard let index = cards.firstIndex(where: { $0.id == id }),
+              cards[index].faceImageFileName == nil, cards[index].isUsingImage != false else { return }
         let card = cards[index]
-        if card.faceImageFileName != nil { return }
-        
+        if let token = remoteFaces.manifest?.faceToken(for: card) {
+            applyRemoteFace(token, to: id)
+            return
+        }
+
+        // These five defaults work offline before a manifest has been fetched.
+        // Store their published token so the downloaded art still takes priority.
         let family = card.cardFamily.lowercased()
         let sn = card.realSerialNumber?.uppercased() ?? ""
-        NSLog("[CardWalletStoreDebug] Auto-applying preset: family=%@, sn=%@", family, sn)
-        
-        let allPresets = presets()
         let normalizedFamily = family.replacingOccurrences(of: "-", with: "")
             .replacingOccurrences(of: " ", with: "")
-
-        // Keep the bundled card faces as deterministic defaults for both
-        // punctuation variants, then fall back to the general family match.
-        if normalizedFamily.contains("ezlink"), let match = allPresets.first(where: { $0.id == "EZLINK" }) {
-            applyPreset(match, to: id)
-        } else if normalizedFamily.contains("umoney"),
-           let match = allPresets.first(where: { $0.id == "UMONEY" }) {
-            applyPreset(match, to: id)
-        } else if normalizedFamily.contains("tmoney"),
-                  let match = allPresets.first(where: { $0.id == "TM" }) {
-            applyPreset(match, to: id)
-        } else if let match = allPresets.first(where: { family.contains($0.name.lowercased()) }) {
-            applyPreset(match, to: id)
-        } 
-        // Fallback for Climate Card to its dedicated preset
-        else if family.contains("climate") {
-            if let match = allPresets.first(where: { $0.id == "CLIMATE" }) {
-                applyPreset(match, to: id)
-            }
+        let asset: String?
+        if normalizedFamily.contains("ezlink") {
+            asset = nil
+        } else if normalizedFamily.contains("tmoney") {
+            asset = "tmoney"
+        } else if family.contains("ezl") || family.contains("cashbee") {
+            asset = "ezl"
+        } else {
+            asset = presets().first {
+                family.contains($0.name.lowercased()) || sn.hasPrefix($0.id)
+            }?.fileName
         }
-        // Nice / Lignes d'Azur cards use La Carte as their default face.
-        else if family.contains("lignes d'azur") || family.contains("nice") {
-            if let match = allPresets.first(where: { $0.id == "LA_CARTE" }) {
-                applyPreset(match, to: id)
-            }
-        }
-        // Try SN prefix match
-        else {
-            let jpPrefixes = ["JE": "Suica", "PB": "PASMO", "JW": "ICOCA", "FC": "Hayakaken", "JK": "SUGOCA", "TP": "Manaca", "JH": "Kitaca", "NR": "Nimoca", "JC": "TOICA"]
-            for (prefix, brand) in jpPrefixes {
-                if sn.hasPrefix(prefix) {
-                    if let match = allPresets.first(where: { $0.name == brand }) {
-                        applyPreset(match, to: id)
-                        break
-                    }
-                }
-            }
-        }
-
-        // Cards without a bundled face, such as Chinese city cards, use the
-        // published collection. A face the user removed stays removed.
-        if let card = cards.first(where: { $0.id == id }), card.faceImageFileName == nil, card.isUsingImage != false {
-            applyRemoteDefault(to: id)
+        if let asset, let token = RemoteFaceManifest.publishedToken(for: asset) {
+            applyRemoteFace(token, to: id)
         }
     }
 
@@ -577,38 +537,19 @@ class CardWalletStore: ObservableObject {
             CardPreset(id: "JE", name: "Suica", fileName: "suica"),
             CardPreset(id: "PB", name: "PASMO", fileName: "pasmo"),
             CardPreset(id: "JW", name: "ICOCA", fileName: "icoca"),
-            CardPreset(id: "FC", name: "Hayakaken", fileName: "hayakaken"),
-            CardPreset(id: "JK", name: "SUGOCA", fileName: "sugoca"),
-            CardPreset(id: "TP", name: "Manaca", fileName: "manaca"),
-            CardPreset(id: "Kitaca", name: "Kitaca", fileName: "kitaca"),
-            CardPreset(id: "Nimoca", name: "Nimoca", fileName: "nimoca"),
-            CardPreset(id: "TOICA", name: "TOICA", fileName: "toica"),
-            CardPreset(id: "OKICA", name: "OKICA", fileName: "okica"),
-            CardPreset(id: "EZLINK", name: "EZLink", fileName: "ezlink"),
-            CardPreset(id: "EDY", name: "Edy", fileName: "edy"),
-            CardPreset(id: "WAON", name: "WAON", fileName: "waon"),
-            CardPreset(id: "NANACO", name: "nanaco", fileName: "nanaco"),
             CardPreset(id: "EZL", name: "EZL / Cashbee", fileName: "ezl"),
-            CardPreset(id: "CLIMATE", name: "Climate Card", fileName: "climate-card"),
-            CardPreset(id: "LA_CARTE", name: "La Carte", fileName: "la-carte"),
-            CardPreset(id: "LA_CARTE_BLUE", name: "La Carte Blue", fileName: "la-carte-blue"),
             CardPreset(id: "TM", name: "T-money", fileName: "tmoney"),
-            CardPreset(id: "UMONEY", name: "U-Money", fileName: "umoney")
         ]
     }
 
+    func unpublishedPresets() -> [CardPreset] {
+        presets().filter { remoteFaces.manifest?.entryForBundledAsset($0.fileName) == nil }
+    }
+
     func applyPreset(_ preset: CardPreset, to id: String) {
-        guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
-
-        // Use the asset name directly instead of copying to a JPEG file
-        cards[index].faceImageFileName = preset.fileName
-        cards[index].isUsingImage = true
-
-        if let image = UIImage(named: preset.fileName) {
-            applyAutoImageTextColors(to: &cards[index], image: image)
-            applyAutoMarkerColor(to: &cards[index], image: image)
-        }
-        save()
+        guard let token = remoteFaces.manifest?.entryForBundledAsset(preset.fileName)?.token
+                ?? RemoteFaceManifest.publishedToken(for: preset.fileName) else { return }
+        applyRemoteFace(token, to: id)
     }
 
     func applyRemoteFace(_ token: String, to id: String) {
@@ -629,24 +570,12 @@ class CardWalletStore: ObservableObject {
     func remoteFaceEntries(for card: SavedCardRecord) -> (matched: [RemoteFaceManifest.Entry], others: [RemoteFaceManifest.Entry]) {
         guard let manifest = remoteFaces.manifest else { return ([], []) }
         let matched = manifest.match(card.remoteFaceMatchInput)
-        let entries = manifest.pickerEntries(matching: matched) { UIImage(named: $0) != nil }
+        let entries = manifest.pickerEntries(matching: matched)
         return (entries.filter { $0.card.id == matched?.id }, entries.filter { $0.card.id != matched?.id })
     }
 
     func remoteFaceTitle(for token: String) -> String? {
-        remoteFaces.manifest?.entry(for: token)?.title()
-    }
-
-    private func applyRemoteDefault(to id: String) {
-        guard let card = cards.first(where: { $0.id == id }),
-              let match = remoteFaces.manifest?.match(card.remoteFaceMatchInput),
-              let design = match.designs.first else { return }
-        if let asset = design.bundledAsset, UIImage(named: asset) != nil,
-           let preset = presets().first(where: { $0.fileName == asset }) {
-            applyPreset(preset, to: id)
-        } else {
-            applyRemoteFace(RemoteFaceManifest.token(cardID: match.id, designID: design.id), to: id)
-        }
+        remoteFaces.manifest?.entry(for: RemoteFaceManifest.publishedToken(for: token) ?? token)?.title()
     }
 
     private func startRemoteFaces() {
@@ -663,20 +592,36 @@ class CardWalletStore: ObservableObject {
         }
         applyRemoteDefaultsToExistingCards()
         // Restored backups carry tokens whose files are not on this device yet.
-        for token in Set(cards.compactMap(\.faceImageFileName)) where RemoteFaceManifest.isToken(token) {
+        for token in Set(cards.filter { $0.isUsingImage != false }.compactMap(\.faceImageFileName))
+        where RemoteFaceManifest.isToken(token) {
             _ = loadFaceImage(fileName: token)
         }
-        if !stale.isEmpty {
-            objectWillChange.send()
-        }
+        objectWillChange.send()
     }
 
     private func applyRemoteDefaultsToExistingCards() {
-        // Same rule as the OKICA upgrade: only untouched defaults.
-        let cardIDs = cards.filter { $0.faceImageFileName == nil && $0.isUsingImage == nil }.map(\.id)
-        for id in cardIDs {
-            applyRemoteDefault(to: id)
+        if resolveRemoteFaceSelections() { save() }
+    }
+
+    @discardableResult
+    private func resolveRemoteFaceSelections() -> Bool {
+        var changed = false
+        for index in cards.indices where cards[index].isUsingImage != false {
+            let card = cards[index]
+            let token = remoteFaces.manifest?.faceToken(for: card)
+                ?? card.faceImageFileName.flatMap(RemoteFaceManifest.publishedToken)
+            guard let token, token != card.faceImageFileName else { continue }
+            cards[index].faceImageFileName = token
+            cards[index].isUsingImage = true
+            cards[index].autoTitleTextColor = nil
+            cards[index].autoBalanceTextColor = nil
+            if let image = loadFaceImage(fileName: token) {
+                applyAutoImageTextColors(to: &cards[index], image: image)
+                applyAutoMarkerColor(to: &cards[index], image: image)
+            }
+            changed = true
         }
+        return changed
     }
 
     private func requestRemoteFace(_ token: String) {
@@ -690,11 +635,12 @@ class CardWalletStore: ObservableObject {
                 self.imageCache[token] = image
                 var changed = false
                 for index in self.cards.indices
-                where self.cards[index].faceImageFileName == token && self.cards[index].autoTitleTextColor == nil {
+                where self.cards[index].faceImageFileName == token && self.cards[index].isUsingImage != false {
                     self.applyAutoImageTextColors(to: &self.cards[index], image: image)
                     self.applyAutoMarkerColor(to: &self.cards[index], image: image)
                     changed = true
                 }
+                self.markMapDataChanged()
                 if changed {
                     self.save()
                 } else {
@@ -714,22 +660,24 @@ class CardWalletStore: ObservableObject {
 
     func loadFaceImage(fileName: String?) -> UIImage? {
         guard let fileName = fileName else { return nil }
-        if let cached = imageCache[fileName] { return cached }
-
-        if RemoteFaceManifest.isToken(fileName) {
-            let image = remoteFaces.cachedImage(for: fileName)
+        let published = remoteFaces.manifest?.entryForBundledAsset(fileName)?.token
+            ?? RemoteFaceManifest.publishedToken(for: fileName)
+        if let token = published {
+            if let cached = imageCache[token] { return cached }
+            let image = remoteFaces.cachedImage(for: token)
             // The ride map builds off the main thread; only the main thread
             // touches the cache and starts downloads.
             if Thread.isMainThread {
                 if let image {
-                    imageCache[fileName] = image
+                    imageCache[token] = image
                 } else {
-                    requestRemoteFace(fileName)
+                    requestRemoteFace(token)
                 }
             }
-            return image
+            return image ?? RemoteFaceManifest.offlineAsset(for: token).flatMap { UIImage(named: $0) }
         }
 
+        if let cached = imageCache[fileName] { return cached }
         // Try loading from Assets first (for presets)
         if let assetImage = UIImage(named: fileName) {
             imageCache[fileName] = assetImage
@@ -1227,6 +1175,7 @@ class CardWalletStore: ObservableObject {
     /// wallet. A delayed upsert-only save loses deletions and last-minute edits.
     @discardableResult
     private func save(scheduleCloudSync: Bool = true) -> Bool {
+        if !isSampleWallet { resolveRemoteFaceSelections() }
         guard sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION;", nil, nil, nil) == SQLITE_OK else {
             syncMessage = "Unable to save cards. Please try again."
             return false

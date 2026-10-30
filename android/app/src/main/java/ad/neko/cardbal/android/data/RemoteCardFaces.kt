@@ -90,11 +90,11 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
         if (name != null) {
             if (!card.finalIsUsingImage) return null
             if (isToken(name)) return name
-            return entries.firstOrNull { it.design.bundledAsset == name }?.token
+            return entries.firstOrNull { it.design.bundledAsset == name }?.token ?: publishedToken(name)
         }
         if (card.isUsingImage == false) return null
         val matched = match(card.remoteFaceMatchInput()) ?: return null
-        return matched.designs.firstOrNull()?.let { token(matched.id, it.id) }
+        return matched.designs.firstOrNull { it.id == "default" }?.let { token(matched.id, it.id) }
     }
 
     private fun longestMatch(values: (Match) -> List<String>, matches: (String) -> Boolean): Card? =
@@ -110,6 +110,48 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
         fun token(cardId: String, designId: String) = "remote.${cardId.replace('/', '.')}.$designId.png"
 
         fun isToken(fileName: String) = tokenPattern.matches(fileName)
+
+        private val legacyCardIds = mapOf(
+            "suica" to "jp/suica", "pasmo" to "jp/pasmo", "icoca" to "jp/icoca",
+            "hayakaken" to "jp/hayakaken", "sugoca" to "jp/sugoca", "manaca" to "jp/manaca",
+            "kitaca" to "jp/kitaca", "nimoca" to "jp/nimoca", "toica" to "jp/toica",
+            "okica" to "jp/okica", "edy" to "jp/edy", "waon" to "jp/waon", "nanaco" to "jp/nanaco",
+            "ezlink" to "sg/ezlink", "ezl" to "kr/ezl", "tmoney" to "kr/tmoney",
+            "climate-card" to "kr/climate-card", "la-carte" to "fr/la-carte",
+            "la-carte-blue" to "fr/la-carte", "umoney" to "mn/umoney",
+        )
+        private val offlineAssets = setOf("suica", "pasmo", "icoca", "tmoney", "ezl")
+
+        /** Resolve old bundle names even before a fresh install gets its first manifest. */
+        fun publishedToken(fileName: String): String? {
+            if (isToken(fileName)) return fileName
+            val id = legacyCardIds[fileName] ?: return null
+            return token(id, if (fileName == "la-carte-blue") "blue" else "default")
+        }
+
+        fun offlineAsset(fileName: String): String? =
+            offlineAssets.firstOrNull { it == fileName || publishedToken(it) == fileName }
+
+        /** A bundled fallback never overrides a photo, alternate design or explicit color-only choice. */
+        fun offlineAssetFor(card: SavedCardRecord): String? {
+            if (card.isUsingImage == false) return null
+            card.faceImageFileName?.let { return offlineAsset(it) }
+            val family = card.cardFamily.lowercase().replace("-", "").replace(" ", "")
+            if ("ezlink" in family) return null
+            return when {
+                "suica" in family -> "suica"
+                "pasmo" in family -> "pasmo"
+                "icoca" in family -> "icoca"
+                "tmoney" in family -> "tmoney"
+                "ezl" in family || "cashbee" in family -> "ezl"
+                else -> when (card.realSerialNumber?.uppercase()?.take(2)) {
+                    "JE" -> "suica"
+                    "PB" -> "pasmo"
+                    "JW" -> "icoca"
+                    else -> null
+                }
+            }
+        }
 
         fun parse(text: String): RemoteFaceManifest? =
             runCatching { json.decodeFromString(serializer(), text) }.getOrNull()
@@ -144,6 +186,12 @@ class RemoteCardFaces private constructor(context: Context) {
         runCatching { manifestFile.readText() }.getOrNull()?.let(RemoteFaceManifest::parse),
     )
     val manifest: StateFlow<RemoteFaceManifest?> = _manifest
+
+    fun faceTokenFor(card: SavedCardRecord): String? {
+        if (card.isUsingImage == false) return null
+        return _manifest.value?.faceTokenFor(card)
+            ?: card.faceImageFileName?.let(RemoteFaceManifest::publishedToken)
+    }
 
     fun cachedFace(token: String): Bitmap? {
         if (!RemoteFaceManifest.isToken(token)) return null

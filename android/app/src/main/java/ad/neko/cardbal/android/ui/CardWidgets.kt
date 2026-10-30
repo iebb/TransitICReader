@@ -49,9 +49,9 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
     val importedImage = remember(card.faceImageFileName) {
         importedFaceImageFor(context, card.faceImageFileName)
     }?.takeIf { card.finalIsUsingImage }
-    val image = presetDrawableFor(card.faceImageFileName ?: card.cardFamily)?.takeIf { card.finalIsUsingImage || card.faceImageFileName == null }
-    // Published faces fill in cards with no imported photo or bundled preset.
-    val bitmap = importedImage ?: if (image == null) rememberRemoteFace(card) else null
+    val image = offlineDrawableFor(card)
+    val remoteImage = rememberRemoteFace(card)
+    val bitmap = importedImage ?: remoteImage
     val color = Color(
         red = card.color.red.toFloat(),
         green = card.color.green.toFloat(),
