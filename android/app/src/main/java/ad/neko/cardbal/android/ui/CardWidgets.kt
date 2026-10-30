@@ -127,7 +127,7 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                                 MarkerBadge(card)
                                 if (!card.finalHideTitle && importedImage == null) {
                                     Text(
-                                        card.displayTitle,
+                                        cardTitle(card),
                                         color = titleColor,
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
@@ -149,7 +149,7 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
 
                         if (card.visibleBalance.isNotBlank()) {
                             Text(
-                                card.visibleBalance,
+                                tr(card.visibleBalance),
                                 color = balanceColor,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
@@ -195,7 +195,7 @@ fun CardListItem(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    card.displayTitle,
+                    cardTitle(card),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
@@ -210,7 +210,7 @@ fun CardListItem(
                 )
                 if (card.visibleBalance.isNotBlank()) {
                     Text(
-                        card.visibleBalance,
+                        tr(card.visibleBalance),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -235,7 +235,7 @@ private fun CountPill(label: String) {
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Text(
-            label,
+            tr(label),
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
@@ -301,9 +301,9 @@ fun CompactCardRow(card: SavedCardRecord, modifier: Modifier = Modifier) {
             Icon(Icons.Filled.CreditCard, contentDescription = null)
         }
         Column(Modifier.weight(1f)) {
-            Text(card.displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(cardTitle(card), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(card.displayedSerialNumber, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(card.visibleBalance, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(tr(card.visibleBalance), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 }

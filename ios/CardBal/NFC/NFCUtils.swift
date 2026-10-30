@@ -477,7 +477,7 @@ struct TransitTransactionRow: View {
                     .foregroundStyle(iconMapping.color)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tx.type)
+                    Text(Localizer.localize(tx.type))
                         .font(.headline)
                     HStack(spacing: 4) {
                         let isRecordOnly = tx.time?.contains("Record #") ?? false
@@ -488,7 +488,7 @@ struct TransitTransactionRow: View {
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         } else if let time = tx.time, !isRecordOnly {
-                            Text(time).font(.caption).foregroundStyle(.secondary)
+                            Text(Localizer.localize(time)).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     if let locationLine = displayLocationLine {
@@ -497,7 +497,7 @@ struct TransitTransactionRow: View {
                             .foregroundStyle(.secondary)
                     }
                     if let term = tx.terminalID, term != tx.type {
-                        Text(term).font(.system(size: 11)).foregroundStyle(.tertiary)
+                        Text(Localizer.localize(term)).font(.system(size: 11)).foregroundStyle(.tertiary)
                     }
                 }
                 
@@ -618,7 +618,7 @@ struct TransactionDetailView: View {
                     let isNAMANE = brand == .namane
                     
                     LabeledContent {
-                        Text(tx.type)
+                        Text(Localizer.localize(tx.type))
                     } label: {
                         HStack {
                             Text("Type")
@@ -627,7 +627,7 @@ struct TransactionDetailView: View {
                     
                     if let term = tx.terminalID, !isKorean, !isKSX6924Card {
                         LabeledContent {
-                            Text(term)
+                            Text(Localizer.localize(term))
                         } label: {
                             HStack {
                                 Text("Terminal")
@@ -652,7 +652,7 @@ struct TransactionDetailView: View {
                     let hasDisplayTime = displayTime?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "n/a"
                     if !isNAMANE, !isRecordOnly, hasDisplayTime, let displayTime {
                         LabeledContent {
-                            Text(displayTime)
+                            Text(Localizer.localize(displayTime))
                         } label: {
                             HStack {
                                 Text("Time")
@@ -716,7 +716,7 @@ struct TransactionDetailView: View {
                              }
                          } label: {
                              HStack(spacing: 6) {
-                                 Text(tx.category == .bus ? "Operator" : "Entry")
+                                 Text(Localizer.localize(tx.category == .bus ? "Operator" : "Entry"))
                              }
                          }
                     }
@@ -730,7 +730,7 @@ struct TransactionDetailView: View {
                              }
                          } label: {
                              HStack(spacing: 6) {
-                                 Text(tx.category == .bus ? "Station" : "Exit")
+                                 Text(Localizer.localize(tx.category == .bus ? "Station" : "Exit"))
                              }
                          }
                     }
@@ -784,7 +784,7 @@ struct TransactionDetailView: View {
                                 Text(tid)
                             } label: {
                                 HStack {
-                                    Text(is52 ? "Location Code" : "Terminal (IDSAM)")
+                                    Text(Localizer.localize(is52 ? "Location Code" : "Terminal (IDSAM)"))
                                 }
                             }
                         }
@@ -802,7 +802,7 @@ struct TransactionDetailView: View {
                                 Text("\(ntep)")
                             } label: {
                                 HStack {
-                                    Text(is52 ? "Record Order" : "Record (NTEP)")
+                                    Text(Localizer.localize(is52 ? "Record Order" : "Record (NTEP)"))
                                 }
                             }
                         }
@@ -1350,10 +1350,10 @@ struct DetailRawRow: View {
                 if let color = color {
                     Circle().fill(color).frame(width: 8, height: 8)
                 }
-                Text(title).font(.caption).foregroundStyle(.secondary)
+                Text(Localizer.localize(title)).font(.caption).foregroundStyle(.secondary)
             }
             HStack {
-                Text(value)
+                Text(Localizer.localize(value))
                 if !hex.isEmpty {
                     Text("[\(hex)]").font(.caption.monospaced()).foregroundStyle(.tertiary)
                 }

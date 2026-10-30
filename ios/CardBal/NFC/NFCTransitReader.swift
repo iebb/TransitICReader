@@ -127,7 +127,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     private func updateStatus(_ message: String, kind: StatusKind) {
-        statusMessage = message
+        statusMessage = Localizer.localize(message)
         latestStatusKind = kind
         logger.log("Status: \(message, privacy: .public)")
     }
@@ -163,7 +163,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
         let message = phase == .regular
             ? String(localized: "Hold your iPhone near a transit card.")
             : String(localized: "Keep the same card near your iPhone while reading finishes.")
-        newSession.alertMessage = message
+        newSession.alertMessage = Localizer.localize(message)
         updateStatus(message, kind: .idle)
         newSession.begin()
         if phase != .regular { scheduleSecondSideTimeout(for: newSession) }
@@ -252,7 +252,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
             phase = hasOctopus ? .mainland : .octopus
             let message = String(localized: "Keep the same card near your iPhone while reading finishes.")
             updateStatus(message, kind: .idle)
-            session.alertMessage = message
+            session.alertMessage = Localizer.localize(message)
             if #available(iOS 26.4, *) {
                 restartPolling(session)
                 scheduleSecondSideTimeout(for: session)

@@ -96,7 +96,7 @@ struct WalletCardView: View {
                                     .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 6 }
                             }
                             borderedCardText(
-                                shouldShowTitle ? card.displayTitle : "",
+                                shouldShowTitle ? card.localizedDisplayTitle : "",
                                 font: .title3.weight(.semibold),
                                 foregroundColor: titleTextColor,
                                 lineLimit: 1,
@@ -104,7 +104,7 @@ struct WalletCardView: View {
                             )
                             Spacer(minLength: 8)
                             borderedCardText(
-                                card.visibleBalance,
+                                Localizer.localize(card.visibleBalance),
                                 font: card.hasNoStoredBalance
                                     ? .system(size: 20, weight: .semibold, design: .rounded)
                                     : .system(size: 26, weight: .bold, design: .rounded),
@@ -237,7 +237,7 @@ struct WalletCardView: View {
             .overlay(Capsule().strokeBorder(.white.opacity(0.14), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .accessibilityLabel(Localizer.localize(label))
     }
 
     /// Blurs and darkens the top strip of a card design so the name, number and
@@ -327,5 +327,14 @@ extension SavedCardRecord {
         case .sunrise:
             return LinearGradient(stops: [.init(color: color.color, location: 0), .init(color: color.color.opacity(0.92), location: 0.28), .init(color: .orange.opacity(0.9), location: 0.72), .init(color: color.darkerColor, location: 1)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
+    }
+}
+
+extension SavedCardRecord {
+    var localizedDisplayTitle: String {
+        if let customTitle, !customTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return displayTitle
+        }
+        return Localizer.localize(displayTitle)
     }
 }

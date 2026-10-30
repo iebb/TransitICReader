@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,19 +34,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -85,6 +79,8 @@ import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.TransactionDecoder
 import ad.neko.cardbal.android.data.TripReaderBackup
 import ad.neko.cardbal.android.nfc.CardBalNfcReader
+import ad.neko.cardbal.android.ui.tr
+import ad.neko.cardbal.android.ui.cardTitle
 import ad.neko.cardbal.android.ui.CardBalTheme
 import ad.neko.cardbal.android.ui.CardDetailScreen
 import ad.neko.cardbal.android.ui.MapViewportBounds
@@ -95,7 +91,6 @@ import ad.neko.cardbal.android.ui.swipeUpAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.File
 import android.os.Build
 
@@ -111,7 +106,7 @@ class MainActivity : ComponentActivity() {
                 CardWalletRepository(applicationContext, sampleWallet = sampleWallet).also {
                     if (sampleWallet) {
                         runCatching { it.loadDevelopmentSamples(File(filesDir, "development/sample-wallet.json").readBytes()) }
-                            .onFailure { Toast.makeText(this, "Unable to load development samples", Toast.LENGTH_LONG).show() }
+                            .onFailure { Toast.makeText(this, this.tr("Unable to load development samples"), Toast.LENGTH_LONG).show() }
                     }
                 }
             }
@@ -190,10 +185,10 @@ private fun CardBalApp(
                                     Tab.Map -> Icons.Filled.Map
                                     Tab.Settings -> Icons.Filled.Settings
                                 },
-                                contentDescription = tab.label,
+                                contentDescription = tr(tab.label),
                             )
                         },
-                        label = { Text(tab.label) },
+                        label = { Text(tr(tab.label)) },
                     )
                 }
             }
@@ -258,7 +253,7 @@ private fun ScanScreen(
 @Composable
 private fun CardsScreen(cards: List<SavedCardRecord>, onOpenCard: (SavedCardRecord) -> Unit) {
     if (cards.isEmpty()) {
-        EmptyState("No saved cards", "Scanned cards will appear here and are stored in the Android SQLite wallet database.")
+        EmptyState("No saved cards", "Scan a card to add it to your wallet.")
         return
     }
     val transactionCount = remember(cards) { cards.sumOf { it.rawTransactions.size } }
@@ -356,14 +351,14 @@ private fun SelectedCardActions(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    card.displayTitle,
+                    cardTitle(card),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "$transactionCount Tx · $tripCount Trips",
+                    tr("$transactionCount Tx · $tripCount Trips"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -372,7 +367,7 @@ private fun SelectedCardActions(
             FilledTonalButton(onClick = onOpenCard) {
                 Icon(Icons.Filled.CreditCard, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Details")
+                Text(tr("Details"))
             }
         }
     }
@@ -380,6 +375,7 @@ private fun SelectedCardActions(
 
 @Composable
 private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder, onOpenCard: (SavedCardRecord) -> Unit) {
+    val context = LocalContext.current
     var selectedMapCardId by rememberSaveable { mutableStateOf<String?>(null) }
     var mapViewport by remember { mutableStateOf<MapViewportBounds?>(null) }
     val scopedCards = remember(cards, selectedMapCardId) {
@@ -418,7 +414,7 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
     val transactions = remember(scopedCards) { scopedCards.flatMap { card -> decoder.transactionsFor(card).map { card to it } } }
     val recordRows = remember(transactions) {
         transactions.map { (card, tx) ->
-            "${card.displayTitle}: ${tx.type}${tx.location?.let { " · $it" } ?: ""}"
+            "${context.cardTitle(card)}: ${context.tr(tx.type)}${tx.location?.let { " · ${context.tr(it)}" } ?: ""}"
         }
     }
     val routeRows = remember(stationRoutes) {
@@ -443,9 +439,6 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
 @Composable
 private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletRepository) {
     val context = LocalContext.current
-    val transactionCount = remember(cards) { cards.sumOf { it.rawTransactions.size } }
-    val tripCount = remember(cards) { cards.sumOf { it.rawTransitHistory.size } }
-    val stationAssetSummary = remember(context) { loadStationAssetSummary(context) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -455,9 +448,9 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                 output.write(repository.exportBackup())
             } ?: error("Unable to open export destination")
         }.onSuccess {
-            Toast.makeText(context, "CardBal backup exported", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.tr("CardBal backup exported"), Toast.LENGTH_SHORT).show()
         }.onFailure {
-            Toast.makeText(context, "Export failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.tr("Export failed: ${it.localizedMessage}"), Toast.LENGTH_LONG).show()
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
@@ -472,11 +465,11 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         }.onSuccess { result ->
             Toast.makeText(
                 context,
-                "Imported ${result.imported} cards (${result.replaced} replaced)",
+                context.tr("Imported ${result.imported} cards (${result.replaced} replaced)"),
                 Toast.LENGTH_LONG,
             ).show()
         }.onFailure {
-            Toast.makeText(context, "Import failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.tr("Import failed: ${it.localizedMessage}"), Toast.LENGTH_LONG).show()
         }
     }
     val scope = rememberCoroutineScope()
@@ -496,139 +489,78 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                     "No China T-Union or City Union cards were found in this Trip Reader backup."
                 } else {
                     repository.importSnapshots(plan.snapshots)
-                    val skipped = if (plan.skippedCards > 0) " Skipped ${plan.skippedCards} cards of other types." else ""
-                    "Imported ${plan.snapshots.size} cards and ${plan.recordCount} records from Trip Reader.$skipped"
+                    val skipped = if (plan.skippedCards > 0) " " + context.tr("Skipped ${plan.skippedCards} cards of other types.") else ""
+                    context.tr("Imported ${plan.snapshots.size} cards and ${plan.recordCount} records from Trip Reader.") + skipped
                 }
             }.getOrElse { "Import failed: ${it.localizedMessage}" }
             isImportingTripReader = false
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.tr(message), Toast.LENGTH_LONG).show()
         }
     }
 
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        item { ScreenHeader(title = "Settings") }
         item {
-            SummaryStrip(
-                firstLabel = "Cards",
-                firstValue = cards.size.toString(),
-                secondLabel = "Records",
-                secondValue = transactionCount.toString(),
-                thirdLabel = "Trips",
-                thirdValue = tripCount.toString(),
-            )
+            Text(tr("Settings"), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         }
         item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Wallet,
-                title = "Backup",
-            ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = { exportLauncher.launch("cardbal-backup.json") },
-                        enabled = cards.isNotEmpty(),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Filled.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(8.dp))
-                        Text("Export")
-                    }
-                    FilledTonalButton(
-                        onClick = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*")) },
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(8.dp))
-                        Text("Import")
-                    }
-                }
-                FilledTonalButton(
+            SettingsSection(title = "Backup") {
+                SettingsActionRow(
+                    label = "Export Backup",
+                    icon = Icons.Filled.Upload,
+                    enabled = cards.isNotEmpty() && !isImportingTripReader,
+                    onClick = { exportLauncher.launch("cardbal-backup.json") },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    label = "Import Backup",
+                    icon = Icons.Filled.Download,
+                    enabled = !isImportingTripReader,
+                    onClick = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*")) },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    label = if (isImportingTripReader) "Importing..." else "Import Trip Reader Backup",
+                    icon = Icons.Filled.Download,
+                    enabled = !isImportingTripReader,
                     onClick = {
                         tripReaderLauncher.launch(arrayOf("application/x-sqlite3", "application/vnd.sqlite3", "application/octet-stream", "*/*"))
                     },
-                    enabled = !isImportingTripReader,
-                    shape = MaterialTheme.shapes.extraLarge,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(8.dp))
-                    Text(if (isImportingTripReader) "Importing..." else "Import Trip Reader Backup")
-                }
+                )
             }
         }
         item {
-            SettingsSectionCard(
-                icon = Icons.Filled.PhotoLibrary,
-                title = "Card faces",
-            ) {
-                SettingsInfoRow("Imported faces", cards.count { it.faceImageFileName != null }.toString())
-            }
-        }
-        item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Settings,
-                title = "App behavior",
-            ) {
-                SettingsInfoRow("NFC reader", "Armed while foregrounded")
-                SettingsInfoRow("Scan action", "Tap the card surface")
-                SettingsInfoRow("Card ordering", "Wallet stack")
-            }
-        }
-        item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Storage,
-                title = "Station data",
-            ) {
-                SettingsInfoRow("Japanese stations", stationAssetSummary?.jpStations?.toString() ?: "Bundled")
-                SettingsInfoRow("Japanese edges", stationAssetSummary?.jpEdges?.toString() ?: "Bundled")
-                SettingsInfoRow("T-Union stations", stationAssetSummary?.tUnionStations?.toString() ?: "Bundled")
-                SettingsInfoRow("T-Union edges", stationAssetSummary?.tUnionEdges?.toString() ?: "Bundled")
+            SettingsSection(title = "Privacy") {
                 Text(
-                    "Sources: JPStationCodes, station_database, Trip Reader and © OpenStreetMap contributors.",
+                    tr("Scans are stored on this device."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
         item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Security,
-                title = "Privacy",
-            ) {
-                Text(
-                    "Scans are stored on this device.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
-        item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Forum,
-                title = "Community",
-            ) {
+            SettingsSection(title = "Community") {
                 SettingsLinkRow("Support", "cardb.al/support", "https://cardb.al/support/")
                 SettingsLinkRow("GitHub", "iebb/TransitICReader", "https://github.com/iebb/TransitICReader")
                 SettingsLinkRow("Telegram Group", "t.me/cardbal", "https://t.me/cardbal")
             }
         }
         item {
-            SettingsSectionCard(
-                icon = Icons.Filled.Info,
-                title = "Information",
-            ) {
+            SettingsSection(title = "Information") {
                 SettingsInfoRow("App", "CardBal Android")
                 SettingsInfoRow("Version", BuildConfig.VERSION_NAME)
                 Text(
-                    "Unofficial transit card reader.",
+                    tr("Unofficial transit card reader."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    tr("Sources: JPStationCodes, station_database, Trip Reader and © OpenStreetMap contributors."),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
         }
@@ -636,41 +568,28 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
 }
 
 @Composable
-private fun SettingsSectionCard(
-    icon: ImageVector,
+private fun SettingsSection(
     title: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    ElevatedCard(
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    Modifier
-                        .size(44.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                }
-                Text(
-                    title,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(tr(title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             content()
         }
+    }
+}
+
+@Composable
+private fun SettingsActionRow(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    val color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).heightIn(min = 48.dp).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+        Text(tr(label), color = color, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -681,14 +600,15 @@ private fun SettingsLinkRow(label: String, value: String, url: String) {
         Modifier
             .fillMaxWidth()
             .clickable { runCatching { uriHandler.openUri(url) } }
-            .padding(vertical = 4.dp),
+            .heightIn(min = 48.dp)
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        Text(tr(label), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                value,
+                tr(value),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -713,9 +633,9 @@ private fun SettingsInfoRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        Text(tr(label), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         Text(
-            value,
+            tr(value),
             modifier = Modifier.padding(start = 16.dp),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
@@ -725,31 +645,10 @@ private fun SettingsInfoRow(label: String, value: String) {
     }
 }
 
-private data class StationAssetSummary(
-    val jpStations: Int,
-    val jpEdges: Int,
-    val tUnionStations: Int,
-    val tUnionEdges: Int,
-)
-
-private fun loadStationAssetSummary(context: android.content.Context): StationAssetSummary? {
-    return runCatching {
-        val text = context.assets.open("manifest.json").bufferedReader().use { it.readText() }
-        val root = JSONObject(text)
-        val sqlite = root.getJSONObject("sqlite")
-        StationAssetSummary(
-            jpStations = sqlite.optInt("jp_stations"),
-            jpEdges = sqlite.optInt("jp_station_edges"),
-            tUnionStations = sqlite.optInt("tunion_stations"),
-            tUnionEdges = sqlite.optInt("tunion_station_edges"),
-        )
-    }.getOrNull()
-}
-
 @Composable
 private fun CardDetails(card: SavedCardRecord, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Card details", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(tr("Card details"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         DetailRow("Technology", card.technology)
         DetailRow("Family", card.cardFamily)
         DetailRow(card.identifierLabel, card.identifierValue)
@@ -767,10 +666,10 @@ private fun ScreenHeader(title: String, subtitle: String? = null) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
+            Text(tr(title), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
             if (subtitle != null) {
                 Text(
-                    subtitle,
+                    tr(subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -808,13 +707,13 @@ private fun ScanCardHero(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistChip(
                 onClick = onScan,
-                label = { Text(if (isScanning) "NFC active" else "NFC idle") },
+                label = { Text(tr(if (isScanning) "NFC active" else "NFC idle")) },
                 leadingIcon = { Icon(Icons.Filled.Nfc, contentDescription = null) },
             )
             latestCard?.let {
                 AssistChip(
                     onClick = { onOpenCard(it) },
-                    label = { Text("${it.rawTransactions.size} Tx / ${it.rawTransitHistory.size} Trips") },
+                    label = { Text(tr("${it.rawTransactions.size} Tx / ${it.rawTransitHistory.size} Trips")) },
                     leadingIcon = { Icon(Icons.Filled.CreditCard, contentDescription = null) },
                 )
             }
@@ -854,7 +753,7 @@ private fun EmptyWalletCard(isScanning: Boolean) {
                     Icon(Icons.Filled.Nfc, contentDescription = null, tint = Color.White)
                 }
                 Text(
-                    "CardBal",
+                    tr("CardBal"),
                     color = Color.White,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
@@ -862,13 +761,13 @@ private fun EmptyWalletCard(isScanning: Boolean) {
             }
             Column {
                 Text(
-                    if (isScanning) "NFC active" else "Transit card",
+                    tr(if (isScanning) "NFC active" else "Transit card"),
                     color = Color.White,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                 )
                 Text(
-                    "FeliCa / ISO7816",
+                    tr("FeliCa / ISO7816"),
                     color = Color.White.copy(alpha = 0.78f),
                     style = MaterialTheme.typography.titleMedium,
                 )
@@ -902,8 +801,8 @@ private fun SummaryMetric(label: String, value: String, modifier: Modifier = Mod
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, maxLines = 1)
-            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.76f))
+            Text(tr(value), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, maxLines = 1)
+            Text(tr(label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.76f))
         }
     }
 }
@@ -911,8 +810,8 @@ private fun SummaryMetric(label: String, value: String, modifier: Modifier = Mod
 @Composable
 private fun DetailRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.SemiBold)
+        Text(tr(label), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr(value), fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -922,8 +821,8 @@ private fun EmptyState(title: String, subtitle: String) {
         Modifier.fillMaxSize().padding(28.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(tr(title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr(subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

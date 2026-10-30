@@ -22,6 +22,23 @@ xcodebuild -project CardBal.xcodeproj -scheme CardBal \
 (cd services/station-reports && npm ci && npm run typecheck && npm test && npm run build)
 ```
 
+## Localization
+
+English, Simplified Chinese, Japanese and Korean share the catalogs in
+`ios/CardBal/Resources/*.lproj/Localizable.strings`. After editing them, regenerate
+the Android resources and check coverage:
+
+```sh
+python3 tools/localization.py
+python3 tools/localization.py --check
+```
+
+The Python suite checks matching keys and placeholders, untranslated English,
+UI literals and Swift runtime translations. Android unit tests cover formatted
+messages and language changes. After an iOS build, add `--swift-strings` pointing
+to its `Objects-normal/arm64` directory to check compiler-extracted UI keys.
+Keep user-entered titles and raw identifiers verbatim.
+
 ## iPhone device helpers
 
 ```sh

@@ -318,7 +318,7 @@ struct ScanHomeView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     if reader.showsScanStatus {
-                        Label(reader.statusMessage, systemImage: reader.statusSymbol)
+                        Label(Localizer.localize(reader.statusMessage), systemImage: reader.statusSymbol)
                             .foregroundStyle(reader.statusColor)
                             .font(.footnote)
                     } else if !reader.isNFCAvailable && !reader.usesExternalReader {
@@ -543,7 +543,7 @@ struct ScanHomeView: View {
                         .foregroundStyle(.secondary)
                 }
             case .failed(let message):
-                Text(message)
+                Text(Localizer.localize(message))
                     .font(.footnote)
                     .foregroundStyle(.red)
             case .loaded(let details):
@@ -904,7 +904,7 @@ struct SettingsView: View {
                         .tint(.accentColor)
                 }
                 if let message = store.syncMessage {
-                    Text(LocalizedStringKey(message))
+                    Text(Localizer.localize(message))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -934,7 +934,7 @@ struct SettingsView: View {
                 }
                 .disabled(store.isSyncing || isImportingTripReaderBackup)
                 if let backupMessage {
-                    Text(backupMessage)
+                    Text(Localizer.localize(backupMessage))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1092,7 +1092,7 @@ struct ArchiveButton: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(Localizer.localize(title))
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -1211,10 +1211,10 @@ private struct NiceTicketSummaryCard: View {
     @ViewBuilder
     private func ticketMetric(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
+            Text(Localizer.localize(title))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(value)
+            Text(Localizer.localize(value))
                 .font(.headline)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1228,15 +1228,15 @@ private struct RawDataSectionList: View {
 
     var body: some View {
         ForEach(snapshot.rawSections) { section in
-            DisclosureGroup(section.title) {
+            DisclosureGroup(Localizer.localize(section.title)) {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(section.fields) { field in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(field.title)
+                                Text(Localizer.localize(field.title))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(field.value)
+                                Text(Localizer.localize(field.value))
                                     .font(.footnote.monospaced())
                                     .textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1249,7 +1249,7 @@ private struct RawDataSectionList: View {
                                     .foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(Text("Copy \(field.title)"))
+                            .accessibilityLabel(Text("Copy \(Localizer.localize(field.title))"))
                         }
                         .padding(.vertical, 2)
                     }
@@ -1352,7 +1352,7 @@ struct ReorderCardsView: View {
                             .frame(width: 32, height: 20)
                     }
                     
-                    Text(card.displayTitle)
+                    Text(card.localizedDisplayTitle)
                         .font(.body.weight(.medium))                                                   
                     
                     Spacer()

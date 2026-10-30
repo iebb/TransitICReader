@@ -145,10 +145,10 @@ fun CardDetailScreen(
     var selectedRecord by remember { mutableStateOf<TransitTransaction?>(null) }
     Column(modifier) {
         TopAppBar(
-            title = { Text(card.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            title = { Text(cardTitle(card), maxLines = 1, overflow = TextOverflow.Ellipsis) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Back"))
                 }
             },
         )
@@ -160,20 +160,20 @@ fun CardDetailScreen(
             item { WalletCard(card) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(onClick = {}, label = { Text("${transactions.size} records") })
-                    AssistChip(onClick = {}, label = { Text("${routePoints.size} mapped stations") })
+                    AssistChip(onClick = {}, label = { Text(tr("${transactions.size} records")) })
+                    AssistChip(onClick = {}, label = { Text(tr("${routePoints.size} mapped stations")) })
                 }
             }
             item {
                 TransitRouteMap(points = routePoints, routes = routes, modifier = Modifier.fillMaxWidth())
             }
             item {
-                Text("Transit records", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(tr("Transit records"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             if (transactions.isEmpty()) {
                 item {
                     Text(
-                        "No readable transaction or transit records are stored for this card yet.",
+                        tr("No readable transaction or transit records are stored for this card yet."),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -189,7 +189,7 @@ fun CardDetailScreen(
                 }
             }
             item {
-                Text("Raw fields", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(tr("Raw fields"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 card.resultFields.forEach { field ->
                     DetailTextRow(field.title, field.value)
@@ -271,19 +271,19 @@ fun TransactionRow(tx: TransitTransaction, modifier: Modifier = Modifier) {
                 Icon(categoryIcon(tx.category), contentDescription = null, tint = categoryColor(tx.category))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(tx.type, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tr(tx.type), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 tx.date?.let { Text(formatDate(it, tx.issuerTimeZone), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
-                tx.location?.let { Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                tx.terminalID?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, maxLines = 1) }
+                tx.location?.let { Text(tr(it), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                tx.terminalID?.let { Text(tr(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, maxLines = 1) }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (!tx.amountKnown || tx.amount != 0L) {
-                    Text(if (tx.amountKnown) formatTransactionAmount(tx) else "Fare unavailable", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(tr(if (tx.amountKnown) formatTransactionAmount(tx) else "Fare unavailable"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 tx.balanceAfter?.let {
-                    Text(formatCardMoney(it, tx.currencyCode, tx.fractionDigits), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr(formatCardMoney(it, tx.currencyCode, tx.fractionDigits)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("Raw", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text(tr("Raw"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -315,20 +315,20 @@ fun TransitRouteMap(
             }
             if (showContainer) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Column {
-                    Text("Ride map", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(tr("Ride map"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
-                        "Visible ${visiblePoints.size}/${points.size} stations",
+                        tr("Visible ${visiblePoints.size}/${points.size} stations"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { zoomLevel = (zoomLevel - 1).coerceAtLeast(0) }, enabled = zoomLevel > 0) {
-                        Icon(Icons.Filled.Remove, contentDescription = "Zoom out")
+                        Icon(Icons.Filled.Remove, contentDescription = tr("Zoom out"))
                     }
-                    Text(zoomLabel(zoomLevel), style = MaterialTheme.typography.labelLarge)
+                    Text(tr(zoomLabel(zoomLevel)), style = MaterialTheme.typography.labelLarge)
                     IconButton(onClick = { zoomLevel = (zoomLevel + 1).coerceAtMost(3) }, enabled = zoomLevel < 3) {
-                        Icon(Icons.Filled.Add, contentDescription = "Zoom in")
+                        Icon(Icons.Filled.Add, contentDescription = tr("Zoom in"))
                     }
                 }
             }
@@ -338,7 +338,7 @@ fun TransitRouteMap(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (points.size < 2) "More resolved station records are needed to draw a route." else "Zoomed view has fewer than two visible stations.",
+                        tr(if (points.size < 2) "More resolved station records are needed to draw a route." else "Zoomed view has fewer than two visible stations."),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -352,7 +352,7 @@ fun TransitRouteMap(
                 )
                 if (showContainer) {
                     Text(
-                        "Map data © OpenStreetMap contributors",
+                        tr("Map data © OpenStreetMap contributors"),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -468,13 +468,13 @@ private fun MapCardPickerBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MapChip(
-            label = if (cards.isEmpty()) "No cards in view" else "All in view (${cards.size})",
+            label = tr(if (cards.isEmpty()) "No cards in view" else "All in view (${cards.size})"),
             selected = selectedCardId == null,
             onClick = { onSelectCard(null) },
         )
         cards.forEach { card ->
             MapChip(
-                label = card.displayTitle,
+                label = cardTitle(card),
                 selected = selectedCardId == card.id,
                 onClick = { onSelectCard(card.id) },
                 onSwipeUp = { onOpenCard(card) },
@@ -529,12 +529,12 @@ private fun MapBottomPanel(
                 }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        if (panelMode == MapPanelMode.Routes) "Visible routes" else "Visible records",
+                        tr(if (panelMode == MapPanelMode.Routes) "Visible routes" else "Visible records"),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
                     if (rows.isEmpty()) {
-                        Text("No visible items.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(tr("No visible items."), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     } else {
                         rows.take(6).forEach { row ->
                             Text(row, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -576,8 +576,8 @@ private fun MapStat(label: String, value: String, icon: ImageVector, isActive: B
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Icon(icon, contentDescription = null, tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr(value), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(tr(label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -590,15 +590,15 @@ fun RawRecordExplanationView(explanation: RawRecordExplanation, modifier: Modifi
         shape = RoundedCornerShape(8.dp),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(explanation.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Text(explanation.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(tr(explanation.title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(tr(explanation.summary), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             explanation.values.forEach { value ->
                 Column {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(value.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(value.value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Text(tr(value.title), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(tr(value.value), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     }
-                    Text(value.source, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(tr(value.source), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 }
             }
         }
@@ -622,9 +622,9 @@ private fun RecordRawBottomSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                Text(tx.type, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(tr(tx.type), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 tx.location?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             item {
@@ -636,7 +636,7 @@ private fun RecordRawBottomSheet(
                 }
             } else {
                 item {
-                    Text("No parser-specific explanation is available for this record yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("No parser-specific explanation is available for this record yet."), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -650,7 +650,7 @@ private fun HighlightedHexView(raw: String, explanation: RawRecordExplanation?) 
     val highlights = explanation?.values.orEmpty()
     Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Highlighted Hex", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(tr("Highlighted Hex"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -661,7 +661,7 @@ private fun HighlightedHexView(raw: String, explanation: RawRecordExplanation?) 
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "row",
+                        tr("row"),
                         modifier = Modifier.width(34.dp),
                         style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace, letterSpacing = 0.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -733,9 +733,9 @@ private fun HighlightedHexView(raw: String, explanation: RawRecordExplanation?) 
                         Modifier.size(14.dp).background(rawPalette(index), CircleShape)
                     )
                     Column {
-                        Text(value.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Text(value.value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        Text(value.source, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(tr(value.title), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(tr(value.value), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(tr(value.source), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -765,8 +765,8 @@ fun Modifier.swipeUpAction(onSwipeUp: () -> Unit): Modifier = pointerInput(onSwi
 @Composable
 private fun DetailTextRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(tr(label), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr(value), fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -990,7 +990,7 @@ private fun cardMarkerBitmap(context: Context, card: SavedCardRecord): Bitmap {
         canvas.drawCircle(24f, 24f, 8f, paint)
         paint.textSize = 15f
         paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        canvas.drawText(card.displayTitle.take(8), 38f, 30f, paint)
+        canvas.drawText(context.cardTitle(card).take(8), 38f, 30f, paint)
     }
     return bitmap
 }

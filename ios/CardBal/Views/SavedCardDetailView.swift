@@ -25,7 +25,7 @@ struct SavedCardDetailView: View {
 
     private func detailContent(card: SavedCardRecord) -> some View {
         cardDetailList(card: card)
-            .navigationTitle(card.displayTitle)
+            .navigationTitle(card.localizedDisplayTitle)
     }
 
     private func cardDetailList(card: SavedCardRecord) -> some View {
@@ -52,7 +52,7 @@ struct SavedCardDetailView: View {
                 if let applications = card.applications, applications.count > 1 {
                     Section {
                         ForEach(applications) { application in
-                            DisclosureGroup(application.label) {
+                            DisclosureGroup(Localizer.localize(application.label)) {
                                 if let number = application.serialNumber {
                                     KeyValueRow(title: "Card Number", value: number)
                                 }
@@ -85,7 +85,7 @@ struct SavedCardDetailView: View {
                 Section("Export") {
                     ShareLink(
                         item: card.fullHexExportText,
-                        preview: SharePreview("\(card.displayTitle) Hex Export")
+                        preview: SharePreview("\(card.localizedDisplayTitle) Hex Export")
                     ) {
                         Label("Export Full Hex Data", systemImage: "square.and.arrow.up")
                     }
@@ -170,9 +170,9 @@ struct SavedCardDetailView: View {
                  VStack(alignment: .leading, spacing: 10) {
                      ForEach(metadataFields) { field in
                          HStack {
-                             Text(field.title).font(.caption).foregroundStyle(.secondary)
+                             Text(Localizer.localize(field.title)).font(.caption).foregroundStyle(.secondary)
                              Spacer()
-                             Text(field.value).font(.caption).foregroundStyle(.primary)
+                             Text(Localizer.localize(field.value)).font(.caption).foregroundStyle(.primary)
                          }
                      }
                  }.padding(.vertical, 4)
@@ -210,7 +210,7 @@ struct SavedCardDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             case .failed(let message):
-                Text(message)
+                Text(Localizer.localize(message))
                     .font(.footnote)
                     .foregroundStyle(.red)
             case .loaded(let details):
@@ -403,7 +403,7 @@ struct CardCustomizeView: View {
 
             Section {
                 LabeledContent("Name") {
-                    TextField("Name", text: titleBinding(card: card), prompt: Text(defaultTitle(card: card)))
+                    TextField("Name", text: titleBinding(card: card), prompt: Text(Localizer.localize(defaultTitle(card: card))))
                         .multilineTextAlignment(.trailing)
                         .submitLabel(.done)
                 }
@@ -740,7 +740,7 @@ struct CalypsoOnlineSummaryView: View {
 
             ForEach(Array(details.contracts.enumerated()), id: \.offset) { _, contract in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(contract.titleProduct?.nonEmpty ?? "Contract")
+                    Text(contract.titleProduct?.nonEmpty ?? String(localized: "Contract"))
                         .font(.subheadline.weight(.semibold))
                     if let remaining = contract.remainingTripsText {
                         KeyValueRow(title: "Remaining Trips", value: remaining)

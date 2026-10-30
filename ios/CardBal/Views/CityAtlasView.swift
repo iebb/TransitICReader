@@ -103,7 +103,7 @@ private struct CityAtlasView: View {
         let cardsRevision = store.cards.map { card in
             [
                 card.id,
-                card.displayTitle,
+                card.localizedDisplayTitle,
                 "\(card.markerColor.red),\(card.markerColor.green),\(card.markerColor.blue)",
                 "\(card.rawTransactions.count),\(card.rawTransitHistory.count)",
                 "\(card.scannedAt.timeIntervalSinceReferenceDate)",
@@ -274,7 +274,7 @@ private struct CityAtlasView: View {
                 Label(unavailablePlaceLabel, systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Text(loadError)
+                Text(Localizer.localize(loadError))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.68))
             }
@@ -437,7 +437,7 @@ private struct CityAtlasStat: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Text(value)
+            Text(Localizer.localize(value))
                 .font(.system(.title3, design: .default, weight: .semibold).monospacedDigit())
                 .foregroundStyle(.white)
             Text(label)
@@ -2316,7 +2316,7 @@ private struct CityAtlasVisitResolver {
                 guard let card = cardsByID[cardID] else { return nil }
                 return CityAtlasCardVisit(
                     id: card.id,
-                    title: card.displayTitle,
+                    title: card.localizedDisplayTitle,
                     color: card.markerColor,
                     recordCount: count
                 )

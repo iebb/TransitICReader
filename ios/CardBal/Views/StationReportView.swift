@@ -289,7 +289,7 @@ struct StationReportView: View {
                     Button("Remove Location", role: .destructive) { location.removePin() }
                 }
                 if let message = location.errorMessage {
-                    Text(message).font(.footnote).foregroundStyle(.red)
+                    Text(Localizer.localize(message)).font(.footnote).foregroundStyle(.red)
                 }
             } header: {
                 Text("Location (Optional)")
@@ -302,7 +302,7 @@ struct StationReportView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                    Text(Localizer.localize(errorMessage)).foregroundStyle(.red).font(.footnote)
                 }
                 Button {
                     Task { await submit() }

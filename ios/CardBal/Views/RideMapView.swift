@@ -177,7 +177,7 @@ struct RideMapView: View {
                 } else if let card {
                     cardChipThumbnail(card: card)
                 }
-                Text(isAllCards ? String(localized: "All Cards") : (card?.displayTitle ?? ""))
+                Text(isAllCards ? String(localized: "All Cards") : (card?.localizedDisplayTitle ?? ""))
                     .font(.caption.weight(isSelected ? .semibold : .regular))
                     .lineLimit(1)
                     .foregroundStyle(isSelected ? Color.accentColor : .primary)
@@ -307,7 +307,7 @@ struct RideMapView: View {
                 Image(systemName: icon)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(isActive ? Color.accentColor : .secondary)
-                Text(value)
+                Text(Localizer.localize(value))
                     .font(.system(.subheadline, design: .rounded, weight: .semibold).monospacedDigit())
                     .foregroundStyle(isActive ? Color.accentColor : .primary)
             }
@@ -471,7 +471,7 @@ struct RideMapView: View {
                             }
                         }
                         Spacer()
-                        Text(hit.role == "start" ? "Entry" : "Exit")
+                        Text(Localizer.localize(hit.role == "start" ? "Entry" : "Exit"))
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(hit.role == "start" ? .green : .orange)
                             .padding(.horizontal, 6)
@@ -511,7 +511,7 @@ struct RideMapView: View {
                                         .font(.subheadline.weight(.medium))
                                         .foregroundStyle(.primary)
                                     HStack(spacing: 6) {
-                                        Text(hit.transaction.type)
+                                        Text(Localizer.localize(hit.transaction.type))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                         if let date = hit.transaction.date {
@@ -522,7 +522,7 @@ struct RideMapView: View {
                                     }
                                 }
                                 Spacer()
-                                Text(hit.role == "start" ? "Entry" : "Exit")
+                                Text(Localizer.localize(hit.role == "start" ? "Entry" : "Exit"))
                                     .font(.caption2.weight(.medium))
                                     .foregroundStyle(hit.role == "start" ? .green : .orange)
                                     .padding(.horizontal, 6)
@@ -550,9 +550,9 @@ struct RideMapView: View {
     private func panelHeader(title: String, subtitle: String, onClose: @escaping () -> Void) -> some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(title)
+                Text(Localizer.localize(title))
                     .font(.subheadline.weight(.semibold))
-                Text(subtitle)
+                Text(Localizer.localize(subtitle))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -664,9 +664,9 @@ private struct RideMapPlaceholderView: View {
             Image(systemName: "map")
                 .font(.system(size: 36, weight: .regular))
                 .foregroundStyle(.secondary)
-            Text(title)
+            Text(Localizer.localize(title))
                 .font(.headline)
-            Text(message)
+            Text(Localizer.localize(message))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -1470,7 +1470,7 @@ private struct RideMapBuilder {
                     RideMapPointHit(
                         id: "\(card.id)|\(candidate.transaction.id.uuidString)|\(candidate.role)|\(key)",
                         cardID: card.id,
-                        cardTitle: card.displayTitle,
+                        cardTitle: card.localizedDisplayTitle,
                         cardFamily: card.cardFamily,
                         role: candidate.role,
                         transaction: candidate.transaction
@@ -1497,7 +1497,7 @@ private struct RideMapBuilder {
                         RideMapPointHit(
                             id: "\(card.id)|\(candidate.transaction.id.uuidString)|start|\(key)",
                             cardID: card.id,
-                            cardTitle: card.displayTitle,
+                            cardTitle: card.localizedDisplayTitle,
                             cardFamily: card.cardFamily,
                             role: "start",
                             transaction: candidate.transaction
@@ -1514,7 +1514,7 @@ private struct RideMapBuilder {
                         RideMapPointHit(
                             id: "\(card.id)|\(candidate.transaction.id.uuidString)|end|\(key)",
                             cardID: card.id,
-                            cardTitle: card.displayTitle,
+                            cardTitle: card.localizedDisplayTitle,
                             cardFamily: card.cardFamily,
                             role: "end",
                             transaction: candidate.transaction
@@ -1533,7 +1533,7 @@ private struct RideMapBuilder {
                     RideMapRoute(
                         id: "\(card.id)|\(candidate.transaction.id.uuidString)|\(candidate.startCode)|\(candidate.endCode)",
                         cardID: card.id,
-                        cardTitle: card.displayTitle,
+                        cardTitle: card.localizedDisplayTitle,
                         cardFamily: card.cardFamily,
                         color: color,
                         startPointID: startStation.stationCode == "0" ? startStation.hexCode : startStation.stationCode,
