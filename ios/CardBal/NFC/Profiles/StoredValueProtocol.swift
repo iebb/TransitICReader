@@ -398,9 +398,14 @@ enum StoredValueProtocol {
         init(_ data: Data) { self.data = Array(data) }
         func unsigned(_ start: Int, _ length: Int) -> UInt64? {
             guard start >= 0, (1...63).contains(length), start + length <= data.count * 8 else { return nil }
-            return (start..<(start + length)).reduce(UInt64(0)) { value, bit in
-                (value << 1) | UInt64((data[bit / 8] >> (7 - bit % 8)) & 1)
+            var value: UInt64 = 0
+            for bit in start..<(start + length) {
+                let byte: UInt8 = data[bit / 8]
+                let shift: Int = 7 - (bit % 8)
+                let selected: UInt8 = (byte >> shift) & UInt8(1)
+                value = (value << 1) | UInt64(selected)
             }
+            return value
         }
         func signed(_ start: Int, _ length: Int) -> Int64? {
             guard let value = unsigned(start, length) else { return nil }
