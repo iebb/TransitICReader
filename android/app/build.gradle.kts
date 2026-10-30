@@ -86,6 +86,7 @@ android {
 
     sourceSets.getByName("main").assets.setSrcDirs(listOf(stationAssetsDirectory))
     sourceSets.getByName("test").resources.srcDir("../../tests/runtime/fixtures")
+    sourceSets.getByName("test").resources.srcDir("../../data/development")
 
     lint {
         disable += "NullSafeMutableLiveData"

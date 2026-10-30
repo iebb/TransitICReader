@@ -91,14 +91,25 @@ import ad.neko.cardbal.android.ui.WalletCard
 import ad.neko.cardbal.android.ui.WalletCardMode
 import ad.neko.cardbal.android.ui.swipeUpAction
 import org.json.JSONObject
+import java.io.File
+import android.os.Build
 
 class MainActivity : ComponentActivity() {
     private val reader: CardBalNfcReader by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val sampleWallet = BuildConfig.DEBUG && Build.HARDWARE in setOf("goldfish", "ranchu") &&
+            intent.getBooleanExtra("cardbal.developmentSamples", false)
         setContent {
-            val repository = remember { CardWalletRepository(applicationContext) }
+            val repository = remember {
+                CardWalletRepository(applicationContext, sampleWallet = sampleWallet).also {
+                    if (sampleWallet) {
+                        runCatching { it.loadDevelopmentSamples(File(filesDir, "development/sample-wallet.json").readBytes()) }
+                            .onFailure { Toast.makeText(this, "Unable to load development samples", Toast.LENGTH_LONG).show() }
+                    }
+                }
+            }
             CardBalTheme {
                 CardBalApp(activity = this, reader = reader, repository = repository)
             }

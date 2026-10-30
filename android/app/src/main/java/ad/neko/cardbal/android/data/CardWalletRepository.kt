@@ -25,10 +25,10 @@ data class CardImportResult(
     val replaced: Int,
 )
 
-class CardWalletRepository(context: Context) {
+class CardWalletRepository(context: Context, private val sampleWallet: Boolean = false) {
     private val appContext = context.applicationContext
     private val faceDirectory = File(appContext.filesDir, "CardFaces")
-    private val db = CardDb(appContext).writableDatabase
+    private val db = CardDb(appContext, if (sampleWallet) "samples.sqlite" else "cards.sqlite").writableDatabase
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -36,6 +36,24 @@ class CardWalletRepository(context: Context) {
 
     private val _cards = MutableStateFlow(loadCards())
     val cards: StateFlow<List<SavedCardRecord>> = _cards
+
+    /** Reload an explicitly requested development wallet without touching saved cards. */
+    fun loadDevelopmentSamples(bytes: ByteArray) {
+        check(sampleWallet) { "Development samples require a separate wallet" }
+        val backup = json.decodeFromString<CardBackupData>(bytes.toString(StandardCharsets.UTF_8))
+        require(backup.faceAssets.isEmpty() && backup.cards.all { it.faceImageFileName == null && it.isUsingImage != true }) {
+            "Development samples must not contain artwork"
+        }
+        db.beginTransaction()
+        try {
+            db.delete("cards", null, null)
+            backup.cards.forEach(::persist)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        _cards.value = loadCards()
+    }
 
     fun upsert(snapshot: TransitCardSnapshot) {
         val current = _cards.value.toMutableList()
@@ -158,7 +176,7 @@ class CardWalletRepository(context: Context) {
     }
 }
 
-private class CardDb(context: Context) : SQLiteOpenHelper(context, "cards.sqlite", null, 1) {
+private class CardDb(context: Context, name: String) : SQLiteOpenHelper(context, name, null, 1) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE IF NOT EXISTS cards (id TEXT PRIMARY KEY, json_data TEXT NOT NULL)")
     }

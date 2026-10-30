@@ -17,6 +17,7 @@ depend on the card family and phone. No card-writing or top-up feature is includ
 | `tools/boundaries/` | Geographic catalog maintenance |
 | `tools/maintenance/stations/` | Explicit upstream research/import tools |
 | `tools/ios/` | Portable archive, device-run, and log helpers |
+| `tools/samples/` | Artwork-free development wallet preparation and simulator launch |
 | `tests/` | Python and production-Swift regression tests |
 | `data/` | Catalog pin, geographic inputs, and offline maintenance inputs |
 | `services/station-reports/` | Station-report API and review interface |
@@ -59,6 +60,7 @@ included. See [Android setup](android/README.md).
 ## Development
 
 - [Testing and build checks](docs/development/testing.md)
+- [Simulator/emulator sample wallets and anonymization](docs/development/sample-data.md)
 - [Manual TestFlight, Play internal and store release workflows](docs/development/releases.md)
 - [Card capabilities on both platforms](docs/research/platform-parity.md)
 - [Card decoding](docs/decoding/cards.md)

@@ -1,0 +1,3286 @@
+{
+  "cards": [
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "CNY balance for T-Union card.",
+      "balanceText": "-¥32.00",
+      "cardFamily": "China T-Union",
+      "color": {
+        "blue": 0.35,
+        "green": 0.27,
+        "red": 0.24
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:01",
+      "identifierLabel": "UID",
+      "identifierValue": "00000001",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerOuterColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerShape": "circle",
+      "order": 1,
+      "rawIdentifierValue": "00000001",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "resultFields": [],
+      "scannedAt": "2024-01-08T07:20:33.394678Z",
+      "selectedAID": "A000000632010105",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩0",
+      "cardFamily": "NAMANE",
+      "color": {
+        "blue": 0.35,
+        "green": 0.27,
+        "red": 0.24
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:02",
+      "identifierLabel": "UID",
+      "identifierValue": "00000002",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerOuterColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerShape": "circle",
+      "order": 2,
+      "rawIdentifierValue": "00000002",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000003",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000003",
+          "title": "Card Number",
+          "value": "0000000000000003"
+        }
+      ],
+      "scannedAt": "2024-01-07T20:59:58.833241Z",
+      "selectedAID": "D410000029000001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩0",
+      "cardFamily": "T-money",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:03",
+      "identifierLabel": "UID",
+      "identifierValue": "00000004",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 3,
+      "rawIdentifierValue": "00000004",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000005",
+      "region": "South Korea",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000005",
+          "title": "Card Number",
+          "value": "0000000000000005"
+        }
+      ],
+      "scannedAt": "2024-01-08T18:38:20.499241Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩0",
+      "cardFamily": "T-money",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:04",
+      "identifierLabel": "UID",
+      "identifierValue": "00000006",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 4,
+      "rawIdentifierValue": "00000006",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000007",
+      "region": "South Korea",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000007",
+          "title": "Card Number",
+          "value": "0000000000000007"
+        }
+      ],
+      "scannedAt": "2024-01-08T18:30:46.898135Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩0",
+      "cardFamily": "T-money",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:05",
+      "identifierLabel": "UID",
+      "identifierValue": "00000008",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 5,
+      "rawIdentifierValue": "00000008",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000009",
+      "region": "South Korea",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000009",
+          "title": "Card Number",
+          "value": "0000000000000009"
+        }
+      ],
+      "scannedAt": "2024-01-08T18:30:27.473071Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩0",
+      "cardFamily": "EZL / Cashbee",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:06",
+      "identifierLabel": "UID",
+      "identifierValue": "00000010",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 6,
+      "rawIdentifierValue": "00000010",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000011",
+      "region": "South Korea",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000011",
+          "title": "Card Number",
+          "value": "0000000000000011"
+        }
+      ],
+      "scannedAt": "2024-01-08T18:30:20.324358Z",
+      "selectedAID": "D4100000140001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥6,151",
+      "cardFamily": "Japan Transit IC",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:07",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000012",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 7,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000012",
+      "rawTransactions": [
+        "C8460000302796CFD356071800001400",
+        "C74600003026832B3ABA0B1900001300",
+        "C7460000302580EFFEB3E71E00001200",
+        "C7460000302491204E24C52200001100",
+        "C7460000302490AED537FB2300001000",
+        "C7460000302295604E23852B00000F00",
+        "C74600003022912CA51BE32C00000E00",
+        "C746000030228A4D2ECF9F3400000D00",
+        "C746000030226A204E22F33600000C00",
+        "C7460000302189045CF0513800000B00",
+        "050F00002F9F0A010000C33E00000AC0",
+        "C7C600002F9E080EB374953F00000900",
+        "050F00002F9D0A010000F341000008C0",
+        "C84600002F9D76CFD356C54200000700",
+        "C7C600002F9C99CEB36FC94300000600",
+        "C74600002F9C950AF4A2064900000500",
+        "C74600002F9C84AF86735E4B00000400",
+        "C74600002F9C6E60009FBC4C00000300",
+        "050F00002F9C0A0100001C4D000002C0",
+        "1B0200002F9C60FB0000204E00000100"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000012",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000012"
+        }
+      ],
+      "scannedAt": "2024-01-08T14:00:33.724993Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "Japan Transit IC",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:08",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000013",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 8,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000013",
+      "rawTransactions": [
+        "C74600002ED88E004E23000000000600",
+        "C7C600002EA7BDCEB372EA0100000500",
+        "C7C600002EA21B0EB371590200000400",
+        "CA4600002E9D91A001160C0300000300",
+        "080200002E7506060000DC0500000200",
+        "080700002CFD00000000F401000001C0"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000013",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000013"
+        }
+      ],
+      "scannedAt": "2024-01-08T13:15:33.294928Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "Hayakaken",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:09",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000014",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 9,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000014",
+      "rawTransactions": [
+        "C7460000302979404E22000000000200",
+        "080700002E4800000000F401000001C0"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000000000000015",
+      "resultFields": [
+        {
+          "id": "Detected Type|Hayakaken",
+          "title": "Detected Type",
+          "value": "Hayakaken"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000014",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000014"
+        }
+      ],
+      "scannedAt": "2024-01-09T07:50:07.065068Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "CNY balance for T-Union card.",
+      "balanceText": "¥23.10",
+      "cardFamily": "China T-Union",
+      "cardTypeStr": "Type 01",
+      "color": {
+        "blue": 0.12,
+        "green": 0.1,
+        "red": 0.75
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "expiryDateStr": "2040-12-13",
+      "id": "sample:owner:10",
+      "identifierLabel": "UID",
+      "identifierValue": "00000016",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2020-12-13",
+      "issuingCity": "北京市",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 10,
+      "rawIdentifierValue": "00000016",
+      "rawTransactions": [
+        "000A000000000000C80941310133003820231117114143",
+        "00090000000000012C0941310174130920231116224443",
+        "0008000000000000000941310173832420231116222300",
+        "0007000000000000C80941310173722020231116220714",
+        "0006000000000000000941310173726820231116215814",
+        "0005000000000000C80941310133708720231116200521",
+        "0004000000000000000941310173832520231116195359",
+        "00030000000000012C0941310173724420231116185350",
+        "0002000000000000000941310173946320231116183552",
+        "0001000000000001F40941310088911220231116121145"
+      ],
+      "rawTransitHistory": [
+        "0400004131013300380100680001000000000000C8000009062023111711414358100000000000000000000000000000",
+        "04000041310174130901000800210000000000012C000009CE2023111622444358100000000000000000000000000000",
+        "03000041310173832401000300010000000000000000000AFA2023111622230058100000000000000000000000000000",
+        "0400004131017372200100010016000000000000C800000AFA2023111622071458100000000000000000000000000000",
+        "03000041310173726801000100150000000000000000000BC22023111621581458100000000000000000000000000000",
+        "0400004131013370870100010015000000000000C800000BC22023111620052158100000000000000000000000000000",
+        "03000041310173832501000300010000000000000000000C8A2023111619535958100000000000000000000000000000",
+        "04000041310173724401000100160000000000012C00000C8A2023111618535058100000000000000000000000000000",
+        "03000041310173946301000500100000000000000000000DB62023111618355258100000000000000000000000000000",
+        "0400000002610061280100000000000016000001F400000DB62023111612114558400000000000000000000000000000",
+        "03000000024101512701000000000000150000000000000FAA2023111611311458400000000000000000000000000000",
+        "04000000024101313301000000000000160000012C00000FAA2023111523050358400000000000000000000000000000",
+        "030000000241015129010000000000001500000000000010D62023111522490058400000000000000000000000000000",
+        "0400000002600231040100000000000016000001F4000010D62023111519172458400000000000000000000000000000",
+        "030000000268001138010000000000001500000000000012CA2023111518370358400000000000000000000000000000",
+        "0400000002610061090100000000000016000001F4000012CA2023111511395758400000000000000000000000000000",
+        "030000000241015127010000000000001500000000000014BE2023111511142458400000000000000000000000000000",
+        "0400000002430121140100000000000016000000C8000014BE2023111420211758400000000000000000000000000000",
+        "030000000241015129010000000000001500000000000015862023111420043958400000000000000000000000000000",
+        "0400000002420181030100000000000016000001F4000015862023111419374558400000000000000000000000000000",
+        "0300000002610061050100000000000015000000000000177A2023111419170858400000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000000017",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000000017",
+          "title": "Card Number",
+          "value": "0000000000000000017"
+        },
+        {
+          "id": "Brand|北京互通卡",
+          "title": "Brand",
+          "value": "北京互通卡"
+        },
+        {
+          "id": "Card Type|Type 01",
+          "title": "Card Type",
+          "value": "Type 01"
+        },
+        {
+          "id": "Issuing City|北京市",
+          "title": "Issuing City",
+          "value": "北京市"
+        },
+        {
+          "id": "Issue Date|2020-12-13",
+          "title": "Issue Date",
+          "value": "2020-12-13"
+        },
+        {
+          "id": "Expiry Date|2040-12-13",
+          "title": "Expiry Date",
+          "value": "2040-12-13"
+        }
+      ],
+      "scannedAt": "2024-01-13T16:58:35.245499Z",
+      "selectedAID": "A000000632010105",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "CNY balance for T-Union card.",
+      "balanceText": "¥0.00",
+      "cardFamily": "China T-Union",
+      "cardTypeStr": "Type 02",
+      "color": {
+        "blue": 0.12,
+        "green": 0.1,
+        "red": 0.75
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "expiryDateStr": "2027-02-05",
+      "id": "sample:owner:11",
+      "identifierLabel": "UID",
+      "identifierValue": "00000018",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2021-12-21",
+      "issuingCity": "上海市",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 11,
+      "rawIdentifierValue": "00000018",
+      "rawTransactions": [
+        "0004000000000000000220008399177320220205212916",
+        "0003000000000000000220009999002920211221104107",
+        "0002000000000000000220009299002920211221104107",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000000019",
+      "region": "上海公共交通卡",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000000019",
+          "title": "Card Number",
+          "value": "0000000000000000019"
+        },
+        {
+          "id": "Brand|上海公共交通卡",
+          "title": "Brand",
+          "value": "上海公共交通卡"
+        },
+        {
+          "id": "Card Type|Type 02",
+          "title": "Card Type",
+          "value": "Type 02"
+        },
+        {
+          "id": "Issuing City|上海市",
+          "title": "Issuing City",
+          "value": "上海市"
+        },
+        {
+          "id": "Issue Date|2021-12-21",
+          "title": "Issue Date",
+          "value": "2021-12-21"
+        },
+        {
+          "id": "Expiry Date|2027-02-05",
+          "title": "Expiry Date",
+          "value": "2027-02-05"
+        }
+      ],
+      "scannedAt": "2024-02-28T19:15:26.430440Z",
+      "selectedAID": "A000000632010105",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩5,300",
+      "cardFamily": "T-money",
+      "color": {
+        "blue": 0,
+        "green": 0.5,
+        "red": 0.94
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:12",
+      "identifierLabel": "UID",
+      "identifierValue": "00000020",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.1490196078431369,
+        "green": 0.031372549019607746,
+        "red": 0.011764705882352908
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 12,
+      "rawIdentifierValue": "00000020",
+      "rawTransactions": [
+        "012C00000E420000000E000005DC0000000000000000000000002023101019112700000000000000000000000000",
+        "012C000014B400000013000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C000014B400000012000004B00000000000000000000000000000000000000000000000000000000000000000",
+        "012C000019640000001100000C1C0000000000000000000000000000000000000000000000000000000000000000",
+        "012C00002580000000100000060E0000000000000000000000000000000000000000000000000000000000000000",
+        "022C00002B8E0000000F000023280000000000000000000000001E00000001000000000000000000000000000000",
+        "012C0000141E0000000D000000C80000000000000000000000000000000000000000000000000000000000000000",
+        "012C000014E60000000C000006400000000000000000000000000000000000000000000000000000000000000000",
+        "012C00001B260000000B000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C00001B260000000A0000060E0000000000000000000000000000000000000000000000000000000000000000",
+        "012C0000213400000009000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C00002134000000080000060E0000000000000000000000000000000000000000000000000000000000000000",
+        "012C0000274200000007000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C0000274200000006000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C0000274200000005000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C00002742000000040000060E0000000000000000000000000000000000000000000000000000000000000000",
+        "012C00002D5000000003000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C00002D5000000002000000000000000000000000000000000000000000000000000000000000000000000000",
+        "012C00002D5000000001000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "00000000000013CE0003667873B67872400100000000000000000000000000000000000006400000064000000000000000000000",
+        "00000100000013CE0003667873B67873E90A00000000710000000000000000000000000000C80000064000000000000000000000",
+        "00000000000013112702597871E9786DAF00000000000000000000000000000000000000060E0000060E00000000000000000000",
+        "00000100000013112702597871E97871FA0000000000000000000000000000000000000000000000060E00000000000000000000",
+        "00000000000013112702597872277871FA00000000000000000000000000000000000000060E0000060E00000000000000000000",
+        "00000100000013112702597872277872400000000000000000000000000000000000000000000000060E00000000000000000000",
+        "00000000000113EB030259786DAA786DA50000402200FC2A00000000000000000000000000000000060E00000000000000000000",
+        "00000100000113EB030259786DAA786DAF0000402200FC2A00000000000000000000000000000000060E00000000000000000000",
+        "00000000000013EB030259786D9F786D4700000000000000000000000000000000000000060E0000060E00000000000000000000",
+        "00000100000013EB030259786D9F786DA50000000000000000000000000000000000000000000000060E00000000000000000000",
+        "0000000000011315270259786D41786D360000402200EB0300000000000000000000000000000000083400000000000000000000",
+        "0000010000011315270259786D41786D470000402200EB0300000000000000000000000000000000083400000000000000000000",
+        "000001000000131527025B786D32786D360000000000000000000000000000000000000000000000083400000000000000000000",
+        "00000100000000985000CE2F4E7CF90000000016A80004B0000000000000000000000000C000000004B000000000000000000000",
+        "00000000000000983000CE2F4E7B458000000000000004B0000000000000000000000000C000000004B000000000000000000000",
+        "00000100000000983000CE2F4E74B680000000D28C00122A000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000972000CF2F4E6C4780000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000008503095000732F4AB1708000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000072410000732F4A9CAF0000000012D70005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000009034968000732F4A996D8000000000000005DC000000000000000000000000C000000005DC00000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000021",
+      "region": "T-money",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000021",
+          "title": "Card Number",
+          "value": "0000000000000021"
+        }
+      ],
+      "scannedAt": "2024-01-29T19:17:14.324499Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "N Voyage Multi: 1 remaining trip",
+      "balanceText": "1 trips",
+      "cardFamily": "Lignes d'Azur card",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:13",
+      "identifierLabel": "UID",
+      "identifierValue": "00000022",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.11033448673587053,
+        "green": 0,
+        "red": 0.5939331026528254
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 13,
+      "rawIdentifierValue": "00000022",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "000000023",
+      "region": "Nice, France",
+      "resultFields": [
+        {
+          "id": "Card Number|000000023",
+          "title": "Card Number",
+          "value": "000000023"
+        },
+        {
+          "id": "Media Serial Number|00000024",
+          "title": "Media Serial Number",
+          "value": "00000024"
+        },
+        {
+          "id": "Media Unicity|00000024",
+          "title": "Media Unicity",
+          "value": "00000024"
+        },
+        {
+          "id": "Product Type|Ticket / Contract Card",
+          "title": "Product Type",
+          "value": "Ticket / Contract Card"
+        },
+        {
+          "id": "Loaded Tickets|4",
+          "title": "Loaded Tickets",
+          "value": "4"
+        },
+        {
+          "id": "Ticket|N Voyage Multi",
+          "title": "Ticket",
+          "value": "N Voyage Multi"
+        },
+        {
+          "id": "Ticket Family|MULTI Voyages",
+          "title": "Ticket Family",
+          "value": "MULTI Voyages"
+        },
+        {
+          "id": "Contract Serial Number|0000000025",
+          "title": "Contract Serial Number",
+          "value": "0000000025"
+        },
+        {
+          "id": "Product Code|191",
+          "title": "Product Code",
+          "value": "191"
+        },
+        {
+          "id": "Sold At|2023-07-16 上午8:00:00",
+          "title": "Sold At",
+          "value": "2023-07-16 上午8:00:00"
+        },
+        {
+          "id": "Remaining Trips|1",
+          "title": "Remaining Trips",
+          "value": "1"
+        },
+        {
+          "id": "Card Valid Until|2037-04-17 上午8:00:00",
+          "title": "Card Valid Until",
+          "value": "2037-04-17 上午8:00:00"
+        },
+        {
+          "id": "Ticket Status|Remaining trips: 1",
+          "title": "Ticket Status",
+          "value": "Remaining trips: 1"
+        }
+      ],
+      "scannedAt": "2024-02-25T14:48:34.399267Z",
+      "selectedAID": "A000000291D25008009301",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "N Voyage Multi: 1 remaining trip",
+      "balanceText": "1 trips",
+      "cardFamily": "Lignes d'Azur card",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:14",
+      "identifierLabel": "UID",
+      "identifierValue": "00000026",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.11033448673587053,
+        "green": 0,
+        "red": 0.5939331026528254
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 14,
+      "rawIdentifierValue": "00000026",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "000000027",
+      "region": "Nice, France",
+      "resultFields": [
+        {
+          "id": "Card Number|000000027",
+          "title": "Card Number",
+          "value": "000000027"
+        },
+        {
+          "id": "Media Serial Number|00000024",
+          "title": "Media Serial Number",
+          "value": "00000024"
+        },
+        {
+          "id": "Media Unicity|00000024",
+          "title": "Media Unicity",
+          "value": "00000024"
+        },
+        {
+          "id": "Product Type|Ticket / Contract Card",
+          "title": "Product Type",
+          "value": "Ticket / Contract Card"
+        },
+        {
+          "id": "Loaded Tickets|4",
+          "title": "Loaded Tickets",
+          "value": "4"
+        },
+        {
+          "id": "Ticket|N Voyage Multi",
+          "title": "Ticket",
+          "value": "N Voyage Multi"
+        },
+        {
+          "id": "Ticket Family|MULTI Voyages",
+          "title": "Ticket Family",
+          "value": "MULTI Voyages"
+        },
+        {
+          "id": "Contract Serial Number|0000000028",
+          "title": "Contract Serial Number",
+          "value": "0000000028"
+        },
+        {
+          "id": "Product Code|191",
+          "title": "Product Code",
+          "value": "191"
+        },
+        {
+          "id": "Sold At|2023-07-16 上午8:00:00",
+          "title": "Sold At",
+          "value": "2023-07-16 上午8:00:00"
+        },
+        {
+          "id": "Remaining Trips|1",
+          "title": "Remaining Trips",
+          "value": "1"
+        },
+        {
+          "id": "Card Valid Until|2038-02-13 上午8:00:00",
+          "title": "Card Valid Until",
+          "value": "2038-02-13 上午8:00:00"
+        },
+        {
+          "id": "Ticket Status|Remaining trips: 1",
+          "title": "Ticket Status",
+          "value": "Remaining trips: 1"
+        }
+      ],
+      "scannedAt": "2024-02-25T15:17:47.158918Z",
+      "selectedAID": "A000000291D25008009301",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "N Voyage Multi: 1 remaining trip",
+      "balanceText": "1 trips",
+      "cardFamily": "Lignes d'Azur card",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:15",
+      "identifierLabel": "UID",
+      "identifierValue": "00000029",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.11033448673587053,
+        "green": 0,
+        "red": 0.5939331026528254
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 15,
+      "rawIdentifierValue": "00000029",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "000000030",
+      "region": "Nice, France",
+      "resultFields": [
+        {
+          "id": "Card Number|000000030",
+          "title": "Card Number",
+          "value": "000000030"
+        },
+        {
+          "id": "Media Serial Number|00000024",
+          "title": "Media Serial Number",
+          "value": "00000024"
+        },
+        {
+          "id": "Media Unicity|00000024",
+          "title": "Media Unicity",
+          "value": "00000024"
+        },
+        {
+          "id": "Product Type|Ticket / Contract Card",
+          "title": "Product Type",
+          "value": "Ticket / Contract Card"
+        },
+        {
+          "id": "Loaded Tickets|4",
+          "title": "Loaded Tickets",
+          "value": "4"
+        },
+        {
+          "id": "Ticket|N Voyage Multi",
+          "title": "Ticket",
+          "value": "N Voyage Multi"
+        },
+        {
+          "id": "Ticket Family|MULTI Voyages",
+          "title": "Ticket Family",
+          "value": "MULTI Voyages"
+        },
+        {
+          "id": "Contract Serial Number|0000000031",
+          "title": "Contract Serial Number",
+          "value": "0000000031"
+        },
+        {
+          "id": "Product Code|191",
+          "title": "Product Code",
+          "value": "191"
+        },
+        {
+          "id": "Sold At|2023-07-15 上午8:00:00",
+          "title": "Sold At",
+          "value": "2023-07-15 上午8:00:00"
+        },
+        {
+          "id": "Remaining Trips|1",
+          "title": "Remaining Trips",
+          "value": "1"
+        },
+        {
+          "id": "Card Valid Until|2038-02-13 上午8:00:00",
+          "title": "Card Valid Until",
+          "value": "2038-02-13 上午8:00:00"
+        },
+        {
+          "id": "Ticket Status|Remaining trips: 1",
+          "title": "Ticket Status",
+          "value": "Remaining trips: 1"
+        }
+      ],
+      "scannedAt": "2024-02-25T15:04:10.645282Z",
+      "selectedAID": "A000000291D25008009301",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "N Voyage Multi",
+      "cardFamily": "Lignes d'Azur card",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:16",
+      "identifierLabel": "UID",
+      "identifierValue": "00000032",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.11033448673587053,
+        "green": 0,
+        "red": 0.5939331026528254
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 16,
+      "rawIdentifierValue": "00000032",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "000000033",
+      "region": "Nice, France",
+      "resultFields": [
+        {
+          "id": "Card Number|000000033",
+          "title": "Card Number",
+          "value": "000000033"
+        },
+        {
+          "id": "Product Type|Ticket / Contract Card",
+          "title": "Product Type",
+          "value": "Ticket / Contract Card"
+        },
+        {
+          "id": "Loaded Tickets|4",
+          "title": "Loaded Tickets",
+          "value": "4"
+        },
+        {
+          "id": "Ticket|N Voyage Multi",
+          "title": "Ticket",
+          "value": "N Voyage Multi"
+        },
+        {
+          "id": "Ticket Family|MULTI Voyages",
+          "title": "Ticket Family",
+          "value": "MULTI Voyages"
+        },
+        {
+          "id": "Contract Serial Number|0000000034",
+          "title": "Contract Serial Number",
+          "value": "0000000034"
+        },
+        {
+          "id": "Product Code|191",
+          "title": "Product Code",
+          "value": "191"
+        },
+        {
+          "id": "Sold At|2023-07-16 上午8:00:00",
+          "title": "Sold At",
+          "value": "2023-07-16 上午8:00:00"
+        },
+        {
+          "id": "Card Valid Until|2038-02-13 上午8:00:00",
+          "title": "Card Valid Until",
+          "value": "2038-02-13 上午8:00:00"
+        },
+        {
+          "id": "Last Ticket Event|2023-07-18 上午8:00:00 00:13:08",
+          "title": "Last Ticket Event",
+          "value": "2023-07-18 上午8:00:00 00:13:08"
+        },
+        {
+          "id": "Route|515",
+          "title": "Route",
+          "value": "515"
+        },
+        {
+          "id": "Ticket Status|Contract decoded",
+          "title": "Ticket Status",
+          "value": "Contract decoded"
+        }
+      ],
+      "scannedAt": "2024-02-25T15:22:02.431173Z",
+      "selectedAID": "A000000291D25008009301",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Calypso card recognized.",
+      "cardFamily": "Lignes d'Azur card",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:17",
+      "identifierLabel": "UID",
+      "identifierValue": "00000022",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 17,
+      "rawIdentifierValue": "00000022",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000024",
+      "region": "Nice, France",
+      "resultFields": [
+        {
+          "id": "Card Number|00000024",
+          "title": "Card Number",
+          "value": "00000024"
+        },
+        {
+          "id": "Media Serial Number|00000024",
+          "title": "Media Serial Number",
+          "value": "00000024"
+        },
+        {
+          "id": "Media Unicity|00000035",
+          "title": "Media Unicity",
+          "value": "00000035"
+        },
+        {
+          "id": "Product Type|Ticket / Contract Card",
+          "title": "Product Type",
+          "value": "Ticket / Contract Card"
+        }
+      ],
+      "scannedAt": "2024-02-25T14:19:27.250035Z",
+      "selectedAID": "A000000291D25008009301",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from service 0x6817 as 2-byte LE.",
+      "balanceText": "JP¥895",
+      "cardFamily": "WAON",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:18",
+      "identifierLabel": "WAON No.",
+      "identifierValue": "0000000000000036",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.8470588235294093,
+        "green": 0.6117647058823539,
+        "red": 0.2549019607843146
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 18,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000037",
+      "rawTransactions": [
+        "0000000000000000000000000002000000049929D1806FE00348000000000000",
+        "0000000000000000000000000001000000109929D0007D0000000FA000000000"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000036",
+      "resultFields": [
+        {
+          "id": "WAON Number|0000000000000036",
+          "title": "WAON Number",
+          "value": "0000000000000036"
+        },
+        {
+          "id": "Points|0 pts",
+          "title": "Points",
+          "value": "0 pts"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000037",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000037"
+        }
+      ],
+      "scannedAt": "2024-02-10T12:25:40.055271Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from service 0x6817 as 2-byte LE.",
+      "balanceText": "JP¥0",
+      "cardFamily": "WAON",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:19",
+      "identifierLabel": "WAON No.",
+      "identifierValue": "0000000000000038",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.8470588235294093,
+        "green": 0.6117647058823539,
+        "red": 0.2549019607843146
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 19,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000039",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000038",
+      "resultFields": [
+        {
+          "id": "WAON Number|0000000000000038",
+          "title": "WAON Number",
+          "value": "0000000000000038"
+        },
+        {
+          "id": "Points|0 pts",
+          "title": "Points",
+          "value": "0 pts"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000039",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000039"
+        }
+      ],
+      "scannedAt": "2024-02-25T17:55:30.492912Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥8",
+      "cardFamily": "Suica",
+      "color": {
+        "blue": 0.12,
+        "green": 0.58,
+        "red": 0.1
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:20",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000040",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 20,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000040",
+      "rawTransactions": [
+        "160100002C37EF3DE7010800000014A0",
+        "030200002C37E7010000000800001380",
+        "030200002C37E7010000200600001280",
+        "160100002C35EF4FEF3D3802000011A0",
+        "160100002C335B0B0C0C4A0400001000",
+        "160100002332D502D606D60400000F00",
+        "1D0100002332030D0107FA0500000E00",
+        "1601000023321610030DC00600000D00",
+        "1601000023313F0F1610990800000C00",
+        "1601000023313F123F0F360900000B00",
+        "16010000233116103F12D30900000A00",
+        "1601000023303F121610AF0A00000900",
+        "1601000023303F163F128B0B00000800",
+        "160100002330F901F941330C00000700",
+        "1601000023301610161AFA0C00000600",
+        "16010000232FE52AE45E2E0E00000500",
+        "16010000232FE521E52AA10E00000400",
+        "16010000232F0107250F680F00000300",
+        "1D010000232FD606D502701000000200",
+        "12070000232F00000000941100000100"
+      ],
+      "rawTransitHistory": [
+        "2000E70100002C372105F80700000000",
+        "A000EF3D00002C371920000000000000",
+        "2000EF3D00002C351848120200000000",
+        "EF3D0000000000000000000000000000"
+      ],
+      "realSerialNumber": "00000000000000041",
+      "resultFields": [
+        {
+          "id": "Detected Type|Suica",
+          "title": "Detected Type",
+          "value": "Suica"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000040",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000040"
+        }
+      ],
+      "scannedAt": "2024-02-03T14:40:30.488304Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from service 0x5597 as 4-byte LE.",
+      "balanceText": "¥150",
+      "cardFamily": "nanaco",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:21",
+      "identifierLabel": "nanaco No.",
+      "identifierValue": "0000000000000042",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2024-01-16",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 21,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000043",
+      "rawTransactions": [
+        "47000000FA00000096030304C9000500",
+        "470000012C00000190030304C4000400",
+        "470000012C000002BC030304C3000300",
+        "47000003E8000003E8030304C1000200",
+        "4700000320000007D0030304C0000100"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000042",
+      "resultFields": [
+        {
+          "id": "nanaco Number|0000000000000042",
+          "title": "nanaco Number",
+          "value": "0000000000000042"
+        },
+        {
+          "id": "Points|0 pts",
+          "title": "Points",
+          "value": "0 pts"
+        },
+        {
+          "id": "Last Use Date|2024-01-16",
+          "title": "Last Use Date",
+          "value": "2024-01-16"
+        },
+        {
+          "id": "Issue Date|2024-01-16",
+          "title": "Issue Date",
+          "value": "2024-01-16"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000043",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000043"
+        }
+      ],
+      "scannedAt": "2024-01-29T13:47:16.367059Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from service 0x1317 as 4-byte LE.",
+      "balanceText": "JP¥542",
+      "cardFamily": "Rakuten Edy",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:22",
+      "identifierLabel": "Edy ID",
+      "identifierValue": "0000000000000044",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2019-11-06 00:00:00 JST",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 22,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000045",
+      "rawTransactions": [
+        "2000000644A2BA730000015E0000021E",
+        "200000054498EA4A0000015E0000037C",
+        "200000044496BBCC0000041F000004DA",
+        "2000000344931F13000003F9000008F9",
+        "200000024146CDF300000D7C00000CF2",
+        "200000014113248F00000CA200001A6E"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000044",
+      "resultFields": [
+        {
+          "id": "Edy ID|0000000000000044",
+          "title": "Edy ID",
+          "value": "0000000000000044"
+        },
+        {
+          "id": "Issue Date|2019-11-06 00:00:00 JST",
+          "title": "Issue Date",
+          "value": "2019-11-06 00:00:00 JST"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000045",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000045"
+        }
+      ],
+      "scannedAt": "2024-02-16T17:45:41.456725Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Climate Card (Unlimited Pass)",
+      "balanceText": "N/A",
+      "cardFamily": "T-money",
+      "cardTypeStr": "Unknown (0xB5)",
+      "color": {
+        "blue": 0,
+        "green": 0.5,
+        "red": 0.94
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:23",
+      "identifierLabel": "UID",
+      "identifierValue": "00000046",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2023-05-27",
+      "markerColor": {
+        "blue": 0.1490196078431369,
+        "green": 0.031372549019607746,
+        "red": 0.011764705882352908
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 23,
+      "rawIdentifierValue": "00000046",
+      "rawTransactions": [],
+      "rawTransitHistory": [
+        "00000100000000275000CB2F4D9DB9800000000C1C00060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000010000C92F4D9B8780000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000100000000011000C92F4D9273000000000ED800060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000275000CB2F4D905500000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000100008002155000732F4D79268000000033410005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000000075136000732F4D6F0E0000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100009000122000732F4D56FB000000003FE80006D6000000000000000000000000C0000000060E00000000000000000000",
+        "00000000009034650000732F4D563D000000003CF30006D6000000000000000000000000C0000000060E00000000000000000000",
+        "00000100000075154000732F4D556F800000003CF30006D6000000000000000000000000C0000000060E00000000000000000000",
+        "00000000009000134000732F4D547C0000000037B6000672000000000000000000000000C0000000060E00000000000000000000",
+        "00000100000007773000732F4D50EE0000000037B6000672000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000072929000732F4D4F49800000003200000672000000000000000000000000C0000000060E00000000000000000000",
+        "00000100000000781000CA2F4D4E5D000000003200000672000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000323000CB2F4D481D80000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000973000CF2F4C9BDB80000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000973000CF2F4C9BDB80000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000100000000320000CB2F4C78E7800000000E1000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000274000CB2F4C751600000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000100000000274000CB2F4C6F434000000011F800060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000011000C92F4C6C4D40000000000000060E000000000000000000000000C0000000060E00000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000047",
+      "region": "Climate Card",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000047",
+          "title": "Card Number",
+          "value": "0000000000000047"
+        },
+        {
+          "id": "Issue Date|2023-05-27",
+          "title": "Issue Date",
+          "value": "2023-05-27"
+        },
+        {
+          "id": "Card Type|Unknown (0xB5)",
+          "title": "Card Type",
+          "value": "Unknown (0xB5)"
+        }
+      ],
+      "scannedAt": "2024-01-29T13:44:01.509452Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥260",
+      "cardFamily": "ICOCA",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:24",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000048",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 24,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000048",
+      "rawTransactions": [
+        "C74600003037AD004E24040100000900",
+        "C7460000302F8DC04E23080200000800",
+        "C7460000302F8DA04E230C0300000700",
+        "08020000302FE9150000CE04000006C0",
+        "C8460000302C88AFD356E60000000500",
+        "C74600003027AC404E22EA0100000400",
+        "C74600003027AC004E22480300000300",
+        "C74600003027ABE04E224C0400000200",
+        "070700002EC59F350000DC0500000180"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000000000000049",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000048",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000048"
+        }
+      ],
+      "scannedAt": "2024-01-24T12:51:05.817505Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥9,759",
+      "cardFamily": "Japan Transit IC",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:25",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000050",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.6794016575702451,
+        "green": 0.8907620780270861,
+        "red": 0.9730745906610057
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 25,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000050",
+      "rawTransactions": [
+        "C8C600003033616ABF8D1F2600001500",
+        "C8490000303360A1A5F9172700001400",
+        "094800003033D7F000000700000013C0",
+        "C7C600002F9E826AF31F000000001200",
+        "160100002F3AE915E91F3E00000011F0",
+        "C7C600002F319A2AF4A3420100001000",
+        "C8C600002F1F8F6ABEB84B0300000F00",
+        "C8C600002F1A984ABEABCD0400000E00",
+        "C8C600002F12868ABEB7DC0700000D00",
+        "094800002EA4D7F000000E0900000CC0",
+        "050F00002E700A010000F20800000BC0",
+        "080200002D6BE70F0000F60900000AC0",
+        "160100002D52D804D7650E06000009F0",
+        "160100002D52D767D804B207000008F0",
+        "030200002D52E91B00002409000007C0",
+        "C84600002D4B8A2F4E9D540100000600",
+        "C84600002D4B89AF4E9D480300000500",
+        "C84600002D4B894F4E9D3C0500000400",
+        "080200002CFFE91500003007000003C0",
+        "160100002CF7E715E70F4803000002F0",
+        "00000000000000002300001F0000161D",
+        "00000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "2000E91F00002F3A0923040100000000",
+        "A000E91500002F3A0909000000000000",
+        "2000D76500002D521949A40100000000",
+        "E9150000000000000000000000000000"
+      ],
+      "realSerialNumber": "00000000000000051",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000050",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000050"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:00:25.420218Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩5,500",
+      "cardFamily": "NAMANE",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:26",
+      "identifierLabel": "UID",
+      "identifierValue": "00000052",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 26,
+      "rawIdentifierValue": "00000052",
+      "rawTransactions": [
+        "02190000157C0000001000000B8600000000000000000000000000",
+        "0119000009F60000000F00000B8600000000000000000000000000",
+        "02190000157C0000000E0000057800000000000000000000000000",
+        "0119000010040000000D0000057800000000000000000000000000",
+        "01190000157C0000000C0000000000000000000000000000000000",
+        "01190000157C0000000B0000000000000000000000000000000000",
+        "01190000157C0000000A0000000000000000000000000000000000",
+        "02190000157C000000090000057800000000000000000000000000",
+        "011900001004000000080000057800000000000000000000000000",
+        "01190000157C000000070000000000000000000000000000000000",
+        "02190000157C000000060000057800000000000000000000000000",
+        "011900001004000000050000057800000000000000000000000000",
+        "01190000157C000000040000000000000000000000000000000000",
+        "02190000157C00000003000005DC00000000000000000000000000",
+        "011900000FA000000002000005DC00000000000000000000000000",
+        "01190000157C000000010000000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000053",
+      "region": "NAMANE",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000053",
+          "title": "Card Number",
+          "value": "0000000000000053"
+        }
+      ],
+      "scannedAt": "2024-01-24T15:01:53.035718Z",
+      "selectedAID": "D410000029000001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "SUGOCA",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:27",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000054",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 27,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000054",
+      "rawTransactions": [
+        "C74600002F226C604E24000000000600",
+        "C7C600002F10912EB3724E0200000500",
+        "080200002F10E91500000604000004C0",
+        "C74600002EC775804E231E0000000300",
+        "C74600002E476D004E22980300000200",
+        "080700002D5D00000000DC0500000100"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000000000000055",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000054",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000054"
+        }
+      ],
+      "scannedAt": "2024-01-09T15:06:36.256621Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Climate Card (Unlimited Pass)",
+      "balanceText": "N/A",
+      "cardFamily": "T-money",
+      "cardTypeStr": "Unknown (0xB5)",
+      "color": {
+        "blue": 0,
+        "green": 0.5,
+        "red": 0.94
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:28",
+      "identifierLabel": "UID",
+      "identifierValue": "00000056",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2023-05-27",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 28,
+      "rawIdentifierValue": "00000056",
+      "rawTransactions": [],
+      "rawTransitHistory": [
+        "00000100000070792000732EF9801C8000000003560005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008000966000732EF97EFC8000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100008002668000782EF967040000000007D20005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000000074968000782EF966268000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000000133000CA2EF899B7800000001C2000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000048000C92EF894C800000000000000060E000000000000000000000000C0000000060E00000000000000000000",
+        "00000100008502689000732EF87D1C0000000019140005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000009003596000732EF87A240000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000000855000782EF8565C8000000007CD0005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008000356000782EF8556D8000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000010789000732EF7B1880000000016570005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000009003696000732EF7B0C1000000000F880005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100009003696000782EF7AEF0800000000F880005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008002636000782EF7AD860000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100008002633000732EF79CA28000000014830005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000009035957000732EF79A2E8000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000000133000CA2EF79411000000002904000672000000000000000000000000C0000000060E00000000000000000000",
+        "00000000000000093000C92EF78F5100000000000000060E000000000000000000000000C0000000060E00000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000057",
+      "region": "Climate Card",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000057",
+          "title": "Card Number",
+          "value": "0000000000000057"
+        },
+        {
+          "id": "Issue Date|2023-05-27",
+          "title": "Issue Date",
+          "value": "2023-05-27"
+        },
+        {
+          "id": "Card Type|Unknown (0xB5)",
+          "title": "Card Type",
+          "value": "Unknown (0xB5)"
+        }
+      ],
+      "scannedAt": "2024-01-24T15:02:16.169356Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from service 0x1317 as 4-byte LE.",
+      "balanceText": "¥0",
+      "cardFamily": "Rakuten Edy",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:29",
+      "identifierLabel": "Edy ID",
+      "identifierValue": "0000000000000058",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2015-07-17 14:01:04 JST",
+      "markerColor": {
+        "blue": 0.01333333333333333,
+        "green": 0.023578431372549013,
+        "red": 0.03338235294117644
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 29,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000059",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000058",
+      "resultFields": [
+        {
+          "id": "Edy ID|0000000000000058",
+          "title": "Edy ID",
+          "value": "0000000000000058"
+        },
+        {
+          "id": "Issue Date|2015-07-17 14:01:04 JST",
+          "title": "Issue Date",
+          "value": "2015-07-17 14:01:04 JST"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000059",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000059"
+        }
+      ],
+      "scannedAt": "2024-01-29T13:42:28.219815Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩2,400",
+      "cardFamily": "T-money",
+      "color": {
+        "blue": 0,
+        "green": 0.5,
+        "red": 0.94
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:30",
+      "identifierLabel": "UID",
+      "identifierValue": "00000060",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 30,
+      "rawIdentifierValue": "00000060",
+      "rawTransactions": [
+        "012C00000AF000000007000005DC0000000000000000000000002022043017455000000000000000000000000000",
+        "012C000010CC00000006000005780000000000000000000000002022043016173900000000000000000000000000",
+        "012C0000164400000005000005DC0000000000000000000000002022042820551900000000000000000000000000",
+        "022C0000096000000008000003E80000000000000000000000000000000000000000000000000000000000000000",
+        "012C00001C2000000004000005780000000000000000000000000000000000000000000000000000000000000000",
+        "012C0000219800000003000005780000000000000000000000000000000000000000000000000000000000000000",
+        "022C0000271000000002000027100000000000000000000000000000000000000000000000000000000000000000",
+        "012C0000000000000001000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "00000100000000072000C92CA18B00000000000E10000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000075000C92CA18904000000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000100000073773000732C9E900A80000000112A0005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008502230000732C9E8DB90000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "000001000085025770008E2C9E8431800000000A89000578000000000000000000000000C0000000057800000000000000000000",
+        "000000000085028850008E2C9E8233800000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000100000010815000732C9CA95B0000000011550005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008002632000732C9CA6E98000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000000048000C92C9C85DD800000001C20000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000133000CA2C9C82A0800000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000100000000133000CA2C9C75F58000000022C4000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000971000CF2C9C72A7800000000000000578000000000000000000000000C0000000057800000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000061",
+      "region": "T-money",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000061",
+          "title": "Card Number",
+          "value": "0000000000000061"
+        }
+      ],
+      "scannedAt": "2024-01-27T02:48:51.745010Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from service 0x1317 as 4-byte LE.",
+      "balanceText": "¥0",
+      "cardFamily": "Rakuten Edy",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:31",
+      "identifierLabel": "Edy ID",
+      "identifierValue": "0000000000000062",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2019-11-06 00:00:00 JST",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 31,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000063",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000062",
+      "resultFields": [
+        {
+          "id": "Edy ID|0000000000000062",
+          "title": "Edy ID",
+          "value": "0000000000000062"
+        },
+        {
+          "id": "Issue Date|2019-11-06 00:00:00 JST",
+          "title": "Issue Date",
+          "value": "2019-11-06 00:00:00 JST"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000063",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000063"
+        }
+      ],
+      "scannedAt": "2024-01-29T08:56:46.604661Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥0",
+      "cardFamily": "Japan Transit IC",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:32",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000064",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.36780185758513884,
+        "green": 0.5555417956656348,
+        "red": 0.709762641898865
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 32,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000064",
+      "rawTransactions": [
+        "CA4600002EBC8F600115000000001000",
+        "080300002C39B10100001A0400000F80",
+        "160100002C3981238124220600000EA0",
+        "160100002C38811C8123E00600000DA0",
+        "160100002C388123811CD00700000CA0",
+        "160100002C38811C8123C00800000BA0",
+        "160100002C388123811CB00900000AA0",
+        "160100002C3887088227A00A000009A0",
+        "030200002C3882270000C20B00000880",
+        "160100002C3881238708B80B000007A0",
+        "160100002C3785248123DA0C000006A0",
+        "1A0600002C34E704EF4F980D000005A0",
+        "1A0600002C34E704EF4DF014000004A0",
+        "150200002C33E7240000F01400000380",
+        "1D0100002C330C0C0C08380900000200",
+        "180700002B5723090000C40900000100"
+      ],
+      "rawTransitHistory": [
+        "2000812400002C391052BE0000000000",
+        "A000812300002C391044000000000000",
+        "2000812300002C382016F00000000000",
+        "81230000000000000000000000000000"
+      ],
+      "realSerialNumber": "00000000000000065",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000064",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000064"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:10:10.985142Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥0",
+      "cardFamily": "Manaca",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:33",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000066",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 33,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000066",
+      "rawTransactions": [
+        "C74600002F3391804E23000000000400",
+        "C74600002F167CC04E23AA0000000300",
+        "160100002E32AC38A578080200000250",
+        "150700002E3200000000DC0500000100"
+      ],
+      "rawTransitHistory": [
+        "2000A57800002E321028D40300000000",
+        "A000AC3800002E320937000000000000",
+        "AC380000000000000000000000000000"
+      ],
+      "realSerialNumber": "00000000000000067",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000066",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000066"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:08:50.783925Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥0",
+      "cardFamily": "Nimoca",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:34",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000068",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 34,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000068",
+      "rawTransactions": [
+        "C7460000303560E04E24000000000900",
+        "C746000030326E804E23040100000800",
+        "C7460000303195804E23080200000700",
+        "080200003025E91500003804000006C0",
+        "C74600002F9AA0804E22500000000500",
+        "160100002E7506010606540100000400",
+        "160100002E7506060601A80200000300",
+        "C74600002CEF8D2ABDD4FC0300000200",
+        "220700002CEF0A010000DC05000001C0"
+      ],
+      "rawTransitHistory": [
+        "2000060600002E751752540100000000",
+        "A000060100002E751734000000000000",
+        "2000060100002E751433540100000000",
+        "06010000000000000000000000000000"
+      ],
+      "realSerialNumber": "00000000000000069",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000068",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000068"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:07:41.463924Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥0",
+      "cardFamily": "Suica",
+      "color": {
+        "blue": 0.12,
+        "green": 0.58,
+        "red": 0.1
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:35",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000070",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 35,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000070",
+      "rawTransactions": [
+        "CA4600002EBC90400115000000001200",
+        "160100002E7506010606400100001100",
+        "160100002E7506060601940200001000",
+        "080200002E7506060000E80300000F00",
+        "C7C600002CE65E23D613000000000E00",
+        "160100002C35EF3DEF4D670200000DA0",
+        "190600002C35EF4F0CA5510400000C80",
+        "1601000022B6AF03AE07510400000B00",
+        "1D01000022B625110208240900000A00",
+        "C846000022B64D254A4DBE0900000900",
+        "1601000022B5250F030D5E0A00000800",
+        "1601000022B4030D250FF80A00000700",
+        "1601000022B40203030D920B00000600",
+        "1601000022B4250F0203370C00000500",
+        "1601000022B202082511F90C00000400",
+        "1D01000022B2B304AF03930D00000300",
+        "1D01000022B2AE07AE07941100000200",
+        "1207000022B200000000941100000100"
+      ],
+      "rawTransitHistory": [
+        "2000060600002E751752540100000000",
+        "A000060100002E751734000000000000",
+        "2000060100002E751433540100000000",
+        "06010000000000000000000000000000"
+      ],
+      "realSerialNumber": "00000000000000071",
+      "resultFields": [
+        {
+          "id": "Detected Type|Suica",
+          "title": "Detected Type",
+          "value": "Suica"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000070",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000070"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:04:49.590252Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "JP¥0",
+      "cardFamily": "Hayakaken",
+      "color": {
+        "blue": 0.94,
+        "green": 0.68,
+        "red": 0
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:36",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000072",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.44562091503267925,
+        "green": 0.6841503267973856,
+        "red": 0.7653594771241822
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 36,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000072",
+      "rawTransactions": [
+        "C7460000303195204E23000000000600",
+        "C74600002F9AA0004E23AA0000000500",
+        "C7C600002F89896EB36F540100000400",
+        "080200002F87E91F0000EA03000003C0",
+        "C84600002E62AC2382B2020000000200",
+        "080700002CFC00000000F401000001C0"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000000000000073",
+      "resultFields": [
+        {
+          "id": "Detected Type|Hayakaken",
+          "title": "Detected Type",
+          "value": "Hayakaken"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000072",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000072"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:04:43.207463Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "ICOCA",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:37",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000074",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 37,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000074",
+      "rawTransactions": [
+        "C74600002F53A6E04E24000000000500",
+        "C74600002F3673004E23AA0000000400",
+        "080200002F36E91500001A04000003C0",
+        "170100002E9006274D49320000000200",
+        "080700002E375F010000F40100000100"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000000000000075",
+      "resultFields": [
+        {
+          "id": "Detected Type|Japan Transit IC",
+          "title": "Detected Type",
+          "value": "Japan Transit IC"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000074",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000074"
+        }
+      ],
+      "scannedAt": "2024-01-09T15:06:10.025550Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "Hayakaken",
+      "color": {
+        "blue": 0.94,
+        "green": 0.68,
+        "red": 0
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:38",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000076",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 38,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000076",
+      "rawTransactions": [
+        "C74600002ED59D004E22000000000600",
+        "C74600002EBB94E04E22AA0000000500",
+        "160100002E466F560627D40300000400",
+        "080200002E466F560000CC0600000300",
+        "160100002E4606276F56E40200000200",
+        "140700002E2A00000000DC05000001C0"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [
+        {
+          "id": "Detected Type|Hayakaken",
+          "title": "Detected Type",
+          "value": "Hayakaken"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000076",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000076"
+        }
+      ],
+      "scannedAt": "2024-01-13T02:06:04.936989Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "Hayakaken",
+      "color": {
+        "blue": 0.94,
+        "green": 0.68,
+        "red": 0
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:39",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000077",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 39,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000077",
+      "rawTransactions": [
+        "C74600002ECA82404E23000000000300",
+        "C74600002EBAA1A04E23FA0000000200",
+        "080700002E4800000000F401000001C0"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "00000000000000078",
+      "resultFields": [
+        {
+          "id": "Detected Type|Hayakaken",
+          "title": "Detected Type",
+          "value": "Hayakaken"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000077",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000077"
+        }
+      ],
+      "scannedAt": "2024-01-09T12:39:35.407131Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed from bytes 11-12 in little-endian order.",
+      "balanceText": "¥0",
+      "cardFamily": "Hayakaken",
+      "color": {
+        "blue": 0.94,
+        "green": 0.68,
+        "red": 0
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:40",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000079",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0.0666656494140625,
+        "red": 0.5137176513671875
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 40,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000079",
+      "rawTransactions": [
+        "CA4600002F4170400116000000000600",
+        "C74600002F3970A04E23B20200000500",
+        "080200002F39E91500001004000004C0",
+        "050F00002E420A0100002800000003C0",
+        "C74600002E3E9A2ACD502C0100000200",
+        "140700002E2A00000000DC05000001C0"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [
+        {
+          "id": "Detected Type|Hayakaken",
+          "title": "Detected Type",
+          "value": "Hayakaken"
+        },
+        {
+          "id": "Card Number (IDm)|0000000000000079",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000079"
+        }
+      ],
+      "scannedAt": "2024-01-09T12:35:06.973325Z",
+      "systemCode": "0003",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "CNY balance for T-Union card.",
+      "balanceText": "¥49.39",
+      "cardFamily": "China T-Union",
+      "cardTypeStr": "Type 00",
+      "color": {
+        "blue": 0.12,
+        "green": 0.1,
+        "red": 0.75
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "expiryDateStr": "2038-09-20",
+      "id": "sample:owner:41",
+      "identifierLabel": "UID",
+      "identifierValue": "00000080",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2023-09-20",
+      "issuingCity": "香港",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 41,
+      "rawIdentifierValue": "00000080",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000000081",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000000081",
+          "title": "Card Number",
+          "value": "0000000000000000081"
+        },
+        {
+          "id": "Brand|八达通",
+          "title": "Brand",
+          "value": "八达通"
+        },
+        {
+          "id": "Card Type|Type 00",
+          "title": "Card Type",
+          "value": "Type 00"
+        },
+        {
+          "id": "Issuing City|香港",
+          "title": "Issuing City",
+          "value": "香港"
+        },
+        {
+          "id": "Issue Date|2023-09-20",
+          "title": "Issue Date",
+          "value": "2023-09-20"
+        },
+        {
+          "id": "Expiry Date|2038-09-20",
+          "title": "Expiry Date",
+          "value": "2038-09-20"
+        }
+      ],
+      "scannedAt": "2024-01-13T02:16:28.052129Z",
+      "selectedAID": "A000000632010105",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "CNY balance for T-Union card.",
+      "balanceText": "¥41.00",
+      "cardFamily": "China T-Union",
+      "cardTypeStr": "Type 02",
+      "color": {
+        "blue": 0.12,
+        "green": 0.1,
+        "red": 0.75
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "expiryDateStr": "2038-09-25",
+      "id": "sample:owner:42",
+      "identifierLabel": "UID",
+      "identifierValue": "00000082",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2023-09-25",
+      "issuingCity": "广州市",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 42,
+      "rawIdentifierValue": "00000082",
+      "rawTransactions": [
+        "0004000000000002BC0941310173802720231117150901",
+        "0003000000000000000941310173832420231117142419",
+        "0002000000000000C80941310133007820231117133921",
+        "0002000000000013880225648578912320231117114755",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "0400004131017380270100300001000000000002BC000010042023111715090158100000000000000000000000000000",
+        "030000413101738324010003000100000000000000000012C02023111714241958100000000000000000000000000000",
+        "0400004131013300780100680006000000000000C8000012C02023111713392158100000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000000083",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000000083",
+          "title": "Card Number",
+          "value": "0000000000000000083"
+        },
+        {
+          "id": "Brand|羊城通",
+          "title": "Brand",
+          "value": "羊城通"
+        },
+        {
+          "id": "Card Type|Type 02",
+          "title": "Card Type",
+          "value": "Type 02"
+        },
+        {
+          "id": "Issuing City|广州市",
+          "title": "Issuing City",
+          "value": "广州市"
+        },
+        {
+          "id": "Issue Date|2023-09-25",
+          "title": "Issue Date",
+          "value": "2023-09-25"
+        },
+        {
+          "id": "Expiry Date|2038-09-25",
+          "title": "Expiry Date",
+          "value": "2038-09-25"
+        }
+      ],
+      "scannedAt": "2024-01-13T16:32:36.033136Z",
+      "selectedAID": "A000000632010105",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Octopus stores a raw value with an offset. formula: (raw - 350) / 10.",
+      "balanceText": "HK$17.2",
+      "cardFamily": "Octopus",
+      "color": {
+        "blue": 0.1,
+        "green": 0.48,
+        "red": 0.92
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:43",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000084",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 43,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000084",
+      "rawTransactions": [
+        "00000001000000000000000000000000",
+        "00000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [
+        {
+          "id": "Card Number (IDm)|0000000000000084",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000084"
+        }
+      ],
+      "scannedAt": "2024-01-13T02:26:32.499516Z",
+      "systemCode": "8008",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩1,400",
+      "cardFamily": "EZL / Cashbee",
+      "color": {
+        "blue": 0,
+        "green": 0.5,
+        "red": 0.94
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:44",
+      "identifierLabel": "UID",
+      "identifierValue": "00000085",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.05724361687120877,
+        "green": 0.0759486528424318,
+        "red": 0.09019607843137235
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 44,
+      "rawIdentifierValue": "00000085",
+      "rawTransactions": [
+        "0118000005780000000D00000000000000000000000000000000",
+        "0118000005780000000C00000578000000000000000000000000",
+        "011800000AF00000000B00000000000000000000000000000000",
+        "011800000AF00000000A000005DC000000000000000000000000",
+        "0118000010CC0000000900000000000000000000000000000000",
+        "0118000010CC0000000800000578000000000000000000000000",
+        "0118000016440000000700000000000000000000000000000000",
+        "01180000164400000006000005DC000000000000000000000000",
+        "011800001C200000000500000000000000000000000000000000",
+        "011800001C200000000400000578000000000000000000000000",
+        "0118000021980000000300000000000000000000000000000000",
+        "0118000021980000000200000578000000000000000000000000",
+        "0218000027100000000100002710000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "00000100000000072000C92CA18AFD800000000E10000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000075000C92CA18905800000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000100000073773000732C9E900C00000000112A0005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008502230000732C9E8DB80000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "000001000085025770008E2C9E8434000000000A89000578000000000000000000000000C0000000057800000000000000000000",
+        "000000000085028850008E2C9E8234800000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000100000010815000732C9CA9598000000011550005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000000008002632000732C9CA6EB0000000000000005DC000000000000000000000000C000000005DC00000000000000000000",
+        "00000100000000048000C92C9C85DD800000001C20000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000133000CA2C9C82A0800000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000100000000133000CA2C9C75F48000000022C4000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000971000CF2C9C72AC800000000000000578000000000000000000000000C0000000057800000000000000000000",
+        "00000000000000971000CF2C9C72AA800000000000000578000000000000000000000000C0000000057800000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000086",
+      "region": "EZL / Cashbee",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000086",
+          "title": "Card Number",
+          "value": "0000000000000086"
+        }
+      ],
+      "scannedAt": "2024-01-24T14:51:39.639800Z",
+      "selectedAID": "D4100000140001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Octopus stores a raw value with an offset. formula: (raw - 350) / 10.",
+      "balanceText": "HK$55.0",
+      "cardFamily": "Octopus",
+      "color": {
+        "blue": 0.1,
+        "green": 0.48,
+        "red": 0.92
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:45",
+      "identifierLabel": "IDm",
+      "identifierValue": "0000000000000087",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 45,
+      "pmm": "Unavailable",
+      "rawIdentifierValue": "0000000000000087",
+      "rawTransactions": [
+        "00000002000000000000000000000000",
+        "00000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [
+        {
+          "id": "Card Number (IDm)|0000000000000087",
+          "title": "Card Number (IDm)",
+          "value": "0000000000000087"
+        }
+      ],
+      "scannedAt": "2024-01-13T02:16:33.007103Z",
+      "systemCode": "8008",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "CNY balance for T-Union card.",
+      "balanceText": "¥24.00",
+      "cardFamily": "China T-Union",
+      "cardTypeStr": "Type 02",
+      "color": {
+        "blue": 0.12,
+        "green": 0.1,
+        "red": 0.75
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "expiryDateStr": "2027-02-03",
+      "id": "sample:owner:46",
+      "identifierLabel": "UID",
+      "identifierValue": "00000001",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2021-03-08",
+      "issuingCity": "上海市",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 46,
+      "rawIdentifierValue": "00000001",
+      "rawTransactions": [
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000"
+      ],
+      "rawTransitHistory": [
+        "060000413106193870020188000001770000000064000009602023062917500729000000000000000000000000000000",
+        "0400000000025915120100020059000000000001F4000009C42023062917442129000000000000000000000000000000",
+        "030000000004171A1501000400170000000000000000000BB82023062917052829000000000000000000000000000000",
+        "04000000000417151101000400170000000000012C00000BB82023062913591229000000000000000000000000000000",
+        "030000000004191A1301000400190000000000000000000CE42023062913494429000000000000000000000000000000",
+        "04000000000419151101000400190000000000019000000CE42023062912583229000000000000000000000000000000",
+        "030000000002601A6201000200600000000000000000000E742023062912021729000000000000000000000000000000",
+        "0600004131060592120241880000017700000000C800000E742023062911204429000000000000000000000000000000",
+        "040000300019000820010100160029000000000190000010CC2022070216562410000000000000000000000000000000",
+        "0300003000490001270104003D002C000000000000000010CC2022070216174310000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "realSerialNumber": "0000000000000000088",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000000088",
+          "title": "Card Number",
+          "value": "0000000000000000088"
+        },
+        {
+          "id": "Brand|上海公共交通卡",
+          "title": "Brand",
+          "value": "上海公共交通卡"
+        },
+        {
+          "id": "Card Type|Type 02",
+          "title": "Card Type",
+          "value": "Type 02"
+        },
+        {
+          "id": "Issuing City|上海市",
+          "title": "Issuing City",
+          "value": "上海市"
+        },
+        {
+          "id": "Issue Date|2021-03-08",
+          "title": "Issue Date",
+          "value": "2021-03-08"
+        },
+        {
+          "id": "Expiry Date|2027-02-03",
+          "title": "Expiry Date",
+          "value": "2027-02-03"
+        }
+      ],
+      "scannedAt": "2024-01-13T16:27:54.969238Z",
+      "selectedAID": "A000000632010105",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Parsed as a 4-byte big-endian integer.",
+      "balanceText": "₩5,500",
+      "cardFamily": "NAMANE",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:47",
+      "identifierLabel": "UID",
+      "identifierValue": "00000089",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 47,
+      "rawIdentifierValue": "00000089",
+      "rawTransactions": [
+        "02190000157C0000001000000B8600000000000000000000000000",
+        "0119000009F60000000F00000B8600000000000000000000000000",
+        "02190000157C0000000E0000057800000000000000000000000000",
+        "0119000010040000000D0000057800000000000000000000000000",
+        "01190000157C0000000C0000000000000000000000000000000000",
+        "02190000157C0000000B0000057800000000000000000000000000",
+        "0119000010040000000A0000057800000000000000000000000000",
+        "01190000157C000000090000000000000000000000000000000000",
+        "02190000157C000000080000057800000000000000000000000000",
+        "011900001004000000070000057800000000000000000000000000",
+        "01190000157C000000060000000000000000000000000000000000",
+        "02190000157C000000050000057800000000000000000000000000",
+        "011900001004000000040000057800000000000000000000000000",
+        "01190000157C000000030000000000000000000000000000000000",
+        "02190000157C000000020000057800000000000000000000000000",
+        "011900001004000000010000057800000000000000000000000000"
+      ],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000090",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000090",
+          "title": "Card Number",
+          "value": "0000000000000090"
+        }
+      ],
+      "scannedAt": "2024-01-09T15:13:11.107245Z",
+      "selectedAID": "D410000029000001",
+      "technology": "ISO7816"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceDetail": "Climate Card (Unlimited Pass)",
+      "balanceText": "N/A",
+      "cardFamily": "T-money",
+      "cardTypeStr": "Unknown (0xB0)",
+      "color": {
+        "blue": 0,
+        "green": 0.5,
+        "red": 0.94
+      },
+      "design": "classic",
+      "enhancedFeliCaDecoded": false,
+      "id": "sample:owner:48",
+      "identifierLabel": "UID",
+      "identifierValue": "00000091",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "issueDateStr": "2023-06-27",
+      "markerColor": {
+        "blue": 0,
+        "green": 0,
+        "red": 0
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 48,
+      "rawIdentifierValue": "00000091",
+      "rawTransactions": [],
+      "rawTransitHistory": [],
+      "realSerialNumber": "0000000000000092",
+      "resultFields": [
+        {
+          "id": "Card Number|0000000000000092",
+          "title": "Card Number",
+          "value": "0000000000000092"
+        },
+        {
+          "id": "Issue Date|2023-06-27",
+          "title": "Issue Date",
+          "value": "2023-06-27"
+        },
+        {
+          "id": "Card Type|Unknown (0xB0)",
+          "title": "Card Type",
+          "value": "Unknown (0xB0)"
+        }
+      ],
+      "scannedAt": "2024-01-09T15:21:23.017345Z",
+      "selectedAID": "D4100000030001",
+      "technology": "ISO7816"
+    }
+  ],
+  "faceAssets": {},
+  "version": 2
+}

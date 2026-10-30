@@ -50,6 +50,7 @@ final class Wallet {
     var deletedCards: [String: Date] = [:]
     var syncMessage: String?
     var isApplyingCloudSync = false
+    let isSampleWallet = false
     let localDataUpdatedAtKey = "local"
     let lastAppliedCloudUpdateKey = "applied"
     let defaults = UserDefaults(suiteName: UUID().uuidString)!

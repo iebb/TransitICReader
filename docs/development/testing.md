@@ -45,6 +45,8 @@ Without it, the app builds with analytics unconfigured. Xcode Cloud can provide
 ## Local state
 
 Keep Android SDK paths, signing configuration, caches, raw captures, and device
-logs out of version control. The repository tests use invented protocol-shaped
-fixtures. Real-card verification is separate from synthetic tests: a successful
+logs out of version control. The reviewed, anonymized owner collection and
+explicitly synthetic wallets in `data/development/` are the documented exception;
+see [simulator sample data](sample-data.md) for setup and provenance. Protocol
+tests also use invented fixtures. Real-card verification is separate from tests: a successful
 build does not establish support for an untested card generation.

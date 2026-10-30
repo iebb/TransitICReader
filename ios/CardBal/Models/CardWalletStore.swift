@@ -21,12 +21,22 @@ class CardWalletStore: ObservableObject {
     @Published private(set) var mapDataRevision: Int = 0
 
     private var db: OpaquePointer?
+    // Development samples live outside the normal wallet and never sync to iCloud.
+    private static var sampleBackupURL: URL? {
+        #if DEBUG && targetEnvironment(simulator)
+        return ProcessInfo.processInfo.environment["CARDBAL_SAMPLE_BACKUP"].map { URL(fileURLWithPath: $0) }
+        #else
+        return nil
+        #endif
+    }
+    private let isSampleWallet = CardWalletStore.sampleBackupURL != nil
     private let dbPath: String = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let dir = base.appendingPathComponent("CardBal", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("cards.sqlite").path
+        let name = CardWalletStore.sampleBackupURL == nil ? "cards.sqlite" : "samples.sqlite"
+        return dir.appendingPathComponent(name).path
     }()
 
     private let userDefaultsKey = "savedTransitCards"
@@ -44,6 +54,19 @@ class CardWalletStore: ObservableObject {
 
     init() {
         openDatabase()
+        if let url = Self.sampleBackupURL {
+            do {
+                let backup = try CardBackupData.decoder.decode(CardBackupData.self, from: Data(contentsOf: url))
+                guard backup.faceAssets.isEmpty, backup.cards.allSatisfy({ $0.faceImageFileName == nil && $0.isUsingImage != true }) else {
+                    throw CocoaError(.fileReadCorruptFile)
+                }
+                cards = backup.cards
+                if !save(scheduleCloudSync: false) { throw CocoaError(.fileWriteUnknown) }
+            } catch {
+                syncMessage = "Unable to load development samples: \(error.localizedDescription)"
+            }
+            return
+        }
         migrateIfNeeded()
         load()
         applyOKICADefaultToExistingCards()
@@ -659,7 +682,7 @@ class CardWalletStore: ObservableObject {
     }
 
     private func scheduleAutomaticiCloudBackup(delay: UInt64 = 3_000_000_000) {
-        guard !isApplyingCloudSync else { return }
+        guard !isSampleWallet && !isApplyingCloudSync else { return }
         automaticCloudSyncTask?.cancel()
         automaticCloudSyncTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: delay)
@@ -670,6 +693,10 @@ class CardWalletStore: ObservableObject {
 
     @MainActor
     private func runiCloudBackup(showProgress: Bool) async {
+        guard !isSampleWallet else {
+            syncMessage = "iCloud is disabled for the development sample wallet."
+            return
+        }
         guard save(scheduleCloudSync: false) else { return }
         guard let data = exportBackup(includeFaceAssets: false) else {
             syncMessage = "Unable to prepare iCloud backup."
@@ -747,6 +774,10 @@ class CardWalletStore: ObservableObject {
     @MainActor
     @discardableResult
     private func runiCloudRestore(showProgress: Bool, force: Bool) async -> Bool {
+        guard !isSampleWallet else {
+            syncMessage = "iCloud is disabled for the development sample wallet."
+            return false
+        }
         if showProgress {
             isSyncing = true
             syncProgress = 0.1
@@ -1071,7 +1102,7 @@ class CardWalletStore: ObservableObject {
         }
         guard sqlite3_exec(db, "COMMIT;", nil, nil, nil) == SQLITE_OK else { return false }
         committed = true
-        if scheduleCloudSync && !isApplyingCloudSync {
+        if scheduleCloudSync && !isSampleWallet && !isApplyingCloudSync {
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: localDataUpdatedAtKey)
             scheduleAutomaticiCloudBackup()
         }

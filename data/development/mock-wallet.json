@@ -1,0 +1,120 @@
+{
+  "cards": [
+    {
+      "autoImageTextColors": false,
+      "balanceText": "JPY 1,234",
+      "cardFamily": "Ryuto",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "customTitle": "Mock Ryuto",
+      "design": "classic",
+      "id": "sample:mock:01",
+      "identifierLabel": "Sample identifier",
+      "identifierValue": "02FE000000000001",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 1,
+      "rawIdentifierValue": "02FE000000000001",
+      "rawTransactions": [
+        "355F21E245001200345202D0000004D2"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [],
+      "scannedAt": "2026-10-31T23:59:59Z",
+      "systemCode": "8B5D",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceText": "JPY 12,345",
+      "cardFamily": "Rakuten Edy",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "customTitle": "Mock Rakuten Edy",
+      "design": "classic",
+      "id": "sample:mock:02",
+      "identifierLabel": "Sample identifier",
+      "identifierValue": "02FE000000000002",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 2,
+      "rawIdentifierValue": "02FE000000000002",
+      "rawTransactions": [
+        "0400FFFE4C911CC40000012700003039"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [],
+      "scannedAt": "2026-10-31T23:59:59Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    },
+    {
+      "autoImageTextColors": false,
+      "balanceText": "JPY 12,345",
+      "cardFamily": "nanaco",
+      "color": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "customTitle": "Mock nanaco",
+      "design": "classic",
+      "id": "sample:mock:03",
+      "identifierLabel": "Sample identifier",
+      "identifierValue": "02FE000000000003",
+      "imageFaceEnhancer": "none",
+      "isUsingImage": false,
+      "markerColor": {
+        "blue": 0.73,
+        "green": 0.38,
+        "red": 0.19
+      },
+      "markerOuterColor": {
+        "blue": 1,
+        "green": 1,
+        "red": 1
+      },
+      "markerShape": "circle",
+      "order": 3,
+      "rawIdentifierValue": "02FE000000000003",
+      "rawTransactions": [
+        "4700000127000030390355F50F000000"
+      ],
+      "rawTransitHistory": [],
+      "resultFields": [],
+      "scannedAt": "2026-10-31T23:59:59Z",
+      "systemCode": "FE00",
+      "technology": "FeliCa"
+    }
+  ],
+  "faceAssets": {},
+  "version": 2
+}
