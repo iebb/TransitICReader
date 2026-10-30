@@ -592,6 +592,8 @@ extension SavedCardRecord {
 
     private static func defaultColor(for family: String) -> SavedCardColor {
         let f = family.lowercased()
+        if f == "snapper+" || f == "snapper plus" { return SavedCardColor(red: 0.76, green: 0.08, blue: 0.17) }
+        if f == "kmt" || f == "kartu multi trip" { return SavedCardColor(red: 0.16, green: 0.47, blue: 0.31) }
         if f.contains("suica") { return SavedCardColor(red: 0.1, green: 0.58, blue: 0.12) } // Suica Green
         if f.contains("pasmo") { return SavedCardColor(red: 0.88, green: 0.28, blue: 0.44) } // PASMO Pink
         if f.contains("icoca") { return SavedCardColor(red: 0.0, green: 0.48, blue: 0.72) } // ICOCA Blue

@@ -1,5 +1,6 @@
 package ad.neko.cardbal.android.data
 
+import ad.neko.cardbal.android.nfc.SnapperPlusProtocol
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
@@ -33,6 +34,8 @@ data class SavedCardColor(
         fun defaultFor(family: String): SavedCardColor {
             val f = family.lowercase()
             return when {
+                f == "snapper+" || f == "snapper plus" -> SavedCardColor(0.76, 0.08, 0.17)
+                f == "kmt" || f == "kartu multi trip" -> SavedCardColor(0.16, 0.47, 0.31)
                 "suica" in f -> SavedCardColor(0.10, 0.58, 0.12)
                 "pasmo" in f -> SavedCardColor(0.88, 0.28, 0.44)
                 "icoca" in f -> SavedCardColor(0.00, 0.48, 0.72)
@@ -101,6 +104,11 @@ data class TransitTransaction(
     val entryStationCode: String? = null,
     val exitStationCode: String? = null,
     val rawData: String? = null,
+    val currencyCode: String? = null,
+    val fractionDigits: Int = 0,
+    val issuerTimeZone: String? = null,
+    val amountIsSigned: Boolean = false,
+    val recordCounter: Long? = null,
 )
 
 data class RawRecordValue(
@@ -147,7 +155,11 @@ data class TransitCardSnapshot(
     val rawTransitHistory: List<String> = emptyList(),
     val scannedAt: Instant = Clock.System.now(),
 ) {
-    val storageIdentifier: String get() = "$technology|$rawIdentifierValue"
+    val storageIdentifier: String get() {
+        val snapper = cardFamily.equals("Snapper+", true) || cardFamily.equals("Snapper Plus", true)
+        val serial = if (snapper && technology == "ISO7816") SnapperPlusProtocol.normalizedSerial(realSerialNumber) else null
+        return "$technology|${serial ?: rawIdentifierValue}"
+    }
 }
 
 @Serializable

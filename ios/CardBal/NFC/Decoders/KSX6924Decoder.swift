@@ -5,7 +5,7 @@ import os
 struct KSX6924Decoder: TransitCardDecoder {
     static func canDecode(tag: NFCTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
-        let aid = iso.initialSelectedAID
+        let aid = iso.initialSelectedAID.uppercased()
         let can = aid.hasPrefix("A0000000014B4F52") || aid == "A0000004520001" || aid.hasPrefix("D4100000") || aid.hasPrefix("D41065")
         let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
         logger.error("[KSX6924] canDecode evaluation: AID=\(aid, privacy: .public), Result=\(can ? 1 : 0)")
@@ -14,7 +14,7 @@ struct KSX6924Decoder: TransitCardDecoder {
 
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
-        let selectedAID = iso.initialSelectedAID
+        let selectedAID = iso.initialSelectedAID.uppercased()
         
         let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
         logger.error("[KSX6924] Starting decode for AID: \(selectedAID, privacy: .public)")
@@ -25,6 +25,8 @@ struct KSX6924Decoder: TransitCardDecoder {
         logger.error("[KSX6924_APDU] RX Select AID: SW=\(String(format: "%02X%02X", initialResponse.1, initialResponse.2)), Data=\(initialResponse.0.hexString)")
         
         let initialSelectResponse = NFCISO7816ResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
+        guard initialResponse.1 == 0x90, initialResponse.2 == 0 else { throw NFCTestError.unsupportedCard }
+        var applicationFCI = initialResponse.0
         
         let configInfo = KSX6924ConfigDFInfo(fciPayload: initialSelectResponse.payload ?? Data(), selectedAID: selectedAID)
         let applicationAID = configInfo?.mainApplicationAID ?? selectedAID
@@ -34,12 +36,21 @@ struct KSX6924Decoder: TransitCardDecoder {
             logger.error("[KSX6924_APDU] TX Select App AID: \(applicationAID, privacy: .public)")
             let res = try await iso.sendCommand(apdu: selectApdu)
             logger.error("[KSX6924_APDU] RX Select App AID: SW=\(String(format: "%02X%02X", res.1, res.2)), Data=\(res.0.hexString)")
+            guard res.1 == 0x90, res.2 == 0 else { throw NFCTestError.unsupportedCard }
+            applicationFCI = res.0
         }
         
         let balanceApdu = NFCISO7816APDU(instructionClass: 0x90, instructionCode: 0x4C, p1Parameter: 0x00, p2Parameter: 0x00, data: Data(), expectedResponseLength: 4)
         logger.error("[KSX6924_APDU] TX Get Balance")
         let balanceResponse = try await iso.sendCommand(apdu: balanceApdu)
         logger.error("[KSX6924_APDU] RX Get Balance: SW=\(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2)), Data=\(balanceResponse.0.hexString)")
+        guard balanceResponse.1 == 0x90, balanceResponse.2 == 0, balanceResponse.0.count == 4 else {
+            throw NFCTestError.unsupportedCard
+        }
+        if let snapper = await snapperSnapshot(iso: iso, aid: applicationAID, fci: applicationFCI,
+                                              balance: balanceResponse, scannedAt: scannedAt) {
+            return snapper
+        }
         
         let infoApdu = NFCISO7816APDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x0C, data: Data(), expectedResponseLength: 256)
         logger.error("[KSX6924_APDU] TX Get Info (P1:01, P2:0C)")
@@ -211,6 +222,38 @@ struct KSX6924Decoder: TransitCardDecoder {
     static func isUMoneyCard(cardNumber: String?, issuerID: UInt8?) -> Bool {
         guard issuerID == 0x01, let cardNumber else { return false }
         return cardNumber.filter(\.isNumber).hasPrefix("16")
+    }
+
+    private static func snapperSnapshot(
+        iso: NFCISO7816Tag, aid: String, fci: Data,
+        balance: (Data, UInt8, UInt8), scannedAt: Date
+    ) async -> TransitCardSnapshot? {
+        guard aid.uppercased() == SnapperPlusProtocol.applicationAID,
+              SnapperPlusProtocol.purseIssuer(fci) == 2,
+              let purse = KSX6924PurseInfo(fciPayload: fci),
+              let capture = await SnapperPlusProtocol.read(applicationAID: aid, issuerID: purse.issuerID, balance: balance,
+                  readRecord: { number, sfi in
+                      guard let response = await readRecord(recordNumber: UInt8(number), p2: UInt8((sfi << 3) | 4), from: iso) else { return nil }
+                      return (response.data, response.sw1, response.sw2)
+                  }) else { return nil }
+        var raw: [RawDataField] = []
+        for number in capture.transactions.keys.sorted() {
+            raw.append(RawDataField(title: "SFI 04 Record \(number)", value: capture.transactions[number]!.hexString.uppercased()))
+            if let trip = capture.trips[number] { raw.append(RawDataField(title: "SFI 03 Record \(number)", value: trip.hexString.uppercased())) }
+        }
+        return TransitCardSnapshot(
+            technology: "ISO7816", cardFamily: "Snapper+", identifierLabel: "UID",
+            identifierValue: iso.identifier.hexString, rawIdentifierValue: iso.identifier.hexString,
+            pmm: nil, systemCode: nil, selectedAID: aid,
+            balanceText: formatCurrency(amount: Decimal(capture.balanceMinor) / 100, code: "NZD", fractionDigits: 2),
+            balanceDetail: "Snapper+ purse balance (NZD cents)", realSerialNumber: SnapperPlusProtocol.normalizedSerial(purse.serial),
+            region: "Snapper+", resultFields: purse.resultFields(brand: .snapperPlus),
+            rawSections: [
+                RawDataSection(title: "Application", fields: [RawDataField(title: "AID", value: aid), RawDataField(title: "Select Response", value: fci.hexString)]),
+                RawDataSection(title: "Balance APDU", fields: [RawDataField(title: "Payload", value: balance.0.hexString), RawDataField(title: "SW1SW2", value: "9000")]),
+                RawDataSection(title: "Snapper+ SFI Records", fields: raw)
+            ], rawTransactions: capture.history.map { $0.hexString.uppercased() }, rawTransitHistory: [], scannedAt: scannedAt
+        )
     }
 
     private static func readAllReadableBlocks(
@@ -720,7 +763,7 @@ private struct KSX6924PurseInfo {
             ResultField(title: "Card Type", value: KSX6924CardType.lookup(cardType)),
             ResultField(title: "Encryption Algorithm", value: KSX6924Algorithm.lookup(algorithm)),
             ResultField(title: "Key Version", value: String(keyVersion)),
-            ResultField(title: "Issuer ID", value: issuerDisplay(isUMoney: brand == .umoney)),
+            ResultField(title: "Issuer ID", value: brand == .snapperPlus ? "Snapper · 0x02" : issuerDisplay(isUMoney: brand == .umoney)),
             ResultField(title: "Card Usage Authentication ID", value: usageAuthenticationID)
         ]
         if let expiryDate {
@@ -732,9 +775,9 @@ private struct KSX6924PurseInfo {
         fields.append(contentsOf: [
             ResultField(title: "User Category", value: KSX6924UserCode.lookup(userCode)),
             ResultField(title: "Discount Type", value: KSX6924DisRate.lookup(discountRate)),
-            ResultField(title: "Maximum Balance", value: formatCurrency(amount: Decimal(maximumBalance), code: currencyCode)),
+            ResultField(title: "Maximum Balance", value: formatCurrency(amount: Decimal(maximumBalance) / (brand == .snapperPlus ? 100 : 1), code: currencyCode, fractionDigits: brand == .snapperPlus ? 2 : 0)),
             ResultField(title: "Branch Code", value: branchCode),
-            ResultField(title: "Single Transaction Limit", value: formatCurrency(amount: Decimal(singleTransactionLimit), code: currencyCode)),
+            ResultField(title: "Single Transaction Limit", value: formatCurrency(amount: Decimal(singleTransactionLimit) / (brand == .snapperPlus ? 100 : 1), code: currencyCode, fractionDigits: brand == .snapperPlus ? 2 : 0)),
             ResultField(title: "Telecom Code", value: auxiliaryCodeDisplay(telecomCode, isUMoney: brand == .umoney, koreanLookup: KSX6924TCode.lookup)),
             ResultField(title: "Credit Company Code", value: auxiliaryCodeDisplay(creditCompanyCode, isUMoney: brand == .umoney, koreanLookup: KSX6924CCode.lookup))
         ])

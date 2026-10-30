@@ -86,6 +86,8 @@ import ad.neko.cardbal.android.data.StationPoint
 import ad.neko.cardbal.android.data.StationRoute
 import ad.neko.cardbal.android.data.TransactionCategory
 import ad.neko.cardbal.android.data.TransitTransaction
+import ad.neko.cardbal.android.data.formatCardMoney
+import ad.neko.cardbal.android.data.formatTransactionAmount
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.maplibre.android.MapLibre
@@ -269,16 +271,16 @@ fun TransactionRow(tx: TransitTransaction, modifier: Modifier = Modifier) {
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(tx.type, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                tx.date?.let { Text(formatDate(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+                tx.date?.let { Text(formatDate(it, tx.issuerTimeZone), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
                 tx.location?.let { Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 tx.terminalID?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, maxLines = 1) }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (tx.amount != 0L) {
-                    Text(formatAmount(tx.amount, tx.category), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(formatTransactionAmount(tx), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 tx.balanceAfter?.let {
-                    Text(formatBalance(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(formatCardMoney(it, tx.currencyCode, tx.fractionDigits), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("Raw", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
@@ -783,17 +785,10 @@ private fun categoryColor(category: TransactionCategory): Color = when (category
     else -> Color(0xFF5F6368)
 }
 
-private fun formatDate(instant: kotlinx.datetime.Instant): String {
-    val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+private fun formatDate(instant: kotlinx.datetime.Instant, issuerTimeZone: String? = null): String {
+    val local = instant.toLocalDateTime(issuerTimeZone?.let(TimeZone::of) ?: TimeZone.currentSystemDefault())
     return "%04d-%02d-%02d %02d:%02d".format(local.year, local.monthNumber, local.dayOfMonth, local.hour, local.minute)
 }
-
-private fun formatAmount(amount: Long, category: TransactionCategory): String {
-    val sign = if (category == TransactionCategory.topUp || category == TransactionCategory.refund) "+" else "-"
-    return "$sign¥%,d".format(amount)
-}
-
-private fun formatBalance(amount: Long): String = "¥%,d".format(amount)
 
 private fun rawPalette(index: Int): Color = when (index % 8) {
     0 -> Color(0xFF00897B)

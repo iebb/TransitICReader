@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E445C1A4B0547D1B24A1A00 /* SnapperPlusProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E445C1A4B0547D1B24A1A01 /* SnapperPlusProtocol.swift */; };
+		5E445C1A4B0547D1B24A1A02 /* KMTCardFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E445C1A4B0547D1B24A1A03 /* KMTCardFormat.swift */; };
 		E5A100042F6F2ACB0071B6C4 /* GeohashPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */; };
 		7A21867ED31B404BB36291A1 /* TransitApplications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A21867ED31B404BB36291A2 /* TransitApplications.swift */; };
 		0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424 /* NAMANEDecoder.swift */; };
@@ -66,6 +68,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		5E445C1A4B0547D1B24A1A01 /* SnapperPlusProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapperPlusProtocol.swift; sourceTree = "<group>"; };
+		5E445C1A4B0547D1B24A1A03 /* KMTCardFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KMTCardFormat.swift; sourceTree = "<group>"; };
 		E5A100032F6F2ACB0071B6C4 /* GeohashPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GeohashPath.swift; path = Helpers/GeohashPath.swift; sourceTree = "<group>"; };
 		7A21867ED31B404BB36291A2 /* TransitApplications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Models/TransitApplications.swift; sourceTree = "<group>"; };
 		0A9B9E8A6B5A4A8E9F001003 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = ios/CardBal/Resources/ja.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
@@ -183,6 +187,8 @@
 				D3A110002F6F2ACB0071B6C4 /* KoreanTransitCatalog.swift */,
 				A0000CFB90D477F6D4D87A24 /* CalypsoProfiles.swift */,
 				B11B0256184978348338611A /* FeliCaProfiles.swift */,
+				5E445C1A4B0547D1B24A1A01 /* SnapperPlusProtocol.swift */,
+				5E445C1A4B0547D1B24A1A03 /* KMTCardFormat.swift */,
 			);
 			path = Profiles;
 			sourceTree = "<group>";
@@ -471,6 +477,8 @@
 				62A4280F4F3DFCBAB17B785D /* BusResolver.swift in Sources */,
 				E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */,
 				B6CF90C14BA33AC99921D6A5 /* FeliCaProfiles.swift in Sources */,
+				5E445C1A4B0547D1B24A1A00 /* SnapperPlusProtocol.swift in Sources */,
+				5E445C1A4B0547D1B24A1A02 /* KMTCardFormat.swift in Sources */,
 				0557F40346D759B0C27FC476 /* NAMANEDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

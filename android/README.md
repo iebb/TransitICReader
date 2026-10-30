@@ -53,10 +53,16 @@ retained under `third_party/`.
 ## NFC scope
 
 The app currently implements FeliCa readers for standard Japanese transit IC,
-Octopus, Rakuten Edy, WAON and nanaco, and ISO7816 readers for T-money,
-EZL/Cashbee, NAMANE and T-Union. Recognition, readable balance and decoded
+Octopus, Rakuten Edy, WAON, nanaco and KMT, and ISO7816 readers for T-money,
+EZL/Cashbee, NAMANE, positively identified Snapper+ and T-Union. Recognition, readable balance and decoded
 history are separate capabilities; a successful application selection does not
 establish that every card version exposes all records.
+
+Snapper+ balances and history use NZD cents and New Zealand time; paired raw
+records survive rescans and iPhone/Android backup imports. KMT FeliCa balances
+use whole IDR, with optional printable serial and raw history retained. KMT
+history timestamps are not decoded because the epoch is unverified. See the
+[card format notes](../docs/decoding/cards.md#snapper-and-kmt).
 
 The unit tests use synthetic NFC frames and APDUs. They cover KS X 6924 balance
 commands, guarded KROCAP configuration-DF resolution, malformed responses and

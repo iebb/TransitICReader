@@ -13,12 +13,18 @@ struct JapaneseICDecoder: TransitCardDecoder {
         var primarySnapshot: TransitCardSnapshot?
         for profile in FeliCaProfile.all {
             let scBytes = Data(hexString: profile.systemCode)
-            guard (try? await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1)) != nil else { continue }
+            guard let selected = try? await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1) else { continue }
+            let isKMT = profile.systemCode == KMTCardFormat.systemCode
+            if isKMT && !KMTCardFormat.isSelectedSystem(selected.1) { continue }
 
             if let readResult = try? await feliCa.readWithoutEncryption(
                 serviceCodeList: [profile.serviceCodeLittleEndian],
                 blockList: [Data([0x80, 0x00])]
             ), readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first {
+                if isKMT && KMTCardFormat.validatedRead(
+                    selectedSystem: selected.1, status1: readResult.0,
+                    status2: readResult.1, blocks: readResult.2
+                ) == nil { continue }
                 if let parsed = profile.parseBalance(block, scannedAt) {
                     primarySnapshot = await createSnapshot(feliCa: feliCa, profile: profile, parsedBalance: parsed, scannedAt: scannedAt)
                     break
@@ -67,7 +73,23 @@ struct JapaneseICDecoder: TransitCardDecoder {
         let suicaStyleFamilies = ["Japan Transit IC", "IruCa", "PASPY", "SAPICA"]
         var transactions: [String] = []
         var transitHistory: [String] = []
-        if suicaStyleFamilies.contains(profile.displayName) {
+        var serialNumber: String?
+        if profile.systemCode == KMTCardFormat.systemCode {
+            if let identifierBlock = await readKMTBlock(feliCa: feliCa, service: KMTCardFormat.identifierService, index: 0) {
+                serialNumber = KMTCardFormat.identifier(identifierBlock)
+                if let serialNumber { resultFields.append(ResultField(title: "KMT Card Number", value: serialNumber)) }
+                rawSections.append(RawDataSection(title: "KMT Identifier", fields: [
+                    RawDataField(title: "Raw Block", value: identifierBlock.hexString.uppercased())
+                ]))
+            }
+            for index in 0..<KMTCardFormat.historyReadLimit {
+                guard let block = await readKMTBlock(feliCa: feliCa, service: KMTCardFormat.historyService, index: index) else { break }
+                if KMTCardFormat.isHistoryBlock(block) { transactions.append(block.hexString.uppercased()) }
+            }
+            rawSections.append(RawDataSection(title: "KMT History", fields: [
+                RawDataField(title: "History", value: "Preserved as raw records; dates are not verified.")
+            ]))
+        } else if suicaStyleFamilies.contains(profile.displayName) {
              transactions = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0F, 0x09]))   // 090F
              let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x8F, 0x10])) // 108F
              let entryExit = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0xCB, 0x10]))   // 10CB
@@ -92,7 +114,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
             selectedAID: nil,
             balanceText: parsedBalance.formatted,
             balanceDetail: parsedBalance.detail,
-            realSerialNumber: nil,                                                                                                                                                                                                              
+            realSerialNumber: serialNumber,
             region: nil,
             resultFields: resultFields,
             rawSections: rawSections,
@@ -104,6 +126,16 @@ struct JapaneseICDecoder: TransitCardDecoder {
             snapshot.applications = [TransitApplication(snapshot: snapshot)]
         }
         return snapshot
+    }
+
+    private static func readKMTBlock(feliCa: NFCFeliCaTag, service: Data, index: Int) async -> Data? {
+        guard let response = try? await feliCa.readWithoutEncryption(
+            serviceCodeList: [service], blockList: [Data([0x80, UInt8(index)])]
+        ) else { return nil }
+        return KMTCardFormat.validatedRead(
+            selectedSystem: Data([0x90, 0xB7]), status1: response.0,
+            status2: response.1, blocks: response.2
+        )
     }
 
     /// Generic reader for a FeliCa service — reads up to 20 blocks, stops at empty.
@@ -140,6 +172,9 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     static func decodeTransaction(block: Data, context: [Data], index: Int, family: String, kind: RawHistoryKind = .transactions, relatedContext: [Data] = []) -> TransitTransaction? {
+        // KMT's history epoch is not verified. Preserve its raw blocks without
+        // interpreting them as Japanese IC records or fabricating dates/fares.
+        if KMTCardFormat.matchesFamily(family) { return nil }
         let brand = ICCardBrand.from(family: family)
         switch brand {
         case .edy:

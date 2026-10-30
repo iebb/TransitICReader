@@ -5,6 +5,13 @@ platform documentation. These are implementation candidates, not claims that
 additional cards have been tested on hardware. Recognition, balance and history
 decoding are separate capabilities.
 
+Implemented on 2026-10-30: Snapper+ balance and paired history, and KMT FeliCa
+balance with optional card number and raw history, on both iPhone and Android.
+The [implementation notes](../decoding/cards.md#snapper-and-kmt) describe
+identification, currency handling, history limits and synthetic tests. Physical
+card validation remains outstanding; the candidate analysis below records the
+initial research priorities.
+
 ## Existing coverage and confirmed compatibility fixes
 
 Android currently has five FeliCa profiles: standard Japanese transit IC,

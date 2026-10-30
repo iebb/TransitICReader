@@ -4,7 +4,7 @@ import os
 import SwiftUI
 
 public enum ICCardRegion: String, Codable, CaseIterable {
-    case japan, korea, mongolia, hongkong, china, europe, other
+    case japan, korea, mongolia, hongkong, china, newZealand, indonesia, europe, other
     public var currencyCode: String {
         switch self {
         case .japan: return "JPY"
@@ -12,6 +12,8 @@ public enum ICCardRegion: String, Codable, CaseIterable {
         case .mongolia: return "MNT"
         case .hongkong: return "HKD"
         case .china: return "CNY"
+        case .newZealand: return "NZD"
+        case .indonesia: return "IDR"
         default: return "USD"
         }
     }
@@ -25,6 +27,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
     case tUnion
+    case snapperPlus, kmt
     case other
     public var region: ICCardRegion {
         switch self {
@@ -33,12 +36,14 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .umoney: return .mongolia
         case .octopus: return .hongkong
         case .tUnion: return .china
+        case .snapperPlus: return .newZealand
+        case .kmt: return .indonesia
         case .other: return .other
         }
     }
     
     public enum DecoderType {
-        case japanIC, ksx6924, namane, octopus, tUnion, other
+        case japanIC, ksx6924, namane, octopus, tUnion, snapperPlus, kmt, other
     }
 
     public var decoderType: DecoderType {
@@ -48,6 +53,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .namane: return .namane
         case .octopus: return .octopus
         case .tUnion: return .tUnion
+        case .snapperPlus: return .snapperPlus
+        case .kmt: return .kmt
         default: return .other
         }
     }
@@ -80,6 +87,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "moiba": .moiba, "k-cash": .kCash, "kcash": .kCash, "octopus": .octopus,
             "rakuten edy": .edy, "edy": .edy, "waon": .waon, "nanaco": .nanaco,
             "okica": .okica,
+            "snapper+": .snapperPlus, "snapper plus": .snapperPlus,
+            "kmt": .kmt, "kartu multi trip": .kmt,
             "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion
         ]
         
@@ -228,6 +237,34 @@ struct TransactionDecoderRegistry {
 
         let contextData = context.compactMap { Data(hexString: $0) }
         let relatedContextData = relatedContext.compactMap { Data(hexString: $0) }
+
+        let brand = ICCardBrand.from(family: family)
+        // These families have their own layouts. Their records must never be
+        // interpreted as Japanese station codes or Korean transaction files.
+        if brand == .kmt { return nil }
+        if brand == .snapperPlus {
+            guard technology == "ISO7816", kind == .transactions,
+                  let record = SnapperPlusProtocol.decodeHistory(data) else { return nil }
+            let category: TransactionCategory = record.transactionType == 2 ? .topUp
+                : record.isTapOn.map { $0 ? .tapOn : .tapOff } ?? .payment
+            let type = record.transactionType == 2 ? "Top-up"
+                : record.isTapOn.map { $0 ? "Tap-on" : "Tap-off" } ?? "Transit payment"
+            let time = record.timestamp.map { date in
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(identifier: "Pacific/Auckland")
+                formatter.dateFormat = "HH:mm:ss"
+                return formatter.string(from: date)
+            }
+            var transaction = TransitTransaction(
+                date: record.timestamp, time: time, amount: Decimal(record.amountMinor) / 100,
+                terminalID: record.operatorID, type: type, category: category,
+                balanceAfter: Decimal(record.balanceMinor) / 100, rawData: raw,
+                recordNumber: Int(record.counter)
+            )
+            transaction.currencyCode = "NZD"
+            return transaction
+        }
         
         if technology == "FeliCa" {
             return JapaneseICDecoder.decodeTransaction(block: data, context: contextData, index: index, family: family, kind: kind, relatedContext: relatedContextData)
@@ -437,7 +474,7 @@ struct TransitTransactionRow: View {
                 
                 VStack(alignment: .trailing, spacing: 2) {
                     if tx.amount != 0 {
-                        let isTopUp = tx.category == .topUp
+                        let isTopUp = brand == .snapperPlus ? tx.amount > 0 : tx.category == .topUp
                         
                         Text((isTopUp ? "+" : "-") + 
                              formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: currencyFractionDigits))
@@ -591,7 +628,7 @@ struct TransactionDetailView: View {
                     }
                     if let amount = tx.amount != 0 ? tx.amount : nil {
                         LabeledContent {
-                            let isTopUp = tx.category == .topUp
+                            let isTopUp = brand == .snapperPlus ? tx.amount > 0 : tx.category == .topUp
                             let signedAmount = (isTopUp ? "+" : "-") + 
                                                formatCurrency(amount: abs(amount), code: currencyCode, fractionDigits: currencyFractionDigits)
                             Text(signedAmount)
@@ -756,7 +793,10 @@ struct TransactionDetailView: View {
                         CardRawDataHighlightView(raw: raw, tx: tx, cardFamily: tx.sourceCardFamily ?? cardFamily ?? "")
                         
                         let f = (tx.sourceCardFamily ?? cardFamily ?? "").lowercased()
-                        if brand == .waon {
+                        if brand == .snapperPlus {
+                             Text("Snapper+ records retain the original SFI 4 transaction and its optional SFI 3 companion. Station names are unavailable for these records.")
+                                 .font(.caption).foregroundStyle(.secondary)
+                        } else if brand == .waon {
                              WAONRawBreakdownView(raw: raw, tx: tx)
                         } else if brand == .nanaco {
                              NanacoRawBreakdownView(raw: raw, tx: tx)
@@ -1522,7 +1562,7 @@ func formatUTF8OrHex(_ data: Data) -> String {
 
 func defaultFractionDigits(for currencyCode: String) -> Int {
     switch currencyCode {
-    case "JPY", "KRW", "MNT":
+        case "JPY", "KRW", "MNT", "IDR":
         return 0
     case "HKD":
         return 1

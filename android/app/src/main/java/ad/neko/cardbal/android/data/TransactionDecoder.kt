@@ -13,15 +13,16 @@ class TransactionDecoder(context: Context) {
     private val busResolver = BusResolver.get(context)
 
     fun transactionsFor(card: SavedCardRecord): List<TransitTransaction> {
-        val regular = card.rawTransactions.mapIndexedNotNull { index, raw ->
-            decode(raw, card, card.rawTransactions, index, RawHistoryKind.Transactions, relatedContext = emptyList())
+        val records = mergeCardHistory(card.cardFamily, emptyList(), card.rawTransactions)
+        val regular = records.mapIndexedNotNull { index, raw ->
+            decode(raw, card, records, index, RawHistoryKind.Transactions, relatedContext = emptyList())
         }
         val transit = card.rawTransitHistory.mapIndexedNotNull { index, raw ->
             decode(raw, card, card.rawTransitHistory, index, RawHistoryKind.Transit, relatedContext = card.rawTransactions)
         }
         return (regular + transit).sortedWith(
             compareByDescending<TransitTransaction> { it.date?.toEpochMilliseconds() ?: Long.MIN_VALUE }
-                .thenByDescending { it.recordNumber ?: Int.MIN_VALUE },
+                .thenByDescending { it.recordCounter ?: it.recordNumber?.toLong() ?: Long.MIN_VALUE },
         )
     }
 
@@ -79,6 +80,15 @@ class TransactionDecoder(context: Context) {
         if (data.isEmpty()) return null
         val family = card.cardFamily.lowercase()
         return when {
+            family == "snapper+" || family == "snapper plus" -> RawRecordExplanation(
+                title = "Snapper+ raw record",
+                summary = "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes.",
+                values = listOf(
+                    RawRecordValue("Amount", formatCardMoney(tx.amount, "NZD", 2), "SFI 4 bytes 10–13"),
+                    RawRecordValue("Currency", "NZD", "Snapper+ stored-value units are cents"),
+                ),
+            )
+            family == "kmt" || family == "kartu multi trip" -> null
             "waon" in family -> explainWaon(data)
             "nanaco" in family -> explainNanaco(data)
             "edy" in family -> explainEdy(data)
@@ -119,6 +129,9 @@ class TransactionDecoder(context: Context) {
         if (data.isEmpty() || data.all { it == 0.toByte() }) return null
         val family = card.cardFamily.lowercase()
         return when {
+            family == "snapper+" || family == "snapper plus" ->
+                if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) decodeSnapperHistory(data, raw) else null
+            family == "kmt" || family == "kartu multi trip" -> null
             card.technology == "FeliCa" && kind == RawHistoryKind.Transit -> decodeJapaneseTransitActivity(data, raw, relatedContext)
             card.technology == "FeliCa" && "octopus" in family -> decodeOctopus(data, raw, context, index)
             card.technology == "FeliCa" && "waon" in family -> decodeWaonHistory(data, raw)

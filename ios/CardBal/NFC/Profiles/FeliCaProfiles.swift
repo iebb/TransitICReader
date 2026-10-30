@@ -15,6 +15,7 @@ public struct FeliCaProfile {
     }
 
     public func detectedBrand(using systemCodes: [String], realSN: String? = nil) -> String {
+        if systemCode == KMTCardFormat.systemCode { return "KMT" }
         let (sn, sc) = (realSN?.uppercased() ?? "none", systemCodes.joined(separator: ","))
         NSLog("[JapaneseICBrandDebug] SN Prefix check: %@, full SN: %@, SC: %@", String(sn.prefix(2)), sn, sc)
         if let sn = realSN?.uppercased() {
@@ -79,6 +80,25 @@ public struct FeliCaProfile {
     }
 
     public static let all: [FeliCaProfile] = [
+        FeliCaProfile(
+            displayName: "KMT",
+            systemCode: KMTCardFormat.systemCode,
+            serviceCode: "1017",
+            serviceCodeLittleEndian: KMTCardFormat.balanceService,
+            brandOverrides: [:],
+            parseBalance: { block, _ in
+                guard let balance = KMTCardFormat.parseBalance(block) else { return nil }
+                return ParsedBalance(
+                    formatted: formatCurrency(amount: Decimal(balance.amountIDR), code: "IDR", fractionDigits: 0),
+                    detail: "KMT stored value in whole Indonesian rupiah.",
+                    rawFields: [
+                        RawDataField(title: "Balance (IDR)", value: "\(balance.amountIDR)"),
+                        RawDataField(title: "Last Transaction Amount (IDR)", value: "\(balance.lastTransactionAmountIDR)"),
+                        RawDataField(title: "Transaction Counter", value: "\(balance.transactionCounter)")
+                    ]
+                )
+            }
+        ),
         FeliCaProfile(
             displayName: "Japan Transit IC",
             systemCode: "0003",

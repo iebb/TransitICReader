@@ -33,6 +33,8 @@ presentation logic.
 | U-Money | ISO 7816 | ISO 7816 partial | iOS uses issuer `0x01` plus a `16` card-number prefix for MNT display; Android currently treats the shared application as T-money. |
 | EZL / Cashbee | ISO 7816 | ISO 7816 | KS X 6924 transaction records. |
 | NAMANE | ISO 7816 | ISO 7816 | NAMANE-specific records on iOS; Android captures ISO records under the same AID. |
+| Snapper+ (New Zealand) | ISO 7816 | ISO 7816 | Positively identified KS X 6924 variant; NZD balance and paired transaction/history records. |
+| Kartu Multi Trip / KMT (Indonesia, FeliCa generation) | FeliCa | FeliCa | Whole-IDR balance, optional printable card number, and raw history; history timestamps remain unresolved. |
 | China T-Union | ISO 7816 | ISO 7816 | PBOC transaction records plus travel records on both platforms. |
 | Calypso / Lignes d'Azur | ISO 7816 | ISO 7816 partial | iOS reads Calypso sections; Android currently selects known AIDs and captures records where exposed. |
 | Additional FeliCa transit variants | FeliCa | Not fully ported | iOS has profile data for IruCa, PASPY, SAPICA, and related balance-oriented profiles. |
@@ -40,6 +42,42 @@ presentation logic.
 The iOS reader tries decoders in this order: T-Union, Calypso, KS X 6924, Edy,
 WAON, nanaco, then generic Japanese/FeliCa transit profiles. Android currently
 tries ISO 7816 first, then FeliCa.
+
+## Snapper+ and KMT
+
+Both implementations were added on 2026-10-30 using independently written
+parsers and synthetic protocol tests. Physical-card validation is still needed.
+
+Snapper+ shares AID `D4100000030001` with Korean cards. Identification requires
+an unambiguous complete purse TLV with issuer `02` and nonempty SFI 4 records
+matching Snapper's 46-byte signature; the AID or issuer alone is insufficient.
+GET BALANCE `904C000004` stores signed NZD cents. SFI 4 supplies signed amounts,
+balance and counter; optional 52-byte SFI 3 companions supply dates and tap state.
+Dates use `Pacific/Auckland`; invalid and ambiguous dates remain unknown.
+An unused card without identifying records cannot be positively labeled Snapper+.
+
+The original ISO record number pairs SFI 3 and SFI 4 during a scan. A versioned
+hex envelope (`53502B01`, record number, companion length, SFI 4, optional SFI 3)
+keeps that pair together through rescans and backup imports. Merge identity uses
+the full SFI 4 payload, ignoring its moving circular-file slot and preferring a
+more complete companion. Operator and journey IDs are not mapped to Korean or
+Japanese station codes. No NZ station database or inferred routes are added.
+
+KMT requires successful polling of FeliCa system `90B7`. Balance service `1017`
+(wire order `17 10`) exposes whole-IDR unsigned little-endian 32-bit values.
+Optional identifier service `300B` (`0B 30`) is shown only for printable ASCII;
+IDm remains the wallet identity. Up to 20 readable history blocks from `200F`
+(`0F 20`) are retained as raw data. The available reference explicitly guesses
+the historical epoch transition, so the app does not fabricate dates, fares or
+Japanese-style station events from these records.
+
+Protocol evidence: [Snapper format](https://github.com/metrodroid/metrodroid/wiki/Snapper),
+[pinned Snapper reference](https://github.com/metrodroid/metrodroid/blob/b910c1806fd86aa545223baf1d21fc5afe68eee2/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/snapper/SnapperTransitData.kt),
+[pinned KMT reference](https://github.com/metrodroid/metrodroid/blob/b910c1806fd86aa545223baf1d21fc5afe68eee2/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/kmt/KMTTransitData.kt),
+[KMT epoch discussion](https://github.com/metrodroid/metrodroid/pull/522),
+[Snapper issuer compatibility](https://www.snapper.co.nz/snapper-ios-app/).
+These establish wire-format facts; GPL reference implementation, artwork and
+personal card captures are not included in this BSD-licensed implementation.
 
 ## FeliCa Selection
 

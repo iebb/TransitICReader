@@ -271,7 +271,14 @@ enum TransitApplicationHistory {
         var purchases: [Item] = []
         var trips: [Item] = []
         for app in apps {
-            let ledger = app.records.filter { $0.kind == .transaction }
+            let originalLedger = app.records.filter { $0.kind == .transaction }
+            let ledger: [TransitApplicationRecord]
+            if ICCardBrand.from(family: app.cardFamily) == .snapperPlus {
+                let records = Dictionary(originalLedger.map { ($0.hex, $0) }, uniquingKeysWith: { first, _ in first })
+                ledger = SnapperPlusProtocol.mergeHistory(originalLedger.map(\.hex)).compactMap { records[$0] }
+            } else {
+                ledger = originalLedger
+            }
             let travel = app.records.filter { $0.kind == .transit }
             for record in ledger + travel {
                 let context = record.kind == .transit ? travel : ledger

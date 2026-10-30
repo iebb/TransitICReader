@@ -8,6 +8,7 @@ import ad.neko.cardbal.android.data.ResultField
 import ad.neko.cardbal.android.data.TransitCardSnapshot
 import ad.neko.cardbal.android.util.hexString
 import kotlinx.datetime.Instant
+import java.math.BigDecimal
 
 class Iso7816Decoder : TransitCardDecoder {
     override fun canDecode(tag: Tag): Boolean = IsoDep.get(tag) != null
@@ -21,9 +22,20 @@ class Iso7816Decoder : TransitCardDecoder {
                 val selection = Iso7816Protocol.select(candidateAid) { iso.transceive(it) } ?: continue
                 val (aid, family) = selection.application
                 val select = selection.response
-                val balance = readBalance(iso, selection.application)
+                val balanceResponse = runCatching { iso.transceive(Iso7816Protocol.balanceCommand(selection.application)) }.getOrNull()
+                val snapperCandidate = aid == SnapperPlusProtocol.APPLICATION_AID &&
+                    SnapperPlusProtocol.purseIssuer(select.dropLast(2).toByteArray()) == 2
+                // Never turn a failed candidate purse read into a KRW balance.
+                if (snapperCandidate && (balanceResponse == null || SnapperPlusProtocol.balanceMinor(balanceResponse) == null)) return null
+                val snapper = if (snapperCandidate) SnapperPlusProtocol.read(aid, select, balanceResponse!!) { iso.transceive(it) } else null
+                val resolvedFamily = if (snapper != null) "Snapper+" else family
+                val balance = if (snapper != null) {
+                    "NZ$${BigDecimal.valueOf(snapper.balanceMinor, 2).toPlainString()}" to "Snapper+ purse balance (NZD cents)"
+                } else readBalance(balanceResponse, selection.application)
                 val transactions = if (family == "China T-Union") {
                     readRecords(iso, sfi = 0x18, maxRecords = 10, minimumPayloadBytes = 23)
+                } else if (snapper != null) {
+                    snapper.history.map { it.hexString() }
                 } else {
                     readRecords(iso, sfi = 4, maxRecords = 20)
                 }
@@ -35,14 +47,15 @@ class Iso7816Decoder : TransitCardDecoder {
                 val uid = tag.id.hexString()
                 return TransitCardSnapshot(
                     technology = "ISO7816",
-                    cardFamily = family,
+                    cardFamily = resolvedFamily,
                     identifierLabel = "UID",
                     identifierValue = uid.chunked(4).joinToString(" "),
                     rawIdentifierValue = uid,
                     selectedAID = aid,
                     balanceText = balance?.first,
                     balanceDetail = balance?.second,
-                    resultFields = listOf(ResultField("Selected AID", aid), ResultField("Brand", family)),
+                    realSerialNumber = if (snapper != null) SnapperPlusProtocol.purseSerial(select.dropLast(2).toByteArray()) else null,
+                    resultFields = listOf(ResultField("Selected AID", aid), ResultField("Brand", resolvedFamily)),
                     rawSections = listOfNotNull(
                         RawDataSection("Application", listOf(RawDataField("AID", aid), RawDataField("Select Response", select.hexString()))),
                         selection.configurationResponse?.let {
@@ -50,6 +63,11 @@ class Iso7816Decoder : TransitCardDecoder {
                                 RawDataField("AID", Iso7816Protocol.CONFIGURATION_AID),
                                 RawDataField("Select Response", it.hexString()),
                             ))
+                        },
+                        snapper?.let {
+                            RawDataSection("Snapper+ SFI Records",
+                                it.transactions.map { (number, payload) -> RawDataField("SFI 04 Record $number", payload.hexString()) } +
+                                    it.trips.map { (number, payload) -> RawDataField("SFI 03 Record $number", payload.hexString()) })
                         },
                     ),
                     rawTransactions = transactions,
@@ -61,9 +79,8 @@ class Iso7816Decoder : TransitCardDecoder {
         return null
     }
 
-    private fun readBalance(iso: IsoDep, application: Iso7816Protocol.Application): Pair<String, String>? {
-        val response = runCatching { iso.transceive(Iso7816Protocol.balanceCommand(application)) }
-            .getOrNull() ?: return null
+    private fun readBalance(response: ByteArray?, application: Iso7816Protocol.Application): Pair<String, String>? {
+        if (response == null) return null
         val amount = Iso7816Protocol.balanceValue(response) ?: return null
         return if (application.currency == "KRW") {
             "₩%,d".format(amount) to "KS X 6924 purse balance"

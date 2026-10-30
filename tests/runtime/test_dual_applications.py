@@ -101,7 +101,7 @@ final class NFCISO7816Tag {
     }
 }
 enum ICCardBrand {
-    case tUnion, octopus, other
+    case tUnion, octopus, snapperPlus, other
     static func from(family: String) -> Self { family.contains("Octopus") ? .octopus : family.contains("Union") ? .tUnion : .other }
     var region: Region { Region(currencyCode: self == .octopus ? "HKD" : "CNY") }
 }
@@ -367,7 +367,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             chongqing = (ROOT / "tests/runtime/fixtures/chongqing_history.swift").read_text()
             swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing)
             binary = directory / "test-dual"
-            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             run = subprocess.run([str(binary), str(ROOT)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

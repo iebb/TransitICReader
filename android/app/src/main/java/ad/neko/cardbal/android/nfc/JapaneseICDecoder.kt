@@ -11,6 +11,8 @@ import ad.neko.cardbal.android.util.formatFeliCaId
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import java.text.NumberFormat
+import java.util.Locale
 
 class JapaneseICDecoder : TransitCardDecoder {
     override fun canDecode(tag: Tag): Boolean = NfcF.get(tag) != null
@@ -19,6 +21,9 @@ class JapaneseICDecoder : TransitCardDecoder {
         val nfc = NfcF.get(tag) ?: return null
         FeliCaTransceiver(nfc).use { felica ->
             felica.connect()
+            KmtProtocol.read(felica::polling, felica::readWithoutEncryption)?.let { kmt ->
+                return kmtSnapshot(felica, kmt, scannedAt)
+            }
             for (profile in FeliCaProfile.entries) {
                 if (!felica.polling(profile.systemCode)) continue
                 val block = felica.readWithoutEncryption(profile.balanceService, 0) ?: continue
@@ -73,6 +78,43 @@ class JapaneseICDecoder : TransitCardDecoder {
             }
         }
         return null
+    }
+
+    private fun kmtSnapshot(felica: FeliCaTransceiver, card: KmtProtocol.Snapshot, scannedAt: Instant): TransitCardSnapshot {
+        val systemCodes = felica.requestSystemCodes().ifEmpty { listOf(KmtProtocol.SYSTEM_CODE) }
+        val amount = NumberFormat.getIntegerInstance(Locale.forLanguageTag("id-ID")).format(card.balance.amountIdr)
+        val identifier = formatFeliCaId(felica.idmHex)
+        val fields = buildList {
+            add(ResultField("Detected Type", "Kartu Multi Trip"))
+            add(ResultField("Card Number (IDm)", identifier))
+            card.cardNumber?.let { add(ResultField("KMT Card Number", it)) }
+        }
+        val sections = buildList {
+            add(RawDataSection("Tag", listOf(
+                RawDataField("Technology", "FeliCa"),
+                RawDataField("IDm", identifier),
+                RawDataField("System Codes", systemCodes.joinToString(", ")),
+            )))
+            add(RawDataSection("Decoded Balance", listOf(
+                RawDataField("Balance (IDR)", card.balance.amountIdr.toString()),
+                RawDataField("Last Transaction Amount (IDR)", card.balance.lastTransactionAmountIdr.toString()),
+                RawDataField("Transaction Counter", card.balance.transactionCounter.toString()),
+                RawDataField("Raw Block", card.balanceBlock.hexString()),
+            )))
+            card.identifierBlock?.let { add(RawDataSection("KMT Identifier", listOf(RawDataField("Raw Block", it.hexString())))) }
+            add(RawDataSection("KMT History", listOf(
+                RawDataField("History", "Preserved as raw records; dates are not verified."),
+            )))
+        }
+        return TransitCardSnapshot(
+            technology = "FeliCa", cardFamily = "KMT", identifierLabel = "IDm",
+            identifierValue = identifier, rawIdentifierValue = felica.idmHex,
+            pmm = null, systemCode = KmtProtocol.SYSTEM_CODE,
+            balanceText = "Rp $amount", balanceDetail = "KMT stored value in whole Indonesian rupiah.",
+            realSerialNumber = card.cardNumber, resultFields = fields, rawSections = sections,
+            rawTransactions = card.historyBlocks.map { it.hexString() }, rawTransitHistory = emptyList(),
+            scannedAt = scannedAt,
+        )
     }
 
     private fun readService(felica: FeliCaTransceiver, service: String, limit: Int, start: Int = 0): List<String> {

@@ -39,11 +39,12 @@ class CardWalletRepository(context: Context) {
 
     fun upsert(snapshot: TransitCardSnapshot) {
         val current = _cards.value.toMutableList()
-        val index = current.indexOfFirst { it.id == snapshot.storageIdentifier }
+        val index = cardIndexForSnapshot(current, snapshot)
         val incomingFields = snapshot.resultFields.map { SavedCardField(it.title, it.value) }
         val updated = if (index >= 0) {
             val existing = current[index]
             existing.copy(
+                id = snapshot.storageIdentifier,
                 cardFamily = snapshot.cardFamily,
                 balanceText = snapshot.balanceText,
                 balanceDetail = snapshot.balanceDetail,
@@ -53,8 +54,8 @@ class CardWalletRepository(context: Context) {
                 systemCode = snapshot.systemCode,
                 selectedAID = snapshot.selectedAID,
                 realSerialNumber = snapshot.realSerialNumber?.takeIf { it.isNotBlank() } ?: existing.realSerialNumber,
-                rawTransactions = mergeRawRecords(existing.rawTransactions, snapshot.rawTransactions),
-                rawTransitHistory = mergeRawRecords(existing.rawTransitHistory, snapshot.rawTransitHistory),
+                rawTransactions = mergeCardHistory(snapshot.cardFamily, existing.rawTransactions, snapshot.rawTransactions),
+                rawTransitHistory = mergeCardHistory(snapshot.cardFamily, existing.rawTransitHistory, snapshot.rawTransitHistory),
                 region = snapshot.region
                     ?: snapshot.resultFields.firstOrNull { it.title == "Brand" }?.value
                     ?: snapshot.resultFields.firstOrNull { it.title == "Region" }?.value
@@ -64,8 +65,16 @@ class CardWalletRepository(context: Context) {
             SavedCardRecord.from(snapshot)
         }
 
+        val previousId = current.getOrNull(index)?.id
+        db.beginTransaction()
+        try {
+            persist(updated)
+            if (previousId != null && previousId != updated.id) db.delete("cards", "id = ?", arrayOf(previousId))
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
         if (index >= 0) current[index] = updated else current.add(0, updated)
-        persist(updated)
         _cards.value = current.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
     }
 
@@ -125,12 +134,6 @@ class CardWalletRepository(context: Context) {
         cards[index] = mutate(cards[index])
         persist(cards[index])
         _cards.value = cards
-    }
-
-    private fun mergeRawRecords(existing: List<String>, incoming: List<String>): List<String> {
-        if (existing.isEmpty()) return incoming
-        if (incoming.isEmpty()) return existing
-        return (incoming + existing).distinct()
     }
 
     private fun persist(card: SavedCardRecord) {
