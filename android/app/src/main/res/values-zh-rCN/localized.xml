@@ -185,6 +185,7 @@
     <string name="text_869463cab19167ca" formatted="false">"城市地图不可用"</string>
     <string name="text_b87ccc222414af0a" formatted="false">"城市一卡通城市 %@"</string>
     <string name="text_ae25d6481fc1741f" formatted="false">"经典"</string>
+    <string name="text_173e35feac712ce4" formatted="false">"清除调试日志"</string>
     <string name="text_beba8972e75d3241" formatted="false">"气候同行卡"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"气候同行卡（无限次通票）"</string>
     <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper 读取状态"</string>
@@ -212,6 +213,7 @@
     <string name="text_08795ba031bcd121" formatted="false">"对比度"</string>
     <string name="text_8d525e5f158b9afe" formatted="false">"已复制"</string>
     <string name="text_8c12fd1ccd55b393" formatted="false">"复制%@"</string>
+    <string name="text_30b790ab91cd819d" formatted="false">"复制调试日志"</string>
     <string name="text_45ad77626ee9bcb0" formatted="false">"复制卡号"</string>
     <string name="text_b050cdae729e7b70" formatted="false">"正确代码（选填）"</string>
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"无法获取当前位置。您可以在地图上手动放置图钉。"</string>
@@ -235,6 +237,8 @@
     <string name="text_19c2ea085558dc35" formatted="false">"DESFire 响应超出读取限制"</string>
     <string name="text_99c40ab405926cb5" formatted="false">"日期"</string>
     <string name="text_75643a210b6595a7" formatted="false">"日期格式"</string>
+    <string name="text_7b748f1981bae07a" formatted="false">"已清除调试日志。"</string>
+    <string name="text_90521fc443ec34a3" formatted="false">"已复制调试日志。"</string>
     <string name="text_c6de80cacece69e7" formatted="false">"已解析"</string>
     <string name="text_28dd1444f8733ddb" formatted="false">"解析余额"</string>
     <string name="text_36883f070fe0e994" formatted="false">"解析器"</string>
@@ -489,6 +493,7 @@
     <string name="text_7bb03c0d47ec2b34" formatted="false">"当前范围内没有记录。"</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"暂无已保存卡片"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"此处尚无已保存的交通记录。"</string>
+    <string name="text_d0e495e9ddaa2b9d" formatted="false">"尚无扫描记录。"</string>
     <string name="text_0eac213e658197e1" formatted="false">"当前没有显示项目。"</string>
     <string name="text_1c60c9154e837678" formatted="false">"此区域没有可显示的路线。"</string>
     <string name="text_dc937b59892604f5" formatted="false">"无"</string>
@@ -628,6 +633,8 @@
     <string name="text_7a1741e3fa28c45b" formatted="false">"记录子类型"</string>
     <string name="text_6989335a0cfaae2a" formatted="false">"记录类型"</string>
     <string name="text_47a84e92d5b225ee" formatted="false">"记录"</string>
+    <string name="text_70e7b11ef9bca3f6" formatted="false">"在此设备上记录最近的扫描步骤，以帮助解决读取问题。仅在轻点“复制”时才会复制，卡号只显示部分。"</string>
+    <string name="text_3ec945639292248a" formatted="false">"在此 iPhone 上记录最近的扫描步骤，以帮助解决读取问题。仅在轻点“复制”时才会复制，卡号只显示部分。"</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"红色"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"参考：%@"</string>
     <string name="text_6b37bd35081fcbc6" formatted="false">"退款"</string>
@@ -847,6 +854,7 @@
     <string name="text_b673fbd678a7323e" formatted="false">"行程状态"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"行程"</string>
     <string name="text_36ad6bc8245efca9" formatted="false">"剩余次数"</string>
+    <string name="text_c3af076f92c5ed8d" formatted="false">"故障排除"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"类型"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"无法加载开发示例"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"无法加载开发示例：%@"</string>

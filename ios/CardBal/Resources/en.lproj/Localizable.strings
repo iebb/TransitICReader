@@ -1069,3 +1069,11 @@
 "Octopus Online is unavailable. Finishing the read…" = "Octopus Online is unavailable. Finishing the read…";
 "Almost done…" = "Almost done…";
 "Card read." = "Card read.";
+"Troubleshooting" = "Troubleshooting";
+"Copy Debug Log" = "Copy Debug Log";
+"Clear Debug Log" = "Clear Debug Log";
+"Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened.";
+"Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened.";
+"Debug log copied." = "Debug log copied.";
+"No scans recorded yet." = "No scans recorded yet.";
+"Debug log cleared." = "Debug log cleared.";

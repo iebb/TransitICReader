@@ -185,6 +185,7 @@
     <string name="text_869463cab19167ca" formatted="false">"도시 지도를 사용할 수 없음"</string>
     <string name="text_b87ccc222414af0a" formatted="false">"도시 교통카드 도시 %@"</string>
     <string name="text_ae25d6481fc1741f" formatted="false">"클래식"</string>
+    <string name="text_173e35feac712ce4" formatted="false">"디버그 로그 지우기"</string>
     <string name="text_beba8972e75d3241" formatted="false">"기후동행카드"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"기후동행카드 (무제한 정기권)"</string>
     <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper 읽기 상태"</string>
@@ -212,6 +213,7 @@
     <string name="text_08795ba031bcd121" formatted="false">"대비"</string>
     <string name="text_8d525e5f158b9afe" formatted="false">"복사됨"</string>
     <string name="text_8c12fd1ccd55b393" formatted="false">"%@ 복사"</string>
+    <string name="text_30b790ab91cd819d" formatted="false">"디버그 로그 복사"</string>
     <string name="text_45ad77626ee9bcb0" formatted="false">"카드 번호 복사"</string>
     <string name="text_b050cdae729e7b70" formatted="false">"올바른 코드(선택)"</string>
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"현재 위치를 찾을 수 없습니다. 지도에 핀을 직접 놓을 수 있습니다."</string>
@@ -235,6 +237,8 @@
     <string name="text_19c2ea085558dc35" formatted="false">"DESFire 응답이 읽기 한도를 초과했습니다"</string>
     <string name="text_99c40ab405926cb5" formatted="false">"날짜"</string>
     <string name="text_75643a210b6595a7" formatted="false">"날짜 형식"</string>
+    <string name="text_7b748f1981bae07a" formatted="false">"디버그 로그를 지웠습니다."</string>
+    <string name="text_90521fc443ec34a3" formatted="false">"디버그 로그를 복사했습니다."</string>
     <string name="text_c6de80cacece69e7" formatted="false">"해석됨"</string>
     <string name="text_28dd1444f8733ddb" formatted="false">"해석된 잔액"</string>
     <string name="text_36883f070fe0e994" formatted="false">"디코더"</string>
@@ -489,6 +493,7 @@
     <string name="text_7bb03c0d47ec2b34" formatted="false">"현재 범위에 기록이 없습니다."</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"저장된 카드 없음"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"이 지역에는 아직 저장된 교통 기록이 없습니다."</string>
+    <string name="text_d0e495e9ddaa2b9d" formatted="false">"아직 기록된 스캔이 없습니다."</string>
     <string name="text_0eac213e658197e1" formatted="false">"표시할 항목이 없습니다."</string>
     <string name="text_1c60c9154e837678" formatted="false">"이 영역에는 표시할 수 있는 경로가 없습니다."</string>
     <string name="text_dc937b59892604f5" formatted="false">"없음"</string>
@@ -628,6 +633,8 @@
     <string name="text_7a1741e3fa28c45b" formatted="false">"기록 하위 유형"</string>
     <string name="text_6989335a0cfaae2a" formatted="false">"기록 유형"</string>
     <string name="text_47a84e92d5b225ee" formatted="false">"기록"</string>
+    <string name="text_70e7b11ef9bca3f6" formatted="false">"읽기 문제를 해결할 수 있도록 최근 스캔 단계를 이 기기에 기록합니다. 복사를 탭할 때만 복사되며, 카드 번호는 일부만 표시됩니다."</string>
+    <string name="text_3ec945639292248a" formatted="false">"읽기 문제를 해결할 수 있도록 최근 스캔 단계를 이 iPhone에 기록합니다. 복사를 탭할 때만 복사되며, 카드 번호는 일부만 표시됩니다."</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"빨강"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"참조: %@"</string>
     <string name="text_6b37bd35081fcbc6" formatted="false">"환불"</string>
@@ -847,6 +854,7 @@
     <string name="text_b673fbd678a7323e" formatted="false">"승차 상태"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"승차 기록"</string>
     <string name="text_36ad6bc8245efca9" formatted="false">"남은 이용 횟수"</string>
+    <string name="text_c3af076f92c5ed8d" formatted="false">"문제 해결"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"유형"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"개발용 샘플을 불러올 수 없습니다"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"개발용 샘플을 불러올 수 없습니다: %@"</string>

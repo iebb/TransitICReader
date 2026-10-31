@@ -1072,3 +1072,11 @@
 "Octopus Online is unavailable. Finishing the read…" = "옥토퍼스 온라인 조회를 사용할 수 없습니다. 계속 읽는 중…";
 "Almost done…" = "거의 완료되었습니다…";
 "Card read." = "읽기를 완료했습니다.";
+"Troubleshooting" = "문제 해결";
+"Copy Debug Log" = "디버그 로그 복사";
+"Clear Debug Log" = "디버그 로그 지우기";
+"Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "읽기 문제를 해결할 수 있도록 최근 스캔 단계를 이 iPhone에 기록합니다. 복사를 탭할 때만 복사되며, 카드 번호는 일부만 표시됩니다.";
+"Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "읽기 문제를 해결할 수 있도록 최근 스캔 단계를 이 기기에 기록합니다. 복사를 탭할 때만 복사되며, 카드 번호는 일부만 표시됩니다.";
+"Debug log copied." = "디버그 로그를 복사했습니다.";
+"No scans recorded yet." = "아직 기록된 스캔이 없습니다.";
+"Debug log cleared." = "디버그 로그를 지웠습니다.";

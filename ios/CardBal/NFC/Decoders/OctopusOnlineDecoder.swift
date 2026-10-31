@@ -14,31 +14,59 @@ enum OctopusOnlineDecoder {
         var usedOnline = false
         var enquiryFailed = false
         var skippedCardUpdates = 0
+        octopusDebugLog("Octopus card IDm \(DebugLog.shortened(idm)), purse raw \(block.bigEndianInt(start: 0, length: 4))")
+        if let metadata {
+            octopusDebugLog("Online enquiry not needed: metadata already saved (offset \(metadata.offset), card number \(DebugLog.shortened(metadata.cardNumber)))")
+        } else if !onlineEnabled {
+            octopusDebugLog("Online enquiry not run: Octopus Online is off in Settings")
+        } else if !client.isConfigured {
+            octopusDebugLog("Online enquiry not run: no enquiry endpoint configured in this build")
+        }
         // Without a configured endpoint the build offers no online enquiry at all.
         if metadata == nil && onlineEnabled && client.isConfigured {
             defer { client.close() }
             defer { skippedCardUpdates = client.skippedCardUpdates }
             ScanProgress.report(.octopusOnline)
+            var step = "enquiry"
             do {
                 let (result, opcodes) = try await client.enquire(allowsCardUpdates: allowsCardUpdates) { command in
                     try await exchange(command, card: card, idm: idm)
                 }
                 // Enquiry may update card metadata. Re-poll and read the public
                 // purse again before comparing it with the server amount.
+                step = "re-poll after enquiry"
                 _ = try await card.polling(systemCode: Data([0x80, 0x08]), requestCode: .systemCode, timeSlot: .max1)
-                guard card.currentIDm == idm else { throw OctopusProtocolError.invalidResponse }
+                guard card.currentIDm == idm else {
+                    octopusDebugLog("Re-poll after enquiry: IDm changed to \(DebugLog.shortened(card.currentIDm))")
+                    throw OctopusProtocolError.invalidResponse
+                }
+                step = "purse read after enquiry"
                 let response = try await card.readWithoutEncryption(serviceCodeList: [Data([0x17, 1])], blockList: [Data([0x80, 0])])
                 guard response.0 == 0, response.1 == 0, response.2.count == 1,
-                      response.2[0].count == 16 else { throw OctopusProtocolError.invalidResponse }
+                      response.2[0].count == 16 else {
+                    octopusDebugLog("Purse read after enquiry: status flags \(DebugLog.hex(UInt8(truncatingIfNeeded: response.0))) "
+                                    + "\(DebugLog.hex(UInt8(truncatingIfNeeded: response.1))), \(response.2.count) blocks")
+                    throw OctopusProtocolError.invalidResponse
+                }
                 currentBlock = response.2[0]
-                metadata = OctopusCardMetadata.calibrated(result: result, rawValue: currentBlock.bigEndianInt(start: 0, length: 4), opcodes: opcodes)
-                if let metadata {
-                    store.save(metadata, for: identity)
+                let rawValue = currentBlock.bigEndianInt(start: 0, length: 4)
+                octopusDebugLog("Result: " + OctopusCardMetadata.resultSummary(result, rawValue: rawValue))
+                switch OctopusCardMetadata.calibration(result: result, rawValue: rawValue, opcodes: opcodes) {
+                case .success(let calibrated):
+                    metadata = calibrated
+                    store.save(calibrated, for: identity)
                     usedOnline = true
-                } else { enquiryFailed = true }
+                    octopusDebugLog("Outcome: calibrated (offset \(calibrated.offset), card number \(DebugLog.shortened(calibrated.cardNumber)), status \"\(calibrated.serviceStatus)\")")
+                case .failure(let failure):
+                    enquiryFailed = true
+                    octopusDebugLog("Outcome: failed, calibration rejected: \(failure)")
+                }
             } catch {
                 enquiryFailed = true
+                // The client has already logged its own failures.
+                octopusDebugLog("Outcome: failed during \(step)" + (step == "enquiry" ? "" : ": " + DebugLog.describe(error)))
             }
+            if client.skippedCardUpdates > 0 { octopusDebugLog("Skipped card updates: \(client.skippedCardUpdates)") }
             if enquiryFailed { ScanProgress.report(.octopusUnavailable) }
         }
         let raw = currentBlock.bigEndianInt(start: 0, length: 4)
@@ -81,17 +109,24 @@ enum OctopusOnlineDecoder {
         if opcode == 0 {
             let bytes = Array(command)
             guard bytes.count == 5, [Data([0x80, 0x08]), Data([0xFF, 0xFF])].contains(Data(bytes[1...2])),
-                  bytes[3] <= 1, bytes[4] == 0 else { throw OctopusProtocolError.invalidData }
+                  bytes[3] <= 1, bytes[4] == 0 else {
+                octopusDebugLog("Relay: polling request refused (\(bytes.count) bytes; only 8008 or FFFF, one slot)")
+                throw OctopusProtocolError.invalidData
+            }
             // Core NFC polling rejects wildcard (FF) bytes, so FFFF polls 8008, Octopus's only system.
             let (pmm, system) = try await card.polling(systemCode: Data([0x80, 0x08]), requestCode: bytes[3] == 1 ? .systemCode : .noRequest, timeSlot: .max1)
             guard card.currentIDm == idm, pmm.count == 8, bytes[3] == 0 || system.count == 2 else {
+                octopusDebugLog("Relay: polling reply refused (" + (card.currentIDm == idm ? "PMm \(pmm.count) bytes, system code \(system.count) bytes" : "IDm changed") + ")")
                 throw OctopusProtocolError.invalidResponse
             }
             return Data([bytes[3] == 0 ? 18 : 20, 1]) + idm + pmm + (bytes[3] == 1 ? system : Data())
         }
         // Authenticated packet fields are opaque and need not contain a plaintext IDm.
         let response = try await card.sendFeliCaCommand(commandPacket: command)
-        guard response.count < 255 else { throw OctopusProtocolError.invalidResponse }
+        guard response.count < 255 else {
+            octopusDebugLog("Relay: card reply too long (\(response.count) bytes)")
+            throw OctopusProtocolError.invalidResponse
+        }
         return Data([UInt8(response.count + 1)]) + response
     }
 }

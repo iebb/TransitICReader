@@ -78,4 +78,5 @@ struct FeliCaProfile {
 }
 extension NFCTransitReader {
     func performEnhancedFeliCaHandshake(tag: any NFCFeliCaTag) async throws -> String? { nil }
+    func describeDetectedTag(_ tag: NFCTag) -> String { "test tag" }
 }

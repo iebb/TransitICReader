@@ -185,6 +185,7 @@
     <string name="text_869463cab19167ca" formatted="false">"都市マップを利用できません"</string>
     <string name="text_b87ccc222414af0a" formatted="false">"都市一卡通の都市 %@"</string>
     <string name="text_ae25d6481fc1741f" formatted="false">"クラシック"</string>
+    <string name="text_173e35feac712ce4" formatted="false">"デバッグログを消去"</string>
     <string name="text_beba8972e75d3241" formatted="false">"気候同行カード"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"気候同行カード（乗り放題パス）"</string>
     <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper 読み取り状況"</string>
@@ -212,6 +213,7 @@
     <string name="text_08795ba031bcd121" formatted="false">"コントラスト"</string>
     <string name="text_8d525e5f158b9afe" formatted="false">"コピーしました"</string>
     <string name="text_8c12fd1ccd55b393" formatted="false">"%@をコピー"</string>
+    <string name="text_30b790ab91cd819d" formatted="false">"デバッグログをコピー"</string>
     <string name="text_45ad77626ee9bcb0" formatted="false">"カード番号をコピー"</string>
     <string name="text_b050cdae729e7b70" formatted="false">"正しいコード（任意）"</string>
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"現在地を取得できませんでした。地図上で手動でピンを置けます。"</string>
@@ -235,6 +237,8 @@
     <string name="text_19c2ea085558dc35" formatted="false">"DESFire 応答が読み取り上限を超えました"</string>
     <string name="text_99c40ab405926cb5" formatted="false">"日付"</string>
     <string name="text_75643a210b6595a7" formatted="false">"日付形式"</string>
+    <string name="text_7b748f1981bae07a" formatted="false">"デバッグログを消去しました。"</string>
+    <string name="text_90521fc443ec34a3" formatted="false">"デバッグログをコピーしました。"</string>
     <string name="text_c6de80cacece69e7" formatted="false">"解析済み"</string>
     <string name="text_28dd1444f8733ddb" formatted="false">"解析された残高"</string>
     <string name="text_36883f070fe0e994" formatted="false">"デコーダー"</string>
@@ -489,6 +493,7 @@
     <string name="text_7bb03c0d47ec2b34" formatted="false">"現在の範囲に記録はありません。"</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"保存済みカードはありません"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"この地域には保存済みの交通履歴がまだありません。"</string>
+    <string name="text_d0e495e9ddaa2b9d" formatted="false">"まだスキャンの記録はありません。"</string>
     <string name="text_0eac213e658197e1" formatted="false">"表示できる項目はありません。"</string>
     <string name="text_1c60c9154e837678" formatted="false">"この範囲で表示できる経路はありません。"</string>
     <string name="text_dc937b59892604f5" formatted="false">"なし"</string>
@@ -628,6 +633,8 @@
     <string name="text_7a1741e3fa28c45b" formatted="false">"履歴のサブタイプ"</string>
     <string name="text_6989335a0cfaae2a" formatted="false">"履歴種別"</string>
     <string name="text_47a84e92d5b225ee" formatted="false">"記録"</string>
+    <string name="text_70e7b11ef9bca3f6" formatted="false">"読み取りの問題を解決するため、最近のスキャンの手順をこのデバイス内に記録します。コピーをタップしたときだけコピーされ、カード番号は一部のみ表示されます。"</string>
+    <string name="text_3ec945639292248a" formatted="false">"読み取りの問題を解決するため、最近のスキャンの手順をこのiPhone内に記録します。コピーをタップしたときだけコピーされ、カード番号は一部のみ表示されます。"</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"赤"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"参照：%@"</string>
     <string name="text_6b37bd35081fcbc6" formatted="false">"返金"</string>
@@ -847,6 +854,7 @@
     <string name="text_b673fbd678a7323e" formatted="false">"乗車状態"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"乗車履歴"</string>
     <string name="text_36ad6bc8245efca9" formatted="false">"残り利用回数"</string>
+    <string name="text_c3af076f92c5ed8d" formatted="false">"トラブルシューティング"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"種別"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"開発用サンプルを読み込めません"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"開発用サンプルを読み込めません：%@"</string>

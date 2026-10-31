@@ -98,9 +98,36 @@ internal class OctopusEnquiryVm(
     private val exchange: (ByteArray) -> ByteArray,
 ) {
     companion object {
-        /** FeliCa commands that only read or authenticate. Polling (0x00) is checked separately by the relay.
-         *  Without consent, any other command is a possible card update and is skipped, not sent to the card. */
-        val READ_ONLY_CARD_OPCODES = setOf(0x02, 0x04, 0x06, 0x0A, 0x0C, 0x10, 0x12, 0x14)
+        /** FeliCa commands that only read, authenticate or describe the card, in both the DES and the
+         *  AES (V2) command sets. Polling (0x00) is checked separately by the relay. Without consent,
+         *  any other command is a possible card update and is skipped, not sent to the card. */
+        val READ_ONLY_CARD_OPCODES = setOf(
+            0x02, // Request Service
+            0x04, // Request Response
+            0x06, // Read Without Encryption
+            0x0A, // Search Service Code
+            0x0C, // Request System Code
+            0x0E, // Request Block Information
+            0x10, // Authentication1 (DES)
+            0x12, // Authentication2
+            0x14, // Read
+            0x1A, // Request Code List
+            0x1E, // Request Block Information Ex
+            0x22, // Get Container Issue Information
+            0x24, // Get Area Information
+            0x28, // Get Node Property
+            0x2E, // Get Container Property
+            0x32, // Request Service V2
+            0x34, // Internal Authenticate And Read
+            0x38, // Get System Status
+            0x3A, // Request Product Information
+            0x3C, // Request Specification Version
+            0x40, // Authentication1 V2 (AES)
+            0x42, // Authentication2 V2
+            0x44, // Read V2
+        )
+        /** An authenticated read in either generation: Authentication1, Authentication2 and Read. */
+        val AUTHENTICATED_READ_OPCODES = listOf(setOf(0x10, 0x40), setOf(0x12, 0x42), setOf(0x14, 0x44))
     }
     val serverData = mutableMapOf<Int, ByteArray>()
     val cardOpcodes = mutableSetOf<Int>()
@@ -215,7 +242,7 @@ internal data class OctopusCardMetadata(val cardNumber: String, val offset: Int,
     val isValid get() = cardNumber.matches(Regex("[0-9]{8,12}")) && cardNumber.any { it != '0' } && offset in setOf(350, 500)
     companion object {
         fun calibrated(result: ByteArray, rawValue: Long, opcodes: Set<Int>): OctopusCardMetadata? = runCatching {
-            if (!opcodes.containsAll(setOf(0x10, 0x12, 0x14))) return null
+            if (OctopusEnquiryVm.AUTHENTICATED_READ_OPCODES.any { step -> step.none { it in opcodes } }) return null
             val card = Json.parseToJsonElement(result.toString(Charsets.UTF_8)).jsonObject.getValue("cardDataVO").jsonObject
             val balance = card.getValue("balance").jsonPrimitive.content.toBigDecimal()
             val short = card["octopusNo"]?.jsonPrimitive?.content?.filter { it in '0'..'9' }
@@ -232,8 +259,12 @@ internal data class OctopusCardMetadata(val cardNumber: String, val offset: Int,
 internal class OctopusEnquiryClient(
     private val baseUrl: String,
     private val allowLoopback: Boolean = false,
-    private val timeoutMillis: Int = 5000,
+    private val timeoutMillis: Int = REQUEST_TIMEOUT_MILLIS,
 ) {
+    companion object {
+        /** Each request may take up to this long, within the overall 25-second deadline. */
+        const val REQUEST_TIMEOUT_MILLIS = 10_000
+    }
     private val deviceId = UUID.randomUUID().toString()
     private var deadlineNanos = 0L
     /** Card updates skipped during the last enquiry, kept even when it fails. */

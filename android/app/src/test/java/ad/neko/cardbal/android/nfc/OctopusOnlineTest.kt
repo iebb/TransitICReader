@@ -19,6 +19,8 @@ class OctopusOnlineTest {
     private val fixture = Json.parseToJsonElement(javaClass.classLoader!!.getResourceAsStream("octopus-online.json")!!
         .bufferedReader().readText()).jsonObject
     private val frames get() = fixture.getValue("frames").jsonArray.map { it.jsonPrimitive.content.hexToBytes() }
+    /** The same exchange with FeliCa V2 (AES) commands 0x40, 0x42, 0x44 and 0x46. */
+    private val framesV2 get() = fixture.getValue("frames_v2").jsonArray.map { it.jsonPrimitive.content.hexToBytes() }
     private val result get() = fixture.getValue("result").toString().toByteArray()
 
     @Test fun wireConventionsMalformedFramesAndVmBudgets() {
@@ -52,6 +54,28 @@ class OctopusOnlineTest {
         assertEquals(setOf(0x14), reader.cardOpcodes)
     }
 
+    @Test fun v2CommandsReadWithoutConsentAndWriteV2IsSkipped() {
+        assertEquals(setOf(0x02, 0x04, 0x06, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x1A, 0x1E, 0x22, 0x24, 0x28,
+            0x2E, 0x32, 0x34, 0x38, 0x3A, 0x3C, 0x40, 0x42, 0x44), OctopusEnquiryVm.READ_ONLY_CARD_OPCODES)
+        for (opcode in listOf(0x08, 0x16, 0x3E, 0x46, 0x4C)) assertFalse(opcode in OctopusEnquiryVm.READ_ONLY_CARD_OPCODES)
+        assertEquals(10_000, OctopusEnquiryClient.REQUEST_TIMEOUT_MILLIS)
+        val reader = OctopusEnquiryVm(emptyMap(), System.nanoTime() + 10_000_000_000) { byteArrayOf(2, (it[0] + 1).toByte()) }
+        for (index in 3..5) reader.run(OctopusOcap.parse(framesV2[index]).single())
+        assertEquals(0, reader.skippedCardUpdates)
+        assertEquals(setOf(0x40, 0x42, 0x44), reader.cardOpcodes)
+        val update = OctopusOcap.parse(framesV2[6]).single()
+        val readOnly = OctopusEnquiryVm(emptyMap(), System.nanoTime() + 10_000_000_000) { error("Write V2 reached the card") }
+        readOnly.run(update)
+        assertEquals(1, readOnly.skippedCardUpdates)
+        assertTrue(readOnly.cardOpcodes.isEmpty())
+        val consented = OctopusEnquiryVm(emptyMap(), System.nanoTime() + 10_000_000_000, allowsCardUpdates = true) {
+            byteArrayOf(2, (it[0] + 1).toByte())
+        }
+        consented.run(update)
+        assertEquals(0, consented.skippedCardUpdates)
+        assertEquals(setOf(0x46), consented.cardOpcodes)
+    }
+
     @Test fun onlyAuthenticatedCorroboratedResultsCalibrateBothOffsets() {
         val ops = setOf(0x10, 0x12, 0x14)
         val confirmed = OctopusCardMetadata.calibrated(result, 900, ops)!!
@@ -61,6 +85,13 @@ class OctopusOnlineTest {
         assertEquals(500, OctopusCardMetadata.calibrated(result, 1050, ops)!!.offset)
         assertNull(OctopusCardMetadata.calibrated(result, 901, ops))
         assertNull(OctopusCardMetadata.calibrated(result, 900, emptySet()))
+        // Each step of the authenticated read may come from either command generation.
+        for (accepted in listOf(setOf(0x40, 0x42, 0x44), setOf(0x10, 0x42, 0x14), setOf(0x40, 0x12, 0x44, 0x46))) {
+            assertEquals(confirmed, OctopusCardMetadata.calibrated(result, 900, accepted))
+        }
+        for (rejected in listOf(setOf(0x40, 0x42), setOf(0x10, 0x12, 0x06), setOf(0x42, 0x44, 0x46))) {
+            assertNull(OctopusCardMetadata.calibrated(result, 900, rejected))
+        }
         assertNull(OctopusCardMetadata.calibrated("""{"cardDataVO":{"balance":0,"status":"R30"}}""".toByteArray(), 350, ops))
         assertNull(OctopusCardMetadata.calibrated("""{"cardDataVO":{"balance":54.99,"octopusNo":"123456789","status":"R30"}}""".toByteArray(), 900, ops))
         assertEquals(350, OctopusCardMetadata.calibrated("""{"cardDataVO":{"balance":-25,"octopusNo":"123456789","status":"R30"}}""".toByteArray(), 100, ops)!!.offset)
@@ -107,6 +138,11 @@ class OctopusOnlineTest {
                     val response = frames[round]
                     Reply(200, response)
                 }
+                path == "/success-v2/service.htm;jsessionid=invented-session" -> {
+                    val round = index.getAndIncrement()
+                    if (round == 0) assertArrayEquals(OctopusOcap.deviceInfo(), body)
+                    Reply(200, framesV2[round])
+                }
                 else -> Reply(501)
             }
         }
@@ -129,6 +165,17 @@ class OctopusOnlineTest {
             assertEquals(frames.size, index.get())
             assertEquals(setOf(0, 2, 0x10, 0x12, 0x14, 0x16), updateOpcodes)
             assertEquals(0, updating.skippedCardUpdates)
+            // A V2 (AES) exchange with card updates off reads and calibrates; Write V2 never reaches the card.
+            index.set(0)
+            val v2 = OctopusEnquiryClient("$base/success-v2", allowLoopback = true)
+            val (v2Data, v2Opcodes) = v2.enquire { command ->
+                assertNotEquals(0x46, command[0].toInt())
+                byteArrayOf(3, (command[0] + 1).toByte(), 0)
+            }
+            assertEquals(framesV2.size, index.get())
+            assertEquals(setOf(0, 2, 0x40, 0x42, 0x44), v2Opcodes)
+            assertEquals(1, v2.skippedCardUpdates)
+            assertEquals(350, OctopusCardMetadata.calibrated(v2Data, 900, v2Opcodes)!!.offset)
             for (mode in listOf("error", "redirect", "bad-session", "slow")) {
                 assertThrows(java.io.IOException::class.java) {
                     OctopusEnquiryClient("$base/$mode", allowLoopback = true, timeoutMillis = 50).enquire { error("Failure contacted card") }

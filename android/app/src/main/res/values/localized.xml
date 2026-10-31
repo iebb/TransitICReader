@@ -185,6 +185,7 @@
     <string name="text_869463cab19167ca" formatted="false">"City map unavailable"</string>
     <string name="text_b87ccc222414af0a" formatted="false">"City-Union City %@"</string>
     <string name="text_ae25d6481fc1741f" formatted="false">"Classic"</string>
+    <string name="text_173e35feac712ce4" formatted="false">"Clear Debug Log"</string>
     <string name="text_beba8972e75d3241" formatted="false">"Climate Card"</string>
     <string name="text_dec1c0e29ec8899a" formatted="false">"Climate Card (Unlimited Pass)"</string>
     <string name="text_8ecf0faf25db7c69" formatted="false">"Clipper Read Status"</string>
@@ -212,6 +213,7 @@
     <string name="text_08795ba031bcd121" formatted="false">"Contrast"</string>
     <string name="text_8d525e5f158b9afe" formatted="false">"Copied"</string>
     <string name="text_8c12fd1ccd55b393" formatted="false">"Copy %@"</string>
+    <string name="text_30b790ab91cd819d" formatted="false">"Copy Debug Log"</string>
     <string name="text_45ad77626ee9bcb0" formatted="false">"Copy card number"</string>
     <string name="text_b050cdae729e7b70" formatted="false">"Correct Code (Optional)"</string>
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"Could not find your location. You can place a pin manually."</string>
@@ -235,6 +237,8 @@
     <string name="text_19c2ea085558dc35" formatted="false">"DESFire response exceeds read limit"</string>
     <string name="text_99c40ab405926cb5" formatted="false">"Date"</string>
     <string name="text_75643a210b6595a7" formatted="false">"Date Format"</string>
+    <string name="text_7b748f1981bae07a" formatted="false">"Debug log cleared."</string>
+    <string name="text_90521fc443ec34a3" formatted="false">"Debug log copied."</string>
     <string name="text_c6de80cacece69e7" formatted="false">"Decoded"</string>
     <string name="text_28dd1444f8733ddb" formatted="false">"Decoded Balance"</string>
     <string name="text_36883f070fe0e994" formatted="false">"Decoder"</string>
@@ -489,6 +493,7 @@
     <string name="text_7bb03c0d47ec2b34" formatted="false">"No records in the current boundary."</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"No saved cards"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"No saved transit records appear here yet."</string>
+    <string name="text_d0e495e9ddaa2b9d" formatted="false">"No scans recorded yet."</string>
     <string name="text_0eac213e658197e1" formatted="false">"No visible items."</string>
     <string name="text_1c60c9154e837678" formatted="false">"No visible routes in this area."</string>
     <string name="text_dc937b59892604f5" formatted="false">"None"</string>
@@ -628,6 +633,8 @@
     <string name="text_7a1741e3fa28c45b" formatted="false">"Record Subtype"</string>
     <string name="text_6989335a0cfaae2a" formatted="false">"Record Type"</string>
     <string name="text_47a84e92d5b225ee" formatted="false">"Records"</string>
+    <string name="text_70e7b11ef9bca3f6" formatted="false">"Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened."</string>
+    <string name="text_3ec945639292248a" formatted="false">"Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened."</string>
     <string name="text_ba19e9c3d5f49882" formatted="false">"Red"</string>
     <string name="text_a8b076a818747ff3" formatted="false">"Reference: %@"</string>
     <string name="text_6b37bd35081fcbc6" formatted="false">"Refund"</string>
@@ -847,6 +854,7 @@
     <string name="text_b673fbd678a7323e" formatted="false">"Trip State"</string>
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"Trips"</string>
     <string name="text_36ad6bc8245efca9" formatted="false">"Trips Remaining"</string>
+    <string name="text_c3af076f92c5ed8d" formatted="false">"Troubleshooting"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"Type"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"Unable to load development samples"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"Unable to load development samples: %@"</string>

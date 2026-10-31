@@ -50,6 +50,8 @@ class OctopusOnlineRuntimeTests(unittest.TestCase):
     def test_protocol_http_calibration_persistence_and_disabled_network(self):
         fixture = json.loads(FIXTURE.read_text())
         frames = [bytes.fromhex(value) for value in fixture["frames"]]
+        # The same exchange with FeliCa V2 (AES) commands, served under /success-v2.
+        frames_v2 = [bytes.fromhex(value) for value in fixture["frames_v2"]]
         requests = []
         sessions = {}
         protocol_errors = []
@@ -91,7 +93,7 @@ class OctopusOnlineRuntimeTests(unittest.TestCase):
                         protocol_errors.append("Incorrect device information frame")
                     if index > 0 and not (body.startswith(b"OCAP") and body[9:13] == b"RPLY"):
                         protocol_errors.append("Incorrect reply frame")
-                    data = frames[index]
+                    data = (frames_v2 if self.path.startswith("/success-v2/") else frames)[index]
                 else:
                     self.send_response(501)
                     self.end_headers()
@@ -174,6 +176,23 @@ static func main() async throws {
     let reader = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10)) { Data([2, $0[0] + 1]) }
     _ = try await reader.run(read)
     precondition(reader.skippedCardUpdates == 0 && reader.cardOpcodes == [0x14])
+    // V2 (AES) authentication and reads are read-only; Write V2 (0x46) is still an update.
+    let v2Frames = fixture["frames_v2"] as! [String]
+    let v2Reader = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10)) { Data([2, $0[0] + 1]) }
+    for index in 3...5 { _ = try await v2Reader.run(OctopusOCAP.parse(Data(hexString: v2Frames[index]))[0]) }
+    precondition(v2Reader.skippedCardUpdates == 0 && v2Reader.cardOpcodes == [0x40, 0x42, 0x44])
+    let v2Update = try OctopusOCAP.parse(Data(hexString: v2Frames[6]))[0]
+    let v2ReadOnly = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10)) { _ in fatalError("Write V2 reached the card") }
+    _ = try await v2ReadOnly.run(v2Update)
+    precondition(v2ReadOnly.skippedCardUpdates == 1 && v2ReadOnly.cardOpcodes.isEmpty)
+    let v2Consented = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10), allowsCardUpdates: true) { Data([2, $0[0] + 1]) }
+    _ = try await v2Consented.run(v2Update)
+    precondition(v2Consented.skippedCardUpdates == 0 && v2Consented.cardOpcodes == [0x46])
+    let readOnlyOpcodes: Set<UInt8> = [0x02, 0x04, 0x06, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x1A, 0x1E, 0x22, 0x24, 0x28,
+                                       0x2E, 0x32, 0x34, 0x38, 0x3A, 0x3C, 0x40, 0x42, 0x44]
+    precondition(OctopusEnquiryVM.readOnlyCardOpcodes == readOnlyOpcodes)
+    for opcode in [UInt8(0x08), 0x16, 0x3E, 0x46, 0x4C] { precondition(!OctopusEnquiryVM.readOnlyCardOpcodes.contains(opcode)) }
+    precondition(OctopusEnquiryClient.requestTimeout == 10)
     // Core NFC cannot poll wildcard system codes; a server FFFF poll uses 8008.
     let wildcard = InventedCard()
     let polled = try await OctopusOnlineDecoder.exchange(Data([0, 0xFF, 0xFF, 1, 0]), card: wildcard, idm: wildcard.currentIDm)
@@ -191,6 +210,13 @@ static func main() async throws {
     precondition(OctopusCardMetadata.calibrated(result: result, rawValue: 1050, opcodes: opcodes)?.offset == 500)
     precondition(OctopusCardMetadata.calibrated(result: result, rawValue: 901, opcodes: opcodes) == nil)
     precondition(OctopusCardMetadata.calibrated(result: result, rawValue: 900, opcodes: []) == nil)
+    // Each step of the authenticated read may come from either command generation.
+    for accepted: Set<UInt8> in [[0x40, 0x42, 0x44], [0x10, 0x42, 0x14], [0x40, 0x12, 0x44, 0x46]] {
+        precondition(OctopusCardMetadata.calibrated(result: result, rawValue: 900, opcodes: accepted) == confirmed)
+    }
+    for rejected: Set<UInt8> in [[0x40, 0x42], [0x10, 0x12, 0x06], [0x42, 0x44, 0x46]] {
+        precondition(OctopusCardMetadata.calibrated(result: result, rawValue: 900, opcodes: rejected) == nil)
+    }
     let error = Data(#"{"cardDataVO":{"balance":0,"status":"R30"}}"#.utf8)
     precondition(OctopusCardMetadata.calibrated(result: error, rawValue: 350, opcodes: opcodes) == nil)
     let fractional = Data(#"{"cardDataVO":{"balance":54.99,"octopusNo":"123456789","status":"R30"}}"#.utf8)
@@ -217,6 +243,15 @@ static func main() async throws {
     precondition(snapshot.realSerialNumber == "123456789" && snapshot.balanceText == "HKD 55")
     precondition(snapshot.rawTransactions.isEmpty && card.operations.contains(0x14) && !card.operations.contains(0x16))
     precondition(snapshot.rawSections.flatMap(\.fields).contains { $0.title == "Skipped Card Updates" && $0.value == "1" })
+    // A V2 exchange calibrates with card updates off; Write V2 never reaches the card.
+    let v2Card = InventedCard()
+    v2Card.currentIDm = Data(hexString: "D102030405060708")
+    let v2Snapshot = await OctopusOnlineDecoder.decode(card: v2Card, block: v2Card.block, pmm: Data(), scannedAt: Date(),
+        store: store, onlineEnabled: true, allowsCardUpdates: false, client: OctopusEnquiryClient(baseURL: URL(string: server + "/success-v2")))
+    precondition(v2Snapshot.realSerialNumber == "123456789" && v2Snapshot.balanceText == "HKD 55")
+    precondition([0x40, 0x42, 0x44].allSatisfy(v2Card.operations.contains) && !v2Card.operations.contains(0x46))
+    precondition(v2Snapshot.rawSections.flatMap(\.fields).contains { $0.title == "Skipped Card Updates" && $0.value == "1" })
+    precondition(store.metadata(for: v2Card.currentIDm.hexString)?.offset == 350)
     let updating = InventedCard()
     updating.currentIDm = Data(hexString: "B102030405060708")
     let updated = await OctopusOnlineDecoder.decode(card: updating, block: updating.block, pmm: Data(), scannedAt: Date(),
@@ -243,7 +278,18 @@ static func main() async throws {
         await rejects { _ = try await client.enquire { _ in fatalError("HTTP failure contacted card") } }
         client.close()
     }
-    print("PASS Octopus OCAP, HTTP failures, calibration, persistence and disabled-network scans")
+    // The debug log names steps and skipped commands but holds no session ID, server address or full card number.
+    let log = DebugLog.shared.text()
+    precondition(log.contains("Card seq 3: 0x46 Write V2, 9 bytes: SKIPPED (card update not allowed)"))
+    precondition(log.contains("Card seq 3: 0x44 Read V2, 9 bytes: SENT; reply code 0x45, 3 bytes"))
+    precondition(log.contains("Greeting: JSESSIONID marker found; session ID format OK"))
+    precondition(log.contains("Outcome: calibrated (offset 350, card number …6789"))
+    precondition(!log.contains("invented-") && !log.contains("127.0.0.1") && !log.contains("123456789"))
+    let export = DebugLog.shared.exportText(details: ["Octopus Online: on"])
+    precondition(export.hasPrefix("CardBal Debug Log\nApp: ") && export.contains("\nOctopus Online: on\n\n"))
+    DebugLog.shared.clear()
+    precondition(DebugLog.shared.isEmpty && DebugLog.shared.text().isEmpty)
+    print("PASS Octopus OCAP, V2 commands, HTTP failures, calibration, persistence, disabled-network scans and debug log")
 }
 }
 '''
@@ -262,6 +308,7 @@ static func main() async throws {
                     str(ROOT / "ios/CardBal/NFC/ScanProgress.swift"),
                     str(ROOT / "ios/CardBal/NFC/Profiles/OctopusOnlineProtocol.swift"),
                     str(ROOT / "ios/CardBal/NFC/Decoders/OctopusOnlineDecoder.swift"),
+                    str(ROOT / "ios/CardBal/Utils/DebugLog.swift"),
                     str(directory / "Harness.swift"), "-o", str(binary),
                 ], capture_output=True, text=True)
                 self.assertEqual(0, build.returncode, build.stdout + build.stderr)
@@ -272,6 +319,7 @@ static func main() async throws {
             self.assertEqual([], protocol_errors)
             # One read-only enquiry and one with card updates allowed.
             self.assertEqual(2 * len(frames), sum("/success/service.htm" in path for path in requests))
+            self.assertEqual(len(frames_v2), sum("/success-v2/service.htm" in path for path in requests))
             self.assertFalse(any("must-not" in path for path in requests))
         finally:
             server.shutdown()

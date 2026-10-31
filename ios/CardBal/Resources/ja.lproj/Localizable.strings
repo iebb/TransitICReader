@@ -1071,3 +1071,11 @@
 "Octopus Online is unavailable. Finishing the read…" = "オクトパスのオンライン照会を利用できません。読み取りを続けています…";
 "Almost done…" = "まもなく完了します…";
 "Card read." = "読み取りました。";
+"Troubleshooting" = "トラブルシューティング";
+"Copy Debug Log" = "デバッグログをコピー";
+"Clear Debug Log" = "デバッグログを消去";
+"Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "読み取りの問題を解決するため、最近のスキャンの手順をこのiPhone内に記録します。コピーをタップしたときだけコピーされ、カード番号は一部のみ表示されます。";
+"Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "読み取りの問題を解決するため、最近のスキャンの手順をこのデバイス内に記録します。コピーをタップしたときだけコピーされ、カード番号は一部のみ表示されます。";
+"Debug log copied." = "デバッグログをコピーしました。";
+"No scans recorded yet." = "まだスキャンの記録はありません。";
+"Debug log cleared." = "デバッグログを消去しました。";

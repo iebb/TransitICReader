@@ -1278,6 +1278,8 @@ struct SettingsView: View {
     @State private var importsTripReaderBackup = false
     @State private var isImportingTripReaderBackup = false
     @State private var backupMessage: String?
+    @State private var debugLogIsEmpty = DebugLog.shared.isEmpty
+    @State private var debugLogMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -1313,6 +1315,7 @@ struct SettingsView: View {
                         Label("About", systemImage: "info.circle")
                     }
                 }
+                troubleshootingSection
                 Section("Community") {
                     Link(destination: URL(string: "https://cardb.al/support/")!) {
                         Label("Support", systemImage: "questionmark.circle")
@@ -1366,6 +1369,52 @@ struct SettingsView: View {
                 backupMessage = "Import failed: \(error.localizedDescription)"
             }
         }
+    }
+
+    /// Always shown: the log stays on this device and is copied only when the person taps Copy.
+    private var troubleshootingSection: some View {
+        Section {
+            Button {
+                UIPasteboard.general.string = DebugLog.shared.exportText(details: [OctopusOnlinePreferences.debugSummary])
+                debugLogMessage = "Debug log copied."
+            } label: {
+                Label("Copy Debug Log", systemImage: "doc.on.doc")
+            }
+            .disabled(debugLogIsEmpty)
+            .onAppear(perform: refreshDebugLogState)
+            Button(role: .destructive) {
+                DebugLog.shared.clear()
+                debugLogIsEmpty = true
+                debugLogMessage = "Debug log cleared."
+            } label: {
+                Label("Clear Debug Log", systemImage: "trash")
+            }
+            .disabled(debugLogIsEmpty)
+            if let debugLogMessage {
+                Text(Localizer.localize(debugLogMessage))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if debugLogIsEmpty {
+                Text("No scans recorded yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Troubleshooting")
+        } footer: {
+            // iPad and Mac read with an external reader; their copy says "this device".
+            if reader.requiresExternalReader {
+                Text("Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened.")
+            } else {
+                Text("Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened.")
+            }
+        }
+    }
+
+    /// Scans may have added lines since the last Copy or Clear, so its confirmation is dropped.
+    private func refreshDebugLogState() {
+        debugLogMessage = nil
+        debugLogIsEmpty = DebugLog.shared.isEmpty
     }
 
     private func importTripReaderBackup(_ result: Result<URL, Error>) {

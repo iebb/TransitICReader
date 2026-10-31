@@ -17,10 +17,13 @@ struct JapaneseICDecoder: TransitCardDecoder {
             if isKMT && !KMTCardFormat.isSelectedSystem(selected.1) { continue }
 
             ScanProgress.report(.balance)
-            if let readResult = try? await feliCa.readWithoutEncryption(
+            let read = try? await feliCa.readWithoutEncryption(
                 serviceCodeList: [profile.serviceCodeLittleEndian],
                 blockList: [Data([0x80, 0x00])]
-            ), readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first {
+            )
+            DebugLog.shared.log("FeliCa", "System \(profile.systemCode) (\(profile.displayName)) answered polling; balance read "
+                                + (read.map { "status \($0.0) \($0.1), \($0.2.count) blocks" } ?? "failed"))
+            if let readResult = read, readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first {
                 if isKMT && KMTCardFormat.validatedRead(
                     selectedSystem: selected.1, status1: readResult.0,
                     status2: readResult.1, blocks: readResult.2

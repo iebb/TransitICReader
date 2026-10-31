@@ -1071,3 +1071,11 @@
 "Octopus Online is unavailable. Finishing the read…" = "八达通在线查询不可用，正在完成读取…";
 "Almost done…" = "即将完成…";
 "Card read." = "读取完成。";
+"Troubleshooting" = "故障排除";
+"Copy Debug Log" = "复制调试日志";
+"Clear Debug Log" = "清除调试日志";
+"Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "在此 iPhone 上记录最近的扫描步骤，以帮助解决读取问题。仅在轻点“复制”时才会复制，卡号只显示部分。";
+"Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened." = "在此设备上记录最近的扫描步骤，以帮助解决读取问题。仅在轻点“复制”时才会复制，卡号只显示部分。";
+"Debug log copied." = "已复制调试日志。";
+"No scans recorded yet." = "尚无扫描记录。";
+"Debug log cleared." = "已清除调试日志。";
