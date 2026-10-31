@@ -16,6 +16,14 @@ malformed or protected data does not become a successful response. Optional
 history failure preserves an already validated purse. iPhone supports the
 ISO7816 and raw MIFARE discovery paths; Android uses ISO-DEP.
 
+CEPAS cards are ISO 14443 Type B and do not implement ISO 7816-4 AID
+selection properly, so Core NFC only hands one to the app after a listed AID
+SELECT is accepted. The iOS app appends `A000000341000101` and
+`00000000000000` to its select identifiers, the two values CoreExtendedNFC's
+example app lists that ours lacked when it read a traditional EZ-Link card on
+iPhone Air. Which one the card answered is not confirmed upstream; they sit
+last so every other card keeps its earlier initial AID.
+
 Purse and history amounts are signed24-bit SGD cents. History timestamps are
 unsigned seconds from1995-01-01 midnight Singapore, Unix788889600. The checked
 FareBot revision's numeric epoch constant disagrees with its stated local

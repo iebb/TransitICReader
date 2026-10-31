@@ -590,7 +590,7 @@ struct ScanHomeView: View {
     @ViewBuilder
     private var readySection: some View {
         Section {
-            ScanPromptView(isExternal: reader.usesExternalReader, isReady: reader.isNFCAvailable) { reader.startScanning() }
+            ScanPromptView(isExternal: reader.usesExternalReader, isReady: reader.isNFCAvailable) { options in reader.startScanning(options: options) }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
         }
@@ -1811,7 +1811,7 @@ private struct RawDataSectionList: View {
 struct ScanPromptView: View {
     var isExternal = false
     var isReady = true
-    let startScan: () -> Void
+    let startScan: (CardPollingOption) -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -1832,12 +1832,21 @@ struct ScanPromptView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            Button(action: startScan) {
-                Label("Scan a Card", systemImage: "sensor.tag.radiowaves.forward.fill")
+            // Tap scans for every card kind; long press chooses which kinds to
+            // look for, like the toolbar's scan button.
+            Menu {
+                ScanPollingChoices(startScan: startScan)
+            } label: {
+                // Title only: in a list row the icon took the button's own
+                // tint, so it was invisible and pushed the title off center.
+                Text("Scan a Card")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
+            } primaryAction: {
+                startScan(ScanPollingChoices.all)
             }
+            .menuStyle(.button)
             .disabled(!isReady)
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -1855,8 +1864,11 @@ struct ScanToolbarItem: ToolbarContent {
     
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                reader.startScanning()
+            // A menu with a primary action: tap scans for every card kind, long
+            // press offers the choices. A context menu on a toolbar button no
+            // longer opens on a long press.
+            Menu {
+                ScanPollingChoices { reader.startScanning(options: $0) }
             } label: {
                 Label("Scan a Card", systemImage: "sensor.tag.radiowaves.forward.fill")
                     .labelStyle(.iconOnly)
@@ -1864,15 +1876,26 @@ struct ScanToolbarItem: ToolbarContent {
                     .foregroundStyle(.primary)
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
+            } primaryAction: {
+                reader.startScanning()
             }
             .disabled(reader.isScanning || !reader.isNFCAvailable)
             .accessibilityLabel(Text("Scan a Card"))
-            .contextMenu {
-                Button { reader.startScanning(options: [.iso18092, .iso14443, .iso15693]) } label: { Label("All Protocols", systemImage: "bolt.fill") }
-                Button { reader.startScanning(options: [.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
-                Button { reader.startScanning(options: [.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }
-            }
         }
+    }
+}
+
+/// The long-press choices of every Scan control: look for all card kinds, or
+/// only FeliCa or ISO 14443 cards.
+struct ScanPollingChoices: View {
+    static let all: CardPollingOption = [.iso18092, .iso14443, .iso15693]
+
+    let startScan: (CardPollingOption) -> Void
+
+    var body: some View {
+        Button { startScan(Self.all) } label: { Label("All Protocols", systemImage: "bolt.fill") }
+        Button { startScan([.iso18092]) } label: { Label("FeliCa", systemImage: "wave.3.left") }
+        Button { startScan([.iso14443]) } label: { Label("ISO 14443", systemImage: "creditcard.fill") }
     }
 }
 
