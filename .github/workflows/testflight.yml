@@ -1,0 +1,65 @@
+name: TestFlight
+run-name: TestFlight upload ${{ inputs.version || 'repository version' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Marketing version; blank uses the version in the app projects'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cardbal-stores
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    if: github.ref == 'refs/heads/master'
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - id: version
+        name: Validate version and assign a new build number
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 -m tools.release.versions
+      - run: xcodebuild -version
+      - name: Compile pinned station catalog
+        run: python3 -m tools.stations.build --source csv --target all --no-sync-android
+      - name: Test shared tools and Swift readers
+        run: python3 -m unittest discover -s tests -t .
+      - name: Archive and export signed iOS app
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          IOS_BUILD_NUMBER: ${{ steps.version.outputs.ios_build }}
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: bash tools/release/ios_archive.sh
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: python3 -m tools.release.testflight --ipa build/ios/export/CardBal.ipa
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-${{ steps.version.outputs.version }}-${{ steps.version.outputs.ios_build }}
+          path: |
+            build/ios/export/*.ipa
+            build/ios/CardBal.xcarchive/dSYMs
+          retention-days: 14
+      - name: Record upload
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          IOS_BUILD_NUMBER: ${{ steps.version.outputs.ios_build }}
+        run: echo "Uploaded iOS $RELEASE_VERSION ($IOS_BUILD_NUMBER) to TestFlight. Apple processing may still be pending." >> "$GITHUB_STEP_SUMMARY"

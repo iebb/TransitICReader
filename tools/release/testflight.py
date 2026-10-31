@@ -31,7 +31,7 @@ def main() -> None:
             command = ["xcrun", "altool", "--upload-app", "-f", str(args.ipa), "--type", "ios",
                        "--apiKey", env["ASC_KEY_ID"], "--apiIssuer", env["ASC_ISSUER_ID"]]
         subprocess.run(command, env=env, check=True)
-    print("Uploaded to App Store Connect. Apple must finish processing before Release can select this build.")
+    print("Uploaded to App Store Connect. Apple must finish processing before Submit for review can select this build.")
 
 
 if __name__ == "__main__":
