@@ -1053,3 +1053,9 @@
 "Candidate Balance (offset 350)" = "候选余额（偏移量 350）";
 
 "Candidate Balance (offset 500)" = "候选余额（偏移量 500）";
+
+"Allow Card Updates" = "允许更新卡片";
+
+"Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "允许八达通在线查询更改卡内保存的信息，例如汇率。CardBal 无法查看或撤销这些更改。关闭时，八达通在线查询只读取卡片。";
+
+"Skipped Card Updates" = "已跳过的卡片更新";

@@ -58,6 +58,7 @@
     <string name="text_a391701d6f175b92" formatted="false">"All Decoded Metadata"</string>
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"All Protocols"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"All in view (%lld)"</string>
+    <string name="text_3a5cbd6608b16118" formatted="false">"Allow Card Updates"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"Already up to date"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"Amount"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"An online enquiry is needed to determine this card's balance offset."</string>
@@ -407,6 +408,7 @@
     <string name="text_910b1e9cf4bb2df7" formatted="false">"Leading Bytes"</string>
     <string name="text_093dab3ac5e09cea" formatted="false">"Leave the name empty to use the card's own name."</string>
     <string name="text_adc95605a1b30c73" formatted="false">"Length"</string>
+    <string name="text_dd55c8ea97fbcd5f" formatted="false">"Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card."</string>
     <string name="text_624527a26b97667c" formatted="false">"Licensed under Creative Commons Attribution 4.0 International."</string>
     <string name="text_fed696954300d76e" formatted="false">"Line %02X / Station %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"Line or Lines"</string>
@@ -715,6 +717,7 @@
     <string name="text_aba8a10358f1dfad" formatted="false">"Single Purchase"</string>
     <string name="text_609305ee3a19bfd1" formatted="false">"Single Transaction Limit"</string>
     <string name="text_91d324af9d8bc5c7" formatted="false">"Skipped %lld cards of other types."</string>
+    <string name="text_45ddd4c575e4a07a" formatted="false">"Skipped Card Updates"</string>
     <string name="text_bbafee4ef0002238" formatted="false">"Snapper+ SFI Records"</string>
     <string name="text_cc232756ff1b4533" formatted="false">"Snapper+ on-card purse (NZD cents)"</string>
     <string name="text_93d0ab248b22191e" formatted="false">"Snapper+ records retain the original SFI 4 transaction and its optional SFI 3 companion. Station names are unavailable for these records."</string>

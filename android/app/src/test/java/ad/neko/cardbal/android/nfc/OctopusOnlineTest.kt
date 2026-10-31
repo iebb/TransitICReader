@@ -35,6 +35,21 @@ class OctopusOnlineTest {
         assertThrows(OctopusProtocolException::class.java) { vm.run(invalid) }
         val loop = OctopusOcap.Message(2, listOf(OctopusOcap.Instruction(1, 0, 0x12, listOf(0, 0, 0))), emptyMap())
         assertThrows(OctopusProtocolException::class.java) { vm.run(loop) }
+        val update = OctopusOcap.parse(frames[6]).single()
+        val readOnly = OctopusEnquiryVm(emptyMap(), System.nanoTime() + 10_000_000_000) { error("Card update reached the card") }
+        readOnly.run(update)
+        assertEquals(1, readOnly.skippedCardUpdates)
+        assertTrue(readOnly.cardOpcodes.isEmpty())
+        val consented = OctopusEnquiryVm(emptyMap(), System.nanoTime() + 10_000_000_000, allowsCardUpdates = true) {
+            byteArrayOf(2, (it[0] + 1).toByte())
+        }
+        consented.run(update)
+        assertEquals(0, consented.skippedCardUpdates)
+        assertEquals(setOf(0x16), consented.cardOpcodes)
+        val reader = OctopusEnquiryVm(emptyMap(), System.nanoTime() + 10_000_000_000) { byteArrayOf(2, (it[0] + 1).toByte()) }
+        reader.run(OctopusOcap.parse(frames[5]).single())
+        assertEquals(0, reader.skippedCardUpdates)
+        assertEquals(setOf(0x14), reader.cardOpcodes)
     }
 
     @Test fun onlyAuthenticatedCorroboratedResultsCalibrateBothOffsets() {
@@ -59,6 +74,9 @@ class OctopusOnlineTest {
         assertTrue(store.onlineEnabled)
         values[OctopusMetadataStore.ENABLED_KEY] = false
         assertFalse(store.onlineEnabled)
+        assertFalse(store.cardUpdatesAllowed)
+        values[OctopusMetadataStore.CARD_UPDATES_KEY] = true
+        assertTrue(store.cardUpdatesAllowed)
         val metadata = OctopusCardMetadata("123456789", 350, "R30")
         store.save("010203040506abcd", metadata)
         assertEquals(metadata, OctopusMetadataStore(preferences).metadata("010203040506ABCD"))
@@ -94,12 +112,23 @@ class OctopusOnlineTest {
         }
         try {
             val base = "http://127.0.0.1:${server.port}"
-            val (data, opcodes) = OctopusEnquiryClient("$base/success", allowLoopback = true).enquire { command ->
+            val readOnly = OctopusEnquiryClient("$base/success", allowLoopback = true)
+            val (data, opcodes) = readOnly.enquire { command ->
+                assertNotEquals(0x16, command[0].toInt())
                 byteArrayOf(3, (command[0] + 1).toByte(), 0)
             }
             assertEquals(fixture.getValue("result"), Json.parseToJsonElement(data.toString(Charsets.UTF_8)))
             assertEquals(frames.size, index.get())
-            assertEquals(setOf(0, 2, 0x10, 0x12, 0x14, 0x16), opcodes)
+            assertEquals(setOf(0, 2, 0x10, 0x12, 0x14), opcodes)
+            assertEquals(1, readOnly.skippedCardUpdates)
+            index.set(0)
+            val updating = OctopusEnquiryClient("$base/success", allowLoopback = true)
+            val (_, updateOpcodes) = updating.enquire(allowsCardUpdates = true) { command ->
+                byteArrayOf(3, (command[0] + 1).toByte(), 0)
+            }
+            assertEquals(frames.size, index.get())
+            assertEquals(setOf(0, 2, 0x10, 0x12, 0x14, 0x16), updateOpcodes)
+            assertEquals(0, updating.skippedCardUpdates)
             for (mode in listOf("error", "redirect", "bad-session", "slow")) {
                 assertThrows(java.io.IOException::class.java) {
                     OctopusEnquiryClient("$base/$mode", allowLoopback = true, timeoutMillis = 50).enquire { error("Failure contacted card") }

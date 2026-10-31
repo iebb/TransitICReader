@@ -4,6 +4,7 @@ enum OctopusOnlineDecoder {
     static func decode(card: any FeliCaCard, block: Data, pmm: Data, scannedAt: Date,
                        store: OctopusMetadataStore = .shared,
                        onlineEnabled: Bool = OctopusOnlinePreferences.isEnabled,
+                       allowsCardUpdates: Bool = OctopusOnlinePreferences.allowsCardUpdates,
                        client: OctopusEnquiryClient = OctopusEnquiryClient()) async -> TransitCardSnapshot {
         let idm = card.currentIDm
         let identity = idm.hexString.uppercased()
@@ -12,10 +13,13 @@ enum OctopusOnlineDecoder {
         var metadata = store.metadata(for: identity)
         var usedOnline = false
         var enquiryFailed = false
-        if metadata == nil && onlineEnabled {
+        var skippedCardUpdates = 0
+        // Without a configured endpoint the build offers no online enquiry at all.
+        if metadata == nil && onlineEnabled && client.isConfigured {
             defer { client.close() }
+            defer { skippedCardUpdates = client.skippedCardUpdates }
             do {
-                let (result, opcodes) = try await client.enquire { command in
+                let (result, opcodes) = try await client.enquire(allowsCardUpdates: allowsCardUpdates) { command in
                     try await exchange(command, card: card, idm: idm)
                 }
                 // Enquiry may update card metadata. Re-poll and read the public
@@ -37,7 +41,8 @@ enum OctopusOnlineDecoder {
         }
         let raw = currentBlock.bigEndianInt(start: 0, length: 4)
         let balance = metadata.map { formatCurrency(amount: Decimal(raw - $0.offset) / 10, code: "HKD", fractionDigits: 1) }
-        let detail = metadata == nil ? "An online enquiry is needed to determine this card's balance offset."
+        let detail: String? = metadata == nil
+            ? (client.isConfigured ? "An online enquiry is needed to determine this card's balance offset." : nil)
             : usedOnline ? "Online balance checked against the public purse."
             : "Balance decoded using this card's saved offset."
         var resultFields = [ResultField(title: "Card Number (IDm)", value: formatFeliCaIDm(identity))]
@@ -51,6 +56,9 @@ enum OctopusOnlineDecoder {
             rawFields += [RawDataField(title: "Candidate Balance (offset 350)", value: formatCurrency(amount: Decimal(raw - 350) / 10, code: "HKD", fractionDigits: 1)),
                           RawDataField(title: "Candidate Balance (offset 500)", value: formatCurrency(amount: Decimal(raw - 500) / 10, code: "HKD", fractionDigits: 1))]
             if enquiryFailed { rawFields.append(RawDataField(title: "Online Enquiry", value: "Unavailable")) }
+        }
+        if skippedCardUpdates > 0 {
+            rawFields.append(RawDataField(title: "Skipped Card Updates", value: String(skippedCardUpdates)))
         }
         var snapshot = TransitCardSnapshot(
             technology: "FeliCa", cardFamily: "Octopus", identifierLabel: "IDm",

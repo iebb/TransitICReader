@@ -16,8 +16,11 @@ internal class OctopusMetadataStore(private val preferences: SharedPreferences) 
     companion object {
         const val PREFERENCES = "octopus"
         const val ENABLED_KEY = "octopusOnlineEnabled"
+        const val CARD_UPDATES_KEY = "octopusCardUpdatesEnabled"
     }
     val onlineEnabled get() = preferences.getBoolean(ENABLED_KEY, true)
+    /** Card updates are writes the service asks the card to make. They stay off until the person opts in. */
+    val cardUpdatesAllowed get() = preferences.getBoolean(CARD_UPDATES_KEY, false)
     private fun key(idm: String): String? =
         idm.uppercase(Locale.ROOT).takeIf { it.matches(Regex("[0-9A-F]{16}")) }?.let { "metadata.v1.$it" }
     fun metadata(idm: String): OctopusCardMetadata? {
@@ -39,6 +42,9 @@ internal class OctopusMetadataStore(private val preferences: SharedPreferences) 
 }
 
 internal object OctopusOnlineDecoder {
+    /** Builds without an enquiry endpoint do not offer Octopus Online at all. */
+    val isAvailable get() = BuildConfig.OCTOPUS_ENQUIRY_BASE_URL.isNotBlank()
+
     fun decode(felica: FeliCaTransceiver, block: ByteArray, scannedAt: Instant, store: OctopusMetadataStore?): TransitCardSnapshot {
         val idm = felica.idm
         val identity = idm.hexString()
@@ -47,19 +53,22 @@ internal object OctopusOnlineDecoder {
         var metadata = store?.metadata(identity)
         var usedOnline = false
         var failed = false
-        if (metadata == null && store?.onlineEnabled == true && BuildConfig.OCTOPUS_ENQUIRY_BASE_URL.isNotBlank()) {
+        var skippedCardUpdates = 0
+        if (metadata == null && store?.onlineEnabled == true && isAvailable) {
+            val client = OctopusEnquiryClient(BuildConfig.OCTOPUS_ENQUIRY_BASE_URL)
             runCatching {
-                val (result, opcodes) = OctopusEnquiryClient(BuildConfig.OCTOPUS_ENQUIRY_BASE_URL).enquire(felica::exchangeOnline)
+                val (result, opcodes) = client.enquire(store.cardUpdatesAllowed, felica::exchangeOnline)
                 if (!felica.polling("8008") || !felica.idm.contentEquals(idm)) throw OctopusProtocolException()
                 currentBlock = felica.readWithoutEncryption("1701", 0) ?: throw OctopusProtocolException()
                 metadata = OctopusCardMetadata.calibrated(result, rawValue(currentBlock), opcodes)
                 metadata?.let { store.save(identity, it); usedOnline = true } ?: run { failed = true }
             }.onFailure { failed = true }
+            skippedCardUpdates = client.skippedCardUpdates
         }
         val raw = rawValue(currentBlock)
         val confirmed = metadata
         val balance = confirmed?.let { money(raw - it.offset) }
-        val detail = if (confirmed == null) "An online enquiry is needed to determine this card's balance offset."
+        val detail = if (confirmed == null) "An online enquiry is needed to determine this card's balance offset.".takeIf { isAvailable }
             else if (usedOnline) "Online balance checked against the public purse."
             else "Balance decoded using this card's saved offset."
         val fields = buildList {
@@ -79,6 +88,7 @@ internal object OctopusOnlineDecoder {
                 add(RawDataField("Candidate Balance (offset 500)", money(raw - 500)))
                 if (failed) add(RawDataField("Online Enquiry", "Unavailable"))
             }
+            if (skippedCardUpdates > 0) add(RawDataField("Skipped Card Updates", skippedCardUpdates.toString()))
         }
         val snapshot = TransitCardSnapshot(
             technology = "FeliCa", cardFamily = "Octopus", identifierLabel = "IDm",

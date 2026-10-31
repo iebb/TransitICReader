@@ -444,6 +444,7 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
     val context = LocalContext.current
     val octopusPreferences = remember(context) { context.getSharedPreferences("octopus", 0) }
     var octopusOnlineEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusOnlineEnabled", true)) }
+    var octopusCardUpdatesEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusCardUpdatesEnabled", false)) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -539,22 +540,43 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         }
         item {
             SettingsSection(title = "Privacy") {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("Octopus Online"), modifier = Modifier.weight(1f))
-                    Switch(
-                        checked = octopusOnlineEnabled,
-                        onCheckedChange = {
-                            octopusOnlineEnabled = it
-                            octopusPreferences.edit().putBoolean("octopusOnlineEnabled", it).apply()
-                        },
-                        modifier = Modifier.semantics { contentDescription = context.tr("Octopus Online") },
+                // Builds without an enquiry endpoint do not offer Octopus Online at all.
+                if (BuildConfig.OCTOPUS_ENQUIRY_BASE_URL.isNotBlank()) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(tr("Octopus Online"), modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = octopusOnlineEnabled,
+                            onCheckedChange = {
+                                octopusOnlineEnabled = it
+                                octopusPreferences.edit().putBoolean("octopusOnlineEnabled", it).apply()
+                            },
+                            modifier = Modifier.semantics { contentDescription = context.tr("Octopus Online") },
+                        )
+                    }
+                    Text(
+                        tr("Use online enquiry to save the card number and balance offset. Saved information remains available offline."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (octopusOnlineEnabled) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(tr("Allow Card Updates"), modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = octopusCardUpdatesEnabled,
+                                onCheckedChange = {
+                                    octopusCardUpdatesEnabled = it
+                                    octopusPreferences.edit().putBoolean("octopusCardUpdatesEnabled", it).apply()
+                                },
+                                modifier = Modifier.semantics { contentDescription = context.tr("Allow Card Updates") },
+                            )
+                        }
+                        Text(
+                            tr("Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-                Text(
-                    tr("Use online enquiry to save the card number and balance offset. Saved information remains available offline."),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Text(
                     tr("Scans are stored on this device."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

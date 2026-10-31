@@ -69,8 +69,9 @@ For Xcode Cloud, supply that secret in its workflow environment.
 The value is absent from tracked source but can be extracted from the built app.
 
 Without configuration, public Octopus reads and existing IDm calibrations still
-work. The Settings toggle controls whether new calibrations may contact the
-service. `python3 -m unittest tests.runtime.test_octopus_online -v` exercises the
+work, and Settings hides both Octopus switches. The Octopus Online toggle
+controls whether new calibrations may contact the service; Allow Card Updates
+(off by default) controls whether the service's card updates reach the card. `python3 -m unittest tests.runtime.test_octopus_online -v` exercises the
 production Swift OCAP/HTTP path against a local synthetic server; Android's
 `OctopusOnlineTest` exercises the same invented fixture and failure cases.
 

@@ -1053,3 +1053,9 @@
 "Candidate Balance (offset 350)" = "残高の候補（補正値 350）";
 
 "Candidate Balance (offset 500)" = "残高の候補（補正値 500）";
+
+"Allow Card Updates" = "カードの更新を許可";
+
+"Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "オクトパスのオンライン照会で、為替レートなどカードに保存された情報を変更できるようにします。CardBalでは変更内容を確認したり、元に戻したりできません。オフの場合、オクトパスのオンライン照会はカードの読み取りのみを行います。";
+
+"Skipped Card Updates" = "スキップしたカードの更新";

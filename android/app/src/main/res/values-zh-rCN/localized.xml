@@ -58,6 +58,7 @@
     <string name="text_a391701d6f175b92" formatted="false">"全部解析元数据"</string>
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"所有协议"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"当前视野内全部（%lld）"</string>
+    <string name="text_3a5cbd6608b16118" formatted="false">"允许更新卡片"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"已是最新"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金额"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"需要在线查询以确定此卡的余额偏移量。"</string>
@@ -407,6 +408,7 @@
     <string name="text_910b1e9cf4bb2df7" formatted="false">"头部字节"</string>
     <string name="text_093dab3ac5e09cea" formatted="false">"名称留空时将使用卡片原本的名称。"</string>
     <string name="text_adc95605a1b30c73" formatted="false">"长度"</string>
+    <string name="text_dd55c8ea97fbcd5f" formatted="false">"允许八达通在线查询更改卡内保存的信息，例如汇率。CardBal 无法查看或撤销这些更改。关闭时，八达通在线查询只读取卡片。"</string>
     <string name="text_624527a26b97667c" formatted="false">"基于 Creative Commons Attribution 4.0 International 许可。"</string>
     <string name="text_fed696954300d76e" formatted="false">"线路 %02X／车站 %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"线路"</string>
@@ -715,6 +717,7 @@
     <string name="text_aba8a10358f1dfad" formatted="false">"单次消费"</string>
     <string name="text_609305ee3a19bfd1" formatted="false">"单笔交易限额"</string>
     <string name="text_91d324af9d8bc5c7" formatted="false">"已跳过 %lld 张其他类型的卡片。"</string>
+    <string name="text_45ddd4c575e4a07a" formatted="false">"已跳过的卡片更新"</string>
     <string name="text_bbafee4ef0002238" formatted="false">"Snapper+ SFI 记录"</string>
     <string name="text_cc232756ff1b4533" formatted="false">"Snapper+ 卡内钱包（新西兰分）"</string>
     <string name="text_93d0ab248b22191e" formatted="false">"Snapper+ 记录保留原始 SFI 4 交易及可选的配套 SFI 3 记录。这些记录不提供车站名称。"</string>

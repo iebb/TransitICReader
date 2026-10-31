@@ -1051,3 +1051,9 @@
 "Candidate Balance (offset 350)" = "Candidate Balance (offset 350)";
 
 "Candidate Balance (offset 500)" = "Candidate Balance (offset 500)";
+
+"Allow Card Updates" = "Allow Card Updates";
+
+"Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card.";
+
+"Skipped Card Updates" = "Skipped Card Updates";

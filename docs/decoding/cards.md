@@ -173,12 +173,18 @@ particular card uses offset 350 or 500.
 When the IDm has no saved calibration and **Settings > Privacy > Octopus Online**
 is enabled, the reader performs an anonymous OCAP enquiry while the card remains
 present. OCAP uses HTTPS POSTs, a bounded instruction interpreter and a FeliCa
-relay. The service may issue authenticated reads and encrypted metadata writes;
-packets remain opaque to CardBal. The endpoint comes from
-`OCTOPUS_ENQUIRY_BASE_URL` in the build environment or an ignored local `.env`.
-GitHub store workflows use the repository secret of the same name. An absent
-endpoint disables network enquiry. The endpoint is included in the built app
-and is not a runtime credential.
+relay. The service may issue authenticated reads and encrypted metadata writes
+(for example exchange-rate updates); packets remain opaque to CardBal. Card
+updates are off by default: only polling and the read/authenticate commands
+`02`, `04`, `06`, `0A`, `0C`, `10`, `12` and `14` reach the card. Any other card
+command is skipped, the service receives an empty card reply, and Raw Data
+counts it as a skipped card update. **Settings > Privacy > Allow Card Updates**
+(shown below Octopus Online, off by default) relays every command. The endpoint
+comes from `OCTOPUS_ENQUIRY_BASE_URL` in the build environment or an ignored
+local `.env`. GitHub store workflows use the repository secret of the same name.
+An absent endpoint removes Octopus Online entirely: Settings shows neither
+switch and scans never attempt an enquiry. The endpoint is included in the
+built app and is not a runtime credential.
 
 Calibration requires a normal server farewell, completed authentication and an
 encrypted read, a card number, and an exact match between the returned balance

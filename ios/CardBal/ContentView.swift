@@ -1271,6 +1271,7 @@ struct SettingsView: View {
     @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = true
     @AppStorage(DeveloperModePreferences.enabledKey) private var developerModeEnabled = false
     @AppStorage(OctopusOnlinePreferences.enabledKey) private var octopusOnlineEnabled = true
+    @AppStorage(OctopusOnlinePreferences.cardUpdatesKey) private var octopusCardUpdatesEnabled = false
     @State private var backupDocument = CardBalBackupDocument()
     @State private var isExportingBackup = false
     @State private var isImportingBackup = false
@@ -1477,10 +1478,20 @@ struct SettingsView: View {
 
     private var privacySettings: some View {
         List {
-            Section {
-                Toggle("Octopus Online", isOn: $octopusOnlineEnabled)
-            } footer: {
-                Text("Use online enquiry to save the card number and balance offset. Saved information remains available offline.")
+            if OctopusOnlinePreferences.isAvailable {
+                Section {
+                    Toggle("Octopus Online", isOn: $octopusOnlineEnabled)
+                    if octopusOnlineEnabled {
+                        Toggle("Allow Card Updates", isOn: $octopusCardUpdatesEnabled)
+                    }
+                } footer: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Use online enquiry to save the card number and balance offset. Saved information remains available offline.")
+                        if octopusOnlineEnabled {
+                            Text("Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card.")
+                        }
+                    }
+                }
             }
             Section {
                 Picker("Serial Number Display", selection: $snDisplayMode) {

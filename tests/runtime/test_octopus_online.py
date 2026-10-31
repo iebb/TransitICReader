@@ -160,6 +160,18 @@ static func main() async throws {
     await rejects { _ = try await vm.run(invalid) }
     let loop = OctopusOCAP.Message(state: 2, instructions: [.init(type: 1, id: 0, opcode: 0x12, operands: [0, 0, 0])], records: [:])
     await rejects { _ = try await vm.run(loop) }
+    let fixtureFrames = fixture["frames"] as! [String]
+    let update = try OctopusOCAP.parse(Data(hexString: fixtureFrames[6]))[0]
+    let readOnly = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10)) { _ in fatalError("Card update reached the card") }
+    _ = try await readOnly.run(update)
+    precondition(readOnly.skippedCardUpdates == 1 && readOnly.cardOpcodes.isEmpty)
+    let consented = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10), allowsCardUpdates: true) { Data([2, $0[0] + 1]) }
+    _ = try await consented.run(update)
+    precondition(consented.skippedCardUpdates == 0 && consented.cardOpcodes == [0x16])
+    let read = try OctopusOCAP.parse(Data(hexString: fixtureFrames[5]))[0]
+    let reader = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10)) { Data([2, $0[0] + 1]) }
+    _ = try await reader.run(read)
+    precondition(reader.skippedCardUpdates == 0 && reader.cardOpcodes == [0x14])
     let result = try JSONSerialization.data(withJSONObject: fixture["result"]!)
     let opcodes: Set<UInt8> = [0x10, 0x12, 0x14]
     let confirmed = OctopusCardMetadata.calibrated(result: result, rawValue: 900, opcodes: opcodes)!
@@ -189,9 +201,22 @@ static func main() async throws {
     let card = InventedCard()
     let client = OctopusEnquiryClient(baseURL: URL(string: server + "/success"))
     let snapshot = await OctopusOnlineDecoder.decode(card: card, block: card.block, pmm: Data(), scannedAt: Date(),
-        store: store, onlineEnabled: true, client: client)
+        store: store, onlineEnabled: true, allowsCardUpdates: false, client: client)
     precondition(snapshot.realSerialNumber == "123456789" && snapshot.balanceText == "HKD 55")
-    precondition(snapshot.rawTransactions.isEmpty && card.operations.contains(0x16))
+    precondition(snapshot.rawTransactions.isEmpty && card.operations.contains(0x14) && !card.operations.contains(0x16))
+    precondition(snapshot.rawSections.flatMap(\.fields).contains { $0.title == "Skipped Card Updates" && $0.value == "1" })
+    let updating = InventedCard()
+    updating.currentIDm = Data(hexString: "B102030405060708")
+    let updated = await OctopusOnlineDecoder.decode(card: updating, block: updating.block, pmm: Data(), scannedAt: Date(),
+        store: store, onlineEnabled: true, allowsCardUpdates: true, client: OctopusEnquiryClient(baseURL: URL(string: server + "/success")))
+    precondition(updated.realSerialNumber == "123456789" && updating.operations.contains(0x16))
+    precondition(!updated.rawSections.flatMap(\.fields).contains { $0.title == "Skipped Card Updates" })
+    let unconfigured = InventedCard()
+    unconfigured.currentIDm = Data(hexString: "C102030405060708")
+    let noEndpoint = await OctopusOnlineDecoder.decode(card: unconfigured, block: unconfigured.block, pmm: Data(), scannedAt: Date(),
+        store: store, onlineEnabled: true, allowsCardUpdates: true, client: OctopusEnquiryClient(baseURL: nil))
+    precondition(noEndpoint.balanceText == nil && noEndpoint.balanceDetail == nil && unconfigured.operations.isEmpty)
+    precondition(!noEndpoint.rawSections.flatMap(\.fields).contains { $0.title == "Online Enquiry" })
     precondition(store.metadata(for: card.currentIDm.hexString)?.offset == 350)
     card.raw = 1000
     let offline = await OctopusOnlineDecoder.decode(card: card, block: card.block, pmm: Data(), scannedAt: Date(),
@@ -232,7 +257,8 @@ static func main() async throws {
                 self.assertEqual(0, run.returncode, run.stdout + run.stderr)
                 self.assertIn("PASS", run.stdout)
             self.assertEqual([], protocol_errors)
-            self.assertEqual(len(frames), sum("/success/service.htm" in path for path in requests))
+            # One read-only enquiry and one with card updates allowed.
+            self.assertEqual(2 * len(frames), sum("/success/service.htm" in path for path in requests))
             self.assertFalse(any("must-not" in path for path in requests))
         finally:
             server.shutdown()

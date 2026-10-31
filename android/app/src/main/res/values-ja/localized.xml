@@ -58,6 +58,7 @@
     <string name="text_a391701d6f175b92" formatted="false">"すべての解析メタデータ"</string>
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"すべてのプロトコル"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"表示範囲のすべて（%lld）"</string>
+    <string name="text_3a5cbd6608b16118" formatted="false">"カードの更新を許可"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"最新の状態です"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金額"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"このカードの残高の補正値を確認するにはオンライン照会が必要です。"</string>
@@ -407,6 +408,7 @@
     <string name="text_910b1e9cf4bb2df7" formatted="false">"先頭バイト"</string>
     <string name="text_093dab3ac5e09cea" formatted="false">"名前を空欄にすると、カード本来の名前を使います。"</string>
     <string name="text_adc95605a1b30c73" formatted="false">"長さ"</string>
+    <string name="text_dd55c8ea97fbcd5f" formatted="false">"オクトパスのオンライン照会で、為替レートなどカードに保存された情報を変更できるようにします。CardBalでは変更内容を確認したり、元に戻したりできません。オフの場合、オクトパスのオンライン照会はカードの読み取りのみを行います。"</string>
     <string name="text_624527a26b97667c" formatted="false">"Creative Commons Attribution 4.0 International ライセンスです。"</string>
     <string name="text_fed696954300d76e" formatted="false">"路線 %02X / 駅 %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"路線"</string>
@@ -715,6 +717,7 @@
     <string name="text_aba8a10358f1dfad" formatted="false">"単一利用"</string>
     <string name="text_609305ee3a19bfd1" formatted="false">"1 回の取引上限"</string>
     <string name="text_91d324af9d8bc5c7" formatted="false">"その他の種類のカード %lld 枚をスキップしました。"</string>
+    <string name="text_45ddd4c575e4a07a" formatted="false">"スキップしたカードの更新"</string>
     <string name="text_bbafee4ef0002238" formatted="false">"Snapper+ SFI 履歴"</string>
     <string name="text_cc232756ff1b4533" formatted="false">"Snapper+ のカード内残高（NZD セント）"</string>
     <string name="text_93d0ab248b22191e" formatted="false">"Snapper+ の履歴は元の SFI 4 取引と、存在する場合は対応する SFI 3 を保持します。これらの履歴では駅名を表示できません。"</string>

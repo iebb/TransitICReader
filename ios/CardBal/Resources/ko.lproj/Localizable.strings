@@ -1054,3 +1054,9 @@
 "Candidate Balance (offset 350)" = "예상 잔액 (보정값 350)";
 
 "Candidate Balance (offset 500)" = "예상 잔액 (보정값 500)";
+
+"Allow Card Updates" = "카드 업데이트 허용";
+
+"Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "옥토퍼스 온라인 조회가 환율 등 카드에 저장된 정보를 변경할 수 있도록 합니다. CardBal은 변경 내용을 확인하거나 되돌릴 수 없습니다. 끄면 옥토퍼스 온라인 조회는 카드를 읽기만 합니다.";
+
+"Skipped Card Updates" = "건너뛴 카드 업데이트";

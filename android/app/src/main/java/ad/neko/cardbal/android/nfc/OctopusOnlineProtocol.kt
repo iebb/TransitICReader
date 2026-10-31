@@ -94,10 +94,18 @@ internal object OctopusOcap {
 internal class OctopusEnquiryVm(
     private val inputs: Map<String, String>,
     private val deadlineNanos: Long,
+    private val allowsCardUpdates: Boolean = false,
     private val exchange: (ByteArray) -> ByteArray,
 ) {
+    companion object {
+        /** FeliCa commands that only read or authenticate. Polling (0x00) is checked separately by the relay.
+         *  Without consent, any other command is a possible card update and is skipped, not sent to the card. */
+        val READ_ONLY_CARD_OPCODES = setOf(0x02, 0x04, 0x06, 0x0A, 0x0C, 0x10, 0x12, 0x14)
+    }
     val serverData = mutableMapOf<Int, ByteArray>()
     val cardOpcodes = mutableSetOf<Int>()
+    var skippedCardUpdates = 0
+        private set
     private var cardCommands = 0
     fun run(message: OctopusOcap.Message): ByteArray {
         val registers = Array(16) { byteArrayOf() }
@@ -149,12 +157,19 @@ internal class OctopusEnquiryVm(
                 if (command.isNotEmpty() && (command[0].toInt() and 255) == command.size) command = command.copyOfRange(1, command.size)
                 if (command.isEmpty() || command.size > 253 || cardCommands >= 256) throw OctopusProtocolException()
                 val opcode = command[0].toInt() and 255
-                val result = exchange(command)
-                if (result.size !in 2..255 || (result[0].toInt() and 255) != result.size ||
-                    (result[1].toInt() and 255) != (opcode + 1) % 256) throw OctopusProtocolException()
-                cardOpcodes += opcode
-                cardCommands++
-                result
+                if (!allowsCardUpdates && opcode != 0 && opcode !in READ_ONLY_CARD_OPCODES) {
+                    // Skip the update: the card never sees it and the service gets no card reply.
+                    skippedCardUpdates++
+                    cardCommands++
+                    byteArrayOf()
+                } else {
+                    val result = exchange(command)
+                    if (result.size !in 2..255 || (result[0].toInt() and 255) != result.size ||
+                        (result[1].toInt() and 255) != (opcode + 1) % 256) throw OctopusProtocolException()
+                    cardOpcodes += opcode
+                    cardCommands++
+                    result
+                }
             }
             2 -> {
                 val command = OctopusOcap.Cursor(commandData)
@@ -221,6 +236,9 @@ internal class OctopusEnquiryClient(
 ) {
     private val deviceId = UUID.randomUUID().toString()
     private var deadlineNanos = 0L
+    /** Card updates skipped during the last enquiry, kept even when it fails. */
+    var skippedCardUpdates = 0
+        private set
     private fun post(path: String, body: ByteArray = byteArrayOf()): ByteArray {
         val remaining = (deadlineNanos - System.nanoTime()) / 1_000_000
         if (remaining <= 0) throw OctopusProtocolException()
@@ -250,7 +268,7 @@ internal class OctopusEnquiryClient(
             }
         } finally { connection.disconnect() }
     }
-    fun enquire(exchange: (ByteArray) -> ByteArray): Pair<ByteArray, Set<Int>> {
+    fun enquire(allowsCardUpdates: Boolean = false, exchange: (ByteArray) -> ByteArray): Pair<ByteArray, Set<Int>> {
         val uri = URI(baseUrl)
         if (uri.host.isNullOrEmpty() || uri.rawUserInfo != null || uri.rawQuery != null || uri.rawFragment != null ||
             !(uri.scheme == "https" || allowLoopback && uri.scheme == "http" && uri.host in setOf("127.0.0.1", "localhost", "[::1]"))) throw OctopusProtocolException()
@@ -264,21 +282,23 @@ internal class OctopusEnquiryClient(
         // on both transports; it is independent of the CardBal app version.
         val config = "APP_TYPE=0&APP_HASH=AZdOKmzuRKj0x3GPHqlXHgY93q6u9HQUkKC6q%2BlNVGU4&APP=9.40.0&PLATFORM=IOS&phone_id=" +
             deviceId.replace("-", "") + "&LANG=EN_US&TXNTIME_DATEFORMAT=yyyyMMddHHmmss"
-        val vm = OctopusEnquiryVm(mapOf("oma_config" to config, "cardid_list_v2" to ""), deadlineNanos, exchange)
-        var body = post(path, OctopusOcap.deviceInfo())
-        repeat(32) {
-            var outbound = byteArrayOf()
-            val messages = OctopusOcap.parse(body)
-            for ((index, message) in messages.withIndex()) {
-                if (message.state == 3) {
-                    if (index != messages.lastIndex) throw OctopusProtocolException()
-                    return (vm.serverData[1] ?: throw OctopusProtocolException()) to vm.cardOpcodes.toSet()
+        val vm = OctopusEnquiryVm(mapOf("oma_config" to config, "cardid_list_v2" to ""), deadlineNanos, allowsCardUpdates, exchange)
+        try {
+            var body = post(path, OctopusOcap.deviceInfo())
+            repeat(32) {
+                var outbound = byteArrayOf()
+                val messages = OctopusOcap.parse(body)
+                for ((index, message) in messages.withIndex()) {
+                    if (message.state == 3) {
+                        if (index != messages.lastIndex) throw OctopusProtocolException()
+                        return (vm.serverData[1] ?: throw OctopusProtocolException()) to vm.cardOpcodes.toSet()
+                    }
+                    if (message.state != 2) throw OctopusProtocolException()
+                    outbound += OctopusOcap.reply(vm.run(message))
                 }
-                if (message.state != 2) throw OctopusProtocolException()
-                outbound += OctopusOcap.reply(vm.run(message))
+                body = post(path, outbound)
             }
-            body = post(path, outbound)
-        }
-        throw OctopusProtocolException()
+            throw OctopusProtocolException()
+        } finally { skippedCardUpdates = vm.skippedCardUpdates }
     }
 }

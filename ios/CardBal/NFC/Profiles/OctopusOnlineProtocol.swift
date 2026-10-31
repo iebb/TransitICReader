@@ -6,7 +6,12 @@ enum OctopusProtocolError: Error {
 
 enum OctopusOnlinePreferences {
     static let enabledKey = "octopusOnlineEnabled"
+    static let cardUpdatesKey = "octopusCardUpdatesEnabled"
     static var isEnabled: Bool { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
+    /// Card updates are writes the service asks the card to make. They stay off until the person opts in.
+    static var allowsCardUpdates: Bool { UserDefaults.standard.bool(forKey: cardUpdatesKey) }
+    /// Builds without an enquiry endpoint do not offer Octopus Online at all.
+    static let isAvailable = OctopusEnquiryClient.configuredURL != nil
 }
 
 /// OCAP has different incoming and outgoing length/checksum conventions.
@@ -101,15 +106,21 @@ enum OctopusOCAP {
 }
 
 final class OctopusEnquiryVM {
+    /// FeliCa commands that only read or authenticate. Polling (0x00) is checked separately by the relay.
+    /// Without consent, any other command is a possible card update and is skipped, not sent to the card.
+    static let readOnlyCardOpcodes: Set<UInt8> = [0x02, 0x04, 0x06, 0x0A, 0x0C, 0x10, 0x12, 0x14]
     let inputs: [String: String]
     let exchange: (Data) async throws -> Data
     let deadline: Date
+    let allowsCardUpdates: Bool
     private(set) var serverData: [Int: Data] = [:]
     private(set) var cardOpcodes: Set<UInt8> = []
+    private(set) var skippedCardUpdates = 0
     private var cardCommands = 0
 
-    init(inputs: [String: String], deadline: Date, exchange: @escaping (Data) async throws -> Data) {
-        self.inputs = inputs; self.deadline = deadline; self.exchange = exchange
+    init(inputs: [String: String], deadline: Date, allowsCardUpdates: Bool = false,
+         exchange: @escaping (Data) async throws -> Data) {
+        self.inputs = inputs; self.deadline = deadline; self.allowsCardUpdates = allowsCardUpdates; self.exchange = exchange
     }
     func run(_ message: OctopusOCAP.Message) async throws -> Data {
         var registers = Array(repeating: Data(), count: 16)
@@ -174,11 +185,18 @@ final class OctopusEnquiryVM {
                 guard let opcode = command.first, command.count <= 253, cardCommands < 256 else {
                     throw OctopusProtocolError.invalidData
                 }
-                response = try await exchange(command)
-                guard response.count >= 2, response.count <= 255, Int(response[0]) == response.count,
-                      response[1] == opcode &+ 1 else { throw OctopusProtocolError.invalidResponse }
-                cardOpcodes.insert(opcode)
-                cardCommands += 1
+                if !allowsCardUpdates && opcode != 0 && !Self.readOnlyCardOpcodes.contains(opcode) {
+                    // Skip the update: the card never sees it and the service gets no card reply.
+                    response = Data()
+                    skippedCardUpdates += 1
+                    cardCommands += 1
+                } else {
+                    response = try await exchange(command)
+                    guard response.count >= 2, response.count <= 255, Int(response[0]) == response.count,
+                          response[1] == opcode &+ 1 else { throw OctopusProtocolError.invalidResponse }
+                    cardOpcodes.insert(opcode)
+                    cardCommands += 1
+                }
             }
         } else if device == 2 {
             var command = OctopusOCAP.Cursor(commandData)
@@ -288,6 +306,9 @@ final class OctopusEnquiryClient: NSObject, URLSessionTaskDelegate {
     }
     private let baseURL: URL?
     private let deadline: Date
+    /// Card updates skipped during the last enquiry, kept even when it fails.
+    private(set) var skippedCardUpdates = 0
+    var isConfigured: Bool { baseURL != nil }
     private let deviceID = UUID().uuidString
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -321,7 +342,8 @@ final class OctopusEnquiryClient: NSObject, URLSessionTaskDelegate {
         }
         return result
     }
-    func enquire(exchange: @escaping (Data) async throws -> Data) async throws -> (Data, Set<UInt8>) {
+    func enquire(allowsCardUpdates: Bool = false,
+                 exchange: @escaping (Data) async throws -> Data) async throws -> (Data, Set<UInt8>) {
         let greeting = try await post("/index.htm")
         guard let text = String(data: greeting, encoding: .utf8),
               let marker = text.range(of: "JSESSIONID=", options: .caseInsensitive) else { throw OctopusProtocolError.invalidResponse }
@@ -332,7 +354,9 @@ final class OctopusEnquiryClient: NSObject, URLSessionTaskDelegate {
         let path = "/service.htm;jsessionid=" + identifier
         let config = "APP_TYPE=0&APP_HASH=AZdOKmzuRKj0x3GPHqlXHgY93q6u9HQUkKC6q%2BlNVGU4&APP=9.40.0&PLATFORM=IOS&phone_id="
             + deviceID.replacingOccurrences(of: "-", with: "") + "&LANG=EN_US&TXNTIME_DATEFORMAT=yyyyMMddHHmmss"
-        let vm = OctopusEnquiryVM(inputs: ["oma_config": config, "cardid_list_v2": ""], deadline: deadline, exchange: exchange)
+        let vm = OctopusEnquiryVM(inputs: ["oma_config": config, "cardid_list_v2": ""], deadline: deadline,
+                                  allowsCardUpdates: allowsCardUpdates, exchange: exchange)
+        defer { skippedCardUpdates = vm.skippedCardUpdates }
         var body = try await post(path, body: OctopusOCAP.deviceInfo())
         for _ in 0..<32 {
             var outbound = Data()
