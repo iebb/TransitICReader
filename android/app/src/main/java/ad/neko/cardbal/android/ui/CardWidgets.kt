@@ -2,6 +2,7 @@ package ad.neko.cardbal.android.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Train
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -36,9 +38,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import ad.neko.cardbal.android.data.DualCurrencyBalance
 import ad.neko.cardbal.android.data.SavedCardRecord
 
 enum class WalletCardMode { Hero, Compact }
@@ -63,6 +71,8 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
     val balanceColor = card.balanceTextColorOverride?.toColor()
         ?: card.autoBalanceTextColor?.toColor()
         ?: Color.White
+    // Set only for an Octopus – China T-Union card whose yuan balance was read with its HKD balance.
+    val yuanBalance = remember(card.applications) { DualCurrencyBalance.from(card.applications)?.yuanBalance }
     val cardModifier = when (mode) {
         WalletCardMode.Hero -> modifier.fillMaxWidth().aspectRatio(27f / 17f)
         WalletCardMode.Compact -> modifier.fillMaxWidth().height(154.dp)
@@ -147,7 +157,28 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                             }
                         }
 
-                        if (card.visibleBalance.isNotBlank()) {
+                        if (card.visibleBalance.isNotBlank() && yuanBalance != null) {
+                            // An Octopus – China T-Union card's second balance, under the HKD one.
+                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    tr(card.visibleBalance),
+                                    color = balanceColor,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    yuanBalance,
+                                    color = titleColor.copy(alpha = 0.9f),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp),
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.semantics { contentDescription = context.tr("CNY Balance") + ", " + yuanBalance },
+                                )
+                            }
+                        } else if (card.visibleBalance.isNotBlank()) {
                             Text(
                                 tr(card.visibleBalance),
                                 color = balanceColor,
@@ -162,6 +193,62 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                 }
             }
         }
+    }
+}
+
+/** The balance rows of an Octopus – China T-Union card with a reported exchange rate: both
+ *  currencies and the rate. Every other card keeps its existing rows. */
+@Composable
+fun DualBalanceRows(balance: String, dual: DualCurrencyBalance) {
+    val context = LocalContext.current
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    BalanceValueRow(tr("HKD Balance"), tr(balance))
+    val yuan = dual.yuanBalance
+    if (yuan != null) {
+        BalanceValueRow(tr("CNY Balance"), yuan)
+    } else {
+        // The yuan side was not read with this HKD balance.
+        Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(tr("CNY Balance"), color = secondary)
+            Text(tr("Unavailable"), color = secondary, modifier = Modifier.padding(start = 16.dp))
+        }
+    }
+    BalanceValueRow(
+        tr("Exchange Rate"), dual.rateText,
+        Modifier.clearAndSetSemantics {
+            contentDescription = context.tr("Exchange rate: 1 Hong Kong dollar equals ${dual.exchangeRate.rate} Chinese yuan.")
+        },
+    )
+    val expired = dual.exchangeRate.isExpired()
+    // Once the rate has expired the hour no longer matters, so the row keeps to one line.
+    val date = dual.exchangeRate.expiryText(includeTime = !expired) ?: return
+    if (expired) {
+        val warning = if (isSystemInDarkTheme()) Color(0xFFFF9F0A) else Color(0xFFFF9500)
+        Row(
+            Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(tr("Rate Valid Until"), color = secondary)
+            Row(
+                Modifier.padding(start = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Filled.Warning, contentDescription = null, tint = warning, modifier = Modifier.size(14.dp))
+                Text(tr("Expired $date"), color = warning, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
+            }
+        }
+    } else {
+        BalanceValueRow(tr("Rate Valid Until"), date)
+    }
+}
+
+@Composable
+private fun BalanceValueRow(title: String, value: String, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.padding(start = 16.dp))
     }
 }
 

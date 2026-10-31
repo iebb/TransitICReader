@@ -4,7 +4,7 @@ import android.nfc.tech.NfcF
 import ad.neko.cardbal.android.util.hexString
 
 class FeliCaTransceiver(private val nfc: NfcF) : AutoCloseable {
-    private val protocol = FeliCaProtocol(nfc.tag.id) { nfc.transceive(it) }
+    internal val protocol = FeliCaProtocol(nfc.tag.id) { nfc.transceive(it) }
     val idm: ByteArray get() = protocol.idm
     val idmHex: String get() = idm.hexString()
 

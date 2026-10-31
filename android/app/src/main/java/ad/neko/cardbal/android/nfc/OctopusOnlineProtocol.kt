@@ -1,6 +1,18 @@
 package ad.neko.cardbal.android.nfc
 
+import ad.neko.cardbal.android.data.FlexibleInstantSerializer
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.ByteArrayOutputStream
@@ -9,6 +21,7 @@ import java.math.BigDecimal
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
+import java.util.Locale
 import java.util.UUID
 
 internal class OctopusProtocolException : IOException("Invalid or incomplete Octopus enquiry")
@@ -241,7 +254,65 @@ internal class OctopusEnquiryVm(
     }
 }
 
-internal data class OctopusCardMetadata(val cardNumber: String, val offset: Int, val serviceStatus: String) {
+/** The rate an Octopus – China T-Union card converts mainland fares with: yuan per Hong Kong
+ *  dollar (`motRate`), kept exactly as the Octopus service returned it, and when it stops
+ *  being valid (`motExpiryDate`, Hong Kong time). */
+@Serializable
+data class OctopusExchangeRate(
+    val rate: String,
+    @Serializable(with = FlexibleInstantSerializer::class) val validUntil: Instant? = null,
+) {
+    fun isExpired(now: Instant = Clock.System.now()): Boolean = validUntil?.let { it <= now } ?: false
+
+    /** The expiry in Hong Kong time, as Octopus states it: to the minute while the rate is valid,
+     *  the date alone once it has expired. The date follows the app's yyyy-MM-dd format. */
+    fun expiryText(includeTime: Boolean): String? = validUntil?.toLocalDateTime(ISSUER_TIME_ZONE)?.let { local ->
+        val date = "%04d-%02d-%02d".format(Locale.ROOT, local.year, local.monthNumber, local.dayOfMonth)
+        if (includeTime) date + " %02d:%02d".format(Locale.ROOT, local.hour, local.minute) else date
+    }
+
+    companion object {
+        val ISSUER_TIME_ZONE = TimeZone.of("Asia/Hong_Kong")
+        private val RATE = Regex("[0-9]{1,2}(\\.[0-9]{1,8})?")
+
+        fun isValidRate(text: String): Boolean = RATE.matches(text) && (text.toBigDecimalOrNull()?.signum() ?: 0) > 0
+
+        /** Reads the rate from an Octopus enquiry result. Null when the card has no mainland rate. */
+        fun parse(result: ByteArray): OctopusExchangeRate? = runCatching {
+            val card = Json.parseToJsonElement(result.toString(Charsets.UTF_8)).jsonObject["cardDataVO"] as? JsonObject ?: return null
+            val value = card["motRate"] as? JsonPrimitive ?: return null
+            val text = when {
+                value.isString -> value.content.trim()
+                // JSON null and booleans are not rates.
+                value is JsonNull || value.booleanOrNull != null -> return null
+                else -> value.content.toBigDecimalOrNull()?.stripTrailingZeros()?.toPlainString() ?: return null
+            }
+            if (!isValidRate(text)) return null
+            val expiry = (card["motExpiryDate"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.let(::parseExpiry)
+            OctopusExchangeRate(text, expiry)
+        }.getOrNull()
+
+        /** `yyyyMMddHHmm` (or with seconds, or the date alone) in Hong Kong time. */
+        fun parseExpiry(text: String): Instant? {
+            if (text.length !in setOf(8, 12, 14) || text.any { it !in '0'..'9' }) return null
+            fun part(start: Int) = if (text.length >= start + 2) text.substring(start, start + 2).toInt() else 0
+            // An impossible date or time is rejected rather than rolled over.
+            return runCatching {
+                LocalDateTime(text.substring(0, 4).toInt(), part(4), part(6), part(8), part(10), part(12)).toInstant(ISSUER_TIME_ZONE)
+            }.getOrNull()
+        }
+    }
+}
+
+internal data class OctopusCardMetadata(
+    val cardNumber: String,
+    val offset: Int,
+    val serviceStatus: String,
+    /** Set for Octopus – China T-Union cards, from the last enquiry that returned one. */
+    val exchangeRate: OctopusExchangeRate? = null,
+    /** False for details saved before the app read rates; such a card is enquired once more. */
+    val rateChecked: Boolean = false,
+) {
     val isValid get() = cardNumber.matches(Regex("[0-9]{8,12}")) && cardNumber.any { it != '0' } && offset in setOf(350, 500)
     companion object {
         fun calibrated(result: ByteArray, rawValue: Long, opcodes: Set<Int>): OctopusCardMetadata? = runCatching {
@@ -254,7 +325,8 @@ internal data class OctopusCardMetadata(val cardNumber: String, val offset: Int,
             if (short != null && short != number) return null
             val offset = BigDecimal.valueOf(rawValue).subtract(balance.multiply(BigDecimal.TEN)).intValueExact()
             val status = card.getValue("status").jsonPrimitive.content
-            OctopusCardMetadata(number, offset, status).takeIf { it.isValid && status.isNotBlank() }
+            OctopusCardMetadata(number, offset, status, OctopusExchangeRate.parse(result), rateChecked = true)
+                .takeIf { it.isValid && status.isNotBlank() }
         }.getOrNull()
     }
 }

@@ -1,5 +1,6 @@
 package ad.neko.cardbal.android.data
 
+import ad.neko.cardbal.android.nfc.OctopusExchangeRate
 import ad.neko.cardbal.android.nfc.SnapperPlusProtocol
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -159,6 +160,8 @@ data class TransitCardSnapshot(
     val rawTransitHistory: List<String> = emptyList(),
     val applications: List<TransitApplication>? = null,
     val scannedAt: Instant = Clock.System.now(),
+    /** An Octopus – China T-Union card's conversion rate, as the Octopus service reported it. */
+    val exchangeRate: OctopusExchangeRate? = null,
 ) {
     val storageIdentifier: String get() {
         if (cardFamily == "Clipper" && selectedAID == "9011F2" && rawIdentifierValue.isNotEmpty()) {

@@ -30,14 +30,23 @@ internal class OctopusMetadataStore(private val preferences: SharedPreferences) 
                 preferences.getString("$key.number", null) ?: return null,
                 preferences.getInt("$key.offset", 0),
                 preferences.getString("$key.status", "") ?: "",
+                exchangeRate = preferences.getString("$key.rate", null)?.takeIf(OctopusExchangeRate::isValidRate)?.let { rate ->
+                    val validUntil = preferences.getString("$key.rateValidUntil", null)?.takeIf { it.isNotEmpty() }
+                    OctopusExchangeRate(rate, validUntil?.let { runCatching { Instant.parse(it) }.getOrNull() })
+                },
+                rateChecked = preferences.getBoolean("$key.rateChecked", false),
             ).takeIf { it.isValid }
         }.getOrNull()
     }
     fun save(idm: String, metadata: OctopusCardMetadata) {
         val key = key(idm) ?: return
         if (!metadata.isValid) return
+        // An empty rate clears one saved by an earlier enquiry.
         preferences.edit().putString("$key.number", metadata.cardNumber)
-            .putInt("$key.offset", metadata.offset).putString("$key.status", metadata.serviceStatus).apply()
+            .putInt("$key.offset", metadata.offset).putString("$key.status", metadata.serviceStatus)
+            .putString("$key.rate", metadata.exchangeRate?.rate ?: "")
+            .putString("$key.rateValidUntil", metadata.exchangeRate?.validUntil?.toString() ?: "")
+            .putBoolean("$key.rateChecked", metadata.rateChecked).apply()
     }
 }
 
@@ -45,17 +54,27 @@ internal object OctopusOnlineDecoder {
     /** Builds without an enquiry endpoint do not offer Octopus Online at all. */
     val isAvailable get() = BuildConfig.OCTOPUS_ENQUIRY_BASE_URL.isNotBlank()
 
-    fun decode(felica: FeliCaTransceiver, block: ByteArray, scannedAt: Instant, store: OctopusMetadataStore?): TransitCardSnapshot {
+    fun decode(felica: FeliCaTransceiver, block: ByteArray, scannedAt: Instant, store: OctopusMetadataStore?): TransitCardSnapshot =
+        decode(felica.protocol, block, scannedAt, store, if (isAvailable) OctopusEnquiryClient(BuildConfig.OCTOPUS_ENQUIRY_BASE_URL) else null)
+
+    /** [client] is null in builds without an enquiry endpoint. */
+    internal fun decode(
+        felica: FeliCaProtocol, block: ByteArray, scannedAt: Instant, store: OctopusMetadataStore?, client: OctopusEnquiryClient?,
+    ): TransitCardSnapshot {
         val idm = felica.idm
         val identity = idm.hexString()
         val systems = felica.requestSystemCodes().ifEmpty { listOf("8008") }
         var currentBlock = block
-        var metadata = store?.metadata(identity)
+        val saved = store?.metadata(identity)
+        var metadata = saved
         var usedOnline = false
         var failed = false
         var skippedCardUpdates = 0
-        if (metadata == null && store?.onlineEnabled == true && isAvailable) {
-            val client = OctopusEnquiryClient(BuildConfig.OCTOPUS_ENQUIRY_BASE_URL)
+        // A top-up changes the exchange rate of an Octopus – China T-Union card, so such a card
+        // asks again on every scan and keeps its saved details when that fails. Details saved
+        // before the app read rates are checked once more to find out whether the card has one.
+        val refreshesRate = saved != null && (saved.exchangeRate != null || !saved.rateChecked)
+        if ((saved == null || refreshesRate) && store?.onlineEnabled == true && client != null) {
             runCatching {
                 val (result, opcodes) = client.enquire(store.cardUpdatesAllowed, felica::exchangeOnline)
                 // Only a card update can change the purse; after reads alone the purse read before the enquiry still holds.
@@ -63,8 +82,14 @@ internal object OctopusOnlineDecoder {
                     if (!felica.polling("8008") || !felica.idm.contentEquals(idm)) throw OctopusProtocolException()
                     currentBlock = felica.readWithoutEncryption("1701", 0) ?: throw OctopusProtocolException()
                 }
-                metadata = OctopusCardMetadata.calibrated(result, rawValue(currentBlock), opcodes)
-                metadata?.let { store.save(identity, it); usedOnline = true } ?: run { failed = true }
+                val calibrated = OctopusCardMetadata.calibrated(result, rawValue(currentBlock), opcodes)
+                if (calibrated != null) {
+                    store.save(identity, calibrated)
+                    metadata = calibrated
+                    usedOnline = true
+                } else {
+                    failed = true
+                }
             }.onFailure { failed = true }
             skippedCardUpdates = client.skippedCardUpdates
         }
@@ -104,6 +129,7 @@ internal object OctopusOnlineDecoder {
                 RawDataSection("Decoded Balance", diagnostics),
             ),
             rawTransactions = emptyList(), rawTransitHistory = emptyList(), scannedAt = scannedAt,
+            exchangeRate = confirmed?.exchangeRate,
         )
         return snapshot.copy(applications = listOf(TransitApplication.from(snapshot)))
     }

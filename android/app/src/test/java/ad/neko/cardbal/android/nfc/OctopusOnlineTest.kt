@@ -3,6 +3,7 @@ package ad.neko.cardbal.android.nfc
 import android.content.SharedPreferences
 import ad.neko.cardbal.android.util.hexString
 import ad.neko.cardbal.android.util.hexToBytes
+import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -269,6 +270,150 @@ class OctopusOnlineTest {
             thread.join(2000)
             failure?.let { throw AssertionError("HTTP stand-in failed", it) }
         }
+    }
+
+    @Test fun exchangeRateIsReadAsReturnedWithItsHongKongExpiry() {
+        val dual = """{"cardDataVO":{"balance":55.0,"status":"R30","motRate":"0.839","motExpiryDate":"202710311800","hasNewMotRate":false}}"""
+        val rate = OctopusExchangeRate.parse(dual.toByteArray())!!
+        assertEquals("0.839", rate.rate)
+        // 18:00 in Hong Kong (UTC+8, no daylight saving).
+        assertEquals(Instant.parse("2027-10-31T10:00:00Z"), rate.validUntil)
+        assertFalse(rate.isExpired(Instant.parse("2027-10-31T09:59:59Z")))
+        assertTrue(rate.isExpired(Instant.parse("2027-10-31T10:00:00Z")))
+        assertTrue(rate.isExpired(Instant.parse("2027-10-31T16:00:00Z")))
+        assertEquals("2027-10-31 18:00", rate.expiryText(includeTime = true))
+        assertEquals("2027-10-31", rate.expiryText(includeTime = false))
+        // The expiry date is the Hong Kong one, not the UTC one.
+        assertEquals("2027-11-01 01:30", OctopusExchangeRate("0.839", Instant.parse("2027-10-31T17:30:00Z")).expiryText(includeTime = true))
+        val open = OctopusExchangeRate.parse("""{"cardDataVO":{"motRate":0.84}}""".toByteArray())!!
+        assertEquals(OctopusExchangeRate("0.84", null), open)
+        assertFalse(open.isExpired())
+        assertNull(open.expiryText(includeTime = true))
+        assertEquals("0.839", OctopusExchangeRate.parse("""{"cardDataVO":{"motRate":0.8390}}""".toByteArray())!!.rate)
+        assertEquals("0.839", OctopusExchangeRate.parse("""{"cardDataVO":{"motRate":" 0.839 "}}""".toByteArray())!!.rate)
+        assertEquals("12.5", OctopusExchangeRate.parse("""{"cardDataVO":{"motRate":"12.5","motExpiryDate":20271031}}""".toByteArray())!!.rate)
+        for (missing in listOf(
+            """{"cardDataVO":{"balance":2.2,"status":"R30"}}""", """{"cardDataVO":{"motRate":""}}""",
+            """{"cardDataVO":{"motRate":"0"}}""", """{"cardDataVO":{"motRate":0}}""", """{"cardDataVO":{"motRate":true}}""",
+            """{"cardDataVO":{"motRate":null}}""", """{"cardDataVO":{"motRate":"1e9"}}""", """{"cardDataVO":{"motRate":"-0.8"}}""",
+            """{"cardDataVO":{"motRate":"123.4"}}""", """{"cardDataVO":{"motRate":"0.123456789"}}""",
+            """{"cardDataVO":{"motRate":{"value":"0.839"}}}""", """{"motRate":"0.839"}""", "not json",
+        )) assertNull(missing, OctopusExchangeRate.parse(missing.toByteArray()))
+        // yyyyMMddHHmm is the documented form; the date alone and a seconds suffix are also Hong Kong time.
+        assertEquals(Instant.parse("2027-10-30T16:00:00Z"), OctopusExchangeRate.parseExpiry("20271031"))
+        assertEquals(Instant.parse("2027-10-31T10:00:59Z"), OctopusExchangeRate.parseExpiry("20271031180059"))
+        for (invalid in listOf("", "2027103118", "2027-10-31", "202702301200", "202710312460", "202713011200", "２０２７１０３１")) {
+            assertNull(invalid, OctopusExchangeRate.parseExpiry(invalid))
+        }
+        // An unreadable expiry keeps the rate without inventing a date.
+        assertEquals(OctopusExchangeRate("0.839", null),
+            OctopusExchangeRate.parse("""{"cardDataVO":{"motRate":"0.839","motExpiryDate":"tomorrow"}}""".toByteArray()))
+    }
+
+    @Test fun calibrationCarriesTheRateAndStoreKeepsIt() {
+        val ops = setOf(0x10, 0x12, 0x14)
+        val dual = """{"cardDataVO":{"balance":55.0,"octopusNo":"123456789","status":"R30","motRate":"0.839","motExpiryDate":"202710311800"}}"""
+        val calibrated = OctopusCardMetadata.calibrated(dual.toByteArray(), 900, ops)!!
+        assertEquals(OctopusExchangeRate("0.839", Instant.parse("2027-10-31T10:00:00Z")), calibrated.exchangeRate)
+        assertTrue(calibrated.rateChecked)
+        val plain = OctopusCardMetadata.calibrated(result, 900, ops)!!
+        assertNull(plain.exchangeRate)
+        assertTrue(plain.rateChecked)
+        val values = mutableMapOf<String, Any>()
+        val store = OctopusMetadataStore(preferences(values))
+        store.save("0102030405060708", calibrated)
+        assertEquals(calibrated, OctopusMetadataStore(preferences(values)).metadata("0102030405060708"))
+        // A later enquiry without a rate clears the saved one.
+        store.save("0102030405060708", plain)
+        assertEquals(plain, store.metadata("0102030405060708"))
+        // Details saved before the app read rates have neither key and are marked unchecked.
+        val legacy = mapOf<String, Any>("metadata.v1.0102030405060709.number" to "123456789",
+            "metadata.v1.0102030405060709.offset" to 350, "metadata.v1.0102030405060709.status" to "R30")
+        assertEquals(OctopusCardMetadata("123456789", 350, "R30"), OctopusMetadataStore(preferences(legacy.toMutableMap())).metadata("0102030405060709"))
+        // A corrupt saved rate is dropped and the calibration kept.
+        values["metadata.v1.0102030405060708.rate"] = "abc"
+        assertEquals(plain, store.metadata("0102030405060708"))
+    }
+
+    @Test fun rateCardsEnquireOnEveryScanAndKeepSavedDetailsWhenThatFails() {
+        val hits = java.util.concurrent.ConcurrentHashMap<String, Int>()
+        val index = AtomicInteger()
+        val server = LocalServer { path, _, _ ->
+            val mode = path.split('/')[1]
+            hits.merge(mode, 1, Int::plus)
+            when {
+                mode != "success" -> Reply(503)
+                path.endsWith("/index.htm") -> Reply(200, "JSESSIONID=invented-session".toByteArray())
+                else -> Reply(200, frames[index.getAndIncrement()])
+            }
+        }
+        try {
+            val base = "http://127.0.0.1:${server.port}"
+            val values = mutableMapOf<String, Any>()
+            val store = OctopusMetadataStore(preferences(values))
+            val savedRate = OctopusExchangeRate("0.839", OctopusExchangeRate.parseExpiry("202710311800"))
+            val rateIdm = "E102030405060708"
+            store.save(rateIdm, OctopusCardMetadata("123456789", 350, "R30", savedRate, rateChecked = true))
+            val failed = decode(rateIdm, store, OctopusEnquiryClient("$base/error", allowLoopback = true))
+            assertEquals(1, hits["error"])
+            assertTrue(failed.balanceText!!.contains("55"))
+            assertEquals(savedRate, failed.exchangeRate)
+            assertEquals(savedRate, failed.applications!!.single().exchangeRate)
+            assertEquals("123456789", failed.realSerialNumber)
+            assertEquals("Balance decoded using this card's saved offset.", failed.balanceDetail)
+            assertFalse(failed.rawSections.flatMap { it.fields }.any { it.title == "Online Enquiry" })
+            assertEquals(savedRate, store.metadata(rateIdm)!!.exchangeRate)
+            // Octopus Online turned off: the saved rate is shown and nothing is contacted.
+            values[OctopusMetadataStore.ENABLED_KEY] = false
+            assertEquals(savedRate, decode(rateIdm, store, OctopusEnquiryClient("$base/off", allowLoopback = true)).exchangeRate)
+            assertNull(hits["off"])
+            values.remove(OctopusMetadataStore.ENABLED_KEY)
+            // A successful enquiry that no longer reports a rate replaces the saved one.
+            val refreshed = decode(rateIdm, store, OctopusEnquiryClient("$base/success", allowLoopback = true))
+            assertEquals(frames.size, index.get())
+            assertNull(refreshed.exchangeRate)
+            assertEquals("Online balance checked against the public purse.", refreshed.balanceDetail)
+            assertEquals(OctopusCardMetadata("123456789", 350, "R30", null, rateChecked = true), store.metadata(rateIdm))
+            // ... and that card, now known to have no rate, stops asking.
+            decode(rateIdm, store, OctopusEnquiryClient("$base/must-not-contact", allowLoopback = true))
+            assertNull(hits["must-not-contact"])
+            // Details saved before rates were read are checked once more.
+            val olderIdm = "F102030405060708"
+            store.save(olderIdm, OctopusCardMetadata("123456789", 350, "R30"))
+            index.set(0)
+            val rechecked = decode(olderIdm, store, OctopusEnquiryClient("$base/success", allowLoopback = true))
+            assertEquals(frames.size, index.get())
+            assertNull(rechecked.exchangeRate)
+            assertTrue(rechecked.balanceText!!.contains("55"))
+            assertTrue(store.metadata(olderIdm)!!.rateChecked)
+            decode(olderIdm, store, OctopusEnquiryClient("$base/must-not-contact", allowLoopback = true))
+            assertNull(hits["must-not-contact"])
+            // A failed recheck of older details keeps them, still unchecked, for the next scan.
+            val unchecked = "A102030405060708"
+            store.save(unchecked, OctopusCardMetadata("123456789", 350, "R30"))
+            val kept = decode(unchecked, store, OctopusEnquiryClient("$base/error", allowLoopback = true))
+            assertEquals(2, hits["error"])
+            assertTrue(kept.balanceText!!.contains("55"))
+            assertFalse(store.metadata(unchecked)!!.rateChecked)
+        } finally { server.close() }
+    }
+
+    /** Decodes an invented Octopus card whose purse holds raw 900 (HK$55.0 at offset 350). */
+    private fun decode(idmHex: String, store: OctopusMetadataStore, client: OctopusEnquiryClient): ad.neko.cardbal.android.data.TransitCardSnapshot {
+        val idm = idmHex.hexToBytes()
+        val block = byteArrayOf(0, 0, 3, 0x84.toByte()) + ByteArray(12)
+        val protocol = FeliCaProtocol(idm) { request ->
+            when {
+                // Polling, from the reader or relayed by the enquiry.
+                request.size == 6 && request[1] == 0.toByte() -> byteArrayOf(20, 1) + idm + ByteArray(8) + byteArrayOf(0x80.toByte(), 8)
+                request[1] == 0x0C.toByte() -> byteArrayOf(13, 0x0D) + idm + byteArrayOf(1, 0x80.toByte(), 8)
+                request.size == 16 && request[1] == 0x06.toByte() -> byteArrayOf(29, 7) + idm + byteArrayOf(0, 0, 1) + block
+                request[1] == 0x16.toByte() -> error("Card update reached the card")
+                else -> byteArrayOf(3, (request[1] + 1).toByte(), 0)
+            }
+        }
+        assertTrue(protocol.polling("8008"))
+        return OctopusOnlineDecoder.decode(protocol, block, Instant.parse("2026-10-31T12:00:00Z"), store, client)
     }
 
     @Test

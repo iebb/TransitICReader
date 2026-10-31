@@ -34,6 +34,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Nfc
@@ -69,14 +71,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import ad.neko.cardbal.android.data.CardWalletRepository
+import ad.neko.cardbal.android.data.DualCurrencyBalance
+import ad.neko.cardbal.android.data.KoreanTripCrowdsourcingPreferences
+import ad.neko.cardbal.android.data.KoreanTripCrowdsourcingUploader
 import ad.neko.cardbal.android.data.RemoteCardFaces
 import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.TransactionDecoder
@@ -86,6 +93,7 @@ import ad.neko.cardbal.android.ui.tr
 import ad.neko.cardbal.android.ui.cardTitle
 import ad.neko.cardbal.android.ui.CardBalTheme
 import ad.neko.cardbal.android.ui.CardDetailScreen
+import ad.neko.cardbal.android.ui.DualBalanceRows
 import ad.neko.cardbal.android.ui.MapViewportBounds
 import ad.neko.cardbal.android.ui.RideMapSurface
 import ad.neko.cardbal.android.ui.WalletCard
@@ -150,7 +158,11 @@ private fun CardBalApp(
     val selectedCard = selectedCardId?.let { id -> cards.firstOrNull { it.id == id } }
 
     LaunchedEffect(latestSnapshot?.storageIdentifier, latestSnapshot?.scannedAt) {
-        latestSnapshot?.let(repository::upsert)
+        latestSnapshot?.let { snapshot ->
+            repository.upsert(snapshot)
+            // Eligible Korean scans share their trip records in the background unless turned off.
+            KoreanTripCrowdsourcingUploader.get(activity).launch(snapshot)
+        }
     }
     LaunchedEffect(Unit) {
         RemoteCardFaces.get(activity).refreshIfNeeded()
@@ -445,6 +457,13 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
     val octopusPreferences = remember(context) { context.getSharedPreferences("octopus", 0) }
     var octopusOnlineEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusOnlineEnabled", true)) }
     var octopusCardUpdatesEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusCardUpdatesEnabled", false)) }
+    val koreanTripPreferences = remember(context) {
+        context.getSharedPreferences(KoreanTripCrowdsourcingPreferences.PREFERENCES, 0)
+    }
+    var koreanTripCrowdsourcingEnabled by remember {
+        mutableStateOf(koreanTripPreferences.getBoolean(KoreanTripCrowdsourcingPreferences.ENABLED_KEY, true))
+    }
+    var showsKoreanTripDetails by rememberSaveable { mutableStateOf(false) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -582,6 +601,44 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Help Improve Korean Cards"), modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = koreanTripCrowdsourcingEnabled,
+                        onCheckedChange = {
+                            koreanTripCrowdsourcingEnabled = it
+                            koreanTripPreferences.edit().putBoolean(KoreanTripCrowdsourcingPreferences.ENABLED_KEY, it).apply()
+                        },
+                        modifier = Modifier.semantics { contentDescription = context.tr("Help Improve Korean Cards") },
+                    )
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button) { showsKoreanTripDetails = !showsKoreanTripDetails }
+                        .heightIn(min = 48.dp)
+                        .semantics { stateDescription = context.tr(if (showsKoreanTripDetails) "Expanded" else "Collapsed") },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(tr("What is shared?"), modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        if (showsKoreanTripDetails) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (showsKoreanTripDetails) {
+                    Text(
+                        tr("When enabled, eligible T-money and EZL/Cashbee scans upload technical trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    tr("Optional. Share Korean card records to help improve decoding."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         item {
@@ -710,6 +767,9 @@ private fun CardDetails(card: SavedCardRecord, modifier: Modifier = Modifier) {
         DetailRow(card.identifierLabel, card.identifierValue)
         card.systemCode?.let { DetailRow("System Code", it) }
         card.selectedAID?.let { DetailRow("Selected AID", it) }
+        // An Octopus – China T-Union card with a reported rate shows both balances and the rate.
+        val dual = remember(card.applications) { DualCurrencyBalance.from(card.applications) }
+        if (dual != null && card.visibleBalance.isNotEmpty()) DualBalanceRows(card.visibleBalance, dual)
         card.balanceDetail?.let { DetailRow("Decoder", it) }
     }
 }

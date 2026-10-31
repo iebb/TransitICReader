@@ -82,6 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import ad.neko.cardbal.android.data.DualCurrencyBalance
 import ad.neko.cardbal.android.data.RawRecordExplanation
 import ad.neko.cardbal.android.data.RemoteCardFaces
 import ad.neko.cardbal.android.data.SavedCardRecord
@@ -145,6 +146,7 @@ fun CardDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     var selectedRecord by remember { mutableStateOf<TransitTransaction?>(null) }
+    val dualBalance = remember(card.applications) { DualCurrencyBalance.from(card.applications) }
     Column(modifier) {
         TopAppBar(
             title = { Text(cardTitle(card), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -160,6 +162,14 @@ fun CardDetailScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
         ) {
             item { WalletCard(card) }
+            // An Octopus – China T-Union card with a reported rate shows both balances and the rate.
+            if (dualBalance != null && card.visibleBalance.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DualBalanceRows(card.visibleBalance, dualBalance)
+                    }
+                }
+            }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AssistChip(onClick = {}, label = { Text(tr("${transactions.size} records")) })

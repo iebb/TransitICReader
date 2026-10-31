@@ -197,6 +197,7 @@
     <string name="text_1e3b47d868841ea8" formatted="false">"Code Correction"</string>
     <string name="text_e4a57491b5de6250" formatted="false">"Code Shown by CardBal (Optional)"</string>
     <string name="text_095b1c34e3aff322" formatted="false">"Code Shown by CardBal (Required)"</string>
+    <string name="text_b322b65227bc3ec9" formatted="false">"Collapsed"</string>
     <string name="text_6b73191a0a4b6742" formatted="false">"Color"</string>
     <string name="text_88c45d9e526c08dd" formatted="false">"Colors"</string>
     <string name="text_713166971d730f81" formatted="false">"Command"</string>
@@ -290,6 +291,7 @@
     <string name="text_d17d84a604994b72" formatted="false">"Exit"</string>
     <string name="text_60e19de8fff7c821" formatted="false">"Exit Code"</string>
     <string name="text_c9cd7d47bfc5960c" formatted="false">"Exit Station"</string>
+    <string name="text_e72d5d8d0b167d21" formatted="false">"Expanded"</string>
     <string name="text_c5273ea9d44e5812" formatted="false">"Expired %@"</string>
     <string name="text_f6725f3af08a06a2" formatted="false">"Expires"</string>
     <string name="text_d600e62a6861fced" formatted="false">"Expiry Date"</string>
