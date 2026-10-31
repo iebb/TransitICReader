@@ -47,6 +47,7 @@ DISTRIBUTED_STATES = {"READY_FOR_DISTRIBUTION", "READY_FOR_SALE", "REPLACED_WITH
 REVIEW_FIELDS = ("contactFirstName", "contactLastName", "contactPhone", "contactEmail")
 KEY_TYPES = {"team", "individual"}
 TOKEN_LIFETIME = 600
+ERROR_LIMIT, ERROR_DEPTH, ERROR_TEXT_LIMIT = 20, 4, 300
 
 
 class ReleaseError(RuntimeError):
@@ -63,6 +64,45 @@ class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         # Never forward the bearer token to a redirect destination.
         return None
+
+
+def safe_text(value, limit: int = ERROR_TEXT_LIMIT) -> str:
+    # Apple's text is untrusted: drop control characters so it cannot forge log lines.
+    text = " ".join("".join(char if char.isprintable() else " " for char in str(value)).split())
+    return text if len(text) <= limit else text[:limit - 3] + "..."
+
+
+def error_details(errors) -> str:
+    """Render codes, details, and sources, including nested meta.associatedErrors,
+    without echoing Apple's raw body, IDs, or headers."""
+    rendered, total = [], 0
+
+    def visit(items, depth: int, prefix: str) -> None:
+        nonlocal total
+        for item in items if isinstance(items, list) else []:
+            if not isinstance(item, dict):
+                continue
+            total += 1
+            if len(rendered) < ERROR_LIMIT:
+                source = item.get("source") if isinstance(item.get("source"), dict) else {}
+                location = source.get("pointer") or source.get("parameter")
+                rendered.append(prefix + f"{safe_text(item.get('code', ''))}: {safe_text(item.get('detail') or item.get('title', ''))}"
+                                + (f" [{safe_text(location)}]" if location else ""))
+            meta = item.get("meta")
+            associated = meta.get("associatedErrors") if isinstance(meta, dict) else None
+            if depth >= ERROR_DEPTH:
+                continue
+            # Apple keys associated errors by resource path; accept a bare list too.
+            if isinstance(associated, dict):
+                for resource, nested in associated.items():
+                    visit(nested, depth + 1, f"associated {safe_text(str(resource).removeprefix(API_ROOT), 200)}: ")
+            else:
+                visit(associated, depth + 1, "associated: ")
+
+    visit(errors, 0, "")
+    if total > len(rendered):
+        rendered.append(f"{total - len(rendered)} more Apple errors omitted")
+    return "; ".join(rendered) or "Apple returned no error details"
 
 
 class AppStoreAPI:
@@ -129,13 +169,8 @@ class AppStoreAPI:
                     time.sleep(min(float(delay), 10) if delay.isdigit() else 2)
                     continue
                 try:
-                    errors = json.loads(error.read()).get("errors", [])
-                    details = "; ".join(
-                        f"{item.get('code', '')}: {item.get('detail') or item.get('title', '')}"
-                        + (f" [{item['source']['pointer']}]" if item.get("source", {}).get("pointer") else "")
-                        for item in errors
-                    )
-                except (ValueError, AttributeError, TypeError):
+                    details = error_details(json.loads(error.read()).get("errors", []))
+                except (ValueError, AttributeError, TypeError, RecursionError):
                     details = "Apple did not return a JSON error."
                 finally:
                     error.close()

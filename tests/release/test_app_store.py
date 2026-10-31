@@ -591,6 +591,75 @@ class APIAndCLITests(unittest.TestCase):
                 api.request("PATCH", "/v1/reviewSubmissions/one", data={})
         request.assert_called_once()
 
+    def apple_error(self, body, path="/v1/reviewSubmissionItems"):
+        api = release.AppStoreAPI(allow_writes=True)
+        payload = body if isinstance(body, bytes) else json.dumps(body).encode()
+        error = HTTPError(release.API_ROOT + path, 409, "Conflict", {"x-request-id": "HEADER-SECRET"}, BytesIO(payload))
+        with patch.object(api, "token", return_value="synthetic-token"), patch.object(api.opener, "open", side_effect=error) as request:
+            with self.assertRaises(release.APIError) as raised:
+                api.request("POST", path, data={})
+        request.assert_called_once()
+        self.assertEqual(raised.exception.status, 409)
+        return str(raised.exception)
+
+    def test_http_error_renders_nested_associated_errors_without_raw_body(self):
+        message = self.apple_error({"errors": [{
+            "id": "BODY-REQUEST-ID", "status": "409", "code": "STATE_ERROR.ENTITY_STATE_INVALID", "title": "Invalid state",
+            "detail": "appStoreVersions 'draft' cannot be reviewed, please check associated errors to see why.",
+            "meta": {"associatedErrors": {
+                "/v1/appStoreVersions/draft": [{
+                    "id": "NESTED-ID", "status": "409", "code": "ENTITY_ERROR.ATTRIBUTE.REQUIRED", "title": "Required",
+                    "detail": "You must provide a value for the attribute 'whatsNew'.", "source": {"pointer": "/data/attributes/whatsNew"},
+                    "meta": {"associatedErrors": {release.API_ROOT + "/v1/appScreenshotSets/ipad": [{
+                        "code": "ENTITY_ERROR.RELATIONSHIP.REQUIRED", "title": "iPad screenshots are required.",
+                        "source": {"parameter": "screenshotDisplayType"},
+                    }]}},
+                }],
+            }},
+        }, {"code": "STATE_ERROR", "detail": "Bare-list association.", "meta": {"associatedErrors": [
+            {"code": "ENTITY_ERROR.ATTRIBUTE.INVALID", "detail": "Copyright is invalid.", "source": {"pointer": "/data/attributes/copyright"}},
+        ]}}]})
+        for expected in [
+            "POST /v1/reviewSubmissionItems failed (409)",
+            "STATE_ERROR.ENTITY_STATE_INVALID: appStoreVersions 'draft' cannot be reviewed",
+            "associated /v1/appStoreVersions/draft: ENTITY_ERROR.ATTRIBUTE.REQUIRED: You must provide a value for the attribute 'whatsNew'. [/data/attributes/whatsNew]",
+            "associated /v1/appScreenshotSets/ipad: ENTITY_ERROR.RELATIONSHIP.REQUIRED: iPad screenshots are required. [screenshotDisplayType]",
+            "associated: ENTITY_ERROR.ATTRIBUTE.INVALID: Copyright is invalid. [/data/attributes/copyright]",
+        ]:
+            self.assertIn(expected, message)
+        for leaked in ["BODY-REQUEST-ID", "NESTED-ID", "HEADER-SECRET", "synthetic-token", '"errors"', "associatedErrors", release.API_ROOT]:
+            self.assertNotIn(leaked, message)
+
+    def test_http_error_rendering_is_bounded_and_strips_control_characters(self):
+        with self.subTest("control characters and long text"):
+            message = self.apple_error({"errors": [{"code": "ENTITY_ERROR", "detail": "Bad\n::error::forged\r\x1b[31m" + "x" * 5000}]})
+            self.assertIn("ENTITY_ERROR: Bad ::error::forged [31m", message)
+            self.assertFalse(any(not char.isprintable() for char in message))
+            self.assertLess(len(message), 600)
+        with self.subTest("count limit"):
+            many = [{"code": f"E{index}", "detail": "missing"} for index in range(30)]
+            message = self.apple_error({"errors": [{"code": "TOP", "detail": "check", "meta": {"associatedErrors": {"/v1/apps/123": many}}}]})
+            self.assertIn("E18: missing", message)
+            self.assertNotIn("E19: missing", message)
+            self.assertIn("11 more Apple errors omitted", message)
+        with self.subTest("depth limit"):
+            nested = {"code": "DEPTH-9", "detail": "deep"}
+            for depth in range(8, -1, -1):
+                nested = {"code": f"DEPTH-{depth}", "detail": "deep", "meta": {"associatedErrors": {f"/v1/level/{depth + 1}": [nested]}}}
+            message = self.apple_error({"errors": [nested]})
+            self.assertIn("associated /v1/level/4: DEPTH-4: deep", message)
+            self.assertNotIn("DEPTH-5", message)
+
+    def test_http_error_malformed_shapes_degrade_without_crashing(self):
+        message = self.apple_error({"errors": ["junk", {"code": "TOP", "detail": "check", "source": "not-an-object",
+            "meta": {"associatedErrors": {"/v1/a": "not-a-list", "/v1/b": [None, {"code": "NESTED", "detail": "usable"}]}}}]})
+        self.assertIn("TOP: check; associated /v1/b: NESTED: usable", message)
+        self.assertNotIn("/v1/a", message)
+        self.assertIn("Apple returned no error details", self.apple_error({"errors": []}))
+        non_json = self.apple_error(b"<html>HEADER-SECRET</html>")
+        self.assertIn("Apple did not return a JSON error", non_json)
+        self.assertNotIn("HEADER-SECRET", non_json)
+
     def test_cli_selection_is_get_only_and_missing_requirements_exit_two(self):
         api = FakeAPI()
         api.review = None
