@@ -8,6 +8,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Like iOS GoogleService-Info.plist: Firebase Analytics is configured only when the
+// ignored google-services.json is present (CI restores it from a secret).
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.isFile) {
@@ -136,6 +142,10 @@ dependencies {
     implementation("org.maplibre.gl:android-sdk:12.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    // 34.10.0 is the newest BoM whose Analytics (23.0.0) Kotlin 2.0.21 can compile against;
+    // Analytics 23.2.0+ ships Kotlin 2.2+ metadata. Raise it together with the Kotlin plugin.
+    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
+    implementation("com.google.firebase:firebase-analytics")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 

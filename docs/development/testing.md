@@ -59,6 +59,14 @@ Without it, the app builds with analytics unconfigured. The GitHub Actions
 TestFlight workflow can provide `FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64`;
 the root `ci_scripts/ci_post_clone.sh` decodes it. Do not commit that generated file.
 
+Android works the same way with an ignored `android/app/google-services.json`
+from the Firebase Android app registered for `ad.neko.cardbal.android`. The
+Google Services Gradle plugin is applied only when that file exists. Without it,
+Firebase stays unconfigured and analytics is disabled. The Google Play internal
+workflow writes the file from `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` (the base64
+of the file) and skips this step when the secret is empty. Neither app has an
+analytics setting or custom events. Android does not collect the advertising ID.
+
 ## Local state
 
 Set `OCTOPUS_ENQUIRY_BASE_URL` in the build environment, or copy `.env.example`

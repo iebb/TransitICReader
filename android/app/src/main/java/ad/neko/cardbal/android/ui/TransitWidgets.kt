@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +69,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,6 +89,7 @@ import ad.neko.cardbal.android.data.RawRecordExplanation
 import ad.neko.cardbal.android.data.RemoteCardFaces
 import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.StationPoint
+import ad.neko.cardbal.android.data.StationReports
 import ad.neko.cardbal.android.data.StationRoute
 import ad.neko.cardbal.android.data.TransactionCategory
 import ad.neko.cardbal.android.data.TransitTransaction
@@ -147,6 +150,14 @@ fun CardDetailScreen(
 ) {
     var selectedRecord by remember { mutableStateOf<TransitTransaction?>(null) }
     val dualBalance = remember(card.applications) { DualCurrencyBalance.from(card.applications) }
+    val listState = rememberLazyListState()
+    var showStationReport by rememberSaveable { mutableStateOf(false) }
+    var reportStationCode by rememberSaveable { mutableStateOf<String?>(null) }
+    if (showStationReport) {
+        // The record sheet stays selected, so closing the report returns to it like iOS navigation.
+        StationReportScreen(card = card, stationCode = reportStationCode, onClose = { showStationReport = false }, modifier = modifier)
+        return
+    }
     Column(modifier) {
         TopAppBar(
             title = { Text(cardTitle(card), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -158,6 +169,7 @@ fun CardDetailScreen(
         )
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
+            state = listState,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
         ) {
@@ -207,6 +219,13 @@ fun CardDetailScreen(
                     DetailTextRow(field.title, field.value)
                 }
             }
+            item {
+                Text(tr("Station Data"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                StationReportLink(onClick = {
+                    reportStationCode = null
+                    showStationReport = true
+                })
+            }
         }
     }
     selectedRecord?.let { tx ->
@@ -214,6 +233,10 @@ fun CardDetailScreen(
             tx = tx,
             explanation = rawExplanationFor(tx),
             onDismiss = { selectedRecord = null },
+            onReportStation = {
+                reportStationCode = StationReports.prefilledStationCode(tx)
+                showStationReport = true
+            },
         )
     }
 }
@@ -627,6 +650,7 @@ private fun RecordRawBottomSheet(
     tx: TransitTransaction,
     explanation: RawRecordExplanation?,
     onDismiss: () -> Unit,
+    onReportStation: () -> Unit,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -642,6 +666,14 @@ private fun RecordRawBottomSheet(
                 tx.location?.let {
                     Text(tr(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            item {
+                StationReportLink(onClick = onReportStation)
+                Text(
+                    tr("Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             item {
                 HighlightedHexView(raw = tx.rawData.orEmpty(), explanation = explanation)
@@ -843,7 +875,7 @@ private fun zoomLabel(zoomLevel: Int): String = when (zoomLevel) {
     else -> "Local"
 }
 
-private const val OSM_RASTER_STYLE = """
+internal const val OSM_RASTER_STYLE = """
 {
   "version": 8,
   "sources": {

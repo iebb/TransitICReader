@@ -1,6 +1,6 @@
 # CardBal station requests
 
-CardBal submits missing-station reports and station-code corrections from the iOS app. The public site at <https://cardbal.ieb.app/> lists submitted station details and approximate location pins. It has no submission form and does not fetch reports from a public read API.
+CardBal submits missing-station reports and station-code corrections from the iOS and Android apps. The public site at <https://cardbal.ieb.app/> lists submitted station details and approximate location pins. It has no submission form and does not fetch reports from a public read API.
 
 ## API
 
@@ -20,4 +20,4 @@ Use Node.js and run `npm ci`, `npm run build`, `npm run typecheck`, and `npm tes
 
 Use `CLOUDFLARE_ACCOUNT_ID=58c982b69079141dd49d99076dd845b1 npm run deploy:backend` for the Kitta Worker, and `CLOUDFLARE_ACCOUNT_ID=599ee1cd6c4d3dc453d290c4c0477e76 npm run deploy:edge` for the public hostname Worker. Apply D1 migrations with `wrangler d1 migrations apply cardbal-station-reports -c wrangler.backend.jsonc --remote` under the Kitta account before deploying schema changes. Configure the same `PROXY_TOKEN` as a Cloudflare secret on both Workers. Do not put it in a `wrangler` config file or commit local `.dev.vars` files.
 
-The iOS submission UI is [`../../ios/CardBal/Views/StationReportView.swift`](../../ios/CardBal/Views/StationReportView.swift). A card's saved ID is SHA-256 hashed on device before upload; a per-install UUID is used for the device field. No trip history or raw card ID is sent. Only an explicitly chosen map pin or user-requested current location is uploaded.
+The submission UIs are [`../../ios/CardBal/Views/StationReportView.swift`](../../ios/CardBal/Views/StationReportView.swift) on iOS and [`../../android/app/src/main/java/ad/neko/cardbal/android/ui/StationReportScreen.kt`](../../android/app/src/main/java/ad/neko/cardbal/android/ui/StationReportScreen.kt) on Android, which sends `source: "android"`. A card's saved ID is SHA-256 hashed on device before upload; a per-install UUID is used for the device field. No trip history or raw card ID is sent. Only an explicitly chosen map pin or user-requested current location is uploaded.
