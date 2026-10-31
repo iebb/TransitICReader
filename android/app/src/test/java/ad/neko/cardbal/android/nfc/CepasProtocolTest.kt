@@ -50,18 +50,20 @@ class CepasProtocolTest {
         assertNull(CepasProtocol.encodeHistory(ByteArray(16) { -1 }))
     }
 
-    @Test fun onlyImplicitReadCommandsUseActualPageOffsets() {
+    @Test fun selectsFileBeforeReadingPurseAndUsesActualPageOffsets() {
         val commands = mutableListOf<String>()
+        var selected = false
         val card = CepasProtocol.read { command ->
             commands.add(command.hex())
-            when (commands.size) {
-                1 -> ok(purse())
-                2 -> ok(record() + record(0x31, -125))
-                3 -> ok(record(0x75, 1000))
+            when (command.hex()) {
+                "00A40000024000" -> { selected = true; ok(byteArrayOf()) }
+                "9032030000" -> if (selected) ok(purse()) else byteArrayOf(0x6A, 0x82.toByte())
+                "90320300010030" -> ok(record() + record(0x31, -125))
+                "90320300010210" -> ok(record(0x75, 1000))
                 else -> error("unexpected")
             }
         }!!
-        assertEquals(listOf("9032030000", "90320300010000", "90320300010200"), commands)
+        assertEquals(listOf("00A40000024000", "9032030000", "90320300010030", "90320300010210"), commands)
         assertEquals(3, card.rawHistory.size)
         assertTrue(card.historyComplete)
         assertEquals("Asia/Singapore", CepasProtocol.ISSUER_TIME_ZONE)
@@ -71,27 +73,34 @@ class CepasProtocolTest {
         val commands = mutableListOf<ByteArray>()
         val corrected = CepasProtocol.read { command ->
             commands.add(command)
-            if (commands.size == 1) byteArrayOf(0x6C, 63) else ok(purse(history = 0))
+            when (commands.size) {
+                1 -> ok(byteArrayOf())
+                2 -> byteArrayOf(0x6C, 63)
+                else -> ok(purse(history = 0))
+            }
         }
         assertNotNull(corrected)
-        assertEquals(63, commands[1].last().toInt())
+        assertEquals(63, commands[2].last().toInt())
         commands.clear()
         val chained = CepasProtocol.read { command ->
             commands.add(command)
-            if (commands.size == 1) purse(history = 0).copyOfRange(0, 20) + byteArrayOf(0x61, 43)
-            else ok(purse(history = 0).copyOfRange(20, 63))
+            when (commands.size) {
+                1 -> ok(byteArrayOf())
+                2 -> purse(history = 0).copyOfRange(0, 20) + byteArrayOf(0x61, 43)
+                else -> ok(purse(history = 0).copyOfRange(20, 63))
+            }
         }
         assertNotNull(chained)
-        assertEquals("00C000002B", commands[1].hex())
+        assertEquals("00C000002B", commands[2].hex())
         for (bad in listOf(byteArrayOf(), byteArrayOf(0x90.toByte()), byteArrayOf(0x91.toByte(), 0),
             byteArrayOf(0x90.toByte(), 1), purse() + byteArrayOf(0x69, 0x82.toByte()))) {
             var calls = 0
-            assertNull(CepasProtocol.read { calls++; bad })
-            assertEquals(1, calls)
+            assertNull(CepasProtocol.read { if (++calls == 1) ok(byteArrayOf()) else bad })
+            assertEquals(2, calls)
         }
         var calls = 0
-        assertNull(CepasProtocol.read { calls++; byteArrayOf(0x6C, 63) })
-        assertEquals(2, calls)
+        assertNull(CepasProtocol.read { if (++calls == 1) ok(byteArrayOf()) else byteArrayOf(0x6C, 63) })
+        assertEquals(3, calls)
         calls = 0
         assertNull(CepasProtocol.read { calls++; byteArrayOf(0x61, 1) })
         assertEquals(16, calls)
@@ -100,14 +109,56 @@ class CepasProtocolTest {
     @Test fun optionalUnavailableOrMalformedHistoryPreservesValidatedBalance() {
         for (bad in listOf(byteArrayOf(0x69, 0x82.toByte()), ok(ByteArray(17)))) {
             var count = 0
-            val card = CepasProtocol.read { if (++count == 1) ok(purse()) else bad }!!
+            val card = CepasProtocol.read {
+                when (++count) {
+                    1 -> ok(byteArrayOf())
+                    2 -> ok(purse())
+                    else -> bad
+                }
+            }!!
             assertEquals(-100L, card.balanceMinor)
             assertFalse(card.historyComplete)
             assertTrue(card.rawHistory.isEmpty())
         }
         var calls = 0
-        val empty = CepasProtocol.read { calls++; ok(purse(history = 0)) }!!
+        val empty = CepasProtocol.read { if (++calls == 1) ok(byteArrayOf()) else ok(purse(history = 0)) }!!
         assertTrue(empty.historyComplete)
-        assertEquals(1, calls)
+        assertEquals(2, calls)
+    }
+
+    @Test fun selectionRejectionDoesNotReadPurseOrRewriteFileIDAsLe() {
+        for (status in listOf(byteArrayOf(0x6A, 0x82.toByte()), byteArrayOf(0x6C, 63))) {
+            val commands = mutableListOf<String>()
+            assertNull(CepasProtocol.read { command -> commands.add(command.hex()); status })
+            assertEquals(listOf("00A40000024000"), commands)
+        }
+    }
+
+    @Test fun historyIsPagedWithinFifteenRecordsAndOversizedResponsesAreRejected() {
+        val commands = mutableListOf<String>()
+        val card = CepasProtocol.read { command ->
+            commands.add(command.hex())
+            when (commands.size) {
+                1 -> ok(byteArrayOf())
+                2 -> ok(purse(history = 17))
+                3 -> ok((0 until 15).fold(byteArrayOf()) { bytes, _ -> bytes + record() })
+                4 -> ok(record() + record())
+                else -> error("unexpected")
+            }
+        }!!
+        assertTrue(card.historyComplete)
+        assertEquals(17, card.rawHistory.size)
+        assertEquals(listOf("903203000100F0", "90320300010F20"), commands.takeLast(2))
+        var calls = 0
+        val oversized = CepasProtocol.read {
+            when (++calls) {
+                1 -> ok(byteArrayOf())
+                2 -> ok(purse(history = 1))
+                else -> ok(record() + record())
+            }
+        }!!
+        assertEquals(-100L, oversized.balanceMinor)
+        assertFalse(oversized.historyComplete)
+        assertTrue(oversized.rawHistory.isEmpty())
     }
 }

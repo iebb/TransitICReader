@@ -10,7 +10,7 @@ import ad.neko.cardbal.android.util.hexString
 import java.math.BigDecimal
 import kotlinx.datetime.Instant
 
-/** Implicitly selected CEPAS purse: call before readers that SELECT other apps. */
+/** Select CEPAS file 4000 before purse reads, before readers that SELECT other apps. */
 class CEPASDecoder : TransitCardDecoder {
     override fun canDecode(tag: Tag): Boolean = IsoDep.get(tag) != null
 

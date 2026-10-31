@@ -46,10 +46,11 @@ enum CEPASProtocol {
         var balanceMinor: Int64 { purse.balanceMinor }
     }
 
+    static func selectFileCommand() -> Data { Data([0, 0xA4, 0, 0, 2, 0x40, 0]) }
     static func purseCommand() -> Data { Data([0x90, 0x32, purseID, 0, 0]) }
-    static func historyCommand(offset: Int) -> Data? {
-        guard (0...254).contains(offset) else { return nil }
-        return Data([0x90, 0x32, purseID, 0, 1, UInt8(offset), 0])
+    static func historyCommand(offset: Int, count: Int) -> Data? {
+        guard (0...254).contains(offset), (1...15).contains(count) else { return nil }
+        return Data([0x90, 0x32, purseID, 0, 1, UInt8(offset), UInt8(count * 16)])
     }
 
     /// Accept only complete legacy-layout Singapore purses with a known BCD CAN
@@ -109,20 +110,20 @@ enum CEPASProtocol {
             userData: userData?.isEmpty == false ? userData : nil, record: record)
     }
 
-    /// GET PURSE and read-log requests only. Optional log failures never erase a
-    /// validated balance. Offset addressing avoids array-index pairing guesses.
+    /// Select file 4000 before GET PURSE, as in CENFC's tested CEPAS flow.
+    /// Optional log failures never erase a validated balance.
     static func read(exchange: (Data) async throws -> Data) async -> ReadResult? {
-        guard let payload = await request(purseCommand(), maximum: 256, exchange: exchange),
+        guard await request(selectFileCommand(), maximum: 256, exchange: exchange) != nil,
+              let payload = await request(purseCommand(), maximum: 256, exchange: exchange),
               let purse = parsePurse(payload) else { return nil }
         var records: [Data] = []
         var offset = 0
         while offset < purse.historyCount {
-            guard let command = historyCommand(offset: offset),
-                  let page = await request(command, maximum: 4096, exchange: exchange),
+            let requestedCount = min(15, purse.historyCount - offset)
+            guard let command = historyCommand(offset: offset, count: requestedCount),
+                  let page = await request(command, maximum: requestedCount * 16, exchange: exchange),
                   !page.isEmpty, page.count % 16 == 0 else { break }
             let count = page.count / 16
-            // A corrupt response must not bypass the advertised log bound.
-            guard count <= purse.historyCount - offset else { break }
             for index in 0..<count {
                 let record = Data(page[(index * 16)..<(index * 16 + 16)])
                 if let encoded = encodeHistory(record) { records.append(encoded) }
@@ -144,7 +145,9 @@ enum CEPASProtocol {
             let sw1 = b[b.count - 2], sw2 = b[b.count - 1]
             let payload = Data(b.dropLast(2))
             if sw1 == 0x6C {
-                guard payload.isEmpty, !retriedLength else { return nil }
+                // SELECT 4000 has Lc/data but no Le; its last byte is a file ID.
+                let hasLe = command.count == 5 || (command.count > 5 && command.count == Int(command[4]) + 6)
+                guard payload.isEmpty, !retriedLength, hasLe else { return nil }
                 retriedLength = true
                 command[command.count - 1] = sw2
                 continue

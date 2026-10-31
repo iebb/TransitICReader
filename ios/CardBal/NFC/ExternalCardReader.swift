@@ -53,8 +53,8 @@ final class ExternalCardReader {
 
         if options.contains(.iso14443) {
             let iso = ExternalISO7816Card(connection: connection, identifier: uid)
-            // CEPAS uses the implicitly selected application. Probe before any
-            // explicit SELECT, which can change the card's application state.
+            // CEPAS selects file 4000 in the default application. Probe before
+            // selecting other applications by AID.
             if let snapshot = try? await CEPASDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await MacauPassDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await ClipperDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }

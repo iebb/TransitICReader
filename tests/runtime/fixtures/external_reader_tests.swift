@@ -60,13 +60,27 @@ final class PurseCard: ISO7816Card {
     init(purse: Data, history: Data) { self.purse = purse; self.history = history }
     func sendCommand(apdu: CardAPDU) async throws -> (Data, UInt8, UInt8) {
         commands.append(apdu.encoded)
-        return (commands.count == 1 ? purse : history, 0x90, 0)
+        switch apdu.encoded.hexString {
+        case "00A40000024000": return (Data(), 0x90, 0)
+        case "9032030000" where commands.first?.hexString == "00A40000024000": return (purse, 0x90, 0)
+        case "90320300010020" where commands.count == 3: return (history, 0x90, 0)
+        default: return (Data(), 0x6A, 0x82)
+        }
+    }
+}
+struct PurseMiFareCard: MiFareCard {
+    let iso: PurseCard
+    var identifier: Data { iso.identifier }
+    var mifareFamily: MiFareFamily { .desfire }
+    func sendMiFareCommand(commandPacket: Data) async throws -> Data {
+        let response = try await iso.sendCommand(apdu: CardAPDU(data: commandPacket)!)
+        return response.0 + Data([response.1, response.2])
     }
 }
 @main struct ExternalReaderTests {
     static func main() async throws {
         // Short and extended APDUs round-trip without confusing Le with Lc.
-        for hex in ["00A40400", "9032030000", "00A4040002FE00", "00A4040002FE0000", "00CA0000000100"] {
+        for hex in ["00A40400", "00A40000024000", "9032030000", "00A4040002FE00", "00A4040002FE0000", "00CA0000000100"] {
             let raw = Data(hexString: hex)
             precondition(CardAPDU(data: raw)?.encoded == raw, "APDU case round trip")
         }
@@ -108,7 +122,7 @@ final class PurseCard: ISO7816Card {
         precondition(continued == Data([0xD5, 3]) && continuation.script.isEmpty)
 
         // Synthetic CEPAS data: signed 24-bit cents, CAN, SGT epoch, and exact
-        // implicit GET PURSE / GET HISTORY commands; no application SELECT.
+        // file 4000 must be selected before GET PURSE / GET HISTORY.
         var purse = Data(repeating: 0, count: 64)
         purse[0] = 2; purse[2] = 0xFF; purse[3] = 0xFF; purse[4] = 0x9C
         purse.replaceSubrange(8..<16, with: Data(hexString: "1000000000000001"))
@@ -119,7 +133,20 @@ final class PurseCard: ISO7816Card {
         let iso = PurseCard(purse: purse, history: transaction + Data(repeating: 0, count: 16))
         let snapshot = try await CEPASDecoder.decode(tag: .iso7816(iso), scannedAt: Date())
         precondition(snapshot.balanceText == "SGD -1" && snapshot.rawTransactions.count == 1)
-        precondition(iso.commands == [Data(hexString: "9032030000"), Data(hexString: "90320300010000")])
+        precondition(iso.commands == [Data(hexString: "00A40000024000"), Data(hexString: "9032030000"), Data(hexString: "90320300010020")])
+        let rawCard = PurseMiFareCard(iso: PurseCard(purse: purse, history: iso.history))
+        let rawSnapshot = try await CEPASDecoder.decode(tag: .miFare(rawCard), scannedAt: Date())
+        precondition(rawSnapshot.balanceText == snapshot.balanceText && rawSnapshot.rawTransactions == snapshot.rawTransactions)
+        precondition(rawCard.iso.commands == iso.commands)
+        let ceChannel = ScriptedChannel([
+            (Data(hexString: "00A40000024000"), Data(), 0x90, 0),
+            (Data(hexString: "9032030000"), purse, 0x90, 0),
+            (Data(hexString: "90320300010020"), iso.history, 0x90, 0),
+        ])
+        let external = ExternalISO7816Card(connection: ceChannel, identifier: Data([1, 2, 3, 4]))
+        let externalSnapshot = try await CEPASDecoder.decode(tag: .iso7816(external), scannedAt: Date())
+        precondition(externalSnapshot.balanceText == snapshot.balanceText && externalSnapshot.rawTransactions == snapshot.rawTransactions)
+        precondition(ceChannel.script.isEmpty)
         let decoded = CEPASProtocol.decodeHistory(CEPASProtocol.encodeHistory(transaction)!)!
         precondition(decoded.amountMinor == -100 && decoded.kind == .bus)
         for kind: UInt8 in [0xF0, 0x05] {

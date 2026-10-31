@@ -10,7 +10,7 @@ from tools.paths import ROOT
 
 @unittest.skipUnless(shutil.which("swiftc"), "Requires Swift")
 class CEPASProtocolTests(unittest.TestCase):
-    def test_wire_status_money_history_and_implicit_selection(self):
+    def test_wire_status_money_history_and_file_selection(self):
         program = r'''
 import Foundation
 func purse(_ prefix: UInt8 = 0x11, history: Int = 3) -> Data {
@@ -65,45 +65,82 @@ precondition(CEPASProtocol.decodeHistory(future) == nil)
 precondition(CEPASProtocol.encodeHistory(Data(repeating: 0, count: 16)) == nil)
 precondition(CEPASProtocol.encodeHistory(Data(repeating: 255, count: 16)) == nil)
 var calls: [Data] = []
+var selected = false
 let card = await CEPASProtocol.read { command in
     calls.append(command)
-    switch calls.count {
-    case 1: return ok(purse())
-    case 2: return ok(record() + record(0x31, amount: -125))
-    case 3: return ok(record(0x75, amount: 1000))
+    switch hex(command) {
+    case "00A40000024000": selected = true; return ok(Data())
+    case "9032030000": return selected ? ok(purse()) : Data([0x6A, 0x82])
+    case "90320300010030": return ok(record() + record(0x31, amount: -125))
+    case "90320300010210": return ok(record(0x75, amount: 1000))
     default: fatalError("unexpected command")
     }
 }
 precondition(card!.historyComplete && card!.rawHistory.count == 3)
-precondition(calls.map(hex) == ["9032030000", "90320300010000", "90320300010200"])
+precondition(calls.map(hex) == ["00A40000024000", "9032030000", "90320300010030", "90320300010210"])
 let saved = try JSONDecoder().decode([Data].self, from: JSONEncoder().encode(card!.rawHistory))
 precondition(CEPASProtocol.decodeHistory(saved[0])!.amountMinor == -275)
 var lengthCommands: [Data] = []
 let corrected = await CEPASProtocol.read { command in
     lengthCommands.append(command)
-    return lengthCommands.count == 1 ? Data([0x6C, 63]) : ok(purse(history: 0))
+    if lengthCommands.count == 1 { return ok(Data()) }
+    return lengthCommands.count == 2 ? Data([0x6C, 63]) : ok(purse(history: 0))
 }
-precondition(corrected!.historyComplete && lengthCommands.count == 2 && lengthCommands[1].last == 63)
+precondition(corrected!.historyComplete && lengthCommands.count == 3 && lengthCommands[2].last == 63)
 var chains: [Data] = []
 let chained = await CEPASProtocol.read { command in
     chains.append(command)
-    return chains.count == 1 ? purse(history: 0).prefix(20) + Data([0x61, 43]) : ok(Data(purse(history: 0).dropFirst(20)))
+    if chains.count == 1 { return ok(Data()) }
+    return chains.count == 2 ? purse(history: 0).prefix(20) + Data([0x61, 43]) : ok(Data(purse(history: 0).dropFirst(20)))
 }
-precondition(chained != nil && chains[1] == Data([0, 0xC0, 0, 0, 43]))
+precondition(chained != nil && chains[2] == Data([0, 0xC0, 0, 0, 43]))
 for response in [Data(), Data([0x90]), Data([0x91, 0]), Data([0x90, 1]), ok(Data(purse().prefix(5))), purse() + Data([0x69, 0x82])] {
     var count = 0
-    let failed = await CEPASProtocol.read { _ in count += 1; return response }
-    precondition(failed == nil && count == 1)
+    let failed = await CEPASProtocol.read { _ in count += 1; return count == 1 ? ok(Data()) : response }
+    precondition(failed == nil && count == 2)
+}
+for status in [Data([0x6A, 0x82]), Data([0x6C, 63])] {
+    var commands: [Data] = []
+    let rejected = await CEPASProtocol.read { command in commands.append(command); return status }
+    precondition(rejected == nil && commands == [CEPASProtocol.selectFileCommand()])
 }
 var count = 0
 let loop = await CEPASProtocol.read { _ in count += 1; return Data([0x61, 1]) }
 precondition(loop == nil && count == 16)
 count = 0
-let failedHistory = await CEPASProtocol.read { _ in count += 1; return count == 1 ? ok(purse()) : Data([0x69, 0x82]) }
+let failedHistory = await CEPASProtocol.read { _ in
+    count += 1
+    if count == 1 { return ok(Data()) }
+    return count == 2 ? ok(purse()) : Data([0x69, 0x82])
+}
 precondition(failedHistory!.balanceMinor == -100 && !failedHistory!.historyComplete && failedHistory!.rawHistory.isEmpty)
 count = 0
-let malformedHistory = await CEPASProtocol.read { _ in count += 1; return count == 1 ? ok(purse()) : ok(Data(repeating: 1, count: 17)) }
+let malformedHistory = await CEPASProtocol.read { _ in
+    count += 1
+    if count == 1 { return ok(Data()) }
+    return count == 2 ? ok(purse()) : ok(Data(repeating: 1, count: 17))
+}
 precondition(malformedHistory!.rawHistory.isEmpty && !malformedHistory!.historyComplete)
+var pages: [String] = []
+let paged = await CEPASProtocol.read { command in
+    pages.append(hex(command))
+    switch pages.count {
+    case 1: return ok(Data())
+    case 2: return ok(purse(history: 17))
+    case 3: return ok((0..<15).reduce(Data()) { bytes, _ in bytes + record() })
+    case 4: return ok(record() + record())
+    default: fatalError("unexpected page")
+    }
+}
+precondition(paged!.historyComplete && paged!.rawHistory.count == 17)
+precondition(pages.suffix(2) == ["903203000100F0", "90320300010F20"])
+count = 0
+let oversized = await CEPASProtocol.read { _ in
+    count += 1
+    if count == 1 { return ok(Data()) }
+    return count == 2 ? ok(purse(history: 1)) : ok(record() + record())
+}
+precondition(oversized!.balanceMinor == -100 && !oversized!.historyComplete && oversized!.rawHistory.isEmpty)
 precondition(CEPASProtocol.issuerTimeZone == "Asia/Singapore")
 print("PASS CEPAS independent protocol")
 '''

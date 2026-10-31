@@ -29,9 +29,10 @@ internal object CepasProtocol {
         val balanceMinor get() = purse.balanceMinor
     }
 
+    fun selectFileCommand() = byteArrayOf(0, 0xA4.toByte(), 0, 0, 2, 0x40, 0)
     fun purseCommand() = byteArrayOf(0x90.toByte(), 0x32, PURSE_ID.toByte(), 0, 0)
-    fun historyCommand(offset: Int): ByteArray? = if (offset in 0..254)
-        byteArrayOf(0x90.toByte(), 0x32, PURSE_ID.toByte(), 0, 1, offset.toByte(), 0) else null
+    fun historyCommand(offset: Int, count: Int): ByteArray? = if (offset in 0..254 && count in 1..15)
+        byteArrayOf(0x90.toByte(), 0x32, PURSE_ID.toByte(), 0, 1, offset.toByte(), (count * 16).toByte()) else null
 
     fun parsePurse(data: ByteArray): Purse? {
         if (data.size !in 63..256 || data[0] == 0.toByte() || data[0] == 0xFF.toByte() ||
@@ -77,22 +78,23 @@ internal object CepasProtocol {
     }
 
     fun read(exchange: (ByteArray) -> ByteArray): ReadResult? {
+        if (request(selectFileCommand(), 256, exchange) == null) return null
         val purse = request(purseCommand(), 256, exchange)?.let(::parsePurse) ?: return null
         val records = mutableListOf<ByteArray>()
         var offset = 0
         while (offset < purse.historyCount) {
-            val command = historyCommand(offset) ?: break
-            val page = request(command, 4096, exchange) ?: break
+            val requestedCount = minOf(15, purse.historyCount - offset)
+            val command = historyCommand(offset, requestedCount) ?: break
+            val page = request(command, requestedCount * 16, exchange) ?: break
             if (page.isEmpty() || page.size % 16 != 0) break
             val count = page.size / 16
-            if (count > purse.historyCount - offset) break
             repeat(count) { index -> encodeHistory(page.copyOfRange(index * 16, index * 16 + 16))?.let(records::add) }
             offset += count
         }
         return ReadResult(purse, records, offset == purse.historyCount)
     }
 
-    /** No writes: bounded GET PURSE/log, GET RESPONSE and one length correction. */
+    /** Select file 4000, then bounded purse/log reads and GET RESPONSE. */
     private fun request(original: ByteArray, maximum: Int, exchange: (ByteArray) -> ByteArray): ByteArray? {
         var command = original.copyOf()
         var collected = byteArrayOf()
@@ -104,7 +106,9 @@ internal object CepasProtocol {
             val sw2 = response.last().toInt() and 255
             val payload = response.copyOfRange(0, response.size - 2)
             if (sw1 == 0x6C) {
-                if (payload.isNotEmpty() || correctedLength) return null
+                // The case-3 SELECT has no Le; its last byte belongs to the file ID.
+                val hasLe = command.size == 5 || (command.size > 5 && command.size == (command[4].toInt() and 255) + 6)
+                if (payload.isNotEmpty() || correctedLength || !hasLe) return null
                 correctedLength = true
                 command[command.lastIndex] = sw2.toByte()
             } else {

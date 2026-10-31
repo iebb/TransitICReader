@@ -6,9 +6,12 @@ A complete purse response, valid BCD CAN and successful status are required.
 Selecting an AID or recognizing a chip alone is insufficient. SimplyGo backend
 account balances are not queried or inferred.
 
-The implicit-application read commands are GET PURSE `9032030000` and GET
-HISTORY `9032030001<offset>00`. Requests support one corrected-Le retry and
-bounded `61xx` response chaining; final status must be exactly9000. Partial,
+The read flow selects file 4000 with `00A40000024000`, then sends GET PURSE
+`9032030000`, matching CoreExtendedNFC's CEPAS reader. GET HISTORY is
+`9032030001<offset><Le>`, with at most 15 records per request and Le set to the
+requested record count times 16. Requests support one corrected-Le retry and
+bounded `61xx` response chaining; final status must be exactly9000. The SELECT
+command has no Le, so a `6Cxx` response cannot overwrite its file identifier. Partial,
 malformed or protected data does not become a successful response. Optional
 history failure preserves an already validated purse. iPhone supports the
 ISO7816 and raw MIFARE discovery paths; Android uses ISO-DEP.
@@ -32,10 +35,13 @@ Primary evidence:
   and [history fields](https://github.com/codebutler/farebot/blob/dc09f6f014ea3675b64bcd38335b4b78d77fa374/card/cepas/src/commonMain/kotlin/com/codebutler/farebot/card/cepas/CEPASHistory.kt).
 - [Metrodroid's Singapore epoch](https://github.com/metrodroid/metrodroid/blob/b910c1806fd86aa545223baf1d21fc5afe68eee2/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/ezlink/EZLinkTransitData.kt).
 - [NETS issuer instructions for iPhone/Android NFC balance/history reading](https://www.nets.com.sg/nets/for-you/nets-flashpay).
+- [CoreExtendedNFC CEPAS selection and history requests](https://github.com/Lakr233/CoreExtendedNFC/blob/main/Sources/CoreExtendedNFC/Cards/Transit/Singapore/CEPASReader.swift).
 
 Production Swift/Kotlin helpers are tested with invented purse/log bytes,
 signed amounts, the Singapore-midnight epoch, invalid lengths/status words,
-retry/chaining and missing optional history. No upstream GPL implementation,
+selection-dependent purse reads, bounded history pages, retry/chaining and
+missing optional history. Swift regressions exercise ISO7816, raw MIFARE and
+the external ISO reader transport. No upstream GPL implementation,
 artwork, issuer keys or personal captures are included. Native Core NFC API
 checking and app builds are separate from physical-card validation, which is
 still outstanding.

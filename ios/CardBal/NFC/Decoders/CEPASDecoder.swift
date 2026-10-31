@@ -1,8 +1,8 @@
 import Foundation
 
-/// CEPAS uses implicit selection; registering a made-up AID would prevent
-/// discovery. Some iPhones expose these cards as MIFARE, as documented by
-/// FareBot's pinned IosNfcScanner/IosCardTransceiver. No SELECT or write is sent.
+/// CEPAS selects file 4000 in the card's default application before reading.
+/// iPhones can expose the card through ISO7816 or raw MIFARE discovery;
+/// both paths and external readers use the shared purse protocol.
 struct CEPASDecoder: TransitCardDecoder {
     static func canDecode(tag: CardTag) async -> Bool {
         switch tag {
