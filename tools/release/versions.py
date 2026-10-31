@@ -1,9 +1,8 @@
-"""Resolve the release version and timestamp build numbers inside each store build job.
+"""Resolve the release version and the Android version code inside each store build job.
 
-iOS builds use days-since-epoch.hour.minute, which stays within Apple's archived
-4.2.2 digit guidance for CFBundleVersion. Android version codes count minutes since
-the epoch. Both come from the same UTC minute, so the store uploads stay independent
-but remain unique and monotonic while store jobs share one concurrency group.
+Android version codes count minutes since the epoch, so Play uploads stay unique
+and monotonic while store jobs share one concurrency group. iOS build numbers are
+simple counters picked from App Store Connect by tools.release.ios_build_number.
 """
 import argparse
 import os
@@ -24,13 +23,11 @@ def build_numbers(now: datetime) -> dict[str, str]:
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("Build time must be timezone-aware.")
     minutes = (now.astimezone(timezone.utc) - EPOCH) // timedelta(minutes=1)
-    day, minute_of_day = divmod(minutes, 24 * 60)
+    day = minutes // (24 * 60)
     if not 1 <= day <= MAX_EPOCH_DAY:
         raise ValueError(f"Build day {day} since 2020-01-01 UTC must be from 1 to {MAX_EPOCH_DAY}.")
-    hour, minute = divmod(minute_of_day, 60)
     stamp = EPOCH + timedelta(minutes=minutes)
-    return {"ios_build": f"{day}.{hour}.{minute}", "android_version_code": str(minutes),
-            "build_timestamp": stamp.strftime("%Y-%m-%dT%H:%MZ")}
+    return {"android_version_code": str(minutes), "build_timestamp": stamp.strftime("%Y-%m-%dT%H:%MZ")}
 
 
 def ios_marketing_version(project: str) -> str:
@@ -98,7 +95,7 @@ def main(argv: list[str] | None = None, now: datetime | None = None) -> None:
             for key, value in values.items():
                 file.write(f"{key}={value}\n")
     print(f"Version {values['version']} at {values['build_timestamp']}: "
-          f"iOS build {values['ios_build']}, Android code {values['android_version_code']}")
+          f"Android code {values['android_version_code']}")
 
 
 if __name__ == "__main__":

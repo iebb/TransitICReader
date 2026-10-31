@@ -21,7 +21,7 @@ val buildArm64Split = providers.gradleProperty("cardbal.abiSplit")
     .map { it.equals("true", ignoreCase = true) }
     .getOrElse(false)
 
-val appVersionName = providers.gradleProperty("transitic.versionName").orElse("2.5.0").get()
+val appVersionName = providers.gradleProperty("transitic.versionName").orElse("2.5.1").get()
 require(appVersionName.isNotBlank() && appVersionName == appVersionName.trim() &&
     appVersionName.none { it.isISOControl() }) {
     "transitic.versionName must be a nonempty version without surrounding whitespace or control characters"

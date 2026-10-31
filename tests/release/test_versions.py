@@ -12,44 +12,28 @@ from tools.release.versions import (EPOCH, MAX_ANDROID_VERSION_CODE, android_ver
 NOW = datetime(2026, 10, 31, 14, 30, 59, 999999, tzinfo=timezone.utc)
 
 
-def ios_key(build: str) -> tuple[int, ...]:
-    # App Store Connect orders CFBundleVersion by its numeric components.
-    return tuple(int(part) for part in build.split("."))
-
-
 class BuildNumberTests(unittest.TestCase):
-    def test_ios_and_android_numbers_come_from_the_same_utc_minute(self):
-        expected = {"ios_build": "2495.14.30", "android_version_code": str(2495 * 1440 + 14 * 60 + 30),
+    def test_android_code_comes_from_the_utc_minute(self):
+        expected = {"android_version_code": str(2495 * 1440 + 14 * 60 + 30),
                     "build_timestamp": "2026-10-31T14:30Z"}
         self.assertEqual(build_numbers(NOW), expected)
         tokyo = NOW.astimezone(timezone(timedelta(hours=9)))
         self.assertEqual(build_numbers(tokyo), expected)
         self.assertEqual(build_numbers(NOW.replace(second=0, microsecond=0)), expected)
 
-    def test_every_later_minute_is_a_new_higher_number_on_both_stores(self):
+    def test_every_later_minute_is_a_new_higher_android_code(self):
         # Store jobs share a concurrency group, so a rerun starts in a later minute.
         start = datetime(2026, 12, 31, 22, 0, tzinfo=timezone.utc)
         previous = build_numbers(start)
         for offset in range(1, 3 * 24 * 60):
             current = build_numbers(start + timedelta(minutes=offset))
-            self.assertGreater(ios_key(current["ios_build"]), ios_key(previous["ios_build"]))
             self.assertGreater(int(current["android_version_code"]), int(previous["android_version_code"]))
             previous = current
 
-    def test_ios_build_stays_within_archived_4_2_2_digit_guidance(self):
-        for now in (EPOCH + timedelta(days=1), NOW, EPOCH + timedelta(days=9999, hours=23, minutes=59)):
-            with self.subTest(now=now):
-                parts = build_numbers(now)["ios_build"].split(".")
-                self.assertEqual(len(parts), 3)
-                for part, digits in zip(parts, (4, 2, 2)):
-                    self.assertRegex(part, r"^(?:0|[1-9][0-9]*)$")
-                    self.assertLessEqual(len(part), digits)
-
     def test_epoch_day_bounds(self):
         self.assertEqual(build_numbers(EPOCH + timedelta(days=1)),
-                         {"ios_build": "1.0.0", "android_version_code": "1440", "build_timestamp": "2020-01-02T00:00Z"})
+                         {"android_version_code": "1440", "build_timestamp": "2020-01-02T00:00Z"})
         last = build_numbers(EPOCH + timedelta(days=9999, hours=23, minutes=59, seconds=59))
-        self.assertEqual(last["ios_build"], "9999.23.59")
         self.assertEqual(last["android_version_code"], "14399999")
         self.assertLess(int(last["android_version_code"]), MAX_ANDROID_VERSION_CODE)
         for now in (EPOCH - timedelta(minutes=1), EPOCH, EPOCH + timedelta(hours=23, minutes=59),
@@ -61,15 +45,11 @@ class BuildNumberTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "timezone-aware"):
             build_numbers(NOW.replace(tzinfo=None))
 
-    def test_new_numbers_exceed_old_independently_generated_upload_codes(self):
-        # Repository defaults used for hand uploads, then the run-number scheme: iOS (1000+run).attempt
-        # and Android (1000+run)*100+attempt, whose ceiling was 999999.
-        legacy_ios = ("45", "1001.1", "1001.99")
+    def test_new_codes_exceed_old_independently_generated_upload_codes(self):
+        # Repository defaults used for hand uploads, then the run-number scheme
+        # (1000+run)*100+attempt, whose ceiling was 999999.
         legacy_android = (5, 45, 100101, 100199, 999999)
         current = build_numbers(datetime(2026, 10, 31, 0, 0, tzinfo=timezone.utc))
-        for build in legacy_ios:
-            with self.subTest(ios=build):
-                self.assertGreater(ios_key(current["ios_build"]), ios_key(build))
         for code in legacy_android:
             with self.subTest(android=code):
                 self.assertGreater(int(current["android_version_code"]), code)
@@ -170,7 +150,7 @@ class CommandTests(unittest.TestCase):
         stdout = self.run_main("", opened)
         opened.assert_called_once_with("github-output", "a", encoding="utf-8")
         written = "".join(call.args[0] for call in opened().write.call_args_list)
-        self.assertEqual(written, f"version={repository_versions()['ios']}\nios_build=2495.14.30\n"
+        self.assertEqual(written, f"version={repository_versions()['ios']}\n"
                                   "android_version_code=3593670\nbuild_timestamp=2026-10-31T14:30Z\n")
         self.assertIn("2026-10-31T14:30Z", stdout)
 

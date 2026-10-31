@@ -17,12 +17,17 @@ selected. iPhone Duo's full-screen layouts need the iOS 27.1 SDK or later; an
 app built with an older SDK runs in a compatibility window on the Duo, and the
 Duo-specific layout code is compiled out (`#if compiler(>=6.4)`).
 
-Build numbers are assigned when the build job starts, using UTC time since
-1 January 2020. Android uses elapsed minutes; iOS uses `days.hour.minute`.
-This avoids reusing per-workflow run numbers when the two platforms upload
-independently. A retry in a later minute receives a new build number. The three
+iOS build numbers are simple counters: the TestFlight workflow reads the builds
+already in App Store Connect and uses one above the highest plain number (53,
+then 54, ...). Older dotted numbers, such as the timestamp builds 2495.1.8 and
+2495.3.4 uploaded for 2.5.0, are ignored. Apple only requires a higher number
+within one marketing version, so 2.5.1 (54) is accepted after 2.5.0
+(2495.3.4); a new dotted number is never needed. Android version codes are
+assigned when the build job starts, as minutes since 1 January 2020 UTC, because
+Google Play requires every code to be higher than all earlier ones. The three
 workflows share the `cardbal-stores` concurrency group, so test uploads and
-submissions cannot overlap. iOS and Android build numbers need not match.
+submissions cannot overlap, and a later run sees the earlier upload. iOS and
+Android build numbers need not match.
 
 ## Submit for review
 

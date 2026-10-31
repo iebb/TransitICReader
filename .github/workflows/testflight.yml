@@ -31,10 +31,22 @@ jobs:
         with:
           python-version: '3.13'
       - id: version
-        name: Validate version and assign a new build number
+        name: Validate version
         env:
           RELEASE_VERSION: ${{ inputs.version }}
         run: python3 -m tools.release.versions
+      - name: Install App Store Connect client
+        run: python3 -m pip install -r tools/release/requirements-appstore.txt
+      - id: build
+        name: Assign the next build number
+        # One above the highest plain build number already in App Store Connect.
+        env:
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: python3 -m tools.release.ios_build_number
       - run: xcodebuild -version
       - name: Compile pinned station catalog
         run: python3 -m tools.stations.build --source csv --target all --no-sync-android
@@ -43,7 +55,7 @@ jobs:
       - name: Archive and export signed iOS app
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          IOS_BUILD_NUMBER: ${{ steps.version.outputs.ios_build }}
+          IOS_BUILD_NUMBER: ${{ steps.build.outputs.ios_build }}
           IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
@@ -51,7 +63,7 @@ jobs:
         run: bash tools/release/ios_archive.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ios-${{ steps.version.outputs.version }}-${{ steps.version.outputs.ios_build }}
+          name: ios-${{ steps.version.outputs.version }}-${{ steps.build.outputs.ios_build }}
           path: |
             build/ios/export/*.ipa
             build/ios/CardBal.xcarchive/dSYMs
@@ -66,5 +78,5 @@ jobs:
       - name: Record upload
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          IOS_BUILD_NUMBER: ${{ steps.version.outputs.ios_build }}
+          IOS_BUILD_NUMBER: ${{ steps.build.outputs.ios_build }}
         run: echo "Uploaded iOS $RELEASE_VERSION ($IOS_BUILD_NUMBER) to TestFlight. Apple processing may still be pending." >> "$GITHUB_STEP_SUMMARY"
