@@ -14,12 +14,17 @@ private enum MapBottomPanel: Equatable {
 }
 
 struct RideMapView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @ObservedObject var store: CardWalletStore
     let initialCardID: String?
     let showsCardPicker: Bool
 
     @State private var selectedCardID: String
     @State private var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 35.6812, longitude: 139.7671), span: MKCoordinateSpan(latitudeDelta: 8, longitudeDelta: 8))
+    @State private var cameraState = RideMapCameraState()
+    @State private var regionCommandRevision = 0
     @State private var screenData = RideMapScreenData.empty
     @State private var highlightedRouteID: RideMapRoute.ID?
     @State private var selectedPointID: String?
@@ -91,22 +96,93 @@ struct RideMapView: View {
     // MARK: - Map Content
 
     private var mapContent: some View {
-        ZStack(alignment: .top) {
-            RideMapRepresentable(
-                region: $region,
-                selectedPointID: $selectedPointID,
-                points: screenData.points,
-                routes: screenData.routes,
-                highlightedRouteID: highlightedRouteID
-            )
-            .ignoresSafeArea(edges: .bottom)
+        GeometryReader { viewport in
+            let panelWidth = min(300, max(240, viewport.size.width - 320))
+            let usesCompanion = horizontalSizeClass == .regular
+                && !dynamicTypeSize.isAccessibilitySize
+                && viewport.size.width - panelWidth >= 320
+                && viewport.size.height >= 220
 
-            cardPickerBar
+            // The screen's data, selection, panel and region remain owned by
+            // RideMapView, not by either presentation of its controls.
+            if usesCompanion {
+                // Older SDKs cannot type-check the iOS 27.1 arrangement API.
+                #if compiler(>=6.4)
+                if #available(iOS 27.1, *) {
+                    ArrangementView {
+                        companionPanel
+                            .splitArrangementLayoutSize(
+                                minWidth: 240, idealWidth: 300, maxWidth: 340,
+                                minHeight: 100, idealHeight: 200, maxHeight: 300
+                            )
+                    } secondary: {
+                        rideMap
+                            .splitArrangementLayoutSize(
+                                minWidth: 320, idealWidth: viewport.size.width - panelWidth,
+                                minHeight: 160, idealHeight: max(160, viewport.size.height - 200)
+                            )
+                            .layoutPriority(1)
+                    }
+                    .arrangementViewStyle(.split)
+                } else {
+                    companionStack(panelWidth: panelWidth)
+                }
+                #else
+                companionStack(panelWidth: panelWidth)
+                #endif
+            } else {
+                compactMap
+            }
         }
-        .safeAreaInset(edge: .bottom) {
-            bottomPanelView
-                .background(.ultraThinMaterial)
+    }
+
+    /// Panel beside the map before iOS 27.1, or when built with an older SDK.
+    private func companionStack(panelWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            companionPanel
+                .frame(width: panelWidth)
+            rideMap
+                .layoutPriority(1)
         }
+    }
+
+    private var rideMap: some View {
+        RideMapRepresentable(
+            region: $region,
+            cameraState: cameraState,
+            regionCommandRevision: $regionCommandRevision,
+            selectedPointID: $selectedPointID,
+            points: screenData.points,
+            routes: screenData.routes,
+            highlightedRouteID: highlightedRouteID
+        )
+    }
+
+    @ViewBuilder
+    private var compactMap: some View {
+        if #available(iOS 26.0, *) {
+            rideMap
+                .safeAreaBar(edge: .top, spacing: 0) { cardPickerBar }
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    bottomPanelView.background(.ultraThinMaterial)
+                }
+        } else {
+            rideMap
+                .safeAreaInset(edge: .top, spacing: 0) { cardPickerBar }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    bottomPanelView.background(.ultraThinMaterial)
+                }
+        }
+    }
+
+    private var companionPanel: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                cardPickerBar
+                bottomPanelView
+            }
+        }
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Card Picker (In-View Cards)
@@ -360,6 +436,7 @@ struct RideMapView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 highlightedRouteID = route.id
             }
+            regionCommandRevision &+= 1
             region = region(for: route.coordinates)
         } label: {
             VStack(alignment: .leading, spacing: 8) {
@@ -618,6 +695,7 @@ struct RideMapView: View {
         selectedPointID = nil
         withAnimation(.easeInOut(duration: 0.2)) { bottomPanel = .collapsed }
         if !screenData.allCoordinates.isEmpty {
+            regionCommandRevision &+= 1
             region = region(for: screenData.allCoordinates)
         }
         isLoading = false
@@ -677,25 +755,89 @@ private struct RideMapPlaceholderView: View {
 
 // MARK: - MKMapView Representable
 
+private struct RideMapCameraSnapshot {
+    let center: CLLocationCoordinate2D
+    let altitude: CLLocationDistance
+    let heading: CLLocationDirection
+    let pitch: CGFloat
+    let commandRevision: Int
+
+    init(camera: MKMapCamera, commandRevision: Int) {
+        center = camera.centerCoordinate
+        altitude = camera.altitude
+        heading = camera.heading
+        pitch = camera.pitch
+        self.commandRevision = commandRevision
+    }
+
+    var camera: MKMapCamera {
+        let camera = MKMapCamera()
+        camera.centerCoordinate = center
+        camera.altitude = altitude
+        camera.heading = heading
+        camera.pitch = pitch
+        return camera
+    }
+}
+
+// A reference owned by RideMapView survives representable remounts without
+// publishing every MapKit camera frame back into SwiftUI's update cycle.
+private final class RideMapCameraState {
+    var snapshot: RideMapCameraSnapshot?
+}
+
+private final class RideMapViewportView: MKMapView {
+    var viewportDidLayout: (() -> Bool)?
+    private var callbackScheduled = false
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.width > 0, bounds.height > 0,
+              viewportDidLayout != nil, !callbackScheduled else { return }
+        callbackScheduled = true
+        // Restore only after the new pane has a usable viewport, outside layout.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.callbackScheduled = false
+            if self.viewportDidLayout?() == true { self.viewportDidLayout = nil }
+        }
+    }
+}
+
 private struct RideMapRepresentable: UIViewRepresentable {
     @Binding var region: MKCoordinateRegion
+    let cameraState: RideMapCameraState
+    @Binding var regionCommandRevision: Int
     @Binding var selectedPointID: String?
     let points: [RideMapPoint]
     let routes: [RideMapRoute]
     let highlightedRouteID: RideMapRoute.ID?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(region: $region, selectedPointID: $selectedPointID)
+        Coordinator(
+            region: $region, selectedPointID: $selectedPointID,
+            cameraState: cameraState, regionCommandRevision: $regionCommandRevision
+        )
     }
 
     func makeUIView(context: Context) -> MKMapView {
-        let mapView = MKMapView(frame: .zero)
+        let mapView = RideMapViewportView(frame: .zero)
+        mapView.viewportDidLayout = { [weak mapView, weak coordinator = context.coordinator] in
+            guard let mapView else { return true }
+            return coordinator?.applyInitialViewport(to: mapView) ?? true
+        }
         mapView.delegate = context.coordinator
         mapView.showsCompass = false
         mapView.pointOfInterestFilter = .excludingAll
         mapView.register(RideMapAnnotationView.self, forAnnotationViewWithReuseIdentifier: RideMapAnnotationView.reuseIdentifier)
         mapView.register(RideMapClusterAnnotationView.self, forAnnotationViewWithReuseIdentifier: RideMapClusterAnnotationView.reuseIdentifier)
         return mapView
+    }
+
+    static func dismantleUIView(_ mapView: MKMapView, coordinator: Coordinator) {
+        coordinator.isActive = false
+        mapView.delegate = nil
+        (mapView as? RideMapViewportView)?.viewportDidLayout = nil
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
@@ -749,8 +891,22 @@ private struct RideMapRepresentable: UIViewRepresentable {
             }
         }
 
-        if !coordinator.region(region, approximatelyEqualTo: mapView.region) {
-            mapView.setRegion(region, animated: true)
+        if coordinator.needsInitialViewport {
+            mapView.setNeedsLayout()
+        } else {
+            coordinator.appliedCommandRevision = regionCommandRevision
+            if !coordinator.region(region, approximatelyEqualTo: mapView.region) {
+                mapView.setRegion(region, animated: true)
+            } else {
+                cameraState.snapshot = RideMapCameraSnapshot(
+                    camera: mapView.camera, commandRevision: regionCommandRevision
+                )
+            }
+        }
+        if let selectedPointID,
+           !mapView.selectedAnnotations.contains(where: { ($0 as? RideMapAnnotation)?.id == selectedPointID }),
+           let annotation = mapView.annotations.first(where: { ($0 as? RideMapAnnotation)?.id == selectedPointID }) {
+            mapView.selectAnnotation(annotation, animated: false)
         }
         coordinator.updateLabelVisibility(on: mapView)
     }
@@ -761,10 +917,51 @@ private struct RideMapRepresentable: UIViewRepresentable {
         var highlightedRouteID: RideMapRoute.ID?
         var routeColors: [String: UIColor] = [:]
         weak var mapView: MKMapView?
+        let cameraState: RideMapCameraState
+        @Binding var regionCommandRevision: Int
+        var appliedCommandRevision: Int?
+        var needsInitialViewport = true
+        var isActive = true
+        private var isApplyingViewport = false
 
-        init(region: Binding<MKCoordinateRegion>, selectedPointID: Binding<String?>) {
+        init(
+            region: Binding<MKCoordinateRegion>, selectedPointID: Binding<String?>,
+            cameraState: RideMapCameraState, regionCommandRevision: Binding<Int>
+        ) {
             _region = region
             _selectedPointID = selectedPointID
+            self.cameraState = cameraState
+            _regionCommandRevision = regionCommandRevision
+        }
+
+        func applyInitialViewport(to mapView: MKMapView) -> Bool {
+            guard isActive, needsInitialViewport,
+                  mapView.bounds.width > 0, mapView.bounds.height > 0 else { return false }
+            appliedCommandRevision = regionCommandRevision
+            needsInitialViewport = false
+            isApplyingViewport = true
+            if let snapshot = cameraState.snapshot,
+               snapshot.commandRevision == regionCommandRevision {
+                mapView.setCamera(snapshot.camera, animated: false)
+            } else {
+                // A route/card focus issued since capture takes precedence over
+                // the old camera, including while the new pane awaited layout.
+                mapView.setRegion(region, animated: false)
+            }
+            isApplyingViewport = false
+            captureViewport(from: mapView)
+            return true
+        }
+
+        private func captureViewport(from mapView: MKMapView) {
+            guard isActive, !needsInitialViewport, !isApplyingViewport,
+                  appliedCommandRevision == regionCommandRevision else { return }
+            cameraState.snapshot = RideMapCameraSnapshot(
+                camera: mapView.camera, commandRevision: regionCommandRevision
+            )
+            if !region(mapView.region, approximatelyEqualTo: region) {
+                region = mapView.region
+            }
         }
 
         /// Routes read clearly at city scale; a selected route stands out while the rest recede.
@@ -830,9 +1027,7 @@ private struct RideMapRepresentable: UIViewRepresentable {
         }
 
         func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
-            if !region(mapView.region, approximatelyEqualTo: region) {
-                region = mapView.region
-            }
+            captureViewport(from: mapView)
             updateLabelVisibility(on: mapView)
         }
 

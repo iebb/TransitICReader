@@ -256,7 +256,7 @@ struct CardFaceLibraryView: View {
 }
 
 struct EditableFaceImage: Identifiable {
-    let id = UUID()
+    var id: ObjectIdentifier { ObjectIdentifier(image) }
     let image: UIImage
 
     init(image: UIImage) {
@@ -265,6 +265,7 @@ struct EditableFaceImage: Identifiable {
 }
 
 struct FaceImageEditorSheet: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let image: UIImage
     let autoCroppedImage: UIImage?   // nil = no card was detected
     let onCancel: () -> Void
@@ -282,6 +283,7 @@ struct FaceImageEditorSheet: View {
     @State private var hPerspective: Double = 0.0
     @State private var activeTab: Int = 0 // 0: Crop, 1: Adjust, 2: Perspective
     @State private var hasAppliedAutoZoom = false
+    @State private var toolsContentHeight: CGFloat = 0
 
     private let cardAspectRatio: CGFloat = 27.0 / 17.0
     private let cardWidth: CGFloat = 320
@@ -300,127 +302,177 @@ struct FaceImageEditorSheet: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Preview Area
-                    ZStack {
-                        Color.clear.frame(width: cardWidth, height: cardHeight)
-                            .overlay(renderableView)
+                GeometryReader { proxy in
+                    // Use the space offered to this sheet, including when bars move to a side.
+                    let isWide = horizontalSizeClass == .regular && proxy.size.width >= 600
+                    let layout = isWide
+                        ? AnyLayout(HStackLayout(spacing: 0))
+                        : AnyLayout(VStackLayout(spacing: 0))
+                    let toolsHeight = min(toolsContentHeight, proxy.size.height * 0.5)
 
-                        // Theatrical Mask
-                        Color.black.opacity(0.5)
-                            .mask(
-                                Rectangle()
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .frame(width: cardWidth, height: cardHeight)
-                                            .blendMode(.destinationOut)
-                                    )
-                            )
-                            .compositingGroup()
+                    layout {
+                        fittedPreview
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                        // Card Guide Border
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white, lineWidth: 2)
-                            .frame(width: cardWidth, height: cardHeight)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture()
-                            .onChanged { val in dragOffset = val.translation }
-                            .onEnded { val in
-                                offset = CGSize(width: offset.width + val.translation.width,
-                                                height: offset.height + val.translation.height)
-                                dragOffset = .zero
-                            }
-                    )
-                    .simultaneousGesture(
-                        MagnificationGesture()
-                            .onChanged { val in scale = lastScale * val }
-                            .onEnded { _ in lastScale = scale }
-                    )
-
-                    // Controls Area
-                    VStack(spacing: 12) {
-                        // Auto / Manual toggle (only when card was detected)
-                        if canToggleAuto {
-                            autoManualToggle
-                        }
-
-                        if !isAutoMode || !canToggleAuto {
-                            Picker("Mode", selection: $activeTab) {
-                                Image(systemName: "crop").tag(0)
-                                Image(systemName: "slider.horizontal.3").tag(1)
-                                Image(systemName: "skew").tag(2)
-                            }
-                            .pickerStyle(.segmented)
-                            .padding(.horizontal)
-
-                            Group {
-                                if activeTab == 0 {
-                                    cropControls
-                                } else if activeTab == 1 {
-                                    adjustControls
-                                } else {
-                                    perspectiveControls
+                        ScrollView {
+                            editorControls
+                                .background {
+                                    GeometryReader { tools in
+                                        Color.clear.preference(key: ToolsHeightKey.self, value: tools.size.height)
+                                    }
                                 }
-                            }
-                            .padding(.horizontal)
-                            .frame(height: 100)
-                        } else {
-                            // Auto mode: show only brightness/contrast fine-tune
-                            adjustControls
-                                .padding(.horizontal)
-                                .frame(height: 100)
                         }
-
-                        Divider().background(Color.white.opacity(0.2))
-
-                        HStack {
-                            Button("Cancel", action: onCancel).foregroundStyle(.white.opacity(0.8))
-                            Spacer()
-                            Button("Reset") { reset() }.foregroundStyle(.gray)
-                        }
-                        .padding()
+                        .frame(minWidth: isWide ? 240 : nil,
+                               idealWidth: isWide ? 280 : nil,
+                               maxWidth: isWide ? 320 : .infinity)
+                        .frame(height: isWide ? nil : toolsHeight)
+                        .frame(maxHeight: isWide ? .infinity : nil)
+                        .background(Color(uiColor: .systemBackground).colorScheme(.dark))
                     }
-                    .background(Color(uiColor: .systemBackground).colorScheme(.dark))
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .onPreferenceChange(ToolsHeightKey.self) { toolsContentHeight = $0 }
                 }
             }
+            .navigationTitle("Edit card face")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: onCancel) {
+                        Label("Cancel", systemImage: "xmark")
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button {
                         withAnimation {
                             rotation = (rotation + 90).truncatingRemainder(dividingBy: 360)
                         }
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "rotate.right")
-                            Text("Rotate")
-                        }
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(.white.opacity(0.15), in: Capsule())
-                    }
-                }
-                ToolbarItem(placement: .principal) {
-                    Text("Edit card face").foregroundStyle(.white).bold()
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { saveCroppedImage() } label: {
-                        Text("Save").bold()
+                        Label("Rotate", systemImage: "rotate.right")
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(Color.accentColor, in: Capsule())
                     }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: saveCroppedImage) {
+                        Label("Save", systemImage: "checkmark")
+                    }
+                    .tint(.white)
                 }
             }
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .onAppear { applyAutoZoomIfNeeded() }
+            .onAppear {
+                if !hasAppliedAutoZoom { applyAutoZoomIfNeeded() }
+            }
             .onChange(of: isAutoMode) { _ in applyAutoZoomIfNeeded() }
+        }
+    }
+
+    // MARK: - Adaptive Preview and Tools
+
+    private struct ToolsHeightKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
+    }
+
+    private var fittedPreview: some View {
+        GeometryReader { proxy in
+            // Editing and export stay in canonical coordinates; only presentation is fitted.
+            let displayScale = max(0, min(1, (proxy.size.width - 32) / cardWidth,
+                                           (proxy.size.height - 32) / cardHeight))
+            let displayedWidth = cardWidth * displayScale
+            let displayedHeight = cardHeight * displayScale
+
+            ZStack {
+                Color.clear.frame(width: cardWidth, height: cardHeight)
+                    .overlay(renderableView)
+                    .scaleEffect(displayScale)
+
+                Color.black.opacity(0.5)
+                    .mask(
+                        Rectangle()
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20 * displayScale)
+                                    .frame(width: displayedWidth, height: displayedHeight)
+                                    .blendMode(.destinationOut)
+                            )
+                    )
+                    .compositingGroup()
+
+                RoundedRectangle(cornerRadius: 20 * displayScale)
+                    .stroke(Color.white, lineWidth: 2)
+                    .frame(width: displayedWidth, height: displayedHeight)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        dragOffset = canonicalTranslation(value.translation, displayScale: displayScale)
+                    }
+                    .onEnded { value in
+                        let delta = canonicalTranslation(value.translation, displayScale: displayScale)
+                        offset = CGSize(width: offset.width + delta.width,
+                                        height: offset.height + delta.height)
+                        dragOffset = .zero
+                    }
+            )
+            .simultaneousGesture(
+                MagnificationGesture()
+                    .onChanged { value in scale = lastScale * value }
+                    .onEnded { _ in lastScale = scale }
+            )
+        }
+    }
+
+    private func canonicalTranslation(_ translation: CGSize, displayScale: CGFloat) -> CGSize {
+        CGSize(width: translation.width / max(displayScale, 0.001),
+               height: translation.height / max(displayScale, 0.001))
+    }
+
+    private var editorControls: some View {
+        VStack(spacing: 12) {
+            if canToggleAuto {
+                autoManualToggle
+            }
+
+            if !isAutoMode || !canToggleAuto {
+                Picker("Mode", selection: $activeTab) {
+                    Image(systemName: "crop").tag(0)
+                    Image(systemName: "slider.horizontal.3").tag(1)
+                    Image(systemName: "skew").tag(2)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+
+                Group {
+                    if activeTab == 0 {
+                        cropControls
+                    } else if activeTab == 1 {
+                        adjustControls
+                    } else {
+                        perspectiveControls
+                    }
+                }
+                .padding(.horizontal)
+            } else {
+                adjustControls
+                    .padding(.horizontal)
+            }
+
+            Divider().background(Color.white.opacity(0.2))
+
+            HStack {
+                Spacer()
+                Button(action: reset) {
+                    Text("Reset").frame(minHeight: 44)
+                }
+                .foregroundStyle(.gray)
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 8)
         }
     }
 
@@ -439,6 +491,7 @@ struct FaceImageEditorSheet: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(isAutoMode ? .white : .gray)
                 .padding(.horizontal, 14).padding(.vertical, 7)
+                .frame(minHeight: 44)
                 .background(isAutoMode ? Color.accentColor : Color.white.opacity(0.1), in: Capsule())
             }
 
@@ -452,6 +505,7 @@ struct FaceImageEditorSheet: View {
                 .font(.subheadline.bold())
                 .foregroundStyle(!isAutoMode ? .white : .gray)
                 .padding(.horizontal, 14).padding(.vertical, 7)
+                .frame(minHeight: 44)
                 .background(!isAutoMode ? Color.accentColor : Color.white.opacity(0.1), in: Capsule())
             }
         }
@@ -535,6 +589,7 @@ struct FaceImageEditorSheet: View {
     }
 
     private func applyAutoZoomIfNeeded() {
+        hasAppliedAutoZoom = true
         let fitScale: CGFloat
         if isAutoMode && canToggleAuto {
             // Auto mode: image is already perspective-corrected and cropped to card — show full, no extra zoom
@@ -716,7 +771,13 @@ struct MarkerEditorSheet: View {
                     }
                 }
                 .navigationTitle("Card Icon")
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button { dismiss() } label: {
+                            Label("Done", systemImage: "checkmark")
+                        }
+                    }
+                }
             }
         }
     }
@@ -792,7 +853,6 @@ struct QuickHistorySheet: View {
     let card: SavedCardRecord
     let store: CardWalletStore?
     @Environment(\.dismiss) private var dismiss
-    @State private var pendingDeletions: Set<String> = []
 
     enum HistoryMode {
         case transactions, transit
@@ -800,19 +860,59 @@ struct QuickHistorySheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if mode == .transactions {
-                    transactionsSection
-                } else {
-                    transitSection
+            CardHistoryList(mode: mode, card: card, store: store)
+                .navigationTitle(mode == .transactions ? "Transactions" : "Transit Activity")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button { dismiss() } label: {
+                            Label("Done", systemImage: "checkmark")
+                        }
+                    }
                 }
-            }
-            .navigationTitle(mode == .transactions ? "Transactions" : "Transit Activity")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
+        }
+    }
+}
+
+/// The history list shared by the Quick History sheet and the wide Cards
+/// layout's history pane, so rows, recency sorting, the transaction detail
+/// sheet and swipe-to-delete with pending deletions are identical in both.
+struct CardHistoryList: View {
+    enum Appearance {
+        /// The sheet's existing native list, unchanged.
+        case sheet
+        /// A grey rounded record group on the Cards screen's systemBackground.
+        case pane
+    }
+
+    let mode: QuickHistorySheet.HistoryMode
+    let card: SavedCardRecord
+    let store: CardWalletStore?
+    var appearance: Appearance = .sheet
+    /// Passed to each row. Nil keeps the rows' own detail sheet (the Quick
+    /// History sheet); the wide Cards pane presents it above its layout branch.
+    var onOpenDetails: ((TransitTransaction) -> Void)? = nil
+    @State private var pendingDeletions: Set<String> = []
+
+    @ViewBuilder
+    var body: some View {
+        switch appearance {
+        case .sheet:
+            list
+        case .pane:
+            list
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(Color(uiColor: .systemBackground))
+        }
+    }
+
+    private var list: some View {
+        List {
+            if mode == .transactions {
+                transactionsSection
+            } else {
+                transitSection
             }
         }
     }
@@ -823,10 +923,12 @@ struct QuickHistorySheet: View {
                 .filter { tx in tx.rawData.map { !pendingDeletions.contains($0) } ?? true }
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary)
+                    .modifier(HistoryRowBackground(appearance: appearance))
             } else {
                 ForEach(sorted, id: \.stableID) { tx in
-                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card)
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card, onOpenDetails: onOpenDetails)
                         .padding(.vertical, 4)
+                        .modifier(HistoryRowBackground(appearance: appearance))
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if let rawData = tx.rawData, let store {
                                 Button(role: .destructive) {
@@ -848,10 +950,12 @@ struct QuickHistorySheet: View {
                 .filter { tx in tx.rawData.map { !pendingDeletions.contains($0) } ?? true }
             if sorted.isEmpty {
                 Text("No records found").foregroundStyle(.secondary)
+                    .modifier(HistoryRowBackground(appearance: appearance))
             } else {
                 ForEach(sorted, id: \.stableID) { tx in
-                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card)
+                    TransitTransactionRow(tx: tx, cardFamily: card.cardFamily, reportCard: card, onOpenDetails: onOpenDetails)
                         .padding(.vertical, 4)
+                        .modifier(HistoryRowBackground(appearance: appearance))
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if let rawData = tx.rawData, let store {
                                 Button(role: .destructive) {
@@ -868,8 +972,34 @@ struct QuickHistorySheet: View {
     }
 }
 
+/// Pane rows use secondarySystemBackground; the sheet keeps its native rows.
+private struct HistoryRowBackground: ViewModifier {
+    let appearance: CardHistoryList.Appearance
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch appearance {
+        case .sheet:
+            content
+        case .pane:
+            content.listRowBackground(Color(uiColor: .secondarySystemBackground))
+        }
+    }
+}
+
 struct HistorySheetItem: Identifiable {
     let id = UUID()
     let mode: QuickHistorySheet.HistoryMode
     let card: SavedCardRecord
+}
+
+/// A transaction detail opened from the wide Cards history pane. It stores the
+/// record values themselves, so the sheet stays resolvable after the pane that
+/// opened it is removed (e.g. the device closes to the compact stack).
+struct TransactionDetailSheetItem: Identifiable {
+    let id = UUID()
+    let cardID: String
+    let tx: TransitTransaction
+    let cardFamily: String?
+    let reportCard: SavedCardRecord
 }

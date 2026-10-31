@@ -13,7 +13,12 @@ struct CityAtlasTabView: View {
 private struct CityAtlasView: View {
     @ObservedObject var store: CardWalletStore
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.layoutDirection) private var layoutDirection
+
     @State private var controlSizes: [String: CGSize] = [:]
+    @State private var controlFrames: [String: CGRect] = [:]
     @State private var visits: [CityAtlasVisit] = []
     @State private var provinceVisits: [CityAtlasVisit] = []
     @State private var cityBoundaries: [CityAtlasBoundary] = []
@@ -129,63 +134,22 @@ private struct CityAtlasView: View {
 
     var body: some View {
         GeometryReader { viewport in
-            let usesSidePanel = viewport.size.width >= 700
-                || (viewport.size.width >= 560 && viewport.size.width > viewport.size.height)
-            let panelWidth = min(320, viewport.size.width * 0.42)
+            let panelWidth = min(300, max(240, viewport.size.width - 344))
+            let usesSidePanel = horizontalSizeClass == .regular
+                && !dynamicTypeSize.isAccessibilitySize
+                && viewport.size.width - panelWidth - 24 >= 320
+                && viewport.size.height >= 220
 
+            // One full-bleed map at a fixed tree position, flat or folded; an active
+            // fold moves only the small control group in front of it.
             ZStack {
-                Color(red: 0.015, green: 0.035, blue: 0.07).ignoresSafeArea()
-
-                CityAtlasMapRepresentable(
-                    visits: visibleDisplayVisits,
-                    referenceBoundaries: visibleReferenceBoundaries,
-                    referenceLines: visibleReferenceLines,
-                    countryExtentBoundaries: countryExtentBoundaries,
-                    scope: scope,
-                    boundaryLevel: boundaryLevel,
-                    focusedCityID: focusedCityID,
-                    cameraRevision: cameraRevision,
-                    resetCameraRevision: resetCameraRevision,
-                    contentInsets: UIEdgeInsets(
-                        top: usesSidePanel && showsSummary ? 20 : (controlSizes["header"]?.height ?? 52) + 24,
-                        left: usesSidePanel && showsSummary ? panelWidth + 32 : 20,
-                        bottom: usesSidePanel || !showsSummary ? 20 : (controlSizes["summary"]?.height ?? 100) + 48,
-                        right: 20
-                    ),
-                    selectedCityID: $selectedCityID
-                )
-                // The map fills the display; foreground controls remain in its safe area.
-                .ignoresSafeArea()
-
-                if usesSidePanel {
-                    HStack(alignment: .top) {
-                        ScrollView {
-                            VStack(spacing: 12) {
-                                header
-                                    .atlasMeasure("header")
-                                if showsSummary { bottomPanel }
-                            }
-                        }
-                        .scrollIndicators(.hidden)
-                        .frame(width: panelWidth)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(12)
-                } else {
-                    VStack(spacing: 12) {
-                        header
-                            .atlasMeasure("header")
-                        Spacer(minLength: 24)
-                        if showsSummary {
-                            bottomPanel
-                                .atlasMeasure("summary")
-                                .padding(.bottom, 24) // Keep MapKit attribution visible below the floating panel.
-                        }
-                    }
-                    .padding(12)
-                }
+                atlasMap(usesSidePanel: usesSidePanel, viewportSize: viewport.size)
+                atlasControls(usesSidePanel: usesSidePanel, panelWidth: panelWidth)
             }
+            .background(Color(red: 0.015, green: 0.035, blue: 0.07).ignoresSafeArea())
+            .coordinateSpace(name: "atlasViewport")
             .onPreferenceChange(AtlasControlSizeKey.self) { controlSizes = $0 }
+            .onPreferenceChange(AtlasControlFrameKey.self) { controlFrames = $0 }
         }
         .preferredColorScheme(.dark)
         .task(id: cityDataRevision) {
@@ -196,6 +160,211 @@ private struct CityAtlasView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
+    }
+
+    private func atlasMap(usesSidePanel: Bool, viewportSize: CGSize) -> some View {
+        // The map always fills the display behind the controls; only the camera's
+        // content insets follow the controls' measured frames.
+        CityAtlasMapRepresentable(
+            visits: visibleDisplayVisits,
+            referenceBoundaries: visibleReferenceBoundaries,
+            referenceLines: visibleReferenceLines,
+            countryExtentBoundaries: countryExtentBoundaries,
+            scope: scope,
+            boundaryLevel: boundaryLevel,
+            focusedCityID: focusedCityID,
+            cameraRevision: cameraRevision,
+            resetCameraRevision: resetCameraRevision,
+            contentInsets: mapContentInsets(usesSidePanel: usesSidePanel, viewportSize: viewportSize),
+            selectedCityID: $selectedCityID
+        )
+        // Only the map bleeds; every foreground control remains safe-area aligned.
+        .ignoresSafeArea()
+        .atlasMeasureFrame("map")
+    }
+
+    /// Camera insets from frames measured in the shared "atlasViewport" space:
+    /// each inset covers only the part of the map a control actually overlaps, on
+    /// the physical side it occupies. The map view adds its live safe-area insets.
+    private func mapContentInsets(usesSidePanel: Bool, viewportSize: CGSize) -> UIEdgeInsets {
+        var insets = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+        guard let measuredMap = controlFrames["map"] else { return insets }
+        // The map bleeds under the system bars, which the map view pads itself;
+        // measure the controls against the map's safe-area part only.
+        let map = measuredMap.intersection(CGRect(origin: .zero, size: viewportSize))
+        guard !map.isNull, map.width > 0, map.height > 0 else { return insets }
+
+        if usesSidePanel, let panel = controlFrames["panel"] {
+            if panel.intersects(map) {
+                let panelOnLeft = panel.midX < map.midX
+                let panelOnTop = panel.midY < map.midY
+                let sideInset = panelOnLeft
+                    ? panel.maxX - map.minX + 12
+                    : map.maxX - panel.minX + 12
+                let verticalInset = panelOnTop
+                    ? panel.maxY - map.minY + 12
+                    : map.maxY - panel.minY + 12
+                // A short panel (e.g. above or below a tabletop fold, or a header
+                // alone) pads its top or bottom edge when that costs less of the map.
+                let usesVerticalInset = panel.height < map.height * 0.6
+                    && verticalInset / map.height < sideInset / map.width
+                if usesVerticalInset {
+                    if panelOnTop {
+                        insets.top = verticalInset
+                    } else {
+                        insets.bottom = verticalInset
+                    }
+                } else if panelOnLeft {
+                    insets.left = sideInset
+                } else {
+                    insets.right = sideInset
+                }
+            }
+        } else {
+            if let header = controlFrames["header"], header.intersects(map) {
+                insets.top = header.maxY - map.minY + 12
+            }
+            // The extra room keeps the Apple Maps attribution clear of the summary.
+            if showsSummary, let summary = controlFrames["summary"], summary.intersects(map) {
+                insets.bottom = map.maxY - summary.minY + 24
+            }
+        }
+
+        return UIEdgeInsets(
+            top: clampedInset(insets.top, dimension: map.height),
+            left: clampedInset(insets.left, dimension: map.width),
+            bottom: clampedInset(insets.bottom, dimension: map.height),
+            right: clampedInset(insets.right, dimension: map.width)
+        )
+    }
+
+    /// At least 20 and under half the map, so the camera always keeps room. Whole
+    /// points keep sub-point frame changes from refitting the camera.
+    private func clampedInset(_ value: CGFloat, dimension: CGFloat) -> CGFloat {
+        let limit = max(20, (dimension / 2 - 1).rounded(.down))
+        return min(max(value.rounded(), 20), limit)
+    }
+
+    @ViewBuilder
+    private func atlasControls(usesSidePanel: Bool, panelWidth: CGFloat) -> some View {
+        GeometryReader { controlsViewport in
+            let placement = controlsPlacement(
+                in: controlsViewport,
+                usesSidePanel: usesSidePanel,
+                panelWidth: panelWidth
+            )
+
+            if placement.sidePanelFits {
+                sidePanel(localPanelWidth: placement.panelWidth)
+                    .frame(maxHeight: placement.panelMaxHeight)
+                    .padding(.top, placement.panelTopOffset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: placement.panelAlignment)
+                    .padding(12)
+                    .padding(.bottom, 24) // Keep MapKit attribution below a tall, scrolling panel.
+            } else {
+                VStack(spacing: 12) {
+                    header
+                        .frame(maxWidth: placement.compactMaxWidth)
+                        .atlasMeasureFrame("header")
+                        .frame(maxWidth: .infinity, alignment: placement.sideAlignment)
+                    Spacer(minLength: 24)
+                    if showsSummary {
+                        bottomPanel
+                            .frame(maxWidth: placement.compactMaxWidth)
+                            .atlasMeasureFrame("summary")
+                            .frame(maxWidth: .infinity, alignment: placement.sideAlignment)
+                            .padding(.bottom, 24) // Keep MapKit attribution below the floating panel.
+                    }
+                }
+                .padding(12)
+            }
+        }
+    }
+
+    private func sidePanel(localPanelWidth: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                header
+                if showsSummary { bottomPanel }
+            }
+            .atlasMeasure("panelContent")
+        }
+        .scrollIndicators(.hidden)
+        .modifier(AtlasPanelScrollBounce())
+        .frame(width: localPanelWidth)
+        // Hug the genuine content; scroll only when the offered region is shorter.
+        .frame(maxHeight: controlSizes["panelContent"]?.height ?? .infinity)
+        .atlasMeasureFrame("panel")
+    }
+
+    /// Places only the foreground controls so labels and targets stay off an active
+    /// fold. Flat and pre-27.1 layouts report no fold and keep the unfolded placement.
+    private func controlsPlacement(
+        in controlsViewport: GeometryProxy,
+        usesSidePanel: Bool,
+        panelWidth: CGFloat
+    ) -> AtlasControlsPlacement {
+        let size = controlsViewport.size
+        let fold = activeFold(in: controlsViewport)
+        var placement = AtlasControlsPlacement()
+        // An active division can offer less space than the outer viewport.
+        var localPanelWidth = min(panelWidth, max(0, controlsViewport.size.width - 24))
+        var panelRegionHeight = size.height
+
+        if let book = fold.book {
+            // Physical widths beside the fold, less the 12 pt outer padding and a 12 pt gap.
+            let leftWidth = max(0, book.minX - 12 - 12)
+            let rightWidth = max(0, size.width - book.maxX - 12 - 12)
+            let isRightToLeft = layoutDirection == .rightToLeft
+            let leadingWidth = isRightToLeft ? rightWidth : leftWidth
+            let trailingWidth = isRightToLeft ? leftWidth : rightWidth
+            // Stay on the controls' usual side unless it is too narrow; never cross the fold.
+            placement.usesTrailingSide = leadingWidth < 240 && trailingWidth > leadingWidth
+            let sideWidth = placement.usesTrailingSide ? trailingWidth : leadingWidth
+            localPanelWidth = min(localPanelWidth, sideWidth)
+            placement.compactMaxWidth = sideWidth
+        }
+
+        if let tabletop = fold.tabletop {
+            // Keep the panel wholly above the fold, or below it when above is too short.
+            let aboveHeight = max(0, tabletop.minY - 12 - 12)
+            let belowHeight = max(0, size.height - tabletop.maxY - 12 - 12)
+            if aboveHeight >= 220 || aboveHeight >= belowHeight {
+                panelRegionHeight = aboveHeight
+                placement.panelMaxHeight = aboveHeight
+            } else {
+                panelRegionHeight = belowHeight
+                placement.panelMaxHeight = belowHeight
+                placement.panelTopOffset = tabletop.maxY
+            }
+        }
+
+        placement.panelWidth = localPanelWidth
+        placement.sidePanelFits = usesSidePanel && localPanelWidth >= 240
+            && panelRegionHeight >= 220
+        return placement
+    }
+
+    /// Active fold regions in the controls' physical (unmirrored) coordinates.
+    private func activeFold(in proxy: GeometryProxy) -> AtlasFold {
+        var fold = AtlasFold()
+        // Older SDKs cannot type-check the iOS 27.1 reserved-region API.
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) {
+            let bounds = CGRect(origin: .zero, size: proxy.size)
+            // Physical positions; the leading side is resolved from layoutDirection.
+            for region in proxy.reservedRegions(kind: .division, layoutDirectionBehavior: .fixed) {
+                let frame = bounds.intersection(region.frame)
+                guard !frame.isNull else { continue }
+                if frame.height > frame.width {
+                    fold.book = frame
+                } else {
+                    fold.tabletop = frame
+                }
+            }
+        }
+        #endif
+        return fold
     }
 
     private var header: some View {
@@ -545,7 +714,55 @@ private struct AtlasControlSizeKey: PreferenceKey {
     }
 }
 
+private struct AtlasControlFrameKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+/// Hinge geometry intersected with the controls viewport (physical coordinates).
+private struct AtlasFold {
+    var book: CGRect?
+    var tabletop: CGRect?
+}
+
+/// Foreground-only placement values; the map behind the controls never moves.
+private struct AtlasControlsPlacement {
+    var panelWidth: CGFloat = 0
+    var sidePanelFits = false
+    var panelMaxHeight: CGFloat?
+    var panelTopOffset: CGFloat = 0
+    var compactMaxWidth: CGFloat?
+    var usesTrailingSide = false
+
+    var sideAlignment: Alignment { usesTrailingSide ? .trailing : .leading }
+    var panelAlignment: Alignment { usesTrailingSide ? .topTrailing : .topLeading }
+}
+
+private struct AtlasPanelScrollBounce: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, *) {
+            content.scrollBounceBehavior(.basedOnSize)
+        } else {
+            content
+        }
+    }
+}
+
 private extension View {
+    func atlasMeasureFrame(_ name: String) -> some View {
+        background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: AtlasControlFrameKey.self,
+                    value: [name: proxy.frame(in: .named("atlasViewport"))]
+                )
+            }
+        }
+    }
+
     func atlasMeasure(_ name: String) -> some View {
         background {
             GeometryReader { proxy in
@@ -567,17 +784,24 @@ private extension View {
 // MARK: - Map
 
 private final class AtlasMapView: MKMapView {
-    var viewportDidChange: (() -> Void)?
+    var viewportDidChange: ((Bool) -> Void)?
     private var previousSize: CGSize = .zero
-    private var previousInsets: UIEdgeInsets = .zero
+    private var safeAreaInvalidated = true
+
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        safeAreaInvalidated = true
+        setNeedsLayout()
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard bounds.size != previousSize || safeAreaInsets != previousInsets else { return }
+        guard bounds.size != previousSize || safeAreaInvalidated else { return }
         previousSize = bounds.size
-        previousInsets = safeAreaInsets
-        // MapKit must finish laying out before fitting coordinates around the controls.
-        DispatchQueue.main.async { [weak self] in self?.viewportDidChange?() }
+        let safeAreaChanged = safeAreaInvalidated
+        safeAreaInvalidated = false
+        // Fit after MapKit's layout, reading live, independent safe-area edges.
+        DispatchQueue.main.async { [weak self] in self?.viewportDidChange?(safeAreaChanged) }
     }
 }
 
@@ -604,9 +828,9 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = AtlasMapView(frame: .zero)
-        mapView.viewportDidChange = { [weak mapView, weak coordinator = context.coordinator] in
+        mapView.viewportDidChange = { [weak mapView, weak coordinator = context.coordinator] safeAreaChanged in
             guard let mapView else { return }
-            coordinator?.updateMap(mapView)
+            coordinator?.updateMap(mapView, safeAreaChanged: safeAreaChanged)
         }
         mapView.preferredConfiguration = Self.globeConfiguration()
         mapView.overrideUserInterfaceStyle = .dark
@@ -677,7 +901,7 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
             self.parent = parent
         }
 
-        func updateMap(_ mapView: MKMapView) {
+        func updateMap(_ mapView: MKMapView, safeAreaChanged: Bool = false) {
             let visitSignature = parent.visits
                 .map { "\($0.id):\($0.recordCount):\($0.cards.count)" }
                 .joined(separator: "|")
@@ -695,7 +919,9 @@ private struct CityAtlasMapRepresentable: UIViewRepresentable {
 
             guard mapView.bounds.width > 0, mapView.bounds.height > 0 else { return }
             let selectionChanged = parent.cameraRevision != lastCameraRevision
-            let viewportChanged = mapView.bounds.size != lastViewportSize || parent.contentInsets != lastContentInsets
+            let viewportChanged = safeAreaChanged
+                || mapView.bounds.size != lastViewportSize
+                || parent.contentInsets != lastContentInsets
             lastViewportSize = mapView.bounds.size
             lastContentInsets = parent.contentInsets
             guard selectionChanged || (viewportChanged && !userAdjustedCamera) else { return }

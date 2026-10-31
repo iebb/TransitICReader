@@ -60,7 +60,13 @@ final class NFCTransitReader: NSObject, ObservableObject {
         return UIDevice.current.userInterfaceIdiom == .pad
         #endif
     }
-    var usesExternalReader: Bool { requiresExternalReader || prefersExternalReader }
+    /// At least one external smart-card reader is connected right now.
+    var hasConnectedExternalReader: Bool { !externalReaderNames.isEmpty }
+    /// On iPhone an external reader is used only while one is connected; with
+    /// none connected the app reads with iPhone NFC, whatever was chosen before.
+    var usesExternalReader: Bool {
+        requiresExternalReader || (prefersExternalReader && hasConnectedExternalReader)
+    }
     var isNFCAvailable: Bool {
         if usesExternalReader {
             return (try? ExternalReaderSelection.choose(preferred: selectedExternalReaderName, available: externalReaderNames)) != nil

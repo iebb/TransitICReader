@@ -26,6 +26,7 @@ struct FeliCaSNScannerView: View {
 
     @State private var cameraVC: SNScannerViewController?
     @State private var isCapturing = false
+    @State private var actionsMeasuredHeight: CGFloat = 44
 
     private var fullSN: String {
         "\(p1)\(p2)\(p3)\(p4)"
@@ -40,150 +41,227 @@ struct FeliCaSNScannerView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { container in
-                ZStack {
-                    SNCameraView(onRecognized: { sn in
-                        updateWith(sn, xPos: nil)
-                    },
-                    onFragments: { fragments in
-                        for f in fragments {
-                            let cardWidth = guideWidth(in: container.size)
-                            let serialWidth = cardWidth * (50.0 / 85.6)
-                            let serialStart = (container.size.width + cardWidth) / 2 - serialWidth
-                            updateWith(f.text, xPos: (f.rect.midX - serialStart) / serialWidth)
-                        }
-                    },
-                    onVCReady: { vc in
-                        cameraVC = vc
-                    })
-
-                    // Cutout and Skeleton UI
-                    GeometryReader { proxy in
-                        let cardW = guideWidth(in: proxy.size)
-                        let cardH = cardW / (85.6 / 54.0)
-                        let snBoxW = cardW * (50.0 / 85.6)
-                        let snBoxH = cardH * (7.0 / 54.0)
-
-                        let cardCenterY = proxy.size.height / 2 - 40
-                        let snBoxX = (proxy.size.width + cardW)/2 - snBoxW
-                        let snBoxY = cardCenterY + cardH/2 - snBoxH
-
-                        ZStack {
-                            // Dimmed background
-                            Rectangle().fill(.black.opacity(0.4)).ignoresSafeArea()
-                                .mask(
-                                    ZStack {
-                                        Rectangle().ignoresSafeArea()
-                                        // Card outline cutout
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .frame(width: cardW, height: cardH)
-                                            .position(x: proxy.size.width/2, y: cardCenterY)
-                                            .blendMode(.destinationOut)
-                                    }
-                                )
-
-                            // Full Card Outline (Ghosted)
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
-                                .frame(width: cardW, height: cardH)
-                                .position(x: proxy.size.width/2, y: cardCenterY)
-
-                            // SN Focus Box (Active)
-                            Path { path in
-                                let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
-                                path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-                                path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-                                path.addArc(center: CGPoint(x: rect.maxX - 16, y: rect.maxY - 16), radius: 16, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
-                                path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-                                path.closeSubpath()
-                            }
-                            .stroke(isValid ? .green : .white.opacity(0.5), lineWidth: 2)
-                            .background {
-                                 Path { path in
-                                    let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
-                                    path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-                                    path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-                                    path.addArc(center: CGPoint(x: rect.maxX - 16, y: rect.maxY - 16), radius: 16, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
-                                    path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-                                    path.closeSubpath()
-                                }
-                                .fill(.white.opacity(0.05))
-                            }
-
-                            // Skeleton hint with live filling
-                            HStack(spacing: 0) {
-                                partView(p1, placeholder: "JK233", width: cardW * (14.0 / 85.6), isConfirmed: p1Confirmed) { if !p1.isEmpty { p1Confirmed.toggle(); triggerHaptic() } }
-                                partView(p2, placeholder: "A456", width: cardW * (12.0 / 85.6), isConfirmed: p2Confirmed) { if !p2.isEmpty { p2Confirmed.toggle(); triggerHaptic() } }
-                                partView(p3, placeholder: "1234", width: cardW * (12.0 / 85.6), isConfirmed: p3Confirmed) { if !p3.isEmpty { p3Confirmed.toggle(); triggerHaptic() } }
-                                partView(p4, placeholder: "8888", width: cardW * (12.0 / 85.6), isConfirmed: p4Confirmed) { if !p4.isEmpty { p4Confirmed.toggle(); triggerHaptic() } }
-                            }
-                            .font(.system(size: 16, weight: .bold, design: .monospaced))
-                            .position(x: snBoxX + snBoxW/2, y: snBoxY + snBoxH/2)
-                            .onChange(of: isValid) { valid in
-                                if valid { withAnimation { wasValidOnce = true } }
-                            }
-
-                            // Bottom buttons
-                            VStack {
-                                Spacer()
-
-                                // Photo capture button (always visible when callback is provided)
-                                if onPhotoTaken != nil {
-                                    Button {
-                                        capturePhoto()
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "camera.fill")
-                                            Text("Save as Card Face")
-                                        }
-                                        .font(.subheadline.bold())
-                                        .padding(.horizontal, 20).padding(.vertical, 12)
-                                        .background(.ultraThinMaterial, in: Capsule())
-                                        .foregroundStyle(.white)
-                                    }
-                                    .disabled(isCapturing)
-                                    .opacity(isCapturing ? 0.5 : 1)
-                                    .padding(.bottom, wasValidOnce ? 4 : 24)
-                                }
-
-                                // Confirm S/N Button
-                                if wasValidOnce {
-                                    Button {
-                                        if isValid {
-                                            onRecognized(fullSN)
-                                            dismiss()
-                                        } else {
-                                            withAnimation { wasValidOnce = false }
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Text("Confirm S/N")
-                                            Image(systemName: "checkmark.circle.fill")
-                                        }
-                                        .font(.headline)
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(isValid ? Color.green : Color.gray, in: RoundedRectangle(cornerRadius: 14))
-                                        .foregroundStyle(.white)
-                                    }
-                                    .padding(.horizontal, 24)
-                                    .padding(.bottom, 24)
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                                }
-                            }
-                        }
-                    }
-                }
+            GeometryReader { available in
+                scannerWithActions(maxActionsHeight: available.size.height * 0.45)
             }
             .background(.black)
             .navigationTitle("Scan Card S/N")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: {
+                        Label("Close", systemImage: "xmark")
+                    }
+                }
+            }
         }
     }
 
-    private func guideWidth(in size: CGSize) -> CGFloat {
-        min(size.width * 0.88, max(size.height - 180, 100) * (85.6 / 54.0), 480)
+    @ViewBuilder
+    private func scannerWithActions(maxActionsHeight: CGFloat) -> some View {
+        if #available(iOS 26.0, *) {
+            scannerContent.safeAreaBar(edge: .bottom) {
+                scannerActions(maxHeight: maxActionsHeight)
+            }
+        } else {
+            scannerContent.safeAreaInset(edge: .bottom, spacing: 0) {
+                scannerActions(maxHeight: maxActionsHeight)
+                    .background(.ultraThinMaterial)
+            }
+        }
+    }
+
+    private var scannerContent: some View {
+        GeometryReader { proxy in
+            let guide = guideFrame(in: proxy)
+            ZStack {
+                SNCameraView(onRecognized: { sn in
+                    updateWith(sn, xPos: nil)
+                },
+                onFragments: { fragments in
+                    for f in fragments {
+                        let cardWidth = guide.width
+                        let serialWidth = cardWidth * (50.0 / 85.6)
+                        let serialStart = guide.maxX - serialWidth
+                        updateWith(f.text, xPos: serialWidth > 0 ? (f.rect.midX - serialStart) / serialWidth : nil)
+                    }
+                },
+                onVCReady: { vc in
+                    cameraVC = vc
+                })
+
+                // Cutout and Skeleton UI
+                let cardW = guide.width
+                let cardH = cardW / (85.6 / 54.0)
+                let snBoxW = cardW * (50.0 / 85.6)
+                let snBoxH = cardH * (7.0 / 54.0)
+                let snCornerRadius = min(16, snBoxH / 2)
+
+                let cardCenterY = guide.midY
+                let snBoxX = guide.maxX - snBoxW
+                let snBoxY = cardCenterY + cardH/2 - snBoxH
+
+                ZStack {
+                    // Dimmed background
+                    Rectangle().fill(.black.opacity(0.4)).ignoresSafeArea()
+                        .mask(
+                            ZStack {
+                                Rectangle().ignoresSafeArea()
+                                // Card outline cutout
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .frame(width: cardW, height: cardH)
+                                    .position(x: guide.midX, y: cardCenterY)
+                                    .blendMode(.destinationOut)
+                            }
+                        )
+
+                    // Full Card Outline (Ghosted)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                        .frame(width: cardW, height: cardH)
+                        .position(x: guide.midX, y: cardCenterY)
+
+                    // SN Focus Box (Active)
+                    Path { path in
+                        let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
+                        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+                        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+                        path.addArc(center: CGPoint(x: rect.maxX - snCornerRadius, y: rect.maxY - snCornerRadius), radius: snCornerRadius, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+                        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+                        path.closeSubpath()
+                    }
+                    .stroke(isValid ? .green : .white.opacity(0.5), lineWidth: 2)
+                    .background {
+                         Path { path in
+                            let rect = CGRect(x: snBoxX, y: snBoxY, width: snBoxW, height: snBoxH)
+                            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+                            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+                            path.addArc(center: CGPoint(x: rect.maxX - snCornerRadius, y: rect.maxY - snCornerRadius), radius: snCornerRadius, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+                            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+                            path.closeSubpath()
+                        }
+                        .fill(.white.opacity(0.05))
+                    }
+
+                    // Skeleton hint with live filling
+                    HStack(spacing: 0) {
+                        partView(p1, placeholder: "JK233", width: cardW * (14.0 / 85.6), isConfirmed: p1Confirmed) { if !p1.isEmpty { p1Confirmed.toggle(); triggerHaptic() } }
+                        partView(p2, placeholder: "A456", width: cardW * (12.0 / 85.6), isConfirmed: p2Confirmed) { if !p2.isEmpty { p2Confirmed.toggle(); triggerHaptic() } }
+                        partView(p3, placeholder: "1234", width: cardW * (12.0 / 85.6), isConfirmed: p3Confirmed) { if !p3.isEmpty { p3Confirmed.toggle(); triggerHaptic() } }
+                        partView(p4, placeholder: "8888", width: cardW * (12.0 / 85.6), isConfirmed: p4Confirmed) { if !p4.isEmpty { p4Confirmed.toggle(); triggerHaptic() } }
+                    }
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .position(x: snBoxX + snBoxW/2, y: snBoxY + snBoxH/2)
+                    .onChange(of: isValid) { valid in
+                        if valid { withAnimation { wasValidOnce = true } }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func scannerActions(maxHeight: CGFloat) -> some View {
+        if onPhotoTaken != nil || wasValidOnce {
+            ScrollView {
+                VStack(spacing: 12) {
+                    // Photo capture button (always visible when callback is provided)
+                    if onPhotoTaken != nil {
+                        Button {
+                            capturePhoto()
+                        } label: {
+                            HStack {
+                                Image(systemName: "camera.fill")
+                                Text("Save as Card Face")
+                            }
+                            .font(.subheadline.bold())
+                            .padding(.horizontal, 20).padding(.vertical, 12)
+                            .frame(minHeight: 44)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .foregroundStyle(.white)
+                        }
+                        .disabled(isCapturing)
+                        .opacity(isCapturing ? 0.5 : 1)
+                    }
+
+                    // Confirm S/N Button
+                    if wasValidOnce {
+                        Button {
+                            if isValid {
+                                onRecognized(fullSN)
+                                dismiss()
+                            } else {
+                                withAnimation { wasValidOnce = false }
+                            }
+                        } label: {
+                            HStack {
+                                Text("Confirm S/N")
+                                Image(systemName: "checkmark.circle.fill")
+                            }
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(isValid ? Color.green : Color.gray, in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(.white)
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity)
+                .background {
+                    GeometryReader { actions in
+                        Color.clear.preference(key: ActionsHeightKey.self, value: actions.size.height)
+                    }
+                }
+            }
+            .frame(maxHeight: min(actionsMeasuredHeight, maxHeight))
+            .onPreferenceChange(ActionsHeightKey.self) { actionsMeasuredHeight = $0 }
+        }
+    }
+
+    private struct ActionsHeightKey: PreferenceKey {
+        static var defaultValue: CGFloat = 44
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
+        }
+    }
+
+    private func guideFrame(in proxy: GeometryProxy) -> CGRect {
+        var available = CGRect(origin: .zero, size: proxy.size)
+        // Older SDKs cannot type-check the iOS 27.1 reserved-region API.
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) {
+            // Physical positions are used below, so do not mirror the hardware regions in RTL.
+            for region in proxy.reservedRegions(kind: .division, layoutDirectionBehavior: .fixed) {
+                let fold = available.intersection(region.frame)
+                guard !fold.isNull else { continue }
+                let candidates: [CGRect]
+                if fold.height > fold.width {
+                    candidates = [
+                        CGRect(x: available.minX, y: available.minY,
+                               width: max(0, fold.minX - available.minX), height: available.height),
+                        CGRect(x: fold.maxX, y: available.minY,
+                               width: max(0, available.maxX - fold.maxX), height: available.height)
+                    ]
+                } else {
+                    candidates = [
+                        CGRect(x: available.minX, y: available.minY,
+                               width: available.width, height: max(0, fold.minY - available.minY)),
+                        CGRect(x: available.minX, y: fold.maxY,
+                               width: available.width, height: max(0, available.maxY - fold.maxY))
+                    ]
+                }
+                available = candidates.max { $0.width * $0.height < $1.width * $1.height } ?? available
+            }
+        }
+        #endif
+        // System bars and actions have already reserved their space before this measurement.
+        let width = min(max(available.width - 32, 0),
+                        max(available.height - 32, 0) * (85.6 / 54.0), 480)
+        let height = width / (85.6 / 54.0)
+        return CGRect(x: available.midX - width / 2, y: available.midY - height / 2,
+                      width: width, height: height)
     }
 
     private func capturePhoto() {
@@ -363,7 +441,8 @@ class SNScannerViewController: UIViewController, AVCaptureVideoDataOutputSampleB
             }
         }
 
-        request.regionOfInterest = CGRect(x: 0, y: 0.2, width: 1.0, height: 0.3)
+        // Keep Vision's full-frame default: resizing or an active fold can move the guide
+        // outside a fixed normalized ROI. Existing serial/fragment validation still applies.
         request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
         try? sequenceHandler.perform([request], on: pixelBuffer, orientation: orientation)
     }
