@@ -75,6 +75,7 @@ the manual store jobs. The public CI workflow does not reference them.
 | `IOS_CERTIFICATE_P12_BASE64`, `IOS_CERTIFICATE_PASSWORD` | Matching Apple Distribution identity |
 | `IOS_PROVISION_PROFILE_BASE64` | CardBal App Store provisioning profile |
 | `FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64` | Optional existing iOS Firebase configuration |
+| `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` | Optional Android Firebase configuration (base64 of `google-services.json`) |
 | `ANDROID_UPLOAD_KEYSTORE_BASE64` | Existing Android upload keystore |
 | `CARDBAL_UPLOAD_STORE_PASSWORD`, `CARDBAL_UPLOAD_KEY_ALIAS`, `CARDBAL_UPLOAD_KEY_PASSWORD` | Android upload-key signing |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Google Play Publisher service-account JSON |

@@ -50,6 +50,7 @@ __pycache__/
 /build_armv8_apk.sh
 /ios/CardBal/NFC/Decoders.zip
 /ios/CardBal/Resources/GoogleService-Info.plist
+/android/app/google-services.json
 /ios/CardBal/Resources/OctopusEnquiryConfig.plist
 
 # Project-specific logs
