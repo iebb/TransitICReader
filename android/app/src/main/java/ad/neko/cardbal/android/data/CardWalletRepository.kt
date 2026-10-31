@@ -104,6 +104,8 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
 
     fun rename(id: String, title: String) = update(id) { it.copy(customTitle = title.trim().ifEmpty { null }) }
 
+    fun setFace(id: String, fileName: String?) = update(id) { it.withFaceChoice(fileName) }
+
     fun setRealSerialNumber(id: String, serialNumber: String) = update(id) {
         val clean = serialNumber.uppercase().trim()
         it.copy(

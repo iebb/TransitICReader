@@ -34,6 +34,10 @@ fun importedFaceImageFor(context: Context, fileName: String?): ImageBitmap? {
     return BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
 }
 
+fun savedFaceFileNames(context: Context): List<String> =
+    File(context.filesDir, "CardFaces").listFiles().orEmpty()
+        .filter { it.isFile }.map { it.name }.sorted()
+
 /** The published face for [card], downloaded on first use; null until it arrives. */
 @Composable
 fun rememberRemoteFace(card: SavedCardRecord): ImageBitmap? {
@@ -42,7 +46,7 @@ fun rememberRemoteFace(card: SavedCardRecord): ImageBitmap? {
     val token = remember(manifest, card) { faces.faceTokenFor(card) }
     val sha256 = token?.let { manifest?.entry(it)?.design?.sha256 }
     val face by produceState<ImageBitmap?>(null, token, sha256) {
-        value = token?.let { faces.cachedFace(it)?.asImageBitmap() }
+        value = null
         value = token?.let { faces.face(it)?.asImageBitmap() }
     }
     return face

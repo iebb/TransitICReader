@@ -146,6 +146,7 @@ fun CardDetailScreen(
     routes: List<StationRoute>,
     rawExplanationFor: (TransitTransaction) -> RawRecordExplanation?,
     onBack: () -> Unit,
+    onSelectFace: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedRecord by remember { mutableStateOf<TransitTransaction?>(null) }
@@ -174,6 +175,7 @@ fun CardDetailScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
         ) {
             item { WalletCard(card) }
+            item { CardFacePicker(card = card, onSelectFace = onSelectFace) }
             // An Octopus – China T-Union card with a reported rate shows both balances and the rate.
             if (dualBalance != null && card.visibleBalance.isNotEmpty()) {
                 item {
