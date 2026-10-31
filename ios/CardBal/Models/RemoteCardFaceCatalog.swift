@@ -54,6 +54,7 @@ struct RemoteFaceManifest: Codable, Equatable {
 
     let schemaVersion: Int
     let cards: [Card]
+    let retiredDesigns: [String: String]?
 
     static func token(cardID: String, designID: String) -> String {
         "remote.\(cardID.replacingOccurrences(of: "/", with: ".")).\(designID).png"
@@ -71,6 +72,12 @@ struct RemoteFaceManifest: Codable, Equatable {
 
     func entry(for token: String) -> Entry? {
         entries.first { $0.token == token }
+    }
+
+    func replacementToken(for token: String) -> String? {
+        guard let replacement = retiredDesigns?[token], Self.isToken(replacement),
+              entry(for: replacement) != nil else { return nil }
+        return replacement
     }
 
     // Older backups store bundle names. Keep those choices working after the
@@ -99,7 +106,8 @@ struct RemoteFaceManifest: Codable, Equatable {
     func faceToken(for card: SavedCardRecord) -> String? {
         guard card.isUsingImage != false else { return nil }
         if let fileName = card.faceImageFileName {
-            return entryForBundledAsset(fileName)?.token ?? Self.publishedToken(for: fileName)
+            guard let token = entryForBundledAsset(fileName)?.token ?? Self.publishedToken(for: fileName) else { return nil }
+            return replacementToken(for: token) ?? token
         }
         guard let matched = match(card.remoteFaceMatchInput),
               let design = matched.designs.first(where: { $0.id == "default" }) else { return nil }
@@ -129,7 +137,23 @@ struct RemoteFaceManifest: Codable, Equatable {
             return card
         }
         let serials = input.serialNumbers.map { $0.uppercased().filter { $0.isLetter || $0.isNumber } }
-        return longestMatch(\.serialPrefixes, where: { prefix in serials.contains { $0.hasPrefix(prefix) } })
+        if let card = longestMatch(\.serialPrefixes, where: { prefix in serials.contains { $0.hasPrefix(prefix) } }) {
+            return card
+        }
+        let cities = Set(input.chineseCityNames.map(Self.normalizedCityName).filter { !$0.isEmpty })
+        let cityMatches = cards.filter { card in
+            guard card.id.hasPrefix("cn/") else { return false }
+            return card.city?.values.contains { cities.contains(Self.normalizedCityName($0)) } ?? false
+        }
+        return cityMatches.count == 1 ? cityMatches.first : nil
+    }
+
+    private static func normalizedCityName(_ value: String) -> String {
+        var name = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        for suffix in [" municipality", " city", "市"] where name.hasSuffix(suffix) && name.count > suffix.count {
+            name.removeLast(suffix.count)
+        }
+        return name
     }
 
     /// Keep all designs for the physical card ahead of related city cards and
@@ -174,6 +198,7 @@ struct RemoteFaceMatchInput: Equatable {
     var cityUnionCodes: [String] = []
     var serialNumbers: [String] = []
     var family: String = ""
+    var chineseCityNames: [String] = []
 }
 
 extension RemoteFaceManifest.Entry {
@@ -200,21 +225,24 @@ extension RemoteFaceManifest.Entry {
 extension SavedCardRecord {
     var remoteFaceMatchInput: RemoteFaceMatchInput {
         let apps = applications ?? []
+        // Older Chinese records retain this field even without application metadata.
+        let isChineseTransit = ["A000000632010105", "A00000000386980701"].contains(selectedAID?.uppercased() ?? "")
         return RemoteFaceMatchInput(
             tUnionCityCodes: apps.filter(\.isTUnion).compactMap(\.cityCode),
             cityUnionCodes: apps.filter(\.isCityUnion).compactMap(\.cityCode),
             serialNumbers: ([realSerialNumber] + apps.map(\.serialNumber)).compactMap { $0 },
-            family: cardFamily
+            family: cardFamily,
+            chineseCityNames: isChineseTransit ? [issuingCity].compactMap { $0 } : []
         )
     }
 }
 
 final class RemoteCardFaceCatalog: @unchecked Sendable {
     static let shared = RemoteCardFaceCatalog()
-    /// Cloudflare Pages first; jsDelivr is reachable from mainland China.
+    /// Both Pages hostnames follow withdrawals; raw GitHub is the last fallback.
     static let baseURLs = [
         URL(string: "https://faces.cardb.al/")!,
-        URL(string: "https://cdn.jsdelivr.net/gh/iebb/card-faces@master/")!,
+        URL(string: "https://card-faces.pages.dev/")!,
         URL(string: "https://raw.githubusercontent.com/iebb/card-faces/master/")!,
     ]
     private static let refreshInterval: TimeInterval = 24 * 60 * 60

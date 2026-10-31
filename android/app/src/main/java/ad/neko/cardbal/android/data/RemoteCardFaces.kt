@@ -23,7 +23,11 @@ import kotlinx.serialization.json.Json
  * demand into filesDir/RemoteFaces, outside the backed-up CardFaces folder.
  */
 @Serializable
-data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = emptyList()) {
+data class RemoteFaceManifest(
+    val schemaVersion: Int,
+    val cards: List<Card> = emptyList(),
+    val retiredDesigns: Map<String, String> = emptyMap(),
+) {
     @Serializable
     data class Match(
         val cityCodes: List<String> = emptyList(),
@@ -60,6 +64,9 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
 
     fun entry(token: String): Entry? = entries.firstOrNull { it.token == token }
 
+    fun replacementToken(token: String): String? =
+        retiredDesigns[token]?.takeIf { isToken(it) && entry(it) != null }
+
     /**
      * T-Union city code, then City Union city code, then the longest card
      * number prefix, the longest family-name substring and the serial prefix.
@@ -78,7 +85,19 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
             longestMatch({ it.families }) { it in family }?.let { return it }
         }
         val serials = input.serialNumbers.map { serial -> serial.uppercase().filter { it.isLetterOrDigit() } }
-        return longestMatch({ it.serialPrefixes }) { prefix -> serials.any { it.startsWith(prefix) } }
+        longestMatch({ it.serialPrefixes }) { prefix -> serials.any { it.startsWith(prefix) } }?.let { return it }
+        val cities = input.chineseCityNames.map(::normalizedCityName).filter(String::isNotEmpty).toSet()
+        return cards.filter { card ->
+            card.id.startsWith("cn/") && card.city.orEmpty().values.any { normalizedCityName(it) in cities }
+        }.singleOrNull()
+    }
+
+    private fun normalizedCityName(value: String): String {
+        var name = value.trim().lowercase()
+        for (suffix in listOf(" municipality", " city", "市")) {
+            if (name.endsWith(suffix) && name.length > suffix.length) name = name.removeSuffix(suffix)
+        }
+        return name
     }
 
     /**
@@ -89,8 +108,8 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
         val name = card.faceImageFileName
         if (name != null) {
             if (!card.finalIsUsingImage) return null
-            if (isToken(name)) return name
-            return entries.firstOrNull { it.design.bundledAsset == name }?.token ?: publishedToken(name)
+            val token = entries.firstOrNull { it.design.bundledAsset == name }?.token ?: publishedToken(name)
+            return token?.let { replacementToken(it) ?: it }
         }
         if (card.isUsingImage == false) return null
         val matched = match(card.remoteFaceMatchInput()) ?: return null
@@ -117,8 +136,10 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
 
     /** Color, relevant presets, the saved choice/photo, then the remaining card groups. */
     fun pickerChoicesFor(card: SavedCardRecord, savedFaces: List<String> = emptyList()): List<CardFaceChoice> {
-        fun canonicalName(name: String): String =
-            entries.firstOrNull { it.design.bundledAsset == name }?.token ?: publishedToken(name) ?: name
+        fun canonicalName(name: String): String {
+            val token = entries.firstOrNull { it.design.bundledAsset == name }?.token ?: publishedToken(name) ?: name
+            return replacementToken(token) ?: token
+        }
 
         val current = card.faceImageFileName?.takeIf { it.isNotBlank() }?.let(::canonicalName)
         val active = if (card.isUsingImage == false) null else {
@@ -133,6 +154,20 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
         }.distinct()
         return listOf(CardFaceChoice(fileName = null, selected = active == null)) +
             names.map { CardFaceChoice(it, entry(it), selected = it == active) }
+    }
+
+    fun pickerSectionsFor(card: SavedCardRecord, savedFaces: List<String> = emptyList()): CardFacePickerSections {
+        val choices = pickerChoicesFor(card, savedFaces)
+        val relevant = relevantEntriesFor(card.remoteFaceMatchInput()).map { it.token }.toSet()
+        val presets = choices.filter { choice ->
+            choice.fileName != null && (choice.entry != null || publishedToken(choice.fileName) != null)
+        }
+        return CardFacePickerSections(
+            color = choices.first(),
+            matching = presets.filter { it.fileName in relevant },
+            otherPresets = presets.filter { it.fileName !in relevant },
+            photos = choices.filter { it.fileName != null && it !in presets },
+        )
     }
 
     private fun longestMatch(values: (Match) -> List<String>, matches: (String) -> Boolean): Card? =
@@ -202,12 +237,20 @@ data class RemoteFaceMatchInput(
     val cityUnionCodes: List<String> = emptyList(),
     val serialNumbers: List<String> = emptyList(),
     val family: String = "",
+    val chineseCityNames: List<String> = emptyList(),
 )
 
 data class CardFaceChoice(
     val fileName: String?,
     val entry: RemoteFaceManifest.Entry? = null,
     val selected: Boolean = false,
+)
+
+data class CardFacePickerSections(
+    val color: CardFaceChoice,
+    val matching: List<CardFaceChoice>,
+    val otherPresets: List<CardFaceChoice>,
+    val photos: List<CardFaceChoice>,
 )
 
 /** Disabling artwork retains the saved photo/preset so it can be selected again. */
@@ -218,6 +261,7 @@ fun SavedCardRecord.withFaceChoice(fileName: String?): SavedCardRecord =
 fun SavedCardRecord.remoteFaceMatchInput(): RemoteFaceMatchInput {
     val apps = applications.orEmpty()
     val legacyCity = resultFields.firstOrNull { it.title == "City Code" }?.value
+    val isChineseTransit = selectedAID?.uppercase() in setOf("A000000632010105", "A00000000386980701")
     return RemoteFaceMatchInput(
         tUnionCityCodes = apps.filter { it.isTUnion }.mapNotNull { it.cityCode?.takeIf(String::isNotBlank) }.ifEmpty {
             listOfNotNull(legacyCity.takeIf { selectedAID == "A000000632010105" })
@@ -227,6 +271,7 @@ fun SavedCardRecord.remoteFaceMatchInput(): RemoteFaceMatchInput {
         },
         serialNumbers = listOfNotNull(realSerialNumber) + apps.mapNotNull { it.serialNumber },
         family = (listOf(cardFamily) + apps.map { it.cardFamily }).distinct().joinToString(" "),
+        chineseCityNames = if (isChineseTransit) listOfNotNull(issuingCity) else emptyList(),
     )
 }
 
@@ -332,10 +377,10 @@ class RemoteCardFaces private constructor(context: Context) {
     }
 
     companion object {
-        /** Cloudflare Pages first; jsDelivr is reachable from mainland China. */
+        /** Both Pages hostnames follow withdrawals; raw GitHub is the last fallback. */
         val BASE_URLS = listOf(
             "https://faces.cardb.al/",
-            "https://cdn.jsdelivr.net/gh/iebb/card-faces@master/",
+            "https://card-faces.pages.dev/",
             "https://raw.githubusercontent.com/iebb/card-faces/master/",
         )
         private const val LAST_REFRESH_KEY = "refreshed_at"

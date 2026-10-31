@@ -11,6 +11,86 @@ from tools.paths import ROOT
 
 @unittest.skipUnless(shutil.which("swiftc"), "Requires the Swift toolchain")
 class RemoteCardFaceTests(unittest.TestCase):
+    def test_photo_import_failure_and_saved_photo_selection(self):
+        source = (ROOT / "ios/CardBal/Models/CardWalletStore.swift").read_text()
+        methods = "\n".join(
+            re.search(rf"^    func {name}\(.*?^    }}", source, re.M | re.S).group()
+            for name in ("setFaceImage", "applyFaceAsset", "setIsUsingImage")
+        )
+        harness = r'''
+import Foundation
+struct UIImage {
+    let data: Data?
+    func jpegData(compressionQuality: Double) -> Data? { data }
+}
+struct SavedCardRecord {
+    let id: String
+    var faceImageFileName: String?
+    var isUsingImage: Bool?
+}
+enum StorageError: Error { case unavailable }
+final class Store {
+    let directory: URL
+    var failWrites = false
+    var saves = 0
+    var cards = [SavedCardRecord(id: "card", faceImageFileName: "remote.jp.suica.default.png",
+                                isUsingImage: true)]
+    init(_ directory: URL) { self.directory = directory }
+    func ensureCardFaceDirectoryExists() throws {
+        if failWrites { throw StorageError.unavailable }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+    func cardFaceFileURL(fileName: String) -> URL { directory.appendingPathComponent(fileName) }
+    func existingFaceAssetFileName(forJPEGData data: Data) -> String? {
+        ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []).first {
+            (try? Data(contentsOf: cardFaceFileURL(fileName: $0))) == data
+        }
+    }
+    func loadFaceImage(fileName: String) -> UIImage? {
+        guard let data = try? Data(contentsOf: cardFaceFileURL(fileName: fileName)) else { return nil }
+        return UIImage(data: data)
+    }
+    func applyAutoImageTextColors(to card: inout SavedCardRecord, image: UIImage) {}
+    func applyAutoMarkerColor(to card: inout SavedCardRecord, image: UIImage) {}
+    func save() { saves += 1 }
+''' + methods + r'''
+}
+let directory = URL(fileURLWithPath: CommandLine.arguments[1])
+let store = Store(directory)
+let original = store.cards[0].faceImageFileName
+precondition(!store.setFaceImage(UIImage(data: nil), for: "card"))
+precondition(store.cards[0].faceImageFileName == original && store.saves == 0)
+store.failWrites = true
+precondition(!store.setFaceImage(UIImage(data: Data([1,2,3])), for: "card"))
+precondition(store.cards[0].faceImageFileName == original && store.saves == 0)
+store.failWrites = false
+let photo = UIImage(data: Data([1,2,3]))
+precondition(store.setFaceImage(photo, for: "card"))
+let imported = store.cards[0].faceImageFileName!
+precondition(imported.hasSuffix(".jpg") && store.cards[0].isUsingImage == true)
+let importedData = try Data(contentsOf: directory.appendingPathComponent(imported))
+precondition(importedData == photo.data)
+precondition(store.setFaceImage(photo, for: "card"))
+precondition(store.cards[0].faceImageFileName == imported, "Duplicate imports must reuse saved photos")
+store.setIsUsingImage(false, for: "card")
+precondition(store.cards[0].isUsingImage == false && store.cards[0].faceImageFileName == imported)
+store.applyFaceAsset("missing.jpg", to: "card")
+precondition(store.cards[0].isUsingImage == false, "Missing photos must not replace the choice")
+store.applyFaceAsset(imported, to: "card")
+precondition(store.cards[0].isUsingImage == true && store.cards[0].faceImageFileName == imported)
+print("PASS: photo bytes, deduplication, write failures, color mode and saved photo selection")
+'''
+        with tempfile.TemporaryDirectory(prefix="cardbal-photo-import-") as temporary:
+            directory = Path(temporary)
+            swift = directory / "main.swift"
+            binary = directory / "photo-test"
+            swift.write_text(harness)
+            compiled = subprocess.run(["swiftc", str(swift), "-o", str(binary)], capture_output=True, text=True)
+            self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+            result = subprocess.run([str(binary), str(directory / "CardFaces")], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("PASS:", result.stdout)
+
     def test_picker_prioritizes_physical_card_and_city(self):
         source = (ROOT / "ios/CardBal/Models/RemoteCardFaceCatalog.swift").read_text()
         manifest = source[:source.index("final class RemoteCardFaceCatalog:")]
@@ -29,17 +109,22 @@ struct SavedCardRecord {
     var applications: [TransitApplication]? = nil
     var faceImageFileName: String? = nil
     var isUsingImage: Bool? = nil
+    var selectedAID: String? = nil
+    var issuingCity: String? = nil
 }
 ''' + manifest + r'''
 let json = """
-{"schemaVersion":2,"cards":[
+{"schemaVersion":2,"retiredDesigns":{
+ "remote.jp.suica.licensed.png":"remote.jp.suica.default.png",
+ "remote.jp.suica.broken.png":"remote.jp.suica.missing.png"
+},"cards":[
  {"id":"jp/suica","name":{"en":"Suica"},"city":{"en":"Shanghai"},
   "match":{"families":["suica"]},
   "designs":[{"id":"default","file":"suica.png","sha256":"aa","bytes":1}]},
  {"id":"cn/2901","name":{"en":"Shanghai visitor"},"city":{"zh":"上海","en":" Shanghai "},
   "match":{"cityCodes":["2901"]},
   "designs":[{"id":"default","file":"visitor.png","sha256":"bb","bytes":1}]},
- {"id":"cn/1000","name":{"en":"Beijing"},"city":{"en":"Beijing"},
+ {"id":"cn/1000","name":{"en":"Beijing"},"city":{"en":"Beijing","zh":"北京"},
   "match":{"cityCodes":["1000"]},
   "designs":[{"id":"default","file":"beijing.png","sha256":"cc","bytes":1}]},
  {"id":"cn/2900","name":{"en":"Shanghai"},"city":{"en":"Shanghai","zh":"上海"},
@@ -72,6 +157,28 @@ precondition(catalog.faceToken(for: physical) == physical.faceImageFileName,
 var colorOnly = physical
 colorOnly.isUsingImage = false
 precondition(catalog.faceToken(for: colorOnly) == nil)
+let retired = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "remote.jp.suica.licensed.png")
+precondition(catalog.faceToken(for: retired) == "remote.jp.suica.default.png")
+let brokenRetirement = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "remote.jp.suica.broken.png")
+precondition(catalog.faceToken(for: brokenRetirement) == brokenRetirement.faceImageFileName,
+             "Invalid retirement targets must not replace explicit selections")
+var retiredColor = retired
+retiredColor.isUsingImage = false
+precondition(catalog.faceToken(for: retiredColor) == nil)
+let namedLegacy = SavedCardRecord(cardFamily: "China T-Union",
+    selectedAID: "A000000632010105", issuingCity: "北京市")
+precondition(catalog.match(namedLegacy.remoteFaceMatchInput)?.id == "cn/1000",
+             "Legacy issuing-city names should match without application metadata")
+let englishLegacy = SavedCardRecord(cardFamily: "City Union",
+    selectedAID: "A00000000386980701", issuingCity: " Beijing City ")
+precondition(catalog.match(englishLegacy.remoteFaceMatchInput)?.id == "cn/1000")
+let untrustedCity = SavedCardRecord(cardFamily: "Unknown", issuingCity: "Beijing")
+precondition(catalog.match(untrustedCity.remoteFaceMatchInput) == nil,
+             "City-name fallback must stay within Chinese transit applications")
+let ambiguousCity = SavedCardRecord(cardFamily: "China T-Union",
+    selectedAID: "A000000632010105", issuingCity: "上海市")
+precondition(catalog.match(ambiguousCity.remoteFaceMatchInput) == nil,
+             "Do not guess a physical type when city names are ambiguous")
 print("PASS: exact card, same city, country boundary, legacy city and explicit choices")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-face-picker-") as temporary:
@@ -109,10 +216,14 @@ struct SavedCardRecord {
     var isUsingImage: Bool? = nil
     var autoTitleTextColor: String? = nil
     var autoBalanceTextColor: String? = nil
+    var selectedAID: String? = nil
+    var issuingCity: String? = nil
 }
 ''' + manifest + r'''
 let json = """
-{"schemaVersion":2,"cards":[
+{"schemaVersion":2,"retiredDesigns":{
+  "remote.kr.tmoney.licensed.png":"remote.kr.tmoney.default.png"
+},"cards":[
   {"id":"jp/suica","name":{"en":"Suica"},"match":{"families":["suica"],"serialPrefixes":["JE"]},
    "designs":[{"id":"default","bundledAsset":"suica","file":"faces/jp/suica/default.png","sha256":"aa","bytes":1}]},
   {"id":"kr/tmoney","name":{"en":"T-money"},"match":{"families":["t-money","tmoney"]},
@@ -149,11 +260,13 @@ let photo = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "photo.jpg",
 let alternate = SavedCardRecord(cardFamily: "T-money", faceImageFileName: "remote.kr.tmoney.ryan.png")
 let disabled = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "suica", isUsingImage: false)
 let color = SavedCardRecord(cardFamily: "Suica", isUsingImage: false)
-let wallet = Wallet([suica, old, selected, photo, alternate, disabled, color], manifest: catalog)
+let retired = SavedCardRecord(cardFamily: "T-money", faceImageFileName: "remote.kr.tmoney.licensed.png")
+let wallet = Wallet([suica, old, selected, photo, alternate, disabled, color, retired], manifest: catalog)
 precondition(wallet.resolveRemoteFaceSelections())
 precondition(wallet.cards.map(\.faceImageFileName) == [
     "remote.jp.suica.default.png", "remote.jp.hayakaken.default.png",
     "remote.fr.la-carte.blue.png", "photo.jpg", "remote.kr.tmoney.ryan.png", "suica", nil,
+    "remote.kr.tmoney.default.png",
 ])
 precondition(wallet.cards[5].isUsingImage == false && wallet.cards[6].isUsingImage == false)
 precondition(!wallet.resolveRemoteFaceSelections(), "Migration is not idempotent")

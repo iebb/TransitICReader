@@ -501,9 +501,10 @@ class CardWalletStore: ObservableObject {
         save()
     }
 
-    func setFaceImage(_ image: UIImage, for id: String) {
+    @discardableResult
+    func setFaceImage(_ image: UIImage, for id: String) -> Bool {
         guard let index = cards.firstIndex(where: { $0.id == id }),
-              let jpegData = image.jpegData(compressionQuality: 0.9) else { return }
+              let jpegData = image.jpegData(compressionQuality: 0.9) else { return false }
 
         do {
             try ensureCardFaceDirectoryExists()
@@ -519,7 +520,8 @@ class CardWalletStore: ObservableObject {
             applyAutoImageTextColors(to: &cards[index], image: image)
             applyAutoMarkerColor(to: &cards[index], image: image)
             save()
-        } catch { return }
+            return true
+        } catch { return false }
     }
 
     func applyFaceAsset(_ fileName: String, to id: String) {
@@ -613,9 +615,14 @@ class CardWalletStore: ObservableObject {
     private func startRemoteFaces() {
         applyRemoteDefaultsToExistingCards()
         Task { [weak self] in
-            let stale = await RemoteCardFaceCatalog.shared.refreshIfNeeded()
-            await MainActor.run { self?.remoteFacesDidRefresh(stale: stale ?? []) }
+            await self?.refreshRemoteFaces()
         }
+    }
+
+    @MainActor
+    func refreshRemoteFaces(force: Bool = false) async {
+        let stale = await remoteFaces.refreshIfNeeded(force: force)
+        remoteFacesDidRefresh(stale: stale ?? [])
     }
 
     private func remoteFacesDidRefresh(stale: Set<String>) {

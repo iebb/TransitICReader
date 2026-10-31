@@ -1085,3 +1085,23 @@
 "Rate Valid Until" = "Rate Valid Until";
 "Expired %@" = "Expired %@";
 "Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan.";
+
+// Card face picker
+"Choose Card Face" = "Choose Card Face";
+"Gallery" = "Gallery";
+"Take a Photo" = "Take a Photo";
+"Card Face Source" = "Card Face Source";
+"For This Card" = "For This Card";
+"Other Presets" = "Other Presets";
+"Saved Photos" = "Saved Photos";
+"Your saved card photos will appear here." = "Your saved card photos will appear here.";
+"Choose a preset, a photo from your gallery, or take a photo." = "Choose a preset, a photo from your gallery, or take a photo.";
+"Take a photo of your card to use as its face." = "Take a photo of your card to use as its face.";
+"Camera is unavailable on this device. Choose a photo from Gallery." = "Camera is unavailable on this device. Choose a photo from Gallery.";
+"Unable to Use Photo" = "Unable to Use Photo";
+"Choose another photo and try again." = "Choose another photo and try again.";
+"Camera Access Needed" = "Camera Access Needed";
+"Allow camera access in Settings to take a card photo." = "Allow camera access in Settings to take a card photo.";
+"Open Settings" = "Open Settings";
+"Importing photo..." = "Importing photo...";
+"OK" = "OK";

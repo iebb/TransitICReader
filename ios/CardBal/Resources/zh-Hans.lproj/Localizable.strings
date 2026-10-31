@@ -1087,3 +1087,23 @@
 "Rate Valid Until" = "汇率有效期至";
 "Expired %@" = "已于 %@ 过期";
 "Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "汇率：1 港币兑 %@ 人民币。";
+
+// Card face picker
+"Choose Card Face" = "选择卡面";
+"Gallery" = "图库";
+"Take a Photo" = "拍照";
+"Card Face Source" = "卡面来源";
+"For This Card" = "此卡及同城卡面";
+"Other Presets" = "其他预设";
+"Saved Photos" = "已保存的照片";
+"Your saved card photos will appear here." = "保存的卡片照片会显示在此处。";
+"Choose a preset, a photo from your gallery, or take a photo." = "选择预设卡面、图库中的照片，或拍摄一张照片。";
+"Take a photo of your card to use as its face." = "拍摄卡片照片以用作卡面。";
+"Camera is unavailable on this device. Choose a photo from Gallery." = "此设备无法使用相机，请从图库选择照片。";
+"Unable to Use Photo" = "无法使用照片";
+"Choose another photo and try again." = "请选择其他照片后重试。";
+"Camera Access Needed" = "需要相机权限";
+"Allow camera access in Settings to take a card photo." = "请在设置中允许相机访问，以拍摄卡片照片。";
+"Open Settings" = "打开设置";
+"Importing photo..." = "正在导入照片…";
+"OK" = "好";

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_face_import_failed">이 사진을 가져올 수 없습니다. 다른 이미지를 선택해 주세요.</string>
+    <string name="card_face_selection_canceled">사진 선택을 취소했습니다.</string>
+    <string name="card_face_capture_canceled">사진 촬영을 취소했습니다.</string>
+    <string name="card_face_picker_unavailable">사진 선택기를 열 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="card_face_camera_unavailable">카메라를 사용할 수 없습니다. 갤러리에서 사진을 선택해 주세요.</string>
+</resources>

@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 struct SavedCardDetailView: View {
     let cardID: String
@@ -305,9 +306,15 @@ struct CardCustomizeView: View {
     @ObservedObject var store: CardWalletStore
 
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isShowingFacePicker = false
+    @State private var shouldOpenCamera = false
     @State private var isShowingCamera = false
+    @State private var capturedFaceImage: UIImage?
     @State private var pendingFaceImage: UIImage?
     @State private var pendingAutoCroppedImage: UIImage?
+    @State private var facePhotoError = false
+    @State private var faceSaveFailed = false
+    @State private var cameraAccessDenied = false
     @State private var isShowingMarkerSheet = false
     @State private var isShowingSNScanner = false
     @State private var draftTitle: String?
@@ -336,14 +343,50 @@ struct CardCustomizeView: View {
                 .sheet(isPresented: $isShowingSNScanner) {
                     snScannerSheet(card: card)
                 }
-                .fullScreenCover(isPresented: $isShowingCamera) {
-                    ImagePicker { image in processPhoto(image) }
+                .sheet(isPresented: $isShowingFacePicker, onDismiss: facePickerDidDismiss) {
+                    CardFacePickerSheet(
+                        cardID: cardID,
+                        store: store,
+                        selectedPhotoItem: $selectedPhotoItem,
+                        onCamera: {
+                            shouldOpenCamera = true
+                            isShowingFacePicker = false
+                        }
+                    )
                 }
-                .sheet(item: editableFaceImageBinding()) { editable in
+                .fullScreenCover(isPresented: $isShowingCamera, onDismiss: cameraDidDismiss) {
+                    ImagePicker(didFinish: { image in
+                        capturedFaceImage = image
+                        isShowingCamera = false
+                    }, didCancel: {
+                        isShowingCamera = false
+                    })
+                }
+                .sheet(item: editableFaceImageBinding(), onDismiss: {
+                    if faceSaveFailed {
+                        faceSaveFailed = false
+                        facePhotoError = true
+                    }
+                }) { editable in
                     faceImageEditorSheet(editable: editable, card: card)
                 }
                 .onChange(of: selectedPhotoItem) { newValue in
-                    handlePhotoSelection(newValue)
+                    if newValue != nil { isShowingFacePicker = false }
+                }
+                .alert("Unable to Use Photo", isPresented: $facePhotoError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("Choose another photo and try again.")
+                }
+                .alert("Camera Access Needed", isPresented: $cameraAccessDenied) {
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Allow camera access in Settings to take a card photo.")
                 }
         }
     }
@@ -352,26 +395,30 @@ struct CardCustomizeView: View {
         let isPhotoFace = card.finalIsUsingImage && store.loadFaceImage(fileName: card.faceImageFileName) != nil
         return List {
             Section {
-                faceCarousel(card: card)
-                    .listRowInsets(EdgeInsets(top: 14, leading: 0, bottom: 12, trailing: 0))
-                HStack(spacing: 10) {
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label("Photo Library", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button { isShowingCamera = true } label: {
-                            Label("Take Photo", systemImage: "camera")
-                                .frame(maxWidth: .infinity)
+                Button { isShowingFacePicker = true } label: {
+                    HStack(spacing: 12) {
+                        Label("Choose Card Face", systemImage: "rectangle.on.rectangle")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if !card.finalIsUsingImage {
+                            Text("Color").foregroundStyle(.secondary)
+                        } else if let name = card.faceImageFileName.flatMap(store.remoteFaceTitle) {
+                            Text(verbatim: name).foregroundStyle(.secondary).lineLimit(1)
+                        } else {
+                            Text("Photo").foregroundStyle(.secondary)
                         }
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.bordered)
-                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("card-face.choose")
             } header: {
                 Text("Card Face")
             } footer: {
-                Text("Pick a color, a bundled card design or your own photo.")
+                Text("Choose a preset, a photo from your gallery, or take a photo.")
             }
 
             if isPhotoFace {
@@ -485,77 +532,6 @@ struct CardCustomizeView: View {
         .background(Color(uiColor: .systemGroupedBackground))
     }
 
-    private func faceCarousel(card: SavedCardRecord) -> some View {
-        let current = card.faceImageFileName
-        let currentToken = current.flatMap(RemoteFaceManifest.publishedToken(for:))
-        let presets = store.presets()
-        let savedFaces = store.faceAssets().filter { $0.fileName != current }
-        let remoteFaces = store.remoteFaceEntries(for: card)
-        let currentMatches = remoteFaces.matched.contains { $0.token == currentToken }
-        return ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 12) {
-                faceTile(Text("Color"), isSelected: !card.finalIsUsingImage) {
-                    store.setIsUsingImage(false, for: card.id)
-                } face: {
-                    Rectangle().fill(card.colorFace())
-                }
-
-                remoteFaceTiles(remoteFaces.matched, card: card)
-
-                if let current, !currentMatches, let image = store.loadFaceImage(fileName: current) {
-                    let presetName = presets.first { $0.fileName == current }?.name ?? store.remoteFaceTitle(for: current)
-                    faceTile(presetName.map { Text(verbatim: $0) } ?? Text("Photo"), isSelected: card.finalIsUsingImage) {
-                        store.setIsUsingImage(true, for: card.id)
-                    } face: {
-                        Image(uiImage: image).resizable().scaledToFill()
-                    }
-                } else if let currentToken, !currentMatches, let name = store.remoteFaceTitle(for: currentToken) {
-                    faceTile(Text(verbatim: name), isSelected: card.finalIsUsingImage) {
-                        store.setIsUsingImage(true, for: card.id)
-                    } face: {
-                        RemoteFaceThumbnail(token: currentToken)
-                    }
-                }
-
-                ForEach(savedFaces) { asset in
-                    if let image = store.loadFaceImage(fileName: asset.fileName) {
-                        faceTile(Text("Photo"), isSelected: false) {
-                            store.applyFaceAsset(asset.fileName, to: card.id)
-                        } face: {
-                            Image(uiImage: image).resizable().scaledToFill()
-                        }
-                    }
-                }
-
-                ForEach(store.unpublishedPresets().filter {
-                    $0.fileName != current && RemoteFaceManifest.publishedToken(for: $0.fileName) != current
-                }) { preset in
-                    if let image = UIImage(named: preset.fileName) {
-                        faceTile(Text(verbatim: preset.name), isSelected: false) {
-                            store.applyPreset(preset, to: card.id)
-                        } face: {
-                            Image(uiImage: image).resizable().scaledToFill()
-                        }
-                    }
-                }
-
-                remoteFaceTiles(remoteFaces.others.filter { $0.token != currentToken }, card: card)
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-
-    private func remoteFaceTiles(_ entries: [RemoteFaceManifest.Entry], card: SavedCardRecord) -> some View {
-        ForEach(entries) { entry in
-            faceTile(Text(verbatim: entry.title()), isSelected: card.finalIsUsingImage &&
-                     entry.token == card.faceImageFileName.flatMap(RemoteFaceManifest.publishedToken(for:))) {
-                store.applyRemoteFace(entry.token, to: card.id)
-            } face: {
-                RemoteFaceThumbnail(token: entry.token)
-            }
-        }
-    }
-
     private func faceTile<Face: View>(_ title: Text, isSelected: Bool, action: @escaping () -> Void, @ViewBuilder face: () -> Face) -> some View {
         let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         return Button(action: action) {
@@ -659,12 +635,33 @@ struct CardCustomizeView: View {
         }
     }
 
+    private func facePickerDidDismiss() {
+        // Finish dismissing the sheet before presenting the camera or photo editor.
+        if shouldOpenCamera {
+            shouldOpenCamera = false
+            Task { @MainActor in
+                let allowed = await AVCaptureDevice.requestAccess(for: .video)
+                if allowed { isShowingCamera = true } else { cameraAccessDenied = true }
+            }
+        } else {
+            handlePhotoSelection(selectedPhotoItem)
+        }
+    }
+
+    private func cameraDidDismiss() {
+        guard let image = capturedFaceImage else { return }
+        capturedFaceImage = nil
+        processPhoto(image)
+    }
+
     private func handlePhotoSelection(_ item: PhotosPickerItem?) {
         guard let item = item else { return }
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 processPhoto(image)
+            } else {
+                await MainActor.run { facePhotoError = true }
             }
             await MainActor.run { selectedPhotoItem = nil }
         }
@@ -698,11 +695,192 @@ struct CardCustomizeView: View {
             autoCroppedImage: pendingAutoCroppedImage,
             onCancel: { pendingFaceImage = nil; pendingAutoCroppedImage = nil },
             onSave: { image in
-                store.setFaceImage(image, for: card.id)
+                let saved = store.setFaceImage(image, for: card.id)
                 pendingFaceImage = nil
                 pendingAutoCroppedImage = nil
+                faceSaveFailed = !saved
             }
         )
+    }
+}
+
+private struct CardFacePickerSheet: View {
+    let cardID: String
+    @ObservedObject var store: CardWalletStore
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    let onCamera: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var tab = Tab.presets
+
+    private enum Tab: String, CaseIterable {
+        case presets = "Presets"
+        case gallery = "Gallery"
+        case camera = "Take a Photo"
+    }
+    private let columns = [GridItem(.adaptive(minimum: 140), spacing: 16)]
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                Picker("Card Face Source", selection: $tab) {
+                    ForEach(Tab.allCases, id: \.self) { tab in
+                        Text(LocalizedStringKey(tab.rawValue)).tag(tab)
+                            .accessibilityIdentifier("card-face.tab.\(tab)")
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding()
+                if let card = store.card(withID: cardID) {
+                    ScrollView {
+                        switch tab {
+                        case .presets: presets(card: card)
+                        case .gallery: gallery(card: card)
+                        case .camera: camera
+                        }
+                    }
+                }
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationTitle("Card Face")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .accessibilityIdentifier("card-face.done")
+                }
+            }
+        }
+        .task { await store.refreshRemoteFaces(force: true) }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func presets(card: SavedCardRecord) -> some View {
+        let entries = store.remoteFaceEntries(for: card)
+        return LazyVStack(alignment: .leading, spacing: 20) {
+            LazyVGrid(columns: columns, spacing: 16) {
+                tile(Text("Color"), selected: !card.finalIsUsingImage) {
+                    store.setIsUsingImage(false, for: card.id)
+                } face: {
+                    Rectangle().fill(card.colorFace())
+                }
+                .accessibilityIdentifier("card-face.color")
+            }
+            if !entries.matched.isEmpty {
+                Text("For This Card").font(.headline).accessibilityAddTraits(.isHeader)
+                remoteGrid(entries.matched, card: card)
+            }
+            if !entries.others.isEmpty || !store.unpublishedPresets().isEmpty {
+                Text(entries.matched.isEmpty ? "Presets" : "Other Presets")
+                    .font(.headline).accessibilityAddTraits(.isHeader)
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(store.unpublishedPresets()) { preset in
+                        if let image = UIImage(named: preset.fileName) {
+                            tile(Text(verbatim: preset.name), selected: card.finalIsUsingImage &&
+                                 card.faceImageFileName.flatMap(RemoteFaceManifest.publishedToken(for:)) ==
+                                 RemoteFaceManifest.publishedToken(for: preset.fileName)) {
+                                store.applyPreset(preset, to: card.id)
+                            } face: {
+                                Image(uiImage: image).resizable().scaledToFill()
+                            }
+                            .accessibilityIdentifier("card-face.preset.\(preset.fileName)")
+                        }
+                    }
+                }
+                remoteGrid(entries.others, card: card)
+            }
+        }
+        .padding()
+    }
+
+    private func remoteGrid(_ entries: [RemoteFaceManifest.Entry], card: SavedCardRecord) -> some View {
+        LazyVGrid(columns: columns, spacing: 16) {
+            ForEach(entries) { entry in
+                tile(Text(verbatim: entry.title()), selected: card.finalIsUsingImage &&
+                     entry.token == card.faceImageFileName.flatMap(RemoteFaceManifest.publishedToken(for:))) {
+                    store.applyRemoteFace(entry.token, to: card.id)
+                } face: {
+                    RemoteFaceThumbnail(token: entry.token)
+                        .id(entry.design.sha256)
+                }
+                .accessibilityIdentifier("card-face.preset.\(entry.token)")
+            }
+        }
+    }
+
+    private func gallery(card: SavedCardRecord) -> some View {
+        LazyVStack(alignment: .leading, spacing: 20) {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Label("Choose From Gallery", systemImage: "photo.on.rectangle")
+                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("card-face.import")
+            let assets = store.faceAssets()
+            if assets.isEmpty {
+                Text("Your saved card photos will appear here.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 32)
+            } else {
+                Text("Saved Photos").font(.headline).accessibilityAddTraits(.isHeader)
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(assets) { asset in
+                        if let image = store.loadFaceImage(fileName: asset.fileName) {
+                            tile(Text("Photo"), selected: card.finalIsUsingImage &&
+                                 card.faceImageFileName == asset.fileName) {
+                                store.applyFaceAsset(asset.fileName, to: card.id)
+                            } face: {
+                                Image(uiImage: image).resizable().scaledToFill()
+                            }
+                            .accessibilityIdentifier("card-face.photo.\(asset.fileName)")
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+
+    private var camera: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "camera").font(.system(size: 48)).foregroundStyle(.secondary)
+            Text("Take a photo of your card to use as its face.")
+                .multilineTextAlignment(.center)
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button(action: onCamera) { Label("Take a Photo", systemImage: "camera") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("card-face.capture")
+            } else {
+                Text("Camera is unavailable on this device. Choose a photo from Gallery.")
+                    .foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .accessibilityIdentifier("card-face.camera-unavailable")
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(32)
+    }
+
+    private func tile<Face: View>(_ title: Text, selected: Bool, action: @escaping () -> Void,
+                                  @ViewBuilder face: @escaping () -> Face) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                GeometryReader { proxy in
+                    face().frame(width: proxy.size.width, height: proxy.size.height).clipped()
+                }
+                .aspectRatio(WalletCardLayout.aspectRatio, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(4)
+                .overlay(RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 3))
+                title.font(.caption.weight(selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? .primary : .secondary)
+                    .lineLimit(2).frame(height: 34, alignment: .top)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

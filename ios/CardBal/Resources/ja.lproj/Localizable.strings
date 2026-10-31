@@ -1087,3 +1087,23 @@
 "Rate Valid Until" = "レートの有効期限";
 "Expired %@" = "%@に期限切れ";
 "Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "為替レート：1香港ドルは%@人民元。";
+
+// Card face picker
+"Choose Card Face" = "カードのデザインを選ぶ";
+"Gallery" = "写真";
+"Take a Photo" = "写真を撮る";
+"Card Face Source" = "カードデザインの選択元";
+"For This Card" = "このカード・同じ都市";
+"Other Presets" = "その他のプリセット";
+"Saved Photos" = "保存済みの写真";
+"Your saved card photos will appear here." = "保存したカードの写真がここに表示されます。";
+"Choose a preset, a photo from your gallery, or take a photo." = "プリセットや写真を選ぶか、新しく撮影できます。";
+"Take a photo of your card to use as its face." = "カードを撮影してデザインとして使えます。";
+"Camera is unavailable on this device. Choose a photo from Gallery." = "このデバイスではカメラを使えません。写真から選んでください。";
+"Unable to Use Photo" = "写真を使用できません";
+"Choose another photo and try again." = "別の写真を選んで、もう一度お試しください。";
+"Camera Access Needed" = "カメラへのアクセスが必要です";
+"Allow camera access in Settings to take a card photo." = "カードを撮影するには、設定でカメラへのアクセスを許可してください。";
+"Open Settings" = "設定を開く";
+"Importing photo..." = "写真を読み込み中…";
+"OK" = "確認";

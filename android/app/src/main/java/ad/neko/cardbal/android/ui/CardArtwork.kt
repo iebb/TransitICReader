@@ -14,6 +14,8 @@ import ad.neko.cardbal.android.R
 import ad.neko.cardbal.android.data.RemoteCardFaces
 import ad.neko.cardbal.android.data.RemoteFaceManifest
 import ad.neko.cardbal.android.data.SavedCardRecord
+import ad.neko.cardbal.android.data.CardFacePhotoFiles
+import ad.neko.cardbal.android.data.photoSampleSize
 import java.io.File
 
 fun offlineDrawableFor(card: SavedCardRecord): Int? =
@@ -26,17 +28,24 @@ fun offlineDrawableFor(card: SavedCardRecord): Int? =
         else -> null
     }
 
-fun importedFaceImageFor(context: Context, fileName: String?): ImageBitmap? {
+fun importedFaceImageFor(context: Context, fileName: String?, maxDimension: Int = 1600): ImageBitmap? {
     if (fileName.isNullOrBlank()) return null
     val cleanName = fileName.substringAfterLast('/').substringAfterLast('\\')
     val file = File(File(context.filesDir, "CardFaces"), cleanName)
     if (!file.isFile) return null
-    return BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+    return runCatching {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = photoSampleSize(bounds.outWidth, bounds.outHeight, maxDimension)
+        }
+        BitmapFactory.decodeFile(file.absolutePath, options)?.asImageBitmap()
+    }.getOrNull()
 }
 
 fun savedFaceFileNames(context: Context): List<String> =
-    File(context.filesDir, "CardFaces").listFiles().orEmpty()
-        .filter { it.isFile }.map { it.name }.sorted()
+    CardFacePhotoFiles(context.filesDir, context.cacheDir).savedNames()
 
 /** The published face for [card], downloaded on first use; null until it arrives. */
 @Composable

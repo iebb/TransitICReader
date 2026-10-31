@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_face_import_failed">この写真を読み込めませんでした。別の画像をお試しください。</string>
+    <string name="card_face_selection_canceled">写真の選択をキャンセルしました。</string>
+    <string name="card_face_capture_canceled">撮影をキャンセルしました。</string>
+    <string name="card_face_picker_unavailable">写真の選択画面を開けません。もう一度お試しください。</string>
+    <string name="card_face_camera_unavailable">カメラを利用できません。ギャラリーから写真を選んでください。</string>
+</resources>

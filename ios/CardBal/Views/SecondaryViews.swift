@@ -17,6 +17,10 @@ enum CardPhotoProcessor {
 
     /// Process a captured photo and return both versions for the user to choose.
     static func process(_ image: UIImage) async -> CardPhotoResult {
+        // Flat card artwork already fills its frame; inner graphics are not card edges.
+        if isCardShaped(width: image.size.width, height: image.size.height) {
+            return CardPhotoResult(original: image, autoCropped: nil, didDetectCard: false)
+        }
         guard let cgImage = image.cgImage else {
             return CardPhotoResult(original: image, autoCropped: nil, didDetectCard: false)
         }
@@ -70,6 +74,11 @@ enum CardPhotoProcessor {
         return CardPhotoResult(original: image, autoCropped: autoImage, didDetectCard: true)
     }
 
+    static func isCardShaped(width: CGFloat, height: CGFloat) -> Bool {
+        guard width > 0, height > 0 else { return false }
+        return abs(width / height / cardAspectRatio - 1) < 0.03
+    }
+
     private static func detectRectangle(in cgImage: CGImage) async -> VNRectangleObservation? {
         await withCheckedContinuation { continuation in
             let request = VNDetectRectanglesRequest { request, error in
@@ -80,8 +89,8 @@ enum CardPhotoProcessor {
             }
             request.minimumConfidence = 0.3
             request.maximumObservations = 5
-            request.minimumAspectRatio = 1.2
-            request.maximumAspectRatio = 2.0
+            request.minimumAspectRatio = 0.5
+            request.maximumAspectRatio = 0.8
             request.minimumSize = 0.15
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
@@ -887,6 +896,7 @@ struct BalanceRows: View {
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType = .camera
     var didFinish: (UIImage) -> Void
+    var didCancel: (() -> Void)?
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -906,7 +916,10 @@ struct ImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage { parent.didFinish(image) }
             picker.dismiss(animated: true)
         }
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.didCancel?()
+            picker.dismiss(animated: true)
+        }
     }
 }
 struct QuickHistorySheet: View {
