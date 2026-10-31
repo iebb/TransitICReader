@@ -8,6 +8,10 @@ invents export-compliance, review, privacy, or advertising answers. Missing
 requirements must be completed in App Store Connect, or supplied as explicit
 localized release notes using --release-notes-file (JSON {"en-US": "..."}).
 
+Authentication uses a team key by default (ASC_KEY_ID, ASC_ISSUER_ID,
+ASC_PRIVATE_KEY_PATH). Set ASC_KEY_TYPE=individual for an individual key, which
+signs as the key's user and needs no issuer ID.
+
 API shapes checked against Apple's App Store Connect OpenAPI specification 4.5.1:
 https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip
 https://developer.apple.com/help/app-store-connect/update-your-app/create-a-new-version
@@ -41,6 +45,8 @@ IN_REVIEW_STATES = {"WAITING_FOR_REVIEW", "IN_REVIEW"}
 PUBLISHING_STATES = {"PENDING_APPLE_RELEASE", "PROCESSING_FOR_DISTRIBUTION", "PROCESSING_FOR_APP_STORE"}
 DISTRIBUTED_STATES = {"READY_FOR_DISTRIBUTION", "READY_FOR_SALE", "REPLACED_WITH_NEW_VERSION"}
 REVIEW_FIELDS = ("contactFirstName", "contactLastName", "contactPhone", "contactEmail")
+KEY_TYPES = {"team", "individual"}
+TOKEN_LIFETIME = 600
 
 
 class ReleaseError(RuntimeError):
@@ -69,7 +75,10 @@ class AppStoreAPI:
     def token(self) -> str:
         if self._token and time.time() < self._token_expires - 60:
             return self._token
-        required = ("ASC_KEY_ID", "ASC_ISSUER_ID", "ASC_PRIVATE_KEY_PATH")
+        key_type = os.environ.get("ASC_KEY_TYPE") or "team"
+        if key_type not in KEY_TYPES:
+            raise ReleaseError("ASC_KEY_TYPE must be team or individual.")
+        required = ("ASC_KEY_ID", "ASC_PRIVATE_KEY_PATH") + (("ASC_ISSUER_ID",) if key_type == "team" else ())
         missing = [name for name in required if not os.environ.get(name)]
         if missing:
             raise ReleaseError("Missing environment variables: " + ", ".join(missing))
@@ -78,16 +87,18 @@ class AppStoreAPI:
         except ImportError as error:
             raise ReleaseError("Install tools/release/requirements-appstore.txt before accessing Apple.") from error
         now = int(time.time())
+        # Apple: team keys identify the team with iss; individual keys use
+        # sub="user" and must omit iss.
+        principal = {"iss": os.environ["ASC_ISSUER_ID"]} if key_type == "team" else {"sub": "user"}
         try:
             key = Path(os.environ["ASC_PRIVATE_KEY_PATH"]).read_bytes()
             self._token = jwt.encode(
-                {"iss": os.environ["ASC_ISSUER_ID"], "iat": now,
-                 "exp": now + 600, "aud": "appstoreconnect-v1"},
+                {**principal, "iat": now, "exp": now + TOKEN_LIFETIME, "aud": "appstoreconnect-v1"},
                 key, algorithm="ES256", headers={"kid": os.environ["ASC_KEY_ID"], "typ": "JWT"},
             )
         except (OSError, ValueError, jwt.PyJWTError) as error:
             raise ReleaseError("Unable to read/sign the configured App Store Connect key.") from error
-        self._token_expires = now + 600
+        self._token_expires = now + TOKEN_LIFETIME
         return self._token
 
     def request(self, method: str, path: str, *, params: dict | None = None, data: dict | None = None) -> dict:

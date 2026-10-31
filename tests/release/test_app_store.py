@@ -4,15 +4,24 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
 import json
+import os
 from pathlib import Path
+import sys
+from types import ModuleType
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
 from tools.release import app_store as release
 
 
 NOW = datetime(2026, 10, 28, tzinfo=timezone.utc)
+TEAM_ENV = {"ASC_KEY_ID": "SYNTHETICKID", "ASC_ISSUER_ID": "synthetic-issuer", "ASC_PRIVATE_KEY_PATH": "/synthetic/AuthKey.p8"}
+INDIVIDUAL_ENV = {"ASC_KEY_TYPE": "individual", "ASC_KEY_ID": "SYNTHETICKID", "ASC_PRIVATE_KEY_PATH": "/synthetic/AuthKey.p8"}
+
+
+def without(environ, name):
+    return {key: value for key, value in environ.items() if key != name}
 
 
 def resource(kind, resource_id, attributes=None, **relationships):
@@ -477,6 +486,74 @@ class DraftRenameTests(unittest.TestCase):
             with self.assertRaisesRegex(release.ReleaseError, "Renamed App Store draft draft, but did not submit"):
                 release.submit_release(self.api, "123")
         self.assertEqual(len(self.api.writes), 1)
+
+
+class AuthTokenTests(unittest.TestCase):
+    """PyJWT, the key file, and the clock are synthetic; nothing is signed for real."""
+
+    def setUp(self):
+        self.encode = Mock(side_effect=lambda claims, *args, **kwargs: f"token-{claims['iat']}")
+        fake_jwt = ModuleType("jwt")
+        fake_jwt.encode, fake_jwt.PyJWTError = self.encode, type("PyJWTError", (Exception,), {})
+        self.clock = Mock(return_value=1_000)
+        read_bytes = patch.object(Path, "read_bytes", autospec=True, return_value=b"synthetic private key")
+        for active in (patch.dict(sys.modules, {"jwt": fake_jwt}), patch.object(release.time, "time", self.clock)):
+            active.start()
+            self.addCleanup(active.stop)
+        self.read_bytes = read_bytes.start()
+        self.addCleanup(read_bytes.stop)
+
+    def token(self, environ, api=None):
+        with patch.dict(os.environ, environ, clear=True):
+            return (api or release.AppStoreAPI()).token()
+
+    def assert_signed(self, claims):
+        self.encode.assert_called_once_with(claims, b"synthetic private key", algorithm="ES256",
+                                            headers={"kid": "SYNTHETICKID", "typ": "JWT"})
+        self.read_bytes.assert_called_once_with(Path("/synthetic/AuthKey.p8"))
+
+    def test_team_key_is_default_and_signs_issuer_claims(self):
+        for key_type in (None, "", "team"):
+            with self.subTest(key_type=key_type):
+                self.encode.reset_mock()
+                self.read_bytes.reset_mock()
+                environ = TEAM_ENV if key_type is None else {**TEAM_ENV, "ASC_KEY_TYPE": key_type}
+                self.assertEqual(self.token(environ), "token-1000")
+                self.assert_signed({"iss": "synthetic-issuer", "iat": 1_000, "exp": 1_600, "aud": "appstoreconnect-v1"})
+
+    def test_individual_key_signs_user_subject_and_never_issuer(self):
+        # A leftover team issuer secret must not be added to an individual token.
+        for environ in (INDIVIDUAL_ENV, {**INDIVIDUAL_ENV, "ASC_ISSUER_ID": "synthetic-issuer"}):
+            with self.subTest(issuer_set="ASC_ISSUER_ID" in environ):
+                self.encode.reset_mock()
+                self.read_bytes.reset_mock()
+                self.assertEqual(self.token(environ), "token-1000")
+                self.assert_signed({"sub": "user", "iat": 1_000, "exp": 1_600, "aud": "appstoreconnect-v1"})
+
+    def test_invalid_key_type_or_missing_variables_fail_before_reading_the_key(self):
+        for name, environ, message in [
+            ("capitalized type", {**TEAM_ENV, "ASC_KEY_TYPE": "Individual"}, "ASC_KEY_TYPE must be team or individual"),
+            ("unknown type", {**TEAM_ENV, "ASC_KEY_TYPE": "enterprise"}, "ASC_KEY_TYPE must be team or individual"),
+            ("team without issuer", without(TEAM_ENV, "ASC_ISSUER_ID"), "Missing environment variables: ASC_ISSUER_ID$"),
+            ("individual without key ID", without(INDIVIDUAL_ENV, "ASC_KEY_ID"), "Missing environment variables: ASC_KEY_ID$"),
+            ("individual without key path", without(INDIVIDUAL_ENV, "ASC_PRIVATE_KEY_PATH"), "Missing environment variables: ASC_PRIVATE_KEY_PATH$"),
+        ]:
+            with self.subTest(name):
+                with self.assertRaisesRegex(release.ReleaseError, message):
+                    self.token(environ)
+        self.read_bytes.assert_not_called()
+        self.encode.assert_not_called()
+
+    def test_token_is_reused_until_one_minute_before_expiry_then_renewed(self):
+        api = release.AppStoreAPI()
+        self.assertEqual(self.token(INDIVIDUAL_ENV, api), "token-1000")
+        self.clock.return_value = 1_539
+        self.assertEqual(self.token(INDIVIDUAL_ENV, api), "token-1000")
+        self.assertEqual(self.encode.call_count, 1)
+        self.clock.return_value = 1_540
+        self.assertEqual(self.token(INDIVIDUAL_ENV, api), "token-1540")
+        self.assertEqual(self.encode.call_count, 2)
+        self.assertEqual(self.encode.call_args.args[0], {"sub": "user", "iat": 1_540, "exp": 2_140, "aud": "appstoreconnect-v1"})
 
 
 class APIAndCLITests(unittest.TestCase):
