@@ -377,10 +377,10 @@ class RemoteCardFaces private constructor(context: Context) {
     }
 
     companion object {
-        /** Cloudflare Pages first; jsDelivr is reachable from mainland China. */
+        /** Both Pages hostnames follow withdrawals; raw GitHub is the last fallback. */
         val BASE_URLS = listOf(
             "https://faces.cardb.al/",
-            "https://cdn.jsdelivr.net/gh/iebb/card-faces@master/",
+            "https://card-faces.pages.dev/",
             "https://raw.githubusercontent.com/iebb/card-faces/master/",
         )
         private const val LAST_REFRESH_KEY = "refreshed_at"

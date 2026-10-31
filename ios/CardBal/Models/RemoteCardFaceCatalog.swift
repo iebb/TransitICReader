@@ -239,10 +239,10 @@ extension SavedCardRecord {
 
 final class RemoteCardFaceCatalog: @unchecked Sendable {
     static let shared = RemoteCardFaceCatalog()
-    /// Cloudflare Pages first; jsDelivr is reachable from mainland China.
+    /// Both Pages hostnames follow withdrawals; raw GitHub is the last fallback.
     static let baseURLs = [
         URL(string: "https://faces.cardb.al/")!,
-        URL(string: "https://cdn.jsdelivr.net/gh/iebb/card-faces@master/")!,
+        URL(string: "https://card-faces.pages.dev/")!,
         URL(string: "https://raw.githubusercontent.com/iebb/card-faces/master/")!,
     ]
     private static let refreshInterval: TimeInterval = 24 * 60 * 60

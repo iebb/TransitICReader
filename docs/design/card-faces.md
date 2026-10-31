@@ -16,7 +16,9 @@ The apps cache the manifest for a day and download individual PNGs on demand,
 checking their byte count and SHA-256. Cached art works offline. A missing face
 uses its retained bundle where available, otherwise the card's existing color
 appearance. Fallbacks are not cached under remote tokens, so a pending download
-can replace them. jsDelivr and raw GitHub mirror the same paths.
+can replace them. The project's `card-faces.pages.dev` hostname and raw GitHub
+mirror the same paths. The apps no longer use jsDelivr, whose cached branch
+manifest and a withdrawn face remained available after a purge.
 
 Old bundle identifiers, including the selected blue La Carte alternate, resolve
 to their published tokens. iOS migrates those selections on launch/save and
