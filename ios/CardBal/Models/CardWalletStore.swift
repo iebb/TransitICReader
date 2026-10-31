@@ -620,8 +620,8 @@ class CardWalletStore: ObservableObject {
     }
 
     @MainActor
-    func refreshRemoteFaces() async {
-        let stale = await remoteFaces.refreshIfNeeded()
+    func refreshRemoteFaces(force: Bool = false) async {
+        let stale = await remoteFaces.refreshIfNeeded(force: force)
         remoteFacesDidRefresh(stale: stale ?? [])
     }
 

@@ -750,7 +750,7 @@ private struct CardFacePickerSheet: View {
                 }
             }
         }
-        .task { await store.refreshRemoteFaces() }
+        .task { await store.refreshRemoteFaces(force: true) }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }

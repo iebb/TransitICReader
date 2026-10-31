@@ -52,6 +52,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -175,6 +176,8 @@ fun CardFacePicker(card: SavedCardRecord, onSelectFace: (String?) -> Unit, modif
         }
     }
     if (!showSheet) return
+
+    LaunchedEffect(card.id) { faces.refreshIfNeeded(force = true) }
 
     ModalBottomSheet(
         onDismissRequest = { if (!busy) showSheet = false },

@@ -109,17 +109,22 @@ struct SavedCardRecord {
     var applications: [TransitApplication]? = nil
     var faceImageFileName: String? = nil
     var isUsingImage: Bool? = nil
+    var selectedAID: String? = nil
+    var issuingCity: String? = nil
 }
 ''' + manifest + r'''
 let json = """
-{"schemaVersion":2,"cards":[
+{"schemaVersion":2,"retiredDesigns":{
+ "remote.jp.suica.licensed.png":"remote.jp.suica.default.png",
+ "remote.jp.suica.broken.png":"remote.jp.suica.missing.png"
+},"cards":[
  {"id":"jp/suica","name":{"en":"Suica"},"city":{"en":"Shanghai"},
   "match":{"families":["suica"]},
   "designs":[{"id":"default","file":"suica.png","sha256":"aa","bytes":1}]},
  {"id":"cn/2901","name":{"en":"Shanghai visitor"},"city":{"zh":"上海","en":" Shanghai "},
   "match":{"cityCodes":["2901"]},
   "designs":[{"id":"default","file":"visitor.png","sha256":"bb","bytes":1}]},
- {"id":"cn/1000","name":{"en":"Beijing"},"city":{"en":"Beijing"},
+ {"id":"cn/1000","name":{"en":"Beijing"},"city":{"en":"Beijing","zh":"北京"},
   "match":{"cityCodes":["1000"]},
   "designs":[{"id":"default","file":"beijing.png","sha256":"cc","bytes":1}]},
  {"id":"cn/2900","name":{"en":"Shanghai"},"city":{"en":"Shanghai","zh":"上海"},
@@ -152,6 +157,28 @@ precondition(catalog.faceToken(for: physical) == physical.faceImageFileName,
 var colorOnly = physical
 colorOnly.isUsingImage = false
 precondition(catalog.faceToken(for: colorOnly) == nil)
+let retired = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "remote.jp.suica.licensed.png")
+precondition(catalog.faceToken(for: retired) == "remote.jp.suica.default.png")
+let brokenRetirement = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "remote.jp.suica.broken.png")
+precondition(catalog.faceToken(for: brokenRetirement) == brokenRetirement.faceImageFileName,
+             "Invalid retirement targets must not replace explicit selections")
+var retiredColor = retired
+retiredColor.isUsingImage = false
+precondition(catalog.faceToken(for: retiredColor) == nil)
+let namedLegacy = SavedCardRecord(cardFamily: "China T-Union",
+    selectedAID: "A000000632010105", issuingCity: "北京市")
+precondition(catalog.match(namedLegacy.remoteFaceMatchInput)?.id == "cn/1000",
+             "Legacy issuing-city names should match without application metadata")
+let englishLegacy = SavedCardRecord(cardFamily: "City Union",
+    selectedAID: "A00000000386980701", issuingCity: " Beijing City ")
+precondition(catalog.match(englishLegacy.remoteFaceMatchInput)?.id == "cn/1000")
+let untrustedCity = SavedCardRecord(cardFamily: "Unknown", issuingCity: "Beijing")
+precondition(catalog.match(untrustedCity.remoteFaceMatchInput) == nil,
+             "City-name fallback must stay within Chinese transit applications")
+let ambiguousCity = SavedCardRecord(cardFamily: "China T-Union",
+    selectedAID: "A000000632010105", issuingCity: "上海市")
+precondition(catalog.match(ambiguousCity.remoteFaceMatchInput) == nil,
+             "Do not guess a physical type when city names are ambiguous")
 print("PASS: exact card, same city, country boundary, legacy city and explicit choices")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-face-picker-") as temporary:
@@ -189,10 +216,14 @@ struct SavedCardRecord {
     var isUsingImage: Bool? = nil
     var autoTitleTextColor: String? = nil
     var autoBalanceTextColor: String? = nil
+    var selectedAID: String? = nil
+    var issuingCity: String? = nil
 }
 ''' + manifest + r'''
 let json = """
-{"schemaVersion":2,"cards":[
+{"schemaVersion":2,"retiredDesigns":{
+  "remote.kr.tmoney.licensed.png":"remote.kr.tmoney.default.png"
+},"cards":[
   {"id":"jp/suica","name":{"en":"Suica"},"match":{"families":["suica"],"serialPrefixes":["JE"]},
    "designs":[{"id":"default","bundledAsset":"suica","file":"faces/jp/suica/default.png","sha256":"aa","bytes":1}]},
   {"id":"kr/tmoney","name":{"en":"T-money"},"match":{"families":["t-money","tmoney"]},
@@ -229,11 +260,13 @@ let photo = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "photo.jpg",
 let alternate = SavedCardRecord(cardFamily: "T-money", faceImageFileName: "remote.kr.tmoney.ryan.png")
 let disabled = SavedCardRecord(cardFamily: "Suica", faceImageFileName: "suica", isUsingImage: false)
 let color = SavedCardRecord(cardFamily: "Suica", isUsingImage: false)
-let wallet = Wallet([suica, old, selected, photo, alternate, disabled, color], manifest: catalog)
+let retired = SavedCardRecord(cardFamily: "T-money", faceImageFileName: "remote.kr.tmoney.licensed.png")
+let wallet = Wallet([suica, old, selected, photo, alternate, disabled, color, retired], manifest: catalog)
 precondition(wallet.resolveRemoteFaceSelections())
 precondition(wallet.cards.map(\.faceImageFileName) == [
     "remote.jp.suica.default.png", "remote.jp.hayakaken.default.png",
     "remote.fr.la-carte.blue.png", "photo.jpg", "remote.kr.tmoney.ryan.png", "suica", nil,
+    "remote.kr.tmoney.default.png",
 ])
 precondition(wallet.cards[5].isUsingImage == false && wallet.cards[6].isUsingImage == false)
 precondition(!wallet.resolveRemoteFaceSelections(), "Migration is not idempotent")

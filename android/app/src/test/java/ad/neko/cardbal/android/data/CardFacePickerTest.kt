@@ -30,7 +30,7 @@ class CardFacePickerTest {
             face("cn/6900", match = RemoteFaceManifest.Match(cityCodes = listOf("6900"))),
             face("cn/2900",
                 match = RemoteFaceManifest.Match(cityCodes = listOf("2900"), cityUnionCodes = listOf("2000")),
-                city = mapOf("en" to "Shanghai", "zh" to "Shanghai city"),
+                city = mapOf("en" to "Shanghai", "zh" to "上海"),
                 designs = listOf(design("default"), design("no-text"), design("commemorative"))),
             face("kr/tmoney", match = RemoteFaceManifest.Match(families = listOf("t-money")),
                 designs = listOf(design("default", bundledAsset = "tmoney"), design("logo"))),
@@ -73,6 +73,37 @@ class CardFacePickerTest {
     private val shanghaiTokens = listOf("default", "no-text", "commemorative")
         .map { RemoteFaceManifest.token("cn/2900", it) }
     private val peerTokens = listOf("blue", "default").map { RemoteFaceManifest.token("cn/city-peer", it) }
+
+    @Test fun retiredDesignUsesPublishedReplacementAndIsAbsentFromPicker() {
+        val old = "remote.kr.tmoney.retired.png"
+        val replacement = "remote.kr.tmoney.default.png"
+        val curated = manifest.copy(retiredDesigns = mapOf(old to replacement))
+        val physical = shanghai(face = old)
+        assertEquals(replacement, curated.faceTokenFor(physical))
+        val sections = curated.pickerSectionsFor(physical)
+        assertEquals(shanghaiTokens + peerTokens, sections.matching.map { it.fileName })
+        assertEquals(replacement, sections.otherPresets.single { it.selected }.fileName)
+        assertTrue((sections.matching + sections.otherPresets).none { it.fileName == old })
+        assertNull(curated.faceTokenFor(physical.copy(isUsingImage = false)))
+        val invalid = manifest.copy(retiredDesigns = mapOf(old to "remote.kr.tmoney.missing.png"))
+        assertEquals(old, invalid.faceTokenFor(physical))
+    }
+
+    @Test fun legacyIssuingCityMatchesWithoutApplicationMetadata() {
+        val legacy = card(family = "China T-Union").copy(
+            selectedAID = "A000000632010105", issuingCity = "Shanghai City",
+        )
+        assertEquals("cn/2900", manifest.match(legacy.remoteFaceMatchInput())?.id)
+        assertEquals(shanghaiTokens + peerTokens, manifest.pickerSectionsFor(legacy).matching.map { it.fileName })
+        assertEquals(
+            "cn/2900",
+            manifest.match(legacy.copy(issuingCity = " 上海市 ").remoteFaceMatchInput())?.id,
+        )
+        assertNull(manifest.match(legacy.copy(selectedAID = null).remoteFaceMatchInput()))
+        assertNull(manifest.match(legacy.copy(issuingCity = " ").remoteFaceMatchInput()))
+        val ambiguous = manifest.copy(cards = manifest.cards + face("cn/visitor", city = mapOf("en" to "Shanghai")))
+        assertNull(ambiguous.match(legacy.remoteFaceMatchInput()))
+    }
 
     @Test fun sheetSeparatesPhotosAndPresetsWithoutLosingSelectionOrMatchingOrder() {
         val sections = manifest.pickerSectionsFor(

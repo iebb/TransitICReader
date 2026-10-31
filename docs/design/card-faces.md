@@ -29,6 +29,9 @@ Take a Photo tabs. Presets use a lazy grid: after the color option, designs for
 the physical card's type come first, followed by other cards for the same city
 in the same region. Unrelated presets appear in a separate group below.
 City matches use the catalog's city codes or nonempty localized city names.
+Legacy Chinese transit records can fall back to their saved issuing-city name
+when the card type and city codes are unavailable. This fallback requires a
+Chinese transit application AID and an unambiguous city match.
 The card's current artwork does not affect this order: a Shanghai card wearing
 Suica artwork still offers Shanghai designs first.
 Opening the picker preserves the current selection, including color-only mode.
@@ -40,9 +43,10 @@ remote preset downloads remain outside backups. Cancelling photo selection or
 capture leaves the current face unchanged. On iOS the sheet dismisses before
 the camera or crop editor opens; camera permission is requested only when the
 capture button is pressed. Devices without a camera direct users to Gallery.
-The Korean collection offers five researched T-money physical designs in
-addition to its existing two backgrounds, and five EZL/Cashbee designs including
-the yellow default. Research references and the visual preview live in the
+Opening either picker refreshes its catalog so newly published and withdrawn
+designs are reflected without waiting for the normal daily refresh.
+The curated Korean collection offers five T-money designs/backgrounds and five
+EZL/Cashbee designs including the yellow default. Research references and the visual preview live in the
 artwork repository.
 The collection also includes Standard Adult, Child and Elder Octopus fronts for
 Hong Kong, with separate text alternatives. Both clients discover these through
@@ -53,3 +57,9 @@ decoration, such as PASMO's train and bus motif. Ordinary names, service labels,
 numbers and small print remain in the text alternatives. PASMO also offers its
 fully cleaned face as `no-text.png`; existing explicit text selections keep
 working. The bundled PASMO fallback matches the decorative default.
+
+Variants dominated by licensed third-party characters or artwork are withdrawn
+from the published choices. The optional schema-2 `retiredDesigns` map redirects
+their stored tokens to a published default of the same card type. iOS migrates
+those selections and Android resolves them for display and in the picker.
+Custom photos and explicit color-only choices are preserved.
