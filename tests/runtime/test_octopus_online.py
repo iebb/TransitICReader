@@ -126,6 +126,7 @@ final class InventedCard: FeliCaCard {
     var raw: Int = 900
     var operations: [UInt8] = []
     var polled: [Data] = []
+    var repliesWithLength = false
     var block: Data { Data([UInt8(raw >> 24 & 255), UInt8(raw >> 16 & 255), UInt8(raw >> 8 & 255), UInt8(raw & 255)]) + Data(repeating: 0, count: 12) }
     func polling(systemCode: Data, requestCode: FeliCaRequestCode, timeSlot: FeliCaTimeSlot) async throws -> (Data, Data) {
         polled.append(systemCode)
@@ -135,7 +136,7 @@ final class InventedCard: FeliCaCard {
     func readWithoutEncryption(serviceCodeList: [Data], blockList: [Data]) async throws -> (Int, Int, [Data]) { (0, 0, [block]) }
     func sendFeliCaCommand(commandPacket: Data) async throws -> Data {
         operations.append(commandPacket[0])
-        return Data([commandPacket[0] + 1, 0])
+        return (repliesWithLength ? Data([3]) : Data()) + Data([commandPacket[0] + 1, 0])
     }
 }
 func rejects(_ operation: () async throws -> Void) async {
@@ -203,6 +204,13 @@ static func main() async throws {
     let otherSystem = InventedCard()
     await rejects { _ = try await OctopusOnlineDecoder.exchange(Data([0, 0x00, 0x03, 1, 0]), card: otherSystem, idm: otherSystem.currentIDm) }
     precondition(otherSystem.polled.isEmpty)
+    // Card replies reach the service with exactly one length byte, whether or not Core NFC kept its own.
+    let requestService = Data([0x02]) + Data(hexString: "0102030405060708") + Data([1, 0x17, 0x01])
+    for withLength in [false, true] {
+        let card = InventedCard(); card.repliesWithLength = withLength
+        let relayed = try await OctopusOnlineDecoder.exchange(requestService, card: card, idm: card.currentIDm)
+        precondition(relayed == Data([3, 0x03, 0]) && card.operations == [0x02])
+    }
     let result = try JSONSerialization.data(withJSONObject: fixture["result"]!)
     let opcodes: Set<UInt8> = [0x10, 0x12, 0x14]
     let confirmed = OctopusCardMetadata.calibrated(result: result, rawValue: 900, opcodes: opcodes)!

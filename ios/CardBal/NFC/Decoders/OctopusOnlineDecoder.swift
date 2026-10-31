@@ -122,7 +122,14 @@ enum OctopusOnlineDecoder {
             return Data([bytes[3] == 0 ? 18 : 20, 1]) + idm + pmm + (bytes[3] == 1 ? system : Data())
         }
         // Authenticated packet fields are opaque and need not contain a plaintext IDm.
-        let response = try await card.sendFeliCaCommand(commandPacket: command)
+        var response = try await card.sendFeliCaCommand(commandPacket: command)
+        // Core NFC is documented to drop the length byte, but on a real Octopus card (iOS 27.2) the
+        // reply arrived with it. Accept both so the relay sends the service a single length byte.
+        let reply = Array(response)
+        if reply.count >= 2, Int(reply[0]) == reply.count, reply[1] == opcode &+ 1 {
+            octopusDebugLog("Relay: card reply came with its length byte; removed it")
+            response = Data(reply.dropFirst())
+        }
         guard response.count < 255 else {
             octopusDebugLog("Relay: card reply too long (\(response.count) bytes)")
             throw OctopusProtocolError.invalidResponse
