@@ -30,3 +30,9 @@ The Korean collection offers five researched T-money physical designs in
 addition to its existing two backgrounds, and five EZL/Cashbee designs including
 the yellow default. Research references and the visual preview live in the
 artwork repository.
+
+Default artwork prefers no text, with an exception for lettering used as
+decoration, such as PASMO's train and bus motif. Ordinary names, service labels,
+numbers and small print remain in the text alternatives. PASMO also offers its
+fully cleaned face as `no-text.png`; existing explicit text selections keep
+working. The bundled PASMO fallback matches the decorative default.
