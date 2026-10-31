@@ -47,6 +47,8 @@ requirements. It preserves existing metadata. If a lower editable App Store
 draft exists, it updates that draft's version number to the selected build's
 version, then validates it again before submission. Active review submissions
 are never replaced. Missing metadata must be completed in App Store Connect.
+When adding iPad support, prepare the required iPad screenshot set on the draft
+before submitting; existing iPhone screenshots do not cover that device family.
 
 All workflows restrict store jobs to `master`. An accepted upload, a review
 submission, store approval and public availability are distinct states.
@@ -78,6 +80,7 @@ CardBal. An Account Holder's individual key does not provide that restriction.
 Create the restricted user before generating its key. Store the key ID and PEM
 in this repository's `ASC_KEY_ID` and `ASC_PRIVATE_KEY` secrets, then set
 `ASC_KEY_TYPE=individual`. A key's display name does not limit its app access.
+Before installing it, verify that the new key's app list contains only CardBal.
 Move the downloaded key to `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8`
 with file mode `600`; keep the directory private. Apple permits only one
 download, so retain that local copy outside the repository.
