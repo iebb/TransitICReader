@@ -65,10 +65,10 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
      * number prefix, the longest family-name substring and the serial prefix.
      */
     fun match(input: RemoteFaceMatchInput): Card? {
-        input.tUnionCityCodes.map { it.uppercase() }.forEach { code ->
+        input.tUnionCityCodes.filter { it.isNotBlank() }.map { it.uppercase() }.forEach { code ->
             cards.firstOrNull { code in it.match.cityCodes }?.let { return it }
         }
-        input.cityUnionCodes.map { it.uppercase() }.forEach { code ->
+        input.cityUnionCodes.filter { it.isNotBlank() }.map { it.uppercase() }.forEach { code ->
             cards.firstOrNull { code in it.match.cityUnionCodes }?.let { return it }
         }
         val digits = input.serialNumbers.map { serial -> serial.filter { it in '0'..'9' } }.filter { it.isNotEmpty() }
@@ -97,8 +97,46 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
         return matched.designs.firstOrNull { it.id == "default" }?.let { token(matched.id, it.id) }
     }
 
+    /** Exact physical type first, then city peers in the same region, in manifest order. */
+    fun relevantEntriesFor(input: RemoteFaceMatchInput): List<Entry> {
+        val matched = match(input) ?: return emptyList()
+        return entries.filter { it.card.id == matched.id } +
+            entries.filter { it.card.id != matched.id && it.card.sharesCityWith(matched) }
+    }
+
+    private fun Card.sharesCityWith(other: Card): Boolean {
+        val region = id.substringBefore('/')
+        if (region.isBlank() || region != other.id.substringBefore('/')) return false
+        fun List<String>.overlaps(values: List<String>): Boolean =
+            any { it.isNotBlank() && it in values }
+        fun Card.cityNames() = city?.values.orEmpty().map { it.trim().lowercase() }
+        return match.cityCodes.overlaps(other.match.cityCodes) ||
+            match.cityUnionCodes.overlaps(other.match.cityUnionCodes) ||
+            cityNames().overlaps(other.cityNames())
+    }
+
+    /** Color, relevant presets, the saved choice/photo, then the remaining card groups. */
+    fun pickerChoicesFor(card: SavedCardRecord, savedFaces: List<String> = emptyList()): List<CardFaceChoice> {
+        fun canonicalName(name: String): String =
+            entries.firstOrNull { it.design.bundledAsset == name }?.token ?: publishedToken(name) ?: name
+
+        val current = card.faceImageFileName?.takeIf { it.isNotBlank() }?.let(::canonicalName)
+        val active = if (card.isUsingImage == false) null else {
+            faceTokenFor(card) ?: current ?: offlineAssetFor(card)?.let(::publishedToken)
+        }
+        val names = buildList {
+            addAll(relevantEntriesFor(card.remoteFaceMatchInput()).map { it.token })
+            current?.let(::add)
+            active?.let(::add)
+            addAll(savedFaces.filter { it.isNotBlank() }.map(::canonicalName))
+            addAll(entries.map { it.token })
+        }.distinct()
+        return listOf(CardFaceChoice(fileName = null, selected = active == null)) +
+            names.map { CardFaceChoice(it, entry(it), selected = it == active) }
+    }
+
     private fun longestMatch(values: (Match) -> List<String>, matches: (String) -> Boolean): Card? =
-        cards.flatMap { card -> values(card.match).filter(matches).map { card to it.length } }
+        cards.flatMap { card -> values(card.match).filter { it.isNotBlank() && matches(it) }.map { card to it.length } }
             .maxByOrNull { it.second }?.first
 
     companion object {
@@ -166,13 +204,29 @@ data class RemoteFaceMatchInput(
     val family: String = "",
 )
 
+data class CardFaceChoice(
+    val fileName: String?,
+    val entry: RemoteFaceManifest.Entry? = null,
+    val selected: Boolean = false,
+)
+
+/** Disabling artwork retains the saved photo/preset so it can be selected again. */
+fun SavedCardRecord.withFaceChoice(fileName: String?): SavedCardRecord =
+    if (fileName == null) copy(isUsingImage = false)
+    else copy(faceImageFileName = fileName, isUsingImage = true)
+
 fun SavedCardRecord.remoteFaceMatchInput(): RemoteFaceMatchInput {
     val apps = applications.orEmpty()
+    val legacyCity = resultFields.firstOrNull { it.title == "City Code" }?.value
     return RemoteFaceMatchInput(
-        tUnionCityCodes = apps.filter { it.isTUnion }.mapNotNull { it.cityCode },
-        cityUnionCodes = apps.filter { it.isCityUnion }.mapNotNull { it.cityCode },
+        tUnionCityCodes = apps.filter { it.isTUnion }.mapNotNull { it.cityCode?.takeIf(String::isNotBlank) }.ifEmpty {
+            listOfNotNull(legacyCity.takeIf { selectedAID == "A000000632010105" })
+        },
+        cityUnionCodes = apps.filter { it.isCityUnion }.mapNotNull { it.cityCode?.takeIf(String::isNotBlank) }.ifEmpty {
+            listOfNotNull(legacyCity.takeIf { selectedAID == "A00000000386980701" })
+        },
         serialNumbers = listOfNotNull(realSerialNumber) + apps.mapNotNull { it.serialNumber },
-        family = cardFamily,
+        family = (listOf(cardFamily) + apps.map { it.cardFamily }).distinct().joinToString(" "),
     )
 }
 

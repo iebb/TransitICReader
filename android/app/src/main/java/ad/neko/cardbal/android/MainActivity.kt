@@ -180,6 +180,7 @@ private fun CardBalApp(
                 routes = routes,
                 rawExplanationFor = { tx -> transactionDecoder.rawExplanationFor(selectedCard, tx) },
                 onBack = { selectedCardId = null },
+                onSelectFace = { fileName -> repository.setFace(selectedCard.id, fileName) },
             )
         }
         return

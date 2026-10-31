@@ -600,7 +600,10 @@ class CardWalletStore: ObservableObject {
         guard let manifest = remoteFaces.manifest else { return ([], []) }
         let matched = manifest.match(card.remoteFaceMatchInput)
         let entries = manifest.pickerEntries(matching: matched)
-        return (entries.filter { $0.card.id == matched?.id }, entries.filter { $0.card.id != matched?.id })
+        return (
+            entries.filter { manifest.isPickerMatch($0.card, matching: matched) },
+            entries.filter { !manifest.isPickerMatch($0.card, matching: matched) }
+        )
     }
 
     func remoteFaceTitle(for token: String) -> String? {

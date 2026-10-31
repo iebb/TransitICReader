@@ -132,9 +132,30 @@ struct RemoteFaceManifest: Codable, Equatable {
         return longestMatch(\.serialPrefixes, where: { prefix in serials.contains { $0.hasPrefix(prefix) } })
     }
 
-    /// Picker order: the matched card's designs first, then everything else.
+    /// Keep all designs for the physical card ahead of related city cards and
+    /// the rest of the collection, regardless of the artwork currently chosen.
     func pickerEntries(matching matched: Card?) -> [Entry] {
-        entries.filter { $0.card.id == matched?.id } + entries.filter { $0.card.id != matched?.id }
+        let exact = entries.filter { $0.card.id == matched?.id }
+        let city = entries.filter { $0.card.id != matched?.id && isPickerMatch($0.card, matching: matched) }
+        let others = entries.filter { !isPickerMatch($0.card, matching: matched) }
+        return exact + city + others
+    }
+
+    func isPickerMatch(_ card: Card, matching matched: Card?) -> Bool {
+        guard let matched else { return false }
+        if card.id == matched.id { return true }
+        guard card.id.prefix(3) == matched.id.prefix(3) else { return false }
+        if !Set(card.match.cityCodes).isDisjoint(with: matched.match.cityCodes) ||
+            !Set(card.match.cityUnionCodes).isDisjoint(with: matched.match.cityUnionCodes) {
+            return true
+        }
+        let names = Set(card.city?.values.map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }.filter { !$0.isEmpty } ?? [])
+        let matchedNames = matched.city?.values.map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }.filter { !$0.isEmpty } ?? []
+        return !names.isDisjoint(with: matchedNames)
     }
 
     private func longestMatch(_ key: KeyPath<Match, [String]>, where matches: (String) -> Bool) -> Card? {

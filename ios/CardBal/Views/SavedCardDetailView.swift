@@ -352,7 +352,7 @@ struct CardCustomizeView: View {
         let isPhotoFace = card.finalIsUsingImage && store.loadFaceImage(fileName: card.faceImageFileName) != nil
         return List {
             Section {
-                faceCarousel(card: card, isPhotoFace: isPhotoFace)
+                faceCarousel(card: card)
                     .listRowInsets(EdgeInsets(top: 14, leading: 0, bottom: 12, trailing: 0))
                 HStack(spacing: 10) {
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
@@ -485,25 +485,35 @@ struct CardCustomizeView: View {
         .background(Color(uiColor: .systemGroupedBackground))
     }
 
-    private func faceCarousel(card: SavedCardRecord, isPhotoFace: Bool) -> some View {
+    private func faceCarousel(card: SavedCardRecord) -> some View {
         let current = card.faceImageFileName
+        let currentToken = current.flatMap(RemoteFaceManifest.publishedToken(for:))
         let presets = store.presets()
         let savedFaces = store.faceAssets().filter { $0.fileName != current }
         let remoteFaces = store.remoteFaceEntries(for: card)
+        let currentMatches = remoteFaces.matched.contains { $0.token == currentToken }
         return ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: 12) {
-                faceTile(Text("Color"), isSelected: !isPhotoFace) {
+                faceTile(Text("Color"), isSelected: !card.finalIsUsingImage) {
                     store.setIsUsingImage(false, for: card.id)
                 } face: {
                     Rectangle().fill(card.colorFace())
                 }
 
-                if let current, let image = store.loadFaceImage(fileName: current) {
+                remoteFaceTiles(remoteFaces.matched, card: card)
+
+                if let current, !currentMatches, let image = store.loadFaceImage(fileName: current) {
                     let presetName = presets.first { $0.fileName == current }?.name ?? store.remoteFaceTitle(for: current)
-                    faceTile(presetName.map { Text(verbatim: $0) } ?? Text("Photo"), isSelected: isPhotoFace) {
+                    faceTile(presetName.map { Text(verbatim: $0) } ?? Text("Photo"), isSelected: card.finalIsUsingImage) {
                         store.setIsUsingImage(true, for: card.id)
                     } face: {
                         Image(uiImage: image).resizable().scaledToFill()
+                    }
+                } else if let currentToken, !currentMatches, let name = store.remoteFaceTitle(for: currentToken) {
+                    faceTile(Text(verbatim: name), isSelected: card.finalIsUsingImage) {
+                        store.setIsUsingImage(true, for: card.id)
+                    } face: {
+                        RemoteFaceThumbnail(token: currentToken)
                     }
                 }
 
@@ -517,8 +527,6 @@ struct CardCustomizeView: View {
                     }
                 }
 
-                remoteFaceTiles(remoteFaces.matched, card: card)
-
                 ForEach(store.unpublishedPresets().filter {
                     $0.fileName != current && RemoteFaceManifest.publishedToken(for: $0.fileName) != current
                 }) { preset in
@@ -531,15 +539,16 @@ struct CardCustomizeView: View {
                     }
                 }
 
-                remoteFaceTiles(remoteFaces.others, card: card)
+                remoteFaceTiles(remoteFaces.others.filter { $0.token != currentToken }, card: card)
             }
             .padding(.horizontal, 16)
         }
     }
 
     private func remoteFaceTiles(_ entries: [RemoteFaceManifest.Entry], card: SavedCardRecord) -> some View {
-        ForEach(entries.filter { $0.token != card.faceImageFileName }) { entry in
-            faceTile(Text(verbatim: entry.title()), isSelected: false) {
+        ForEach(entries) { entry in
+            faceTile(Text(verbatim: entry.title()), isSelected: card.finalIsUsingImage &&
+                     entry.token == card.faceImageFileName.flatMap(RemoteFaceManifest.publishedToken(for:))) {
                 store.applyRemoteFace(entry.token, to: card.id)
             } face: {
                 RemoteFaceThumbnail(token: entry.token)
