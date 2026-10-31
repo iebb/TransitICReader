@@ -13,10 +13,16 @@ struct SavedCardDetailView: View {
     @State private var pendingDeletions: Set<String> = []
     @State private var calypsoOnlineLookup: CalypsoOnlineLookupState = .idle
 
+    init(cardID: String, store: CardWalletStore, initialSelection: CardDetailRoute.Selection = .settings) {
+        self.cardID = cardID
+        self.store = store
+        self.initialSelection = initialSelection
+        _viewSelection = State(initialValue: initialSelection)
+    }
+
     var body: some View {
         if let card = store.card(withID: cardID) {
             detailContent(card: card)
-                .onAppear { viewSelection = initialSelection }
                 .sheet(item: $activeHistoryItem) { item in
                     QuickHistorySheet(mode: item.mode, card: item.card, store: store)
                 }

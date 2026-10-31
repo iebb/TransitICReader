@@ -472,12 +472,22 @@ struct TransitTransactionRow: View {
     let tx: TransitTransaction
     let cardFamily: String?
     let reportCard: SavedCardRecord?
+    /// When set, a container that outlives this row presents the details, so the
+    /// sheet survives the row being removed (e.g. a pane closing on a fold).
+    /// Nil keeps the row's own sheet.
+    let onOpenDetails: ((TransitTransaction) -> Void)?
     @State private var showingDetails = false
 
-    init(tx: TransitTransaction, cardFamily: String?, reportCard: SavedCardRecord? = nil) {
+    init(
+        tx: TransitTransaction,
+        cardFamily: String?,
+        reportCard: SavedCardRecord? = nil,
+        onOpenDetails: ((TransitTransaction) -> Void)? = nil
+    ) {
         self.tx = tx
         self.cardFamily = cardFamily
         self.reportCard = reportCard
+        self.onOpenDetails = onOpenDetails
     }
 
     private var brand: ICCardBrand {
@@ -486,7 +496,11 @@ struct TransitTransactionRow: View {
     
     var body: some View {
         Button {
-            showingDetails = true
+            if let onOpenDetails {
+                onOpenDetails(tx)
+            } else {
+                showingDetails = true
+            }
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: iconMapping.name)
@@ -871,7 +885,9 @@ struct TransactionDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Close") { dismiss() }
+                    Button { dismiss() } label: {
+                        Label("Close", systemImage: "xmark")
+                    }
                 }
             }
         }

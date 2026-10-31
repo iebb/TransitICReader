@@ -279,219 +279,59 @@ struct ScanHomeView: View {
     @AppStorage("hideWelcomeMessage") private var hideWelcomeMessage = false
     @AppStorage("scanOnLaunch") private var scanOnLaunch = true
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         NavigationStack {
-            List {
-                if !hideWelcomeMessage {
-                    Section {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Label("Scan Your Transit Card", systemImage: "wave.3.right.circle.fill").font(.title3.bold())
-                                Spacer()
-                                Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel(Text("Dismiss"))
-                            }
-                            Text("Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur.").font(.subheadline).foregroundStyle(.secondary)
-                        }.padding(.vertical, 6)
-                    }
-                }
+            GeometryReader { proxy in
+                // Measure the space offered after native bars/sidebar and safe areas.
+                let primaryWidth = min(proxy.size.width * 0.42, 400)
+                let secondaryWidth = proxy.size.width - primaryWidth
+                let usesPanes = horizontalSizeClass == .regular
+                    && !dynamicTypeSize.isAccessibilitySize
+                    && primaryWidth >= 240 && secondaryWidth >= 300
 
-                Section("Card Reader") {
-                    if !reader.requiresExternalReader {
-                        Picker("Read Using", selection: $reader.prefersExternalReader) {
-                            Text("iPhone NFC").tag(false)
-                            Text("External Reader").tag(true)
+                if usesPanes {
+                    // Older SDKs cannot type-check the iOS 27.1 arrangement API.
+                    #if compiler(>=6.4)
+                    if #available(iOS 27.1, *) {
+                        ArrangementView {
+                            primaryPane
+                                // Keep the horizontal summary width, but give a
+                                // stacked Ready prompt room for its scan button.
+                                // These are ideals, not minimums: folded regions
+                                // remain free to shrink either scrollable pane.
+                                .splitArrangementLayoutSize(
+                                    idealWidth: primaryWidth,
+                                    idealHeight: min(420, proxy.size.height * 0.6))
+                        } secondary: {
+                            secondaryPane
                         }
-                            .pickerStyle(.segmented)
-                            .disabled(reader.isScanning)
-                    }
-                    if reader.requiresExternalReader {
-                        Label("iPad and macOS require an external NFC card reader.", systemImage: "cable.connector")
-                            .font(.subheadline)
-                    }
-                    if reader.usesExternalReader {
-                        if !reader.isNFCAvailable {
-                            Text("Connect a compatible USB smart-card reader.").foregroundStyle(.secondary)
-                        }
-                        if !reader.externalReaderNames.isEmpty || reader.selectedExternalReaderName != nil {
-                            Picker("Reader", selection: $reader.selectedExternalReaderName) {
-                                Text("Automatic").tag(nil as String?)
-                                if let selected = reader.selectedExternalReaderName, !reader.externalReaderNames.contains(selected) {
-                                    Text("\(selected) — Disconnected").tag(Optional(selected))
-                                }
-                                ForEach(reader.externalReaderNames, id: \.self) { name in
-                                    Text(name).tag(Optional(name))
-                                }
-                            }.disabled(reader.isScanning)
-                        }
+                        // Keep both axes: a horizontal-only split can hide the
+                        // secondary pane when the system chooses a vertical layout.
+                        .arrangementViewStyle(.split)
                     } else {
-                        Label("Hold the card near the top of your iPhone.", systemImage: "iphone.radiowaves.left.and.right")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        paneStack(primaryWidth: primaryWidth)
                     }
-                    if reader.showsScanStatus {
-                        Label(Localizer.localize(reader.statusMessage), systemImage: reader.statusSymbol)
-                            .foregroundStyle(reader.statusColor)
-                            .font(.footnote)
-                    } else if !reader.isNFCAvailable && !reader.usesExternalReader {
-                        Text("NFC reading is not available.")
-                            .foregroundStyle(.secondary).font(.footnote)
-                    }
-                    if reader.usesExternalReader && reader.isScanning {
-                        Button("Cancel Scan") { reader.cancelExternalScan() }
-                    }
+                    #else
+                    paneStack(primaryWidth: primaryWidth)
+                    #endif
+                } else {
+                    compactList
                 }
-
-                if let snapshot = reader.latestSnapshot {
-                    let cardToDisplay = bestDisplayCard(for: snapshot)
-                    Section("Card Preview") {
-                        WalletCardLayout {
-                            GeometryReader { proxy in
-                                let cardHeight = proxy.size.height
-                                WalletCardView(
-                                    card: cardToDisplay,
-                                    store: cardStore,
-                                    isExpanded: true,
-                                    cardHeight: cardHeight,
-                                    visiblePartHeight: cardHeight,
-                                    onVisibleTap: {},
-                                    showDetails: { detailRoute = CardDetailRoute(id: cardToDisplay.id) },
-                                    showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: cardToDisplay) },
-                                    showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: cardToDisplay) }
-                                )
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-                        .sheet(item: $activeHistoryItem) { item in
-                            QuickHistorySheet(mode: item.mode, card: item.card, store: cardStore)
-                        }
-                    }
-
-                    Section("Result") {
-                        KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
-                        
-                        // Explicitly separate IDm and Physical S/N for FeliCa
-                        if snapshot.technology == "FeliCa" {
-                            KeyValueRow(title: "IDm", value: snapshot.identifierValue)
-                        }
-                        
-                        ForEach(primaryResultFields(for: snapshot).filter { $0.title != "Card Number (IDm)" && $0.title != "IDm" }) { field in
-                            KeyValueRow(title: field.title, value: field.value)
-                        }
-                        if let balance = snapshot.balanceText {
-                            KeyValueRow(title: "Balance", value: balance)
-                        }
-                        KeyValueRow(title: "Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(snapshot.scannedAt))
-                        
-                        // Physical SN link/edit logic
-                        let f = snapshot.cardFamily.lowercased()
-                        if snapshot.technology == "FeliCa" && (snapshot.systemCode == "0003" || f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("ic")) {
-                            let sn = cardStore.card(withID: snapshot.storageIdentifier)?.realSerialNumber
-                            HStack {
-                                Label("Physical S/N", systemImage: "barcode.viewfinder").foregroundStyle(.secondary)
-                                Spacer()
-                                if let sn = sn {
-                                    HStack(spacing: 8) {
-                                        TextField("XX123 A456...", text: Binding(get: { sn }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
-                                            .multilineTextAlignment(.trailing)
-                                            .textFieldStyle(.plain)
-                                            .font(.system(.body, design: .monospaced))
-                                        
-                                        Button { isShowingSNScanner = true } label: {
-                                            Image(systemName: "barcode.viewfinder").font(.caption)
-                                        }.buttonStyle(.bordered).controlSize(.mini)
-                                    }
-                                } else {
-                                    Button("Scan to Link") { isShowingSNScanner = true }
-                                        .font(.caption.bold())
-                                        .buttonStyle(.bordered).controlSize(.small)
-                                }
-                            }
-                        }
-                    }
-
-                    if !snapshot.transactions.isEmpty {
-                        Section("Recent Transactions") {
-                            let sorted = sortTransactionsByRecency(snapshot.transactions)
-                            ForEach(sorted) { tx in
-                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily, reportCard: cardToDisplay)
-                                    .padding(.vertical, 4)
-                            }
-                        }
-                    }
-
-                    if !snapshot.transitHistory.isEmpty {
-                        Section("Transit Activity") {
-                            let sorted = sortTransactionsByRecency(snapshot.transitHistory)
-                            ForEach(sorted) { tx in
-                                TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily, reportCard: cardToDisplay)
-                                    .padding(.vertical, 4)
-                            }
-                        }
-                    }
-
-                    if !snapshot.rawSections.isEmpty {
-                        Section("Raw Data") {
-                            RawDataSectionList(snapshot: snapshot)
-                        }
-                    }
-                    
-                    if snapshot.cardFamily == "Lignes d'Azur card",
-                       !niceTicketFields(from: snapshot).isEmpty {
-                        Section("Tickets") {
-                            NiceTicketSummaryCard(snapshot: snapshot)
-                            ForEach(niceTicketFields(from: snapshot)) { field in
-                                KeyValueRow(title: field.title, value: field.value)
-                            }
-                        }
-                    }
-
-                    if cardToDisplay.isCalypsoCard {
-                        calypsoOnlineSection(card: cardToDisplay)
-                    }
-                } else if !reader.isScanning {
-                    Section {
-                        ScanPromptView(isExternal: reader.usesExternalReader, isReady: reader.isNFCAvailable) { reader.startScanning() }
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                    }
-                }
-
-                if reader.isScanning {
-                    Section {
-                        HStack {
-                            Spacer()
-                            VStack(spacing: 8) {
-                                ProgressView()
-                                Text("Scanning Card...")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                        }
-                        .padding(.vertical, 20)
-                    }
-                }
-
-                Section("How to Scan") {
-                    if reader.usesExternalReader {
-                        Label("Place one card on the external reader, then press Scan.", systemImage: "externaldrive.connected.to.line.below")
-                    } else {
-                        Label("Hold the card flat against the top of your iPhone", systemImage: "iphone.radiowaves.left.and.right")
-                    }
-                    Label("Keep it still until the scan finishes", systemImage: "hand.raised.fill")
-                    Label("For Apple Wallet cards, turn on Service Mode on the other device", systemImage: "wallet.pass")
-                }.font(.footnote).foregroundStyle(.secondary)
             }
             .navigationTitle("Scan")
             .toolbar {
                 ScanToolbarItem(reader: reader)
             }
+            .sheet(item: $activeHistoryItem) { item in
+                QuickHistorySheet(mode: item.mode, card: item.card, store: cardStore)
+            }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
                     SavedCardDetailView(cardID: route.id, store: cardStore, initialSelection: route.tab)
-                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailRoute = nil } } }
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button { detailRoute = nil } label: { Label("Done", systemImage: "checkmark") } } }
                 }
                 .presentationDetents(route.tab == .settings ? [.large] : [.medium, .large])
                 .presentationDragIndicator(.visible)
@@ -515,6 +355,299 @@ struct ScanHomeView: View {
                 } 
             }
         }
+    }
+
+    /// Side-by-side panes before iOS 27.1, or when built with an older SDK.
+    private func paneStack(primaryWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            primaryPane.frame(width: primaryWidth)
+            secondaryPane
+        }
+    }
+
+    // These builders share ScanHomeView's state; only their composition changes.
+    private var compactList: some View {
+        List {
+            welcomeSection
+            cardReaderSection
+            if let snapshot = reader.latestSnapshot {
+                let card = bestDisplayCard(for: snapshot)
+                cardPreviewSection(card: card)
+                resultSection(snapshot: snapshot)
+                secondarySections(snapshot: snapshot, cardToDisplay: card)
+            } else if !reader.isScanning {
+                readySection
+            }
+            scanningSection
+            howToSection
+        }
+    }
+
+    private var primaryPane: some View {
+        List {
+            if let snapshot = reader.latestSnapshot {
+                let card = bestDisplayCard(for: snapshot)
+                welcomeSection
+                cardReaderSection
+                cardPreviewSection(card: card)
+                resultSection(snapshot: snapshot)
+                scanningSection
+                if hasSecondarySections(snapshot: snapshot, card: card) {
+                    howToSection
+                }
+            } else {
+                cardReaderSection
+                if !reader.isScanning {
+                    readySection
+                }
+                scanningSection
+            }
+        }
+    }
+
+    private var secondaryPane: some View {
+        List {
+            if let snapshot = reader.latestSnapshot {
+                let card = bestDisplayCard(for: snapshot)
+                secondarySections(snapshot: snapshot, cardToDisplay: card)
+                if !hasSecondarySections(snapshot: snapshot, card: card) {
+                    howToSection
+                }
+            } else {
+                welcomeSection
+                howToSection
+            }
+        }
+    }
+
+    private func hasSecondarySections(snapshot: TransitCardSnapshot, card: SavedCardRecord) -> Bool {
+        !snapshot.transactions.isEmpty || !snapshot.transitHistory.isEmpty
+            || !snapshot.rawSections.isEmpty
+            || (snapshot.cardFamily == "Lignes d'Azur card" && !niceTicketFields(from: snapshot).isEmpty)
+            || card.isCalypsoCard
+    }
+
+    @ViewBuilder
+    private var welcomeSection: some View {
+        if !hideWelcomeMessage {
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("Scan Your Transit Card", systemImage: "wave.3.right.circle.fill").font(.title3.bold())
+                        Spacer()
+                        Button { withAnimation { hideWelcomeMessage = true } } label: { Image(systemName: "xmark").imageScale(.small).padding(6).background(Color(uiColor: .tertiarySystemFill), in: Circle()) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(Text("Dismiss"))
+                    }
+                    Text("Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur.").font(.subheadline).foregroundStyle(.secondary)
+                }.padding(.vertical, 6)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var cardReaderSection: some View {
+        Section("Card Reader") {
+            // The iPhone NFC / External Reader switch only appears while an
+            // external reader is connected.
+            if !reader.requiresExternalReader && reader.hasConnectedExternalReader {
+                Picker("Read Using", selection: $reader.prefersExternalReader) {
+                    Text("iPhone NFC").tag(false)
+                    Text("External Reader").tag(true)
+                }
+                    .pickerStyle(.segmented)
+                    .disabled(reader.isScanning)
+            }
+            if reader.requiresExternalReader {
+                Label("iPad and macOS require an external NFC card reader.", systemImage: "cable.connector")
+                    .font(.subheadline)
+            }
+            if reader.usesExternalReader {
+                if !reader.isNFCAvailable {
+                    Text("Connect a compatible USB smart-card reader.").foregroundStyle(.secondary)
+                }
+                // No reader picker without a connected reader.
+                if reader.hasConnectedExternalReader {
+                    Picker("Reader", selection: $reader.selectedExternalReaderName) {
+                        Text("Automatic").tag(nil as String?)
+                        if let selected = reader.selectedExternalReaderName, !reader.externalReaderNames.contains(selected) {
+                            Text("\(selected) — Disconnected").tag(Optional(selected))
+                        }
+                        ForEach(reader.externalReaderNames, id: \.self) { name in
+                            Text(name).tag(Optional(name))
+                        }
+                    }.disabled(reader.isScanning)
+                }
+            } else {
+                Label("Hold the card near the top of your iPhone.", systemImage: "iphone.radiowaves.left.and.right")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if reader.showsScanStatus {
+                Label(Localizer.localize(reader.statusMessage), systemImage: reader.statusSymbol)
+                    .foregroundStyle(reader.statusColor)
+                    .font(.footnote)
+            } else if !reader.isNFCAvailable && !reader.usesExternalReader {
+                Text("NFC reading is not available.")
+                    .foregroundStyle(.secondary).font(.footnote)
+            }
+            if reader.usesExternalReader && reader.isScanning {
+                Button("Cancel Scan") { reader.cancelExternalScan() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cardPreviewSection(card: SavedCardRecord) -> some View {
+        Section("Card Preview") {
+            WalletCardLayout {
+                GeometryReader { proxy in
+                    let cardHeight = proxy.size.height
+                    WalletCardView(
+                        card: card,
+                        store: cardStore,
+                        isExpanded: true,
+                        cardHeight: cardHeight,
+                        visiblePartHeight: cardHeight,
+                        onVisibleTap: {},
+                        showDetails: { detailRoute = CardDetailRoute(id: card.id) },
+                        showTransactions: { activeHistoryItem = HistorySheetItem(mode: .transactions, card: card) },
+                        showTransit: { activeHistoryItem = HistorySheetItem(mode: .transit, card: card) }
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+        }
+    }
+
+    @ViewBuilder
+    private func resultSection(snapshot: TransitCardSnapshot) -> some View {
+        Section("Result") {
+            KeyValueRow(title: "Card Family", value: snapshot.cardFamily)
+
+            // Explicitly separate IDm and Physical S/N for FeliCa
+            if snapshot.technology == "FeliCa" {
+                KeyValueRow(title: "IDm", value: snapshot.identifierValue)
+            }
+
+            ForEach(primaryResultFields(for: snapshot).filter { $0.title != "Card Number (IDm)" && $0.title != "IDm" }) { field in
+                KeyValueRow(title: field.title, value: field.value)
+            }
+            if let balance = snapshot.balanceText {
+                KeyValueRow(title: "Balance", value: balance)
+            }
+            KeyValueRow(title: "Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(snapshot.scannedAt))
+
+            // Physical SN link/edit logic
+            let f = snapshot.cardFamily.lowercased()
+            if snapshot.technology == "FeliCa" && (snapshot.systemCode == "0003" || f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("ic")) {
+                let sn = cardStore.card(withID: snapshot.storageIdentifier)?.realSerialNumber
+                HStack {
+                    Label("Physical S/N", systemImage: "barcode.viewfinder").foregroundStyle(.secondary)
+                    Spacer()
+                    if let sn = sn {
+                        HStack(spacing: 8) {
+                            TextField("XX123 A456...", text: Binding(get: { sn }, set: { cardStore.setRealSerialNumber($0, for: snapshot.storageIdentifier) }))
+                                .multilineTextAlignment(.trailing)
+                                .textFieldStyle(.plain)
+                                .font(.system(.body, design: .monospaced))
+
+                            Button { isShowingSNScanner = true } label: {
+                                Image(systemName: "barcode.viewfinder").font(.caption)
+                            }.buttonStyle(.bordered).controlSize(.mini)
+                        }
+                    } else {
+                        Button("Scan to Link") { isShowingSNScanner = true }
+                            .font(.caption.bold())
+                            .buttonStyle(.bordered).controlSize(.small)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func secondarySections(snapshot: TransitCardSnapshot, cardToDisplay: SavedCardRecord) -> some View {
+        if !snapshot.transactions.isEmpty {
+            Section("Recent Transactions") {
+                let sorted = sortTransactionsByRecency(snapshot.transactions)
+                ForEach(sorted) { tx in
+                    TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily, reportCard: cardToDisplay)
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+
+        if !snapshot.transitHistory.isEmpty {
+            Section("Transit Activity") {
+                let sorted = sortTransactionsByRecency(snapshot.transitHistory)
+                ForEach(sorted) { tx in
+                    TransitTransactionRow(tx: tx, cardFamily: snapshot.cardFamily, reportCard: cardToDisplay)
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+
+        if !snapshot.rawSections.isEmpty {
+            Section("Raw Data") {
+                RawDataSectionList(snapshot: snapshot)
+            }
+        }
+
+        if snapshot.cardFamily == "Lignes d'Azur card",
+           !niceTicketFields(from: snapshot).isEmpty {
+            Section("Tickets") {
+                NiceTicketSummaryCard(snapshot: snapshot)
+                ForEach(niceTicketFields(from: snapshot)) { field in
+                    KeyValueRow(title: field.title, value: field.value)
+                }
+            }
+        }
+
+        if cardToDisplay.isCalypsoCard {
+            calypsoOnlineSection(card: cardToDisplay)
+        }
+    }
+
+    @ViewBuilder
+    private var readySection: some View {
+        Section {
+            ScanPromptView(isExternal: reader.usesExternalReader, isReady: reader.isNFCAvailable) { reader.startScanning() }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+        }
+    }
+
+    @ViewBuilder
+    private var scanningSection: some View {
+        if reader.isScanning {
+            Section {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        ProgressView()
+                        Text("Scanning Card...")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 20)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var howToSection: some View {
+        Section("How to Scan") {
+            if reader.usesExternalReader {
+                Label("Place one card on the external reader, then press Scan.", systemImage: "externaldrive.connected.to.line.below")
+            } else {
+                Label("Hold the card flat against the top of your iPhone", systemImage: "iphone.radiowaves.left.and.right")
+            }
+            Label("Keep it still until the scan finishes", systemImage: "hand.raised.fill")
+            Label("For Apple Wallet cards, turn on Service Mode on the other device", systemImage: "wallet.pass")
+        }.font(.footnote).foregroundStyle(.secondary)
     }
 
     private func bestDisplayCard(for snapshot: TransitCardSnapshot) -> SavedCardRecord {
@@ -591,8 +724,17 @@ struct CardsView: View {
     @ObservedObject var reader: NFCTransitReader
     @State private var detailRoute: CardDetailRoute?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var previewCardID: String?
     @State private var activeHistoryItem: HistorySheetItem?
+    // The wide layout's history list choice for one card. Like previewCardID,
+    // it lives above the compact/wide branch so a size change never resets it.
+    @State private var historyModeCardID: String?
+    @State private var historyMode: QuickHistorySheet.HistoryMode = .transit
+    @State private var isHistoryPaneShown = false
+    // A record opened from the wide history pane. Held here, above the
+    // compact/wide branch, so its sheet survives the pane closing on a fold.
+    @State private var transactionDetailItem: TransactionDetailSheetItem?
 
     private let stackedSpacing: CGFloat = 64
     private let expandedStackGap: CGFloat = 12
@@ -602,57 +744,13 @@ struct CardsView: View {
         NavigationStack {
             Group {
                 if store.cards.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "wallet.bifold")
-                            .font(.system(size: 80))
-                            .foregroundStyle(.secondary)
-                        Text("No Cards Yet")
-                            .font(.title.bold())
-                        Text("Scan a physical card once and it will appear here.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    emptyWallet
                 } else {
                     GeometryReader { proxy in
-                        let availableWidth = max(proxy.size.width - 40, 1)
-                        let usesGrid = availableWidth >= 620 && !dynamicTypeSize.isAccessibilitySize
-                        let cardWidth = min(availableWidth, WalletCardLayout.maximumWidth)
-                        let cardHeight = cardWidth / cardAspectRatio
-
-                        ScrollView {
-                            if usesGrid {
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                                    ForEach(store.cards) { card in
-                                        WalletCardLayout {
-                                            GeometryReader { cardProxy in
-                                                walletCard(card, height: cardProxy.size.height, expanded: true, visibleHeight: 0)
-                                            }
-                                        }
-                                    }
-                                }
-                                .frame(maxWidth: WalletCardLayout.maximumWidth * 2 + 20)
-                                .padding(.horizontal, 20)
-                                .frame(maxWidth: .infinity)
-                            } else {
-                                ZStack(alignment: .top) {
-                                    ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
-                                        walletCard(card, height: cardHeight, expanded: previewCardID == card.id,
-                                                   visibleHeight: visibleTapHeight(for: index, cardHeight: cardHeight))
-                                            .zIndex(zIndex(for: index))
-                                            .offset(y: cardOffset(for: index, cardHeight: cardHeight))
-                                    }
-                                }
-                                .frame(width: cardWidth, height: stackHeight(cardHeight: cardHeight), alignment: .top)
-                                .frame(maxWidth: .infinity)
-                                .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
-                            }
-                        }
-                        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 20) }
-                        .sheet(item: $activeHistoryItem) { item in
-                            QuickHistorySheet(mode: item.mode, card: item.card, store: store)
+                        if usesWideLayout(in: proxy), let selectedCard = effectiveSelectedCard {
+                            wideLayout(selectedCard: selectedCard)
+                        } else {
+                            compactStack(width: proxy.size.width)
                         }
                     }
                 }
@@ -673,13 +771,189 @@ struct CardsView: View {
                 }
                 ScanToolbarItem(reader: reader)
             }
+            // Both routes are attached above the compact/wide branch, so a
+            // history sheet opened on the compact stack stays presented (same
+            // route) when the layout becomes wide, and vice versa.
+            .sheet(item: $activeHistoryItem) { item in
+                QuickHistorySheet(mode: item.mode, card: item.card, store: store)
+            }
             .sheet(item: $detailRoute) { route in
                 NavigationStack {
                     SavedCardDetailView(cardID: route.id, store: store, initialSelection: route.tab)
-                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailRoute = nil } } }
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button { detailRoute = nil } label: { Label("Done", systemImage: "checkmark") } } }
                 }
             }
+            // The pane's rows hand their record up here, so the detail sheet and
+            // its record stay presented when the pane is removed on closing.
+            .sheet(item: $transactionDetailItem) { item in
+                TransactionDetailView(tx: item.tx, cardFamily: item.cardFamily, reportCard: item.reportCard)
+            }
         }
+    }
+
+    private var emptyWallet: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "wallet.bifold")
+                .font(.system(size: 80))
+                .foregroundStyle(.secondary)
+            Text("No Cards Yet")
+                .font(.title.bold())
+            Text("Scan a physical card once and it will appear here.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Wide layout (stack leading, selected card's history trailing)
+
+    /// A fit test on the live Cards content area, not a device check: two panes
+    /// of a 320-point card plus 20-point insets, in a space wider than tall.
+    /// Tall regular space and accessibility text keep the compact stack.
+    /// The height includes the top inset, so the large title collapsing while
+    /// scrolling (which moves height between the two) never flips the layout.
+    private func usesWideLayout(in proxy: GeometryProxy) -> Bool {
+        let width = proxy.size.width
+        let fullHeight = proxy.size.height + proxy.safeAreaInsets.top
+        return horizontalSizeClass == .regular
+            && width > fullHeight
+            && width >= 720
+            && !dynamicTypeSize.isAccessibilitySize
+            && !store.cards.isEmpty
+    }
+
+    /// Display-only selection: a missing or deleted previewCardID falls back to
+    /// the first card without writing state, so returning to compact restores
+    /// exactly the stack the person left.
+    private var effectiveSelectedCardID: String? {
+        if let previewCardID, store.cards.contains(where: { $0.id == previewCardID }) {
+            return previewCardID
+        }
+        return store.cards.first?.id
+    }
+
+    private var effectiveSelectedCard: SavedCardRecord? {
+        guard let selectedID = effectiveSelectedCardID else { return nil }
+        return store.cards.first { $0.id == selectedID }
+    }
+
+    @ViewBuilder
+    private func wideLayout(selectedCard: SavedCardRecord) -> some View {
+        // Older SDKs cannot type-check the iOS 27.1 arrangement API.
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) {
+            // Each pane owns its scroll view; the split keeps both panes in their
+            // own region on a fold, with no hand-made hinge gutter while flat.
+            ArrangementView {
+                walletStackPane(selectedCardID: selectedCard.id)
+            } secondary: {
+                historyPane(for: selectedCard)
+            }
+            .arrangementViewStyle(.split.axes(.horizontal))
+        } else {
+            wideStack(selectedCard: selectedCard)
+        }
+        #else
+        wideStack(selectedCard: selectedCard)
+        #endif
+    }
+
+    /// Equal side-by-side panes before iOS 27.1, or when built with an older SDK.
+    private func wideStack(selectedCard: SavedCardRecord) -> some View {
+        HStack(spacing: 0) {
+            walletStackPane(selectedCardID: selectedCard.id)
+                .frame(maxWidth: .infinity)
+            historyPane(for: selectedCard)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func walletStackPane(selectedCardID: String) -> some View {
+        WalletStackPane(
+            cards: store.cards,
+            store: store,
+            selectedCardID: selectedCardID,
+            select: { id in selectInWideLayout(id) },
+            showDetails: { id in detailRoute = CardDetailRoute(id: id) },
+            showHistory: { card, mode in showHistoryInWideLayout(card, mode: mode) }
+        )
+    }
+
+    private func historyPane(for card: SavedCardRecord) -> some View {
+        CardHistoryPane(
+            store: store,
+            card: card,
+            storedMode: historyModeCardID == card.id ? historyMode : nil,
+            setMode: { mode in
+                historyModeCardID = card.id
+                historyMode = mode
+            },
+            openDetails: { tx in
+                transactionDetailItem = TransactionDetailSheetItem(
+                    cardID: card.id,
+                    tx: tx,
+                    cardFamily: card.cardFamily,
+                    reportCard: card
+                )
+            }
+        )
+        // If an arrangement ever shows only its primary view, the card's
+        // history buttons keep opening the sheet so no history is unreachable.
+        .onAppear { isHistoryPaneShown = true }
+        .onDisappear { isHistoryPaneShown = false }
+    }
+
+    /// Same as the compact stack: the tapped card comes to the front and is
+    /// selected. The front card is the selection, so tapping it is a no-op.
+    private func selectInWideLayout(_ id: String) {
+        guard id != effectiveSelectedCardID else { return }
+        store.bringToFront(id)
+        previewCardID = id
+        resetHistoryMode()
+    }
+
+    /// A card that becomes selected again starts in the default history list.
+    /// Its "N Transactions" / "N Rides" buttons set an explicit mode afterwards.
+    private func resetHistoryMode() {
+        historyModeCardID = nil
+        historyMode = .transit
+    }
+
+    /// In the wide layout a card's history buttons choose the pane's list
+    /// (selecting that card first) instead of opening a sheet.
+    private func showHistoryInWideLayout(_ card: SavedCardRecord, mode: QuickHistorySheet.HistoryMode) {
+        guard isHistoryPaneShown else {
+            activeHistoryItem = HistorySheetItem(mode: mode, card: card)
+            return
+        }
+        selectInWideLayout(card.id)
+        historyModeCardID = card.id
+        historyMode = mode
+    }
+
+    // MARK: - Compact stack (unchanged behavior)
+
+    private func compactStack(width: CGFloat) -> some View {
+        let availableWidth = max(width - 40, 1)
+        let cardWidth = min(availableWidth, WalletCardLayout.maximumWidth)
+        let cardHeight = cardWidth / cardAspectRatio
+
+        return ScrollView {
+            ZStack(alignment: .top) {
+                ForEach(Array(store.cards.enumerated()), id: \.element.id) { index, card in
+                    walletCard(card, height: cardHeight, expanded: previewCardID == card.id,
+                               visibleHeight: visibleTapHeight(for: index, cardHeight: cardHeight))
+                        .zIndex(zIndex(for: index))
+                        .offset(y: cardOffset(for: index, cardHeight: cardHeight))
+                }
+            }
+            .frame(width: cardWidth, height: stackHeight(cardHeight: cardHeight), alignment: .top)
+            .frame(maxWidth: .infinity)
+            .animation(.spring(response: 0.32, dampingFraction: 0.82), value: store.cards)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 20) }
     }
 
     private func walletCard(_ card: SavedCardRecord, height: CGFloat, expanded: Bool, visibleHeight: CGFloat) -> some View {
@@ -695,6 +969,7 @@ struct CardsView: View {
                 } else {
                     store.bringToFront(card.id)
                     previewCardID = card.id
+                    resetHistoryMode()
                 }
             },
             showDetails: { detailRoute = CardDetailRoute(id: card.id) },
@@ -732,6 +1007,174 @@ struct CardsView: View {
     }
 }
 
+/// The wide Cards layout's leading pane: the existing stack in its "one card
+/// open" geometry. The selected card is in front at full size; the others
+/// follow in saved order as 64-point strips, later cards on top.
+private struct WalletStackPane: View {
+    let cards: [SavedCardRecord]
+    /// Card faces resolve through the store; the pane itself keeps no state.
+    let store: CardWalletStore
+    let selectedCardID: String
+    let select: (String) -> Void
+    let showDetails: (String) -> Void
+    let showHistory: (SavedCardRecord, QuickHistorySheet.HistoryMode) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let stackedSpacing: CGFloat = 64
+    private let expandedStackGap: CGFloat = 12
+    private let stackTopID = "walletStackTop"
+
+    /// The selected card first, then the remaining cards in saved order.
+    private var orderedCards: [SavedCardRecord] {
+        guard let selected = cards.first(where: { $0.id == selectedCardID }) else { return cards }
+        return [selected] + cards.filter { $0.id != selectedCardID }
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let cardWidth = max(min(proxy.size.width - 40, WalletCardLayout.maximumWidth), 1)
+            let cardHeight = cardWidth / WalletCardLayout.aspectRatio
+            ScrollView {
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: 0)
+                        .id(stackTopID)
+                    stack(cardHeight: cardHeight)
+                        .frame(width: cardWidth, height: stackHeight(cardHeight: cardHeight), alignment: .top)
+                        .frame(maxWidth: .infinity)
+                        .padding(20)
+                }
+            }
+            // A strip tapped further down moves to the front, at the top of
+            // the stack: scroll there so the new front card is in view.
+            .modifier(ScrollToTopOnChange(value: selectedCardID, anchorID: stackTopID, reduceMotion: reduceMotion))
+        }
+    }
+
+    private func stack(cardHeight: CGFloat) -> some View {
+        let ordered = orderedCards
+        return ZStack(alignment: .top) {
+            ForEach(Array(ordered.enumerated()), id: \.element.id) { index, card in
+                walletCard(card, isFront: index == 0, cardHeight: cardHeight)
+                    .zIndex(Double(index))
+                    .offset(y: offset(for: index, cardHeight: cardHeight))
+            }
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.82), value: ordered.map(\.id))
+    }
+
+    private func walletCard(_ card: SavedCardRecord, isFront: Bool, cardHeight: CGFloat) -> some View {
+        WalletCardView(
+            card: card,
+            store: store,
+            isExpanded: isFront,
+            cardHeight: cardHeight,
+            visiblePartHeight: isFront ? min(cardHeight * 0.3, 76) : stackedSpacing,
+            onVisibleTap: {
+                // Being in front is the selection; tapping it again keeps it.
+                if !isFront { select(card.id) }
+            },
+            showDetails: { showDetails(card.id) },
+            showTransactions: { showHistory(card, .transactions) },
+            showTransit: { showHistory(card, .transit) },
+            // Only the card's title/balance element carries "selected", not
+            // each of its buttons.
+            isSelected: isFront
+        )
+    }
+
+    private func offset(for index: Int, cardHeight: CGFloat) -> CGFloat {
+        index == 0 ? 0 : cardHeight + expandedStackGap + CGFloat(index - 1) * stackedSpacing
+    }
+
+    /// Tall enough for the last card's whole face, so it is fully visible.
+    private func stackHeight(cardHeight: CGFloat) -> CGFloat {
+        guard cards.count > 1 else { return cardHeight }
+        return offset(for: cards.count - 1, cardHeight: cardHeight) + cardHeight
+    }
+}
+
+/// The wide Cards layout's trailing pane: the selected card's history, using
+/// the same list as the Quick History sheet, without its navigation chrome.
+private struct CardHistoryPane: View {
+    let store: CardWalletStore
+    let card: SavedCardRecord
+    /// The mode chosen for this card, if any; otherwise a default applies.
+    let storedMode: QuickHistorySheet.HistoryMode?
+    let setMode: (QuickHistorySheet.HistoryMode) -> Void
+    /// Rows hand their record to CardsView, which presents the detail sheet.
+    let openDetails: (TransitTransaction) -> Void
+
+    var body: some View {
+        let hasTransactions = !card.transactions.isEmpty
+        let hasTransit = !card.transitHistory.isEmpty
+        content(hasTransactions: hasTransactions, hasTransit: hasTransit)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: .systemBackground))
+    }
+
+    @ViewBuilder
+    private func content(hasTransactions: Bool, hasTransit: Bool) -> some View {
+        if hasTransactions || hasTransit {
+            VStack(spacing: 0) {
+                if hasTransactions && hasTransit {
+                    modePicker(selection: resolvedMode(hasTransactions: hasTransactions, hasTransit: hasTransit))
+                }
+                CardHistoryList(
+                    mode: resolvedMode(hasTransactions: hasTransactions, hasTransit: hasTransit),
+                    card: card,
+                    store: store,
+                    appearance: .pane,
+                    onOpenDetails: openDetails
+                )
+                // Under the switch, the list starts 20 points below it (the
+                // switch's own bottom padding), not after the grouped list's
+                // default top spacing as well.
+                .modifier(TrimmedPaneListTop(isTrimmed: hasTransactions && hasTransit))
+                // A newly selected card starts at the top; otherwise the list
+                // keeps its identity and scroll position through resizing.
+                .id(card.id)
+            }
+        } else {
+            emptyState
+        }
+    }
+
+    /// Picker only when both lists have records; a single list shows alone.
+    /// Default for a card without a chosen mode: Transit Activity if present.
+    private func resolvedMode(hasTransactions: Bool, hasTransit: Bool) -> QuickHistorySheet.HistoryMode {
+        if hasTransactions && hasTransit {
+            return storedMode ?? .transit
+        }
+        return hasTransit ? .transit : .transactions
+    }
+
+    private func modePicker(selection mode: QuickHistorySheet.HistoryMode) -> some View {
+        Picker(card.localizedDisplayTitle, selection: Binding(get: { mode }, set: { setMode($0) })) {
+            Text("Transactions").tag(QuickHistorySheet.HistoryMode.transactions)
+            Text("Transit Activity").tag(QuickHistorySheet.HistoryMode.transit)
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 20)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "list.bullet.rectangle")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text("No records found")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(20)
+    }
+}
+
 struct RideMapTabView: View {
     @ObservedObject var store: CardWalletStore
 
@@ -739,6 +1182,86 @@ struct RideMapTabView: View {
         NavigationStack {
             RideMapView(store: store, initialCardID: nil, showsCardPicker: true)
         }
+    }
+}
+
+/// Removes the grouped list's own top spacing in the history pane when the
+/// Transactions / Transit Activity switch sits above it (iOS 17 and later).
+private struct TrimmedPaneListTop: ViewModifier {
+    let isTrimmed: Bool
+
+    func body(content: Content) -> some View {
+        if isTrimmed {
+            if #available(iOS 17.0, *) {
+                content
+                    .contentMargins(.top, 0, for: .scrollContent)
+                    .environment(\.defaultMinListHeaderHeight, 0)
+            } else {
+                content
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// Scrolls the wallet stack back to the top of its content when `value`
+/// changes. On iOS 18 and later this scrolls to the content's top edge, which
+/// is the position the large navigation title is shown at; earlier systems
+/// scroll to the anchor view placed at the top of the content.
+private struct ScrollToTopOnChange<Value: Equatable>: ViewModifier {
+    let value: Value
+    let anchorID: String
+    let reduceMotion: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.modifier(EdgeScrollToTopOnChange(value: value, reduceMotion: reduceMotion))
+        } else {
+            ScrollViewReader { scrollProxy in
+                content.onChange(of: value) { _ in
+                    if reduceMotion {
+                        scrollProxy.scrollTo(anchorID, anchor: .top)
+                    } else {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                            scrollProxy.scrollTo(anchorID, anchor: .top)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct EdgeScrollToTopOnChange<Value: Equatable>: ViewModifier {
+    let value: Value
+    let reduceMotion: Bool
+    @State private var position = ScrollPosition(edge: .top)
+
+    func body(content: Content) -> some View {
+        content
+            .scrollPosition($position)
+            .onChange(of: value) {
+                if reduceMotion {
+                    position.scrollTo(edge: .top)
+                } else {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        position.scrollTo(edge: .top)
+                    }
+                }
+            }
+    }
+}
+
+private struct ReadableSettingsForm: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: horizontalSizeClass == .regular ? 640 : .infinity)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
     }
 }
 
@@ -810,6 +1333,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .modifier(ReadableSettingsForm())
             .navigationTitle("Settings")
         }
         .fileExporter(
@@ -898,6 +1422,7 @@ struct SettingsView: View {
                 Text("China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected.")
             }
         }
+        .modifier(ReadableSettingsForm())
         .navigationTitle("Display")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -954,6 +1479,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .modifier(ReadableSettingsForm())
         .navigationTitle("Backup")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -984,6 +1510,7 @@ struct SettingsView: View {
                 Text("Optional. Share Korean card records to help improve decoding.")
             }
         }
+        .modifier(ReadableSettingsForm())
         .navigationTitle("Privacy")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -996,6 +1523,7 @@ struct SettingsView: View {
                 Text("When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer.")
             }
         }
+        .modifier(ReadableSettingsForm())
         .navigationTitle("Advanced")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -1017,6 +1545,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .modifier(ReadableSettingsForm())
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -1328,7 +1857,8 @@ struct ScanToolbarItem: ToolbarContent {
             Button {
                 reader.startScanning()
             } label: {
-                Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                Label("Scan a Card", systemImage: "sensor.tag.radiowaves.forward.fill")
+                    .labelStyle(.iconOnly)
                     .imageScale(.large)
                     .foregroundStyle(.primary)
                     .frame(minWidth: 44, minHeight: 44)
@@ -1348,6 +1878,7 @@ struct ScanToolbarItem: ToolbarContent {
 struct ReorderCardsView: View {
     @ObservedObject var store: CardWalletStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         List {
@@ -1379,6 +1910,10 @@ struct ReorderCardsView: View {
                 store.moveCard(fromOffsets: from, toOffset: to)
             }
         }
+        // Same native editable list, kept readable within a wide surface.
+        .frame(maxWidth: horizontalSizeClass == .regular ? 560 : .infinity)
+        .frame(maxWidth: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Order")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

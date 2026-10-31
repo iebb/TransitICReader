@@ -19,7 +19,11 @@ concurrency:
 jobs:
   ios:
     if: github.ref == 'refs/heads/master'
-    runs-on: macos-latest
+    # iPhone Duo layouts need the iOS 27.1 SDK or later; older SDKs build
+    # an app that runs in a compatibility window on the Duo.
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

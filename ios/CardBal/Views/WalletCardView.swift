@@ -29,6 +29,9 @@ struct WalletCardView: View {
     let showDetails: () -> Void
     let showTransactions: () -> Void
     let showTransit: () -> Void
+    /// The front card of the wide Cards stack. Only the title/balance element
+    /// carries the selected trait, not each of the card's buttons.
+    var isSelected: Bool = false
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
     @State private var copied = false
 
@@ -117,6 +120,7 @@ struct WalletCardView: View {
                             .monospacedDigit()
                             .layoutPriority(1)
                         }
+                        .modifier(SelectedCardIdentity(isSelected: isSelected))
 
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             if shouldShowSerialNumber {
@@ -317,6 +321,23 @@ struct WalletCardView: View {
                 x: 0,
                 y: 1.5
             )
+    }
+}
+
+/// Makes a selected card's title and balance one accessibility element with the
+/// selected trait. Unselected cards keep their existing separate elements.
+private struct SelectedCardIdentity: ViewModifier {
+    let isSelected: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isSelected {
+            content
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            content
+        }
     }
 }
 

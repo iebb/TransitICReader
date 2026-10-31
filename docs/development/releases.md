@@ -12,6 +12,11 @@ projects. Both project versions must agree. Each workflow tests, builds, signs
 and uploads only its own platform, then saves the signed package as an artifact.
 Apple may still be processing a build after the TestFlight workflow finishes.
 
+The iOS build runs on GitHub's `xcode-27` runner image with Xcode 27.2
+selected. iPhone Duo's full-screen layouts need the iOS 27.1 SDK or later; an
+app built with an older SDK runs in a compatibility window on the Duo, and the
+Duo-specific layout code is compiled out (`#if compiler(>=6.4)`).
+
 Build numbers are assigned when the build job starts, using UTC time since
 1 January 2020. Android uses elapsed minutes; iOS uses `days.hour.minute`.
 This avoids reusing per-workflow run numbers when the two platforms upload
