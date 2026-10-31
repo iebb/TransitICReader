@@ -14,8 +14,16 @@ enum OctopusOnlineDecoder {
         var usedOnline = false
         var enquiryFailed = false
         var skippedCardUpdates = 0
+        // A top-up changes the exchange rate of an Octopus – China T-Union card, so such a card
+        // asks again on every scan and keeps its saved details when that fails. Details saved
+        // before the app read rates are checked once more to find out whether the card has one.
+        let refreshesRate = metadata.map { $0.exchangeRate != nil || $0.rateChecked != true } ?? false
         octopusDebugLog("Octopus card IDm \(DebugLog.shortened(idm)), purse raw \(block.bigEndianInt(start: 0, length: 4))")
-        if let metadata {
+        if let metadata, refreshesRate {
+            octopusDebugLog("Metadata already saved (offset \(metadata.offset), card number \(DebugLog.shortened(metadata.cardNumber))); "
+                            + (metadata.exchangeRate == nil ? "looking for an exchange rate online" : "checking the exchange rate online")
+                            + (onlineEnabled && client.isConfigured ? "" : " is not possible"))
+        } else if let metadata {
             octopusDebugLog("Online enquiry not needed: metadata already saved (offset \(metadata.offset), card number \(DebugLog.shortened(metadata.cardNumber)))")
         } else if !onlineEnabled {
             octopusDebugLog("Online enquiry not run: Octopus Online is off in Settings")
@@ -23,7 +31,7 @@ enum OctopusOnlineDecoder {
             octopusDebugLog("Online enquiry not run: no enquiry endpoint configured in this build")
         }
         // Without a configured endpoint the build offers no online enquiry at all.
-        if metadata == nil && onlineEnabled && client.isConfigured {
+        if (metadata == nil || refreshesRate) && onlineEnabled && client.isConfigured {
             defer { client.close() }
             defer { skippedCardUpdates = client.skippedCardUpdates }
             ScanProgress.report(.octopusOnline)
@@ -73,7 +81,11 @@ enum OctopusOnlineDecoder {
                 octopusDebugLog("Outcome: failed during \(step)" + (step == "enquiry" ? "" : ": " + DebugLog.describe(error)))
             }
             if client.skippedCardUpdates > 0 { octopusDebugLog("Skipped card updates: \(client.skippedCardUpdates)") }
-            if enquiryFailed { ScanProgress.report(.octopusUnavailable) }
+            if enquiryFailed && metadata != nil {
+                octopusDebugLog("Using the saved balance offset and exchange rate")
+            } else if enquiryFailed {
+                ScanProgress.report(.octopusUnavailable)
+            }
         }
         let raw = currentBlock.bigEndianInt(start: 0, length: 4)
         let balance = metadata.map { formatCurrency(amount: Decimal(raw - $0.offset) / 10, code: "HKD", fractionDigits: 1) }
@@ -106,6 +118,7 @@ enum OctopusOnlineDecoder {
                 RawDataField.systemCodeRow(systemCodes)
             ]), RawDataSection(title: "Decoded Balance", fields: rawFields)],
             rawTransactions: [], rawTransitHistory: [], scannedAt: scannedAt)
+        snapshot.exchangeRate = metadata?.exchangeRate
         snapshot.applications = [TransitApplication(snapshot: snapshot)]
         return snapshot
     }

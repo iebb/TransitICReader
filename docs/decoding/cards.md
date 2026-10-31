@@ -202,6 +202,30 @@ the confirmed balance stays unavailable and Raw Data shows the two candidates.
 The reader does not treat unverified additional public blocks as transaction
 history. Existing saved history remains intact.
 
+### Octopus – China T-Union cards (iOS 2.5.2; Android to follow)
+
+The enquiry result of a dual-currency card carries `cardDataVO.motRate`, the
+yuan value of HK$1 (for example `"0.839"`), and `motExpiryDate`
+(`yyyyMMddHHmm`, Hong Kong time). The rate is kept exactly as returned, saved
+with the card's calibration, and shown as `HK$1 = CN¥{rate}` with its expiry.
+CardBal never converts amounts itself.
+
+- The iOS reader reads the FeliCa (Octopus) side first. Only when the card has a
+  rate does it wait up to 2 s for the card's ISO 7816 (T-Union) side; any other
+  Octopus card finishes at once.
+- A card with a rate repeats the enquiry on every scan, because a top-up can
+  change the rate. If that enquiry fails, the saved offset and last rate are
+  used without an "unavailable" message. Calibrations saved before 2.5.2 carry
+  no `rateChecked` mark and are enquired once more to learn whether the card
+  has a rate.
+- The scan result and Card Information show HKD Balance, CNY Balance, Exchange
+  Rate and Rate Valid Until in place of Balance. The CNY balance appears only
+  when the T-Union side was read within two minutes of the Octopus side,
+  otherwise it reads Unavailable. The card face adds the CN¥ amount under the
+  HKD balance. Cards without a rate look exactly as before.
+- The debug log records the rate and its expiry, which describe the product
+  rather than the cardholder.
+
 The independently written implementations follow the user-supplied
 `octopus_online.py` and its protocol notes, investigated on 2026-10-31.
 `tests/runtime/fixtures/octopus-online.json` contains invented bytes used by

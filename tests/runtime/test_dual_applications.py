@@ -197,6 +197,47 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
     snapshot.applications = [TransitApplication(snapshot: snapshot, records: records)]
     return snapshot
 }
+func testDualCurrency(octopus: TransitCardSnapshot, plain: TransitCardSnapshot) throws {
+    let result = Data(#"{"cardDataVO":{"balance":55.0,"status":"R30","motRate":"0.839","motExpiryDate":"202710311800","hasNewMotRate":false}}"#.utf8)
+    let rate = OctopusExchangeRate.parse(result: result)
+    check(rate?.rate == "0.839", "Exchange rate not read as returned")
+    var hongKong = Calendar(identifier: .gregorian); hongKong.timeZone = TimeZone(identifier: "Asia/Hong_Kong")!
+    check(rate?.validUntil == hongKong.date(from: DateComponents(year: 2027, month: 10, day: 31, hour: 18)), "Rate expiry not read in Hong Kong time")
+    check(rate?.isExpired(at: hongKong.date(from: DateComponents(year: 2027, month: 11, day: 1))!) == true && rate?.isExpired() == false, "Rate expiry check")
+    for missing in [#"{"cardDataVO":{"balance":2.2,"status":"R30"}}"#, #"{"cardDataVO":{"motRate":""}}"#, #"{"cardDataVO":{"motRate":"0"}}"#,
+                    #"{"cardDataVO":{"motRate":true}}"#, #"{"cardDataVO":{"motRate":"1e9"}}"#, "not json"] {
+        check(OctopusExchangeRate.parse(result: Data(missing.utf8)) == nil, "Invented a rate from " + missing)
+    }
+    check(OctopusExchangeRate.parse(result: Data(#"{"cardDataVO":{"motRate":0.84}}"#.utf8))?.validUntil == nil, "Numeric rate without expiry")
+    for (text, expected) in [("CN¥46.15", "46.15"), ("¥46.15", "46.15"), ("46,15 CN¥", "46.15"), ("CN¥1,000.00", "1000.00"), ("-¥1.50", "-1.50"), ("CNY 32", "32.00")] {
+        let yuan = DualCurrencyBalance.yuanText(fromBalanceText: text) ?? ""
+        check(yuan.contains("CN¥") && yuan.filter { $0.isNumber || $0 == "-" } == expected.filter { $0.isNumber || $0 == "-" }, "Yuan balance \(text) became \(yuan)")
+    }
+    check(DualCurrencyBalance.yuanText(fromBalanceText: "N/A") == nil, "Yuan balance invented")
+    var national = TransitCardSnapshot(technology: "ISO7816", cardFamily: "China T-Union", identifierLabel: "UID", identifierValue: "01020304",
+        rawIdentifierValue: "01020304", pmm: nil, systemCode: nil, selectedAID: TUnionDecoder.applicationAID, balanceText: "¥46.15",
+        balanceDetail: nil, realSerialNumber: "3100000000000000001", region: nil, resultFields: [], rawSections: [], rawTransactions: [],
+        rawTransitHistory: [], scannedAt: octopus.scannedAt.addingTimeInterval(2))
+    national.applications = [TransitApplication(snapshot: national)]
+    let combined = TransitCardSnapshot.combining([national, octopus])!
+    let dual = DualCurrencyBalance(applications: combined.applications)
+    check(combined.exchangeRate?.rate == "0.839" && combined.balanceText == "HKD 50", "Combined card lost its rate or HKD balance")
+    check(dual?.yuanBalance?.hasPrefix("CN¥") == true && dual?.rateText == "HK$1 = CN¥0.839", "Dual balance rows")
+    check(DualCurrencyBalance(applications: TransitCardSnapshot.combining([national, plain])!.applications) == nil, "A plain Octopus card became dual")
+    check(DualCurrencyBalance(applications: octopus.applications)?.yuanBalance == nil, "Missing T-Union side invented a yuan balance")
+    var stale = national
+    stale = TransitCardSnapshot(technology: stale.technology, cardFamily: stale.cardFamily, identifierLabel: stale.identifierLabel,
+        identifierValue: stale.identifierValue, rawIdentifierValue: stale.rawIdentifierValue, pmm: nil, systemCode: nil,
+        selectedAID: stale.selectedAID, balanceText: stale.balanceText, balanceDetail: nil, realSerialNumber: stale.realSerialNumber,
+        region: nil, resultFields: [], rawSections: [], rawTransactions: [], rawTransitHistory: [], scannedAt: octopus.scannedAt.addingTimeInterval(-3600))
+    stale.applications = [TransitApplication(snapshot: stale)]
+    let old = DualCurrencyBalance(applications: TransitCardSnapshot.combining([stale, octopus])!.applications)
+    check(old != nil && old?.yuanBalance == nil, "A yuan balance from an older scan was shown as current")
+    let stored = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(combined.applications))
+    check(stored == combined.applications, "Rate lost in storage")
+    let legacy = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(plain.applications))
+    check(legacy.first?.exchangeRate == nil, "Saved cards without a rate")
+}
 @main struct Tests {
     @MainActor static func main() async throws {
         try testChongqingHistory()
@@ -242,6 +283,10 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         check(entry.entryStation == "莘庄" && entry.entryStationCode == "290000010011", "CU auxiliary entry station")
         check(CityUnionDecoder.decodeTransitRecord(data: purchase, index: 0, auxiliary: [entryAux, exitAux])?.entryStation == nil, "Conflicting CU direction guessed")
         let octopus = snapshot(nil, serial: nil, balance: "HKD 50", records: [record(Data(repeating: 1, count: 16), sfi: 0)])
+        var dualOctopus = octopus
+        dualOctopus.exchangeRate = OctopusExchangeRate(rate: "0.839", validUntil: OctopusExchangeRate.parseExpiry("202710311800"))
+        dualOctopus.applications = [TransitApplication(snapshot: dualOctopus, records: [record(Data(repeating: 1, count: 16), sfi: 0)])]
+        try testDualCurrency(octopus: dualOctopus, plain: octopus)
         let mixed = TransitCardSnapshot.combining([octopus, national])!
         check(mixed.balanceText == "HKD 50", "HKD and CNY added")
         check(Set(mixed.transactions.compactMap(\.currencyCode)) == ["HKD", "CNY"], "Currency lost in dual history")
@@ -341,7 +386,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         noBalance.files = [tu: [0x18: [purchase]]]
         let missing = try await TUnionDecoder.decode(tag: .iso7816(noBalance), scannedAt: Date())
         check(missing.balanceText == nil && !missing.rawTransactions.isEmpty, "Unavailable balance became zero or discarded history")
-        for pair in [[octopus, national], [national, octopus]] {
+        for pair in [[dualOctopus, national], [national, octopus]] {
             let reader = NFCTransitReader(); reader.startScanning()
             let session = reader.session!
             reader.accept(pair[0], session: session)
@@ -352,8 +397,12 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             check(session.alertMessage == ScanStep.done.message, "Finished scan sheet did not say the card was read")
             check(reader.latestSnapshot?.applications?.count == 2, "Automatic scan lost one interface")
         }
+        let plainOctopus = NFCTransitReader(); plainOctopus.startScanning()
+        plainOctopus.accept(octopus, session: plainOctopus.session!)
+        check(!plainOctopus.isScanning && plainOctopus.secondSideTimeout == nil && plainOctopus.latestSnapshot?.applications?.count == 1,
+              "An Octopus card without an exchange rate waited for a mainland side")
         let felicaOnly = NFCTransitReader(); felicaOnly.startScanning(options: [.iso18092])
-        felicaOnly.accept(octopus, session: felicaOnly.session!)
+        felicaOnly.accept(dualOctopus, session: felicaOnly.session!)
         check(!felicaOnly.isScanning && felicaOnly.latestSnapshot?.applications?.count == 1, "Protocol filter was ignored")
         let cancelled = NFCTransitReader(); cancelled.startScanning()
         let cancelledSession = cancelled.session!
@@ -368,7 +417,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         check(unsupported.latestSnapshot?.applications?.count == 1, "Wrong companion family was paired")
         let discovery = NFCTransitReader(); discovery.startScanning()
         let discoverySession = discovery.session!
-        discovery.tagReaderSession(discoverySession, didDetect: [.iso7816(NFCISO7816Tag()), .feliCa(TestFeliCaTag(octopus))])
+        discovery.tagReaderSession(discoverySession, didDetect: [.iso7816(NFCISO7816Tag()), .feliCa(TestFeliCaTag(dualOctopus))])
         try await Task.sleep(for: .milliseconds(30))
         check(discoverySession.pollingOption == [.iso14443] && discovery.pendingPrimary != nil, "Dual discovery was rejected as two cards")
         check(discoverySession.alertMessage == "Keep the same card near your iPhone while reading finishes.", "A reading step replaced the second-side line")
@@ -381,7 +430,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         check(multiple.pendingPrimary == nil && multiple.latestSnapshot == nil && multipleSession.restarts == 1, "Two same-protocol cards were paired")
         multiple.fail("Test complete", session: multipleSession)
         let timedOut = NFCTransitReader(); timedOut.startScanning()
-        timedOut.accept(octopus, session: timedOut.session!)
+        timedOut.accept(dualOctopus, session: timedOut.session!)
         check(NFCTransitReader.secondSideWait == .seconds(2), "Single-interface cards wait too long for a second side")
         let waitStarted = ContinuousClock.now
         await timedOut.secondSideTimeout?.value

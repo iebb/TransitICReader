@@ -118,6 +118,9 @@ struct WalletCardView: View {
                                 minimumScaleFactor: 0.7
                             )
                             .monospacedDigit()
+                            // The selected card's identity element also reads the CNY balance below.
+                            .accessibilityLabel(Text(Localizer.localize(card.visibleBalance)
+                                + (isSelected ? yuanBalance.map { ", " + Localizer.localize("CNY Balance") + " " + $0 } ?? "" : "")))
                             .layoutPriority(1)
                         }
                         .modifier(SelectedCardIdentity(isSelected: isSelected))
@@ -153,15 +156,27 @@ struct WalletCardView: View {
                                 }
                             }
                             Spacer(minLength: 8)
-                            let dateText = KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt, includeTime: false)
-                            if !dateText.isEmpty && dateText != "Unknown" {
+                            if let yuanBalance {
+                                // An Octopus – China T-Union card's second balance, under the HKD one.
                                 borderedCardText(
-                                    dateText,
-                                    font: .caption2.weight(.semibold).monospacedDigit(),
-                                    foregroundColor: titleTextColor.opacity(0.72),
-                                    lineLimit: 1
+                                    yuanBalance,
+                                    font: .system(size: 15, weight: .semibold, design: .rounded),
+                                    foregroundColor: titleTextColor.opacity(0.9),
+                                    lineLimit: 1,
+                                    minimumScaleFactor: 0.75
                                 )
-                                .accessibilityLabel(Text("Scanned \(dateText)"))
+                                .monospacedDigit()
+                                .accessibilityLabel(Text(Localizer.localize("CNY Balance") + ", " + yuanBalance))
+                                .accessibilityHidden(isSelected)
+                            } else {
+                                scanDateText
+                            }
+                        }
+
+                        if yuanBalance != nil {
+                            HStack(spacing: 0) {
+                                Spacer(minLength: 8)
+                                scanDateText
                             }
                         }
                     }
@@ -310,6 +325,25 @@ struct WalletCardView: View {
     private func markerBackground(color: Color, size: CGFloat) -> some View {
         if card.markerShape == .circle { Circle().fill(color).frame(width: size, height: size) }
         else { RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(color).frame(width: size, height: size) }
+    }
+
+    /// Set only for an Octopus – China T-Union card whose yuan balance was read with its HKD balance.
+    private var yuanBalance: String? {
+        DualCurrencyBalance(applications: card.applications)?.yuanBalance
+    }
+
+    @ViewBuilder
+    private var scanDateText: some View {
+        let dateText = KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt, includeTime: false)
+        if !dateText.isEmpty && dateText != "Unknown" {
+            borderedCardText(
+                dateText,
+                font: .caption2.weight(.semibold).monospacedDigit(),
+                foregroundColor: titleTextColor.opacity(0.72),
+                lineLimit: 1
+            )
+            .accessibilityLabel(Text("Scanned \(dateText)"))
+        }
     }
 
     @ViewBuilder

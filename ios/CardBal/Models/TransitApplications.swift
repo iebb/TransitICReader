@@ -34,6 +34,8 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     let diagnostics: [DiagnosticSection]
     var records: [TransitApplicationRecord]
     let scannedAt: Date
+    /// Octopus side of an Octopus – China T-Union card: the rate the service last reported.
+    var exchangeRate: OctopusExchangeRate? = nil
 
     var id: String { "\(technology):\(selectedAID ?? systemCode ?? cardFamily)" }
     var isCityUnion: Bool { selectedAID == "A00000000386980701" }
@@ -75,6 +77,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
             technology: snapshot.technology, isCityUnion: snapshot.cardFamily.contains("City Union")
         )).filter(\.hasContent)
         scannedAt = snapshot.scannedAt
+        exchangeRate = snapshot.exchangeRate
     }
 
     static func legacyRecords(transactions: [String], transit: [String], technology: String, isCityUnion: Bool) -> [TransitApplicationRecord] {
@@ -108,6 +111,7 @@ struct TransitApplication: Codable, Hashable, Identifiable {
             if latest.identifier.isEmpty { latest.identifier = other.identifier }
             latest.cityCode = latest.cityCode ?? other.cityCode
             latest.region = latest.region ?? other.region
+            latest.exchangeRate = latest.exchangeRate ?? other.exchangeRate
             let currentTitles = Set(latest.fields.map(\.title))
             latest.fields += other.fields.filter { !currentTitles.contains($0.title) }
             // An unavailable read is not a zero balance.
@@ -148,6 +152,56 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     }
 }
 
+/// What an Octopus – China T-Union card shows beside its HKD balance. It exists only when the
+/// Octopus service reported a rate for the card; every other card keeps its single balance.
+struct DualCurrencyBalance: Equatable {
+    /// "CN¥12.30" from the T-Union side, or nil when that side was not read with the HKD balance.
+    let yuanBalance: String?
+    let exchangeRate: OctopusExchangeRate
+
+    init?(applications: [TransitApplication]?) {
+        guard let applications, let octopus = applications.first(where: { $0.isOctopus && $0.exchangeRate != nil }),
+              let rate = octopus.exchangeRate else { return nil }
+        exchangeRate = rate
+        let mainland = applications.first(where: \.isTUnion) ?? applications.first(where: \.isCityUnion)
+        yuanBalance = mainland.flatMap { app in
+            guard let text = app.balanceText, let octopusRead = octopus.balanceReadAt else { return nil }
+            // Both sides spend one purse, so a yuan balance from another scan is out of date.
+            guard abs((app.balanceReadAt ?? app.scannedAt).timeIntervalSince(octopusRead)) <= 120 else { return nil }
+            return Self.yuanText(fromBalanceText: text)
+        }
+    }
+
+    /// "HK$1 = CN¥0.839"
+    var rateText: String { "HK$1 = CN¥" + exchangeRate.rate }
+
+    /// Re-labels a stored CNY balance as "CN¥": a bare "¥" reads as yen in Japanese.
+    static func yuanText(fromBalanceText text: String) -> String? {
+        var whole = ""
+        var fraction: String?
+        for character in text {
+            if let digit = character.wholeNumberValue {
+                if fraction != nil { fraction! += String(digit) } else { whole += String(digit) }
+            } else if [".", ",", "\u{066B}", "\u{066C}"].contains(character), !whole.isEmpty {
+                // A separator before the last one was grouping.
+                whole += fraction ?? ""
+                fraction = ""
+            }
+        }
+        if let digits = fraction, digits.count != 2 { whole += digits; fraction = nil }
+        guard !whole.isEmpty, let units = Decimal(string: whole + (fraction.map { "." + $0 } ?? ""),
+                                                   locale: Locale(identifier: "en_US_POSIX")) else { return nil }
+        let negative = text.contains("-") || text.contains("\u{2212}")
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "CNY"
+        formatter.currencySymbol = "CN¥"
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: (negative ? -units : units) as NSDecimalNumber)
+    }
+}
+
 extension TransitCardSnapshot {
     var applicationSnapshots: [TransitApplication] {
         applications ?? [TransitApplication(snapshot: self)]
@@ -181,6 +235,7 @@ extension TransitCardSnapshot {
             scannedAt: snapshots.map(\.scannedAt).max() ?? base.scannedAt
         )
         result.applications = apps
+        result.exchangeRate = apps.first(where: \.isOctopus)?.exchangeRate
         return result
     }
 }

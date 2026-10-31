@@ -1080,3 +1080,9 @@
 "Debug log copied." = "디버그 로그를 복사했습니다.";
 "No scans recorded yet." = "아직 기록된 스캔이 없습니다.";
 "Debug log cleared." = "디버그 로그를 지웠습니다.";
+"HKD Balance" = "홍콩달러 잔액";
+"CNY Balance" = "위안화 잔액";
+"Exchange Rate" = "환율";
+"Rate Valid Until" = "환율 유효기간";
+"Expired %@" = "%@ 만료";
+"Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "환율: 1홍콩달러는 %@위안.";

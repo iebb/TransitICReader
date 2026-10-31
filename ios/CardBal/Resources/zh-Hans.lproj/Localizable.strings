@@ -1079,3 +1079,9 @@
 "Debug log copied." = "已复制调试日志。";
 "No scans recorded yet." = "尚无扫描记录。";
 "Debug log cleared." = "已清除调试日志。";
+"HKD Balance" = "港币余额";
+"CNY Balance" = "人民币余额";
+"Exchange Rate" = "汇率";
+"Rate Valid Until" = "汇率有效期至";
+"Expired %@" = "已于 %@ 过期";
+"Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "汇率：1 港币兑 %@ 人民币。";

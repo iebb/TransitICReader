@@ -118,6 +118,7 @@ struct TransitCardSnapshot {
     let resultFields: [ResultField]; let rawSections: [RawDataSection]
     let rawTransactions: [String]; let rawTransitHistory: [String]; let scannedAt: Date
     var applications: [TransitApplication]?
+    var exchangeRate: OctopusExchangeRate?
 }
 func formatCurrency(amount: Decimal, code: String, fractionDigits: Int) -> String { "\(code) \(amount)" }
 func formatFeliCaIDm(_ idm: String) -> String { idm }
@@ -291,6 +292,26 @@ static func main() async throws {
     let unknown = await OctopusOnlineDecoder.decode(card: card, block: card.block, pmm: Data(), scannedAt: Date(),
         store: store, onlineEnabled: false, client: OctopusEnquiryClient(baseURL: URL(string: server + "/must-not-contact")))
     precondition(unknown.balanceText == nil && unknown.realSerialNumber == nil)
+    // A dual-currency card asks for its rate on every scan and keeps its saved details when that fails.
+    let rateCard = InventedCard(); rateCard.currentIDm = Data(hexString: "E102030405060708")
+    let savedRate = OctopusExchangeRate(rate: "0.839", validUntil: OctopusExchangeRate.parseExpiry("202710311800"))
+    store.save(OctopusCardMetadata(cardNumber: "123456789", offset: 350, serviceStatus: "R30", exchangeRate: savedRate, rateChecked: true),
+               for: rateCard.currentIDm.hexString)
+    let failedRefresh = await OctopusOnlineDecoder.decode(card: rateCard, block: rateCard.block, pmm: Data(), scannedAt: Date(),
+        store: store, onlineEnabled: true, allowsCardUpdates: false, client: OctopusEnquiryClient(baseURL: URL(string: server + "/error")))
+    precondition(failedRefresh.balanceText == "HKD 55" && failedRefresh.exchangeRate == savedRate && failedRefresh.realSerialNumber == "123456789")
+    precondition(store.metadata(for: rateCard.currentIDm.hexString)?.exchangeRate == savedRate)
+    // Details saved before rates were read are checked once more; a card without a rate then stops asking.
+    let olderCard = InventedCard(); olderCard.currentIDm = Data(hexString: "F102030405060708")
+    store.save(OctopusCardMetadata(cardNumber: "123456789", offset: 350, serviceStatus: "R30"), for: olderCard.currentIDm.hexString)
+    let rechecked = await OctopusOnlineDecoder.decode(card: olderCard, block: olderCard.block, pmm: Data(), scannedAt: Date(),
+        store: store, onlineEnabled: true, allowsCardUpdates: false, client: OctopusEnquiryClient(baseURL: URL(string: server + "/success")))
+    precondition(olderCard.operations.contains(0x14) && rechecked.exchangeRate == nil && rechecked.balanceText == "HKD 55")
+    precondition(store.metadata(for: olderCard.currentIDm.hexString)?.rateChecked == true)
+    let settled = InventedCard(); settled.currentIDm = olderCard.currentIDm
+    let settledSnapshot = await OctopusOnlineDecoder.decode(card: settled, block: settled.block, pmm: Data(), scannedAt: Date(),
+        store: store, onlineEnabled: true, allowsCardUpdates: false, client: OctopusEnquiryClient(baseURL: URL(string: server + "/must-not-contact")))
+    precondition(settled.operations.isEmpty && settledSnapshot.balanceText == "HKD 55")
     for mode in ["error", "redirect", "bad-session", "oversize"] {
         let client = OctopusEnquiryClient(baseURL: URL(string: server + "/" + mode))
         await rejects { _ = try await client.enquire { _ in fatalError("HTTP failure contacted card") } }
@@ -319,6 +340,7 @@ static func main() async throws {
                 directory = Path(directory)
                 utils = (ROOT / "ios/CardBal/NFC/NFCUtils.swift").read_text()
                 data = utils[utils.index("extension Data {"):utils.index("struct BERTLVNode")]
+                data += utils[utils.index("struct OctopusExchangeRate:"):utils.index("func sortTransactionsByRecency")]
                 (directory / "Harness.swift").write_text(stubs + data + harness)
                 binary = directory / "octopus-test"
                 build = subprocess.run([
@@ -336,7 +358,7 @@ static func main() async throws {
                 self.assertIn("PASS", run.stdout)
             self.assertEqual([], protocol_errors)
             # One read-only enquiry and one with card updates allowed.
-            self.assertEqual(2 * len(frames), sum("/success/service.htm" in path for path in requests))
+            self.assertEqual(3 * len(frames), sum("/success/service.htm" in path for path in requests))
             self.assertEqual(len(frames_v2), sum("/success-v2/service.htm" in path for path in requests))
             self.assertFalse(any("must-not" in path for path in requests))
         finally:

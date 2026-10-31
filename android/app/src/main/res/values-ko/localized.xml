@@ -124,6 +124,7 @@
     <string name="text_6aac7912744f9afe" formatted="false">"CEPAS 전자화폐 3"</string>
     <string name="text_160d56887855bde8" formatted="false">"CEPAS 버전"</string>
     <string name="text_3c4f629a81828aa3" formatted="false">"CEPAS 기록 0x%02X"</string>
+    <string name="text_a8e863c8f1778a92" formatted="false">"위안화 잔액"</string>
     <string name="text_464b21ea40c748de" formatted="false">"Calypso SFI %02X 기록 %d"</string>
     <string name="text_19766ed6ccb2f4a3" formatted="false">"취소"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"스캔 취소"</string>
@@ -284,9 +285,12 @@
     <string name="text_d02ede8280b4f151" formatted="false">"승하차 유형"</string>
     <string name="text_54a0e8c17ebb21a1" formatted="false">"오류"</string>
     <string name="text_7d6b7856dd403509" formatted="false">"그대로 저장된 데이터 구조"</string>
+    <string name="text_5b21b52b58cba03e" formatted="false">"환율"</string>
+    <string name="text_bb3e183aa5b7e73b" formatted="false">"환율: 1홍콩달러는 %@위안."</string>
     <string name="text_d17d84a604994b72" formatted="false">"하차"</string>
     <string name="text_60e19de8fff7c821" formatted="false">"하차 코드"</string>
     <string name="text_c9cd7d47bfc5960c" formatted="false">"하차역"</string>
+    <string name="text_c5273ea9d44e5812" formatted="false">"%@ 만료"</string>
     <string name="text_f6725f3af08a06a2" formatted="false">"만료"</string>
     <string name="text_d600e62a6861fced" formatted="false">"만료일"</string>
     <string name="text_3664895579f0a7e6" formatted="false">"내보내기"</string>
@@ -332,6 +336,7 @@
     <string name="text_0e33d576fe774823" formatted="false">"상품 구매"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"그래파이트"</string>
     <string name="text_d486dfbd5fb57834" formatted="false">"초록"</string>
+    <string name="text_11f836ed4dac947e" formatted="false">"홍콩달러 잔액"</string>
     <string name="text_3ac37944948bbc7a" formatted="false">"HSL V1/V2 또는 Waltti DESFire 공개 잔액, 기록 및 승차권"</string>
     <string name="text_a2eb11fb19c6ba94" formatted="false">"한국 카드 읽기 개선에 참여"</string>
     <string name="text_7e6fefff0f0aeb6c" formatted="false">"숨김"</string>
@@ -597,6 +602,7 @@
     <string name="text_7d465fb9b9314846" formatted="false">"보라"</string>
     <string name="text_976414b89ce8af53" formatted="false">"전자화폐 정보"</string>
     <string name="text_b4b5a999e1d6bfee" formatted="false">"전자화폐 상태"</string>
+    <string name="text_008c223ea36978b7" formatted="false">"환율 유효기간"</string>
     <string name="text_848123d14f84faa2" formatted="false">"원본"</string>
     <string name="text_a8382c70bfb3cccb" formatted="false">"원본 블록"</string>
     <string name="text_419049a9b8ed4c3a" formatted="false">"최소 화폐 단위 원본"</string>

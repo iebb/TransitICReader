@@ -371,6 +371,10 @@ struct OctopusCardMetadata: Codable, Equatable {
     let cardNumber: String
     let offset: Int
     let serviceStatus: String
+    /// Set for Octopus – China T-Union cards, from the last enquiry that returned one.
+    var exchangeRate: OctopusExchangeRate? = nil
+    /// False for details saved before 2.5.2 (build 62), which never looked for a rate.
+    var rateChecked: Bool? = nil
 
     var isValid: Bool {
         (8...12).contains(cardNumber.count) && cardNumber.utf8.allSatisfy { (48...57).contains($0) }
@@ -403,7 +407,8 @@ struct OctopusCardMetadata: Codable, Equatable {
         guard short == nil || short == number else { return .failure(.mismatchedCardNumbers) }
         let offset = Decimal(rawValue) - card.balance * 10
         guard offset == 350 || offset == 500 else { return .failure(.unexpectedOffset(offset)) }
-        let metadata = Self(cardNumber: number, offset: NSDecimalNumber(decimal: offset).intValue, serviceStatus: card.status)
+        let metadata = Self(cardNumber: number, offset: NSDecimalNumber(decimal: offset).intValue, serviceStatus: card.status,
+                            exchangeRate: OctopusExchangeRate.parse(result: result), rateChecked: true)
         return metadata.isValid ? .success(metadata) : .failure(.invalidCardNumber)
     }
     /// What the debug log records about an enquiry result. Card numbers are only reported as present.
@@ -425,6 +430,13 @@ struct OctopusCardMetadata: Codable, Equatable {
             + ", raw purse \(rawValue)"
         if let number = card["balance"] as? NSNumber {
             summary += ", offset \(Decimal(rawValue) - number.decimalValue * 10)"
+        }
+        // The exchange rate and its expiry describe the product, not the cardholder.
+        if let rate = OctopusExchangeRate.parse(result: result) {
+            summary += ", exchange rate HK$1 = CN¥\(rate.rate), valid until "
+                + (card["motExpiryDate"].map { "\"" + short($0) + "\"" } ?? "missing")
+        } else {
+            summary += ", motRate " + presence("motRate")
         }
         return summary
     }

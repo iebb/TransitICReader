@@ -68,7 +68,10 @@ class ScanProgressTests(unittest.TestCase):
         self.assertEqual(2, len(re.findall(re.escape(done) + r"\s*session\.invalidate\(\)", reader)))
         octopus = (ROOT / "ios/CardBal/NFC/Decoders/OctopusOnlineDecoder.swift").read_text()
         self.assertLess(octopus.index("ScanProgress.report(.octopusOnline)"), octopus.index("client.enquire("))
-        self.assertIn("if enquiryFailed { ScanProgress.report(.octopusUnavailable) }", octopus)
+        # A failed first check says Octopus Online is unavailable; a failed rate refresh keeps the saved
+        # details and finishes quietly.
+        self.assertRegex(octopus, r"if enquiryFailed && metadata != nil \{\s*octopusDebugLog\([^\n]*\)\s*"
+                                  r"\} else if enquiryFailed \{\s*ScanProgress\.report\(\.octopusUnavailable\)\s*\}")
 
     @unittest.skipUnless(shutil.which("swiftc"), "Requires Swift")
     def test_steps_are_coalesced_and_end_with_the_scan(self):

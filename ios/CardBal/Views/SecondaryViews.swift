@@ -823,6 +823,67 @@ struct KeyValueRow: View {
     }
 }
 
+/// The balance rows of the scan result and Card Information. An Octopus – China T-Union card
+/// with a reported exchange rate shows both currencies and the rate; any other card keeps its
+/// single Balance row.
+struct BalanceRows: View {
+    let balance: String
+    let dual: DualCurrencyBalance?
+
+    var body: some View {
+        if let dual {
+            KeyValueRow(title: "HKD Balance", value: balance)
+            if let yuan = dual.yuanBalance {
+                KeyValueRow(title: "CNY Balance", value: yuan).monospacedDigit()
+            } else {
+                HStack {
+                    Text(Localizer.localize("CNY Balance"))
+                    Spacer()
+                    Text(Localizer.localize("Unavailable"))
+                }
+                .foregroundStyle(.secondary)
+                .accessibilityElement(children: .combine)
+            }
+            KeyValueRow(title: "Exchange Rate", value: dual.rateText)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(String(format: Localizer.localize("Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan."),
+                                                dual.exchangeRate.rate)))
+            if let validUntil = dual.exchangeRate.validUntil {
+                let expired = dual.exchangeRate.isExpired()
+                // Once the rate has expired the hour no longer matters, so the row keeps to one line.
+                let date = Self.expiryText(validUntil, includeTime: !expired)
+                if expired {
+                    HStack {
+                        Text(Localizer.localize("Rate Valid Until")).foregroundStyle(.secondary)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill").font(.caption)
+                            Text(String(format: Localizer.localize("Expired %@"), date)).multilineTextAlignment(.trailing)
+                        }
+                        .foregroundStyle(.orange)
+                    }
+                    .accessibilityElement(children: .combine)
+                } else {
+                    KeyValueRow(title: "Rate Valid Until", value: date)
+                }
+            }
+        } else {
+            KeyValueRow(title: "Balance", value: balance)
+        }
+    }
+
+    /// The rate's expiry in Hong Kong time, as Octopus states it, to the minute it was given
+    /// while it is still valid.
+    private static func expiryText(_ date: Date, includeTime: Bool) -> String {
+        let format = UserDefaults.standard.string(forKey: "dateFormat") ?? "yyyy-MM-dd"
+        let formatter = DateFormatter()
+        formatter.timeZone = OctopusExchangeRate.issuerTimeZone
+        formatter.dateFormat = !includeTime ? format
+            : format + ((format.contains("/") || format.contains("-")) ? " HH:mm" : ", HH:mm")
+        return formatter.string(from: date)
+    }
+}
+
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType = .camera
     var didFinish: (UIImage) -> Void

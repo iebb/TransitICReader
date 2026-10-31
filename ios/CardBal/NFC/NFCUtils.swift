@@ -407,9 +407,51 @@ struct TransitCardSnapshot: Identifiable {
     
     let scannedAt: Date
     var applications: [TransitApplication]? = nil
+    /// An Octopus – China T-Union card's conversion rate, as the Octopus service reported it.
+    var exchangeRate: OctopusExchangeRate? = nil
     
     var brand: ICCardBrand {
         ICCardBrand.from(family: cardFamily)
+    }
+}
+
+/// The rate an Octopus – China T-Union card converts mainland fares with: yuan per Hong Kong
+/// dollar (`motRate`), kept exactly as the Octopus service returned it, and when it stops
+/// being valid (`motExpiryDate`, Hong Kong time).
+struct OctopusExchangeRate: Codable, Hashable {
+    let rate: String
+    let validUntil: Date?
+
+    static let issuerTimeZone = TimeZone(identifier: "Asia/Hong_Kong") ?? .current
+
+    func isExpired(at now: Date = Date()) -> Bool { validUntil.map { $0 <= now } ?? false }
+
+    /// Reads the rate from an Octopus enquiry result. Nil when the card has no mainland rate.
+    static func parse(result: Data) -> Self? {
+        guard let object = (try? JSONSerialization.jsonObject(with: result)) as? [String: Any],
+              let card = object["cardDataVO"] as? [String: Any] else { return nil }
+        let text: String
+        if let value = card["motRate"] as? String {
+            text = value.trimmingCharacters(in: .whitespaces)
+        } else if let value = card["motRate"] as? NSNumber, String(cString: value.objCType) != "c" {
+            text = value.stringValue
+        } else {
+            return nil
+        }
+        guard text.range(of: #"^[0-9]{1,2}(\.[0-9]{1,8})?$"#, options: .regularExpression) != nil,
+              let value = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")), value > 0 else { return nil }
+        return Self(rate: text, validUntil: (card["motExpiryDate"] as? String).flatMap(parseExpiry))
+    }
+
+    /// `yyyyMMddHHmm` (or with seconds, or the date alone) in Hong Kong time.
+    static func parseExpiry(_ text: String) -> Date? {
+        let formats = [8: "yyyyMMdd", 12: "yyyyMMddHHmm", 14: "yyyyMMddHHmmss"]
+        guard text.allSatisfy({ $0.isASCII && $0.isNumber }), let format = formats[text.count] else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = issuerTimeZone
+        formatter.dateFormat = format
+        return formatter.date(from: text)
     }
 }
 

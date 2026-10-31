@@ -124,6 +124,7 @@
     <string name="text_6aac7912744f9afe" formatted="false">"CEPAS Purse 3"</string>
     <string name="text_160d56887855bde8" formatted="false">"CEPAS Version"</string>
     <string name="text_3c4f629a81828aa3" formatted="false">"CEPAS record 0x%02X"</string>
+    <string name="text_a8e863c8f1778a92" formatted="false">"CNY Balance"</string>
     <string name="text_464b21ea40c748de" formatted="false">"Calypso SFI %02X Record %d"</string>
     <string name="text_19766ed6ccb2f4a3" formatted="false">"Cancel"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"Cancel Scan"</string>
@@ -284,9 +285,12 @@
     <string name="text_d02ede8280b4f151" formatted="false">"Entry/Exit Type"</string>
     <string name="text_54a0e8c17ebb21a1" formatted="false">"Error"</string>
     <string name="text_7d6b7856dd403509" formatted="false">"Exact persisted envelope"</string>
+    <string name="text_5b21b52b58cba03e" formatted="false">"Exchange Rate"</string>
+    <string name="text_bb3e183aa5b7e73b" formatted="false">"Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan."</string>
     <string name="text_d17d84a604994b72" formatted="false">"Exit"</string>
     <string name="text_60e19de8fff7c821" formatted="false">"Exit Code"</string>
     <string name="text_c9cd7d47bfc5960c" formatted="false">"Exit Station"</string>
+    <string name="text_c5273ea9d44e5812" formatted="false">"Expired %@"</string>
     <string name="text_f6725f3af08a06a2" formatted="false">"Expires"</string>
     <string name="text_d600e62a6861fced" formatted="false">"Expiry Date"</string>
     <string name="text_3664895579f0a7e6" formatted="false">"Export"</string>
@@ -332,6 +336,7 @@
     <string name="text_0e33d576fe774823" formatted="false">"Goods Purchase"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"Graphite"</string>
     <string name="text_d486dfbd5fb57834" formatted="false">"Green"</string>
+    <string name="text_11f836ed4dac947e" formatted="false">"HKD Balance"</string>
     <string name="text_3ac37944948bbc7a" formatted="false">"HSL V1/V2 or Waltti DESFire public purse, logs and ticket products"</string>
     <string name="text_a2eb11fb19c6ba94" formatted="false">"Help Improve Korean Cards"</string>
     <string name="text_7e6fefff0f0aeb6c" formatted="false">"Hidden"</string>
@@ -597,6 +602,7 @@
     <string name="text_7d465fb9b9314846" formatted="false">"Purple"</string>
     <string name="text_976414b89ce8af53" formatted="false">"Purse Info"</string>
     <string name="text_b4b5a999e1d6bfee" formatted="false">"Purse Status"</string>
+    <string name="text_008c223ea36978b7" formatted="false">"Rate Valid Until"</string>
     <string name="text_848123d14f84faa2" formatted="false">"Raw"</string>
     <string name="text_a8382c70bfb3cccb" formatted="false">"Raw Block"</string>
     <string name="text_419049a9b8ed4c3a" formatted="false">"Raw Cents"</string>

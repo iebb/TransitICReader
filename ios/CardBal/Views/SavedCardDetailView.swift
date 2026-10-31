@@ -154,7 +154,7 @@ struct SavedCardDetailView: View {
     @ViewBuilder
     private func cardInfoSection(card: SavedCardRecord) -> some View {
         if !card.visibleBalance.isEmpty {
-            KeyValueRow(title: "Balance", value: card.visibleBalance)
+            BalanceRows(balance: card.visibleBalance, dual: DualCurrencyBalance(applications: card.applications))
         }
         KeyValueRow(title: "Last Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt))
         KeyValueRow(title: "Technology", value: card.technology == "ISO7816" ? "ISO 7816" : card.technology)

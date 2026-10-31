@@ -211,7 +211,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     /// How long to look for a dual card's other interface. A real dual Octopus/T-Union card showed
-    /// its other side about 0.13 s after polling restarted; single-interface cards pay this whole wait.
+    /// its other side about 0.13 s after polling restarted. Mainland cards pay this whole wait;
+    /// Octopus cards only wait when the service reported an exchange rate.
     static let secondSideWait: Duration = .seconds(2)
 
     private func scheduleSecondSideTimeout(for session: NFCTagReaderSession) {
@@ -301,6 +302,13 @@ final class NFCTransitReader: NSObject, ObservableObject {
         case .regular:
             guard readsCompanionProtocol, hasOctopus != hasMainland,
                   !snapshot.applicationSnapshots.contains(where: \.isMacauPass) else {
+                finish(with: snapshot, session: session)
+                return
+            }
+            // Read Octopus first. Only a card the Octopus service gave a mainland exchange rate
+            // has a China T-Union side, so any other Octopus card finishes without waiting.
+            if hasOctopus && !snapshot.applicationSnapshots.contains(where: { $0.isOctopus && $0.exchangeRate != nil }) {
+                DebugLog.shared.log("Scan", "No exchange rate for this Octopus card; not checking for a mainland interface")
                 finish(with: snapshot, session: session)
                 return
             }

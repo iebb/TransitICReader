@@ -1077,3 +1077,9 @@
 "Debug log copied." = "Debug log copied.";
 "No scans recorded yet." = "No scans recorded yet.";
 "Debug log cleared." = "Debug log cleared.";
+"HKD Balance" = "HKD Balance";
+"CNY Balance" = "CNY Balance";
+"Exchange Rate" = "Exchange Rate";
+"Rate Valid Until" = "Rate Valid Until";
+"Expired %@" = "Expired %@";
+"Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan.";

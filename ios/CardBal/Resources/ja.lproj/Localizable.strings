@@ -1079,3 +1079,9 @@
 "Debug log copied." = "デバッグログをコピーしました。";
 "No scans recorded yet." = "まだスキャンの記録はありません。";
 "Debug log cleared." = "デバッグログを消去しました。";
+"HKD Balance" = "香港ドル残高";
+"CNY Balance" = "人民元残高";
+"Exchange Rate" = "為替レート";
+"Rate Valid Until" = "レートの有効期限";
+"Expired %@" = "%@に期限切れ";
+"Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "為替レート：1香港ドルは%@人民元。";
