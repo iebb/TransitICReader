@@ -15,6 +15,7 @@ from pathlib import Path
 import re
 import sys
 from typing import Any
+import unicodedata
 from urllib.parse import quote
 
 PACKAGE = "ad.neko.cardbal.android"
@@ -22,6 +23,10 @@ API = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications"
 UPLOAD_API = "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications"
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"
 MAX_VERSION_CODE = 2_100_000_000
+# Play allows up to 500 Unicode characters of release notes per language.
+MAX_RELEASE_NOTES = 500
+# Canonical BCP 47 language[-Script][-REGION] tags, as Play uses (en-US, es-419).
+LANGUAGE_TAG = re.compile(r"[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?")
 
 
 class ReleaseError(Exception):
@@ -44,6 +49,42 @@ def version_name(value: Any) -> str:
         raise ReleaseError("release name must be the numeric marketing version (for example 1.2.3)")
     if len(value) > 64:
         raise ReleaseError("marketing version is too long")
+    return value
+
+
+def release_notes_payload(value: Any) -> list[dict[str, str]]:
+    """Convert a validated language -> text mapping to Play's releaseNotes list."""
+    if not isinstance(value, dict) or not value:
+        raise ReleaseError("release notes must be a nonempty JSON object mapping language tags to text")
+    notes = []
+    for language, text in value.items():
+        if not isinstance(language, str) or not LANGUAGE_TAG.fullmatch(language):
+            raise ReleaseError("release notes contain an invalid language tag; use canonical tags such as en-US")
+        # Errors name only the validated tag, never the caller's text.
+        if not isinstance(text, str) or not text.strip():
+            raise ReleaseError(f"release notes for {language} must be nonempty plain text")
+        if any(char != "\n" and unicodedata.category(char) in {"Cc", "Cs"} for char in text):
+            raise ReleaseError(f"release notes for {language} contain control characters")
+        if len(text) > MAX_RELEASE_NOTES:
+            raise ReleaseError(f"release notes for {language} exceed {MAX_RELEASE_NOTES} characters")
+        notes.append({"language": language, "text": text})
+    return notes
+
+
+def read_release_notes(path: Path) -> dict[str, str]:
+    def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result = dict(pairs)
+        if len(result) != len(pairs):
+            raise ReleaseError("release notes repeat a language tag")
+        return result
+
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+    except OSError:
+        raise ReleaseError("could not read the release notes file") from None
+    except ValueError:
+        raise ReleaseError("release notes file must be UTF-8 JSON mapping language tags to text") from None
+    release_notes_payload(value)
     return value
 
 
@@ -192,11 +233,14 @@ class PlayRelease:
             if not committed:
                 self.discard(edit)
 
-    def promote(self, expected_version: str | None = None, expected_code: int | None = None) -> dict[str, Any]:
+    def promote(self, expected_version: str | None = None, expected_code: int | None = None, *,
+                release_notes: dict[str, str] | None = None) -> dict[str, Any]:
         if expected_version is not None:
             expected_version = version_name(expected_version)
         if expected_code is not None:
             expected_code = version_code(expected_code)
+        # Without supplied notes, the reviewed internal release notes are kept.
+        notes = None if release_notes is None else release_notes_payload(release_notes)
         edit = self.create_edit()
         committed = False
         try:
@@ -220,11 +264,14 @@ class PlayRelease:
                     raise ReleaseError("production already contains this or a newer build; resolve it in Play Console before promotion")
                 if existing.get("status") != "completed":
                     raise ReleaseError("production has an unfinished release; resolve it in Play Console before promotion")
+            if notes is not None:
+                release["releaseNotes"] = notes
             self.update_track(edit, "production", release)
             self.commit(edit)
             committed = True
             return {**self.metadata("promote-latest-to-production", release, "production", True),
-                    "source_track": "internal"}
+                    "source_track": "internal",
+                    "release_notes_source": "internal" if notes is None else "supplied"}
         finally:
             if not committed:
                 self.discard(edit)
@@ -265,6 +312,8 @@ def main(argv: list[str] | None = None) -> int:
     promote = sub.add_parser("promote-latest-to-production", help="promote the existing latest internal AAB without rebuilding")
     promote.add_argument("--expected-version")
     promote.add_argument("--expected-version-code")
+    promote.add_argument("--release-notes-file", type=Path,
+                         help="UTF-8 JSON mapping language tags to text; replaces the internal release notes")
     for command in sub.choices.values():
         command.add_argument("--service-account-file", help="private JSON file; otherwise use GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")
         command.add_argument("--metadata-out", type=Path, help="write sanitized release metadata as JSON")
@@ -279,6 +328,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.expected_version = version_name(args.expected_version)
             if args.expected_version_code is not None:
                 args.expected_version_code = version_code(args.expected_version_code)
+            args.release_notes = None if args.release_notes_file is None else read_release_notes(args.release_notes_file)
         session = authorized_session(args.service_account_file)
         try:
             client = PlayRelease(session)
@@ -287,7 +337,8 @@ def main(argv: list[str] | None = None) -> int:
             elif args.command == "inspect-latest-internal":
                 result = client.inspect()
             else:
-                result = client.promote(args.expected_version, args.expected_version_code)
+                result = client.promote(args.expected_version, args.expected_version_code,
+                                        release_notes=args.release_notes)
         finally:
             session.close()
         encoded = json.dumps(result, indent=2, sort_keys=True) + "\n"

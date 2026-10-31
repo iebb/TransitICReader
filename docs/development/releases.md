@@ -1,54 +1,55 @@
 # Store workflows
 
-The repository has two manually triggered store workflows. Run them from
-**Actions** on the `master` branch. Pushing a commit does not upload or release
-an app.
+Three manually triggered store workflows run from **Actions** on `master`.
+Pushing a commit does not upload or submit an app.
 
-## Upload
+## TestFlight and Google Play internal
 
-Run [Upload](../../.github/workflows/upload.yml), enter a three-part version
-such as `2.5.0`, and leave the build counter blank for normal releases.
-The workflow tests and builds both apps, signs them with the configured upload
-credentials, then uploads the IPA to TestFlight and the AAB to Google Play's
-internal testing track. It saves the signed packages as workflow artifacts.
-Apple may still be processing the build after the workflow finishes.
+Run [TestFlight](../../.github/workflows/testflight.yml) for iOS or
+[Google Play internal](../../.github/workflows/play-internal.yml) for Android.
+The optional `version` input defaults to the marketing version in the app
+projects. Both project versions must agree. Each workflow tests, builds, signs
+and uploads only its own platform, then saves the signed package as an artifact.
+Apple may still be processing a build after the TestFlight workflow finishes.
 
-Both apps receive the supplied marketing version. The default build counter is
-`1000 + workflow run number`. iOS uses `counter.attempt`; Android uses
-`counter * 100 + attempt`, so retrying a workflow produces a new build number.
-An optional counter override from 1 to 9999 is available when an existing store
-build has a higher number. Subsequent uploads must continue using a high enough
-counter; never reuse a number already uploaded to that store.
+Build numbers are assigned when the build job starts, using UTC time since
+1 January 2020. Android uses elapsed minutes; iOS uses `days.hour.minute`.
+This avoids reusing per-workflow run numbers when the two platforms upload
+independently. A retry in a later minute receives a new build number. The three
+workflows share the `cardbal-stores` concurrency group, so test uploads and
+submissions cannot overlap. iOS and Android build numbers need not match.
 
-## Release
+## Submit for review
 
-After testing both uploads, run [Release](../../.github/workflows/release.yml).
-It selects the latest eligible, processed iOS TestFlight build and the highest
-completed Google Play internal version code. Their marketing versions and
-Upload build counters must match; this prevents an older ready TestFlight build
-being paired with a newer Android upload while Apple is processing. Existing
-builds from before this paired Upload workflow need a paired Upload first.
-The selected IDs are checked again before submitting, so another upload
-cannot silently replace the selection.
+After testing the uploads, run
+[Submit for review](../../.github/workflows/submit-review.yml). Choose `both`,
+`ios` or `android`. It selects the latest eligible, processed iOS TestFlight
+build and/or the highest completed Google Play internal version code. When
+submitting both platforms, their marketing versions must match. The selected
+build ID and version code are checked again before submission.
 
-Release submits the existing iOS binary to App Review with automatic release
-after approval, and promotes the existing internal Android bundle to the
-production track. It does not invoke Xcode, Gradle, signing or a binary upload.
-Apple and Google still apply their normal review and publishing requirements.
-Store changes are separate transactions: if one store rejects a request, inspect
-the workflow results and store consoles before retrying.
+The workflow submits the existing iOS binary to App Review with automatic
+release after approval, and promotes the existing Android internal bundle to
+the production track for Google's review and publishing process. It does not
+rebuild or upload binaries. Store changes are separate transactions: inspect
+the saved result artifact and store consoles if only one submission succeeds,
+then rerun for the remaining platform.
 
-Existing listing metadata and saved release notes are retained. The optional
-`release_notes` input supplies actual iOS What's New text as locale-to-text JSON,
-for example `{"en-US":"Improved station names and route drawing."}`. Supply
-every localization that needs new notes, or prepare the matching version's
-notes in App Store Connect first. The helper stops if required review contact,
-sign-in, export-compliance or listing information is missing; it does not invent
-answers. A new Apple version inherits the current listing, then receives the
-selected build only after these checks.
+Release notes default to `docs/release-notes/<selected version>.json`, a JSON
+object mapping App Store locale names to What's New text. The optional
+`release_notes` workflow input overrides that file. Include each existing iOS
+locale when its saved notes are empty. Play currently uses only `en-US`, mapped
+from the `en-GB` text. Keep that text within Play's 500-character limit.
+When no override or matching file exists, saved store notes are retained.
 
-Both workflows share a concurrency group so uploads and promotions do not run
-at the same time. Neither workflow can run its store jobs from another branch.
+The helper validates review contact, sign-in, export-compliance and listing
+requirements. It preserves existing metadata. If a lower editable App Store
+draft exists, it updates that draft's version number to the selected build's
+version, then validates it again before submission. Active review submissions
+are never replaced. Missing metadata must be completed in App Store Connect.
+
+All workflows restrict store jobs to `master`. An accepted upload, a review
+submission, store approval and public availability are distinct states.
 
 ## GitHub configuration
 
@@ -75,7 +76,7 @@ are removed after use.
 ## Validation
 
 ```sh
-actionlint .github/workflows/upload.yml .github/workflows/release.yml
+actionlint .github/workflows/testflight.yml .github/workflows/play-internal.yml .github/workflows/submit-review.yml
 python3 -m unittest discover -s tests -t .
 python3 -m unittest discover -s android/tools/tests -v
 ```
@@ -83,7 +84,7 @@ python3 -m unittest discover -s android/tools/tests -v
 The helpers can inspect store state without committing a release:
 
 ```sh
-python3 -m tools.release.app_store select --app-id "$ASC_APP_ID"
+python3 -m tools.release.review select --platforms both --output build/review/selection.json
 python3 android/tools/play_release.py inspect-latest-internal
 ```
 

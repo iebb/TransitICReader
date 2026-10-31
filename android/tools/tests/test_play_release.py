@@ -95,6 +95,36 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(play.version_code("2100000000"), 2_100_000_000)
 
 
+class ReleaseNotesTests(unittest.TestCase):
+    def test_mapping_converts_to_play_list_in_order(self):
+        notes = {"en-US": "Line one\nLine two \u2728", "ja-JP": "\u99c5" * 500, "es-419": "Hola", "zh-Hant-TW": "x"}
+        self.assertEqual(play.release_notes_payload(notes),
+                         [{"language": language, "text": text} for language, text in notes.items()])
+
+    def test_invalid_mapping_fails_without_echoing_text(self):
+        invalid = [
+            None, [], "en-US", {}, {"en_US": "x"}, {"en-us": "x"}, {"english": "x"}, {"": "x"},
+            {"en-US-": "x"}, {" en-US": "x"}, {"en-US": ""}, {"en-US": " \n "}, {"en-US": 5},
+            {"en-US": None}, {"en-US": ["x"]}, {"en-US": {"text": "x"}}, {"en-US": "secret" + "x" * 495},
+            {"en-US": "secret\x00"}, {"en-US": "secret\r\n"}, {"en-US": "secret\ud800"},
+        ]
+        for notes in invalid:
+            with self.subTest(notes=notes), self.assertRaises(play.ReleaseError) as error:
+                play.release_notes_payload(notes)
+            self.assertNotIn("secret", str(error.exception))
+
+    def test_file_requires_unique_utf8_json_object(self):
+        for content in ['{"en-US": "a", "en-US": "b"}', "not json", '["en-US", "a"]', '{"en-US": "a"} trailing']:
+            with self.subTest(content=content), mock.patch.object(play.Path, "read_text", return_value=content), \
+                    self.assertRaises(play.ReleaseError):
+                play.read_release_notes(Path("notes.json"))
+        with mock.patch.object(play.Path, "read_text", side_effect=UnicodeDecodeError("utf-8", b"\xff", 0, 1, "bad")), \
+                self.assertRaisesRegex(play.ReleaseError, "UTF-8 JSON"):
+            play.read_release_notes(Path("notes.json"))
+        with self.assertRaisesRegex(play.ReleaseError, "could not read the release notes file"):
+            play.read_release_notes(Path("/nonexistent/notes.json"))
+
+
 class ApiTests(unittest.TestCase):
     def test_inspection_discards_without_update_or_commit(self):
         session = Session(Response({"id": "edit-1"}), Response(internal(release())), Response())
@@ -149,10 +179,36 @@ class ApiTests(unittest.TestCase):
                           Response({"track": "production", "releases": [release(1230)]}), Response(), Response())
         result = play.PlayRelease(session).promote("1.2.3", 1234)
         self.assertEqual(result["source_track"], "internal")
+        self.assertEqual(result["release_notes_source"], "internal")
         self.assertEqual(session.calls[3]["json"], {"track": "production", "releases": [selected]})
         self.assertEqual(session.calls[-1]["params"], {"changesInReviewBehavior": "ERROR_IF_IN_REVIEW"})
         self.assertFalse(any("/bundles" in c["url"] for c in session.calls))
         self.assertFalse(any("/tracks/internal" in c["url"] and c["method"] == "PUT" for c in session.calls))
+
+    def test_promotion_replaces_notes_and_keeps_selected_build(self):
+        selected = release(releaseNotes=[{"language": "en-US", "text": "Old"}, {"language": "de-DE", "text": "Alt"}],
+                           inAppUpdatePriority=2)
+        session = Session(Response({"id": "edit-1"}), Response(internal(selected)),
+                          Response({"track": "production", "releases": [release(1230)]}), Response(), Response())
+        result = play.PlayRelease(session).promote("1.2.3", 1234, release_notes={"en-US": "New notes"})
+        self.assertEqual(result["release_notes_source"], "supplied")
+        self.assertEqual(result["version_code"], 1234)
+        self.assertEqual(session.calls[3]["method"], "PUT")
+        self.assertEqual(session.calls[3]["json"], {"track": "production", "releases": [
+            release(releaseNotes=[{"language": "en-US", "text": "New notes"}], inAppUpdatePriority=2)]})
+        self.assertEqual(sum(":commit" in c["url"] for c in session.calls), 1)
+
+    def test_invalid_promotion_notes_create_no_edit(self):
+        session = Session()
+        with self.assertRaises(play.ReleaseError):
+            play.PlayRelease(session).promote("1.2.3", 1234, release_notes={"en-US": "x" * 501})
+        self.assertEqual(session.calls, [])
+
+    def test_promotion_notes_are_not_applied_when_selection_checks_fail(self):
+        session = Session(Response({"id": "edit-1"}), Response(internal(release())), Response())
+        with self.assertRaises(play.ReleaseError):
+            play.PlayRelease(session).promote("1.2.3", 1235, release_notes={"en-US": "New notes"})
+        self.assertEqual([c["method"] for c in session.calls], ["POST", "GET", "DELETE"])
 
     def test_promotion_first_release_works_with_empty_production(self):
         session = Session(Response({"id": "edit-1"}), Response(internal(release())),
@@ -213,6 +269,39 @@ class ApiTests(unittest.TestCase):
             result = play.main(["upload-internal", "--bundle", "ignored", "--version", "1.2.3", "--version-code", "0"])
         self.assertEqual(result, 1)
         auth.assert_not_called()
+
+    def test_cli_promotion_applies_release_notes_file(self):
+        selected = release(releaseNotes=[{"language": "en-US", "text": "Old"}])
+        for argv, notes, source in [
+            (["--release-notes-file", "notes.json"], [{"language": "en-US", "text": "Improved station names."}], "supplied"),
+            ([], selected["releaseNotes"], "internal"),
+        ]:
+            session = Session(Response({"id": "edit-1"}), Response(internal(selected)),
+                              Response({"track": "production"}), Response(), Response())
+            with self.subTest(argv=argv), mock.patch.object(play, "authorized_session", return_value=session), \
+                    mock.patch.object(play.Path, "read_text", autospec=True,
+                                      return_value='{"en-US": "Improved station names."}') as read, \
+                    contextlib.redirect_stdout(io.StringIO()) as stdout:
+                self.assertEqual(play.main(["promote-latest-to-production", "--expected-version", "1.2.3",
+                                            "--expected-version-code", "1234", *argv]), 0)
+                self.assertEqual(session.calls[3]["json"]["releases"][0]["releaseNotes"], notes)
+                self.assertEqual(json.loads(stdout.getvalue())["release_notes_source"], source)
+                self.assertEqual(read.call_args_list,
+                                 [mock.call(Path("notes.json"), encoding="utf-8")] if argv else [])
+                self.assertTrue(session.closed)
+
+    def test_cli_invalid_release_notes_do_not_load_credentials(self):
+        for content in ['{"en-US": ""}', '{"en_US": "Notes"}', '{"en-US": "%s"}' % ("x" * 501), "{"]:
+            with self.subTest(content=content), mock.patch.object(play, "authorized_session") as auth, \
+                    mock.patch.object(play.Path, "read_text", return_value=content), \
+                    contextlib.redirect_stderr(io.StringIO()) as stderr:
+                self.assertEqual(play.main(["promote-latest-to-production", "--release-notes-file", "notes.json"]), 1)
+            auth.assert_not_called()
+            self.assertIn("release notes", stderr.getvalue())
+        with mock.patch.object(play, "authorized_session") as auth, contextlib.redirect_stderr(io.StringIO()) as stderr:
+            self.assertEqual(play.main(["promote-latest-to-production", "--release-notes-file", "/nonexistent/notes.json"]), 1)
+        auth.assert_not_called()
+        self.assertIn("could not read the release notes file", stderr.getvalue())
 
 
 if __name__ == "__main__":

@@ -91,17 +91,15 @@ SDK paths, passwords, keystores, caches, APKs, bundles or build output.
 
 ## Manual store workflows
 
-Run the repository's [Upload workflow](../.github/workflows/upload.yml) on
-`master` to build both platforms with an explicit marketing version. Android
-uploads a signed AAB to Google Play **internal testing**; iOS uploads to
-TestFlight. The optional build number is a major value from 1 through 9999;
-otherwise it defaults to `1000 + workflow run number`. A run attempt is appended
-for iOS and encoded as `major * 100 + attempt` for Android. For example, major
-3000 on attempt 1 produces iOS build `3000.1` and Android version code `300001`.
-Choose a higher major override if existing store builds exceed the default.
+Run [Google Play internal](../.github/workflows/play-internal.yml) on `master`
+to test, build and upload a signed AAB to Google Play **internal testing**.
+The optional marketing version defaults to the matching app project versions.
+Android version codes count UTC minutes since 1 January 2020, assigned when
+the build job starts. The separate [TestFlight workflow](../.github/workflows/testflight.yml)
+handles iOS uploads independently.
 The standalone Android helper accepts version codes from 1 through 2100000000.
 
-The separate [Release workflow](../.github/workflows/release.yml) selects the
+The separate [Submit for review workflow](../.github/workflows/submit-review.yml) selects the
 latest existing TestFlight and Play internal builds, checks their marketing
 versions agree, then submits those builds for App Review/production. It does
 not rebuild or upload binaries. Play selection uses the greatest numeric
@@ -110,7 +108,9 @@ marketing-version name. It fails on ambiguous metadata, a changed selection,
 an unfinished production release, or an equal/newer production build. Play
 review and managed publishing settings still determine when an accepted edit
 becomes public. Both store steps use existing configured listings and their
-review information; they do not create a new store listing.
+review information; they do not create a new store listing. Choose Android
+alone when iOS has already been submitted. Release notes default to the
+committed JSON for the selected version; see the [release guide](../docs/development/releases.md).
 
 Maintainers configure `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` as a GitHub secret for
 the existing app's Play Developer API access, and the upload signing values
@@ -120,7 +120,7 @@ release to testing/production for `ad.neko.cardbal.android`. Review the
 [official API setup](https://developers.google.com/android-publisher/getting_started)
 when granting access.
 
-The Gradle version overrides used by Upload can also build a local unsigned AAB
+The Gradle version overrides used by the workflow can also build a local unsigned AAB
 when no upload signing values are configured:
 
 ```sh

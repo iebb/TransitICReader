@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Added Clipper and Macau Pass balance and travel history support.\n• Added Snapper+, KMT and Tianfu Tong readers, plus Singapore transit maps.\n• Added external NFC reader support on iPad and Mac.\n• Card artwork now downloads on demand.\n• Improved nanaco and WAON points, backup imports and translations.",
+  "ja": "• Clipperとマカオパスの残高・利用履歴の読み取りに対応しました。\n• Snapper+、KMT、天府通とシンガポールの交通路線図に対応しました。\n• iPadとMacで外付けNFCリーダーに対応しました。\n• カード画像を必要に応じてダウンロードするようになりました。\n• nanaco・WAONのポイント表示、バックアップの取り込み、翻訳を改善しました。",
+  "ko": "• Clipper와 마카오패스의 잔액 및 이용 내역 읽기를 지원합니다.\n• Snapper+, KMT, 톈푸퉁 읽기와 싱가포르 교통 지도를 추가했습니다.\n• iPad와 Mac에서 외장 NFC 리더를 지원합니다.\n• 카드 이미지를 필요할 때 다운로드합니다.\n• nanaco 및 WAON 포인트, 백업 가져오기와 번역을 개선했습니다.",
+  "zh-Hans": "• 新增 Clipper 和澳门通余额及交易记录读取。\n• 新增 Snapper+、KMT 和天府通读取，以及新加坡交通地图。\n• 支持在 iPad 和 Mac 上使用外接 NFC 读卡器。\n• 卡面图片改为按需下载。\n• 改善 nanaco 和 WAON 积分显示、备份导入及多语言翻译。"
+}

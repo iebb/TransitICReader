@@ -1,0 +1,96 @@
+name: Submit for review
+run-name: Submit latest test builds for review (${{ inputs.platforms }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Stores to submit'
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - ios
+          - android
+      release_notes:
+        description: 'Optional locale-to-text JSON; blank uses committed notes for the selected version'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cardbal-stores
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install store clients
+        run: python3 -m pip install -r tools/release/requirements-appstore.txt -r android/tools/requirements-play.txt
+      - name: Prepare Apple authentication
+        if: inputs.platforms != 'android'
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'cardbal-review'
+          directory.mkdir(mode=0o700)
+          key = directory / 'AuthKey.p8'
+          key.write_text(os.environ['ASC_PRIVATE_KEY'])
+          key.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'ASC_PRIVATE_KEY_PATH={key}\n')
+          PY
+      - name: Select and pin latest test builds
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+          RELEASE_NOTES_JSON: ${{ inputs.release_notes }}
+        run: |
+          python3 -m tools.release.review select --platforms "$PLATFORMS" \
+            --output build/review/selection.json
+          cat build/review/selection.json
+      - name: Submit selected existing binaries
+        run: |
+          python3 -m tools.release.review submit \
+            --selection-file build/review/selection.json --output build/review/result.json
+          cat build/review/result.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: review-results
+          path: build/review/*.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Record result
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = Path('build/review/result.json')
+          if result.exists():
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+                  output.write('Store submission results (approval and public availability are separate):\n```json\n')
+                  output.write(json.dumps(json.loads(result.read_text()), ensure_ascii=False, indent=2))
+                  output.write('\n```\n')
+          PY
+      - name: Remove temporary Apple key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/cardbal-review"

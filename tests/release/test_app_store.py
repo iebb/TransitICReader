@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 import json
 from pathlib import Path
-import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -34,8 +33,11 @@ def build_fixture(build_id="build-10", marketing_version="1.10", uploaded="2026-
 
 
 def version_fixture(version_id="draft", marketing_version="1.10", current_state="PREPARE_FOR_SUBMISSION", build_id="build-10", release_type="MANUAL"):
-    return resource("appStoreVersions", version_id, {"versionString": marketing_version, "platform": "IOS",
+    version = resource("appStoreVersions", version_id, {"versionString": marketing_version, "platform": "IOS",
         "appVersionState": current_state, "releaseType": release_type}, build=("builds", build_id))
+    if build_id is None:
+        version["relationships"]["build"]["data"] = None
+    return version
 
 
 class FakeAPI:
@@ -77,6 +79,11 @@ class FakeAPI:
         if method == "POST" and path == "/v1/appStoreVersions":
             self.versions.insert(0, version_fixture("created"))
             return {"data": self.versions[0]}
+        if method == "PATCH" and path.startswith("/v1/appStoreVersions/"):
+            version = next(item for item in self.versions if item["id"] == path.split("/")[-1])
+            version["attributes"].update(deepcopy(data["data"].get("attributes", {})))
+            version["relationships"].update(deepcopy(data["data"].get("relationships", {})))
+            return {"data": deepcopy(version)}
         if method == "POST" and path == "/v1/reviewSubmissions":
             return {"data": resource("reviewSubmissions", "new-submission")}
         if method in {"POST", "PATCH"}:
@@ -296,6 +303,182 @@ class PromotionTests(unittest.TestCase):
         self.assertEqual(len(self.api.writes), 1)
 
 
+class DraftRenameTests(unittest.TestCase):
+    def setUp(self):
+        self.api = FakeAPI()
+        build, included = build_fixture(marketing_version="2.5.0")
+        self.api.builds, self.api.included = [build], included
+        self.api.versions = [
+            version_fixture(marketing_version="2.4.1", build_id=None),
+            version_fixture("live", "2.4.0", "READY_FOR_DISTRIBUTION", "build-9"),
+        ]
+        clock_patch = patch.object(release, "datetime", wraps=datetime)
+        clock = clock_patch.start()
+        clock.now.return_value = NOW
+        self.addCleanup(clock_patch.stop)
+
+    def test_selection_plans_one_lower_editable_draft_rename_without_writes(self):
+        for current_state in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED"):
+            with self.subTest(state=current_state):
+                self.api.versions[0]["attributes"]["appVersionState"] = current_state
+                plan = release.inspect_release(self.api, "123", now=NOW)
+                self.assertEqual(plan["action"], "rename_version_and_submit")
+                self.assertEqual(plan["app_store_version_id"], "draft")
+                self.assertEqual(plan["app_store_state"], current_state)
+                self.assertEqual(plan["rename_from_version"], "2.4.1")
+                self.assertEqual(plan["build"]["version"], "2.5.0")
+                self.assertFalse(plan["blockers"])
+                self.assertNotIn("checks_after_create", plan)
+                self.assertFalse(self.api.writes)
+
+    def test_submit_renames_same_draft_then_binds_build_preserving_metadata(self):
+        for current_state in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED"):
+            for attached_build in (None, "old-build"):
+                with self.subTest(state=current_state, attached_build=attached_build):
+                    self.api.versions[0] = version_fixture(marketing_version="2.4.1",
+                        current_state=current_state, build_id=attached_build)
+                    self.api.calls.clear()
+                    before = deepcopy((self.api.versions[1], self.api.localizations, self.api.review))
+                    result = release.submit_release(self.api, "123", expected_build_id="build-10")
+                    self.assertEqual(result["result"], "submitted_for_review")
+                    self.assertEqual(result["app_store_version_id"], "draft")
+                    self.assertEqual(self.api.versions[0]["attributes"]["versionString"], "2.5.0")
+                    self.assertEqual(self.api.versions[0]["relationships"]["build"]["data"]["id"], "build-10")
+                    self.assertEqual([(call[0], call[1]) for call in self.api.writes], [
+                        ("PATCH", "/v1/appStoreVersions/draft"),
+                        ("PATCH", "/v1/appStoreVersions/draft"),
+                        ("POST", "/v1/reviewSubmissions"),
+                        ("POST", "/v1/reviewSubmissionItems"),
+                        ("PATCH", "/v1/reviewSubmissions/new-submission"),
+                    ])
+                    self.assertEqual(self.api.writes[0][2], {"data": {
+                        "type": "appStoreVersions", "id": "draft", "attributes": {"versionString": "2.5.0"},
+                    }})
+                    self.assertEqual(before, (self.api.versions[1], self.api.localizations, self.api.review))
+
+    def test_target_version_is_used_instead_of_renaming_another_draft(self):
+        self.api.versions.insert(0, version_fixture("target", "2.5.0", build_id=None))
+        plan = release.inspect_release(self.api, "123", now=NOW)
+        self.assertEqual(plan["action"], "submit_for_review")
+        self.assertEqual(plan["app_store_version_id"], "target")
+        self.assertNotIn("rename_from_version", plan)
+        with self.assertRaisesRegex(release.ReleaseError, "Another iOS App Store version"):
+            release.submit_release(self.api, "123")
+        self.assertFalse(self.api.writes)
+
+    def test_multiple_lower_editable_drafts_are_ambiguous_and_never_renamed(self):
+        self.api.versions.append(version_fixture("other-draft", "2.4.2", "DEVELOPER_REJECTED", None))
+        plan = release.inspect_release(self.api, "123", now=NOW)
+        self.assertNotEqual(plan["action"], "rename_version_and_submit")
+        self.assertIsNone(plan["app_store_version_id"])
+        with self.assertRaisesRegex(release.ReleaseError, "Multiple lower editable"):
+            release.submit_release(self.api, "123")
+        self.assertFalse(self.api.writes)
+
+    def test_equivalent_and_higher_versions_are_never_renamed(self):
+        for marketing_version in ("2.5", "2.5.1", "2.6.0"):
+            with self.subTest(version=marketing_version):
+                self.api.versions[0]["attributes"]["versionString"] = marketing_version
+                plan = release.inspect_release(self.api, "123", now=NOW)
+                self.assertNotEqual(plan["action"], "rename_version_and_submit")
+                with self.assertRaisesRegex(release.ReleaseError, "rollback"):
+                    release.submit_release(self.api, "123")
+                self.assertFalse(self.api.writes)
+
+    def test_review_rejected_approved_and_unknown_states_are_never_renamed(self):
+        for current_state in (
+            "WAITING_FOR_REVIEW", "IN_REVIEW", "READY_FOR_REVIEW", "REJECTED", "METADATA_REJECTED",
+            "INVALID_BINARY", "PENDING_DEVELOPER_RELEASE", "PENDING_APPLE_RELEASE",
+            "PROCESSING_FOR_DISTRIBUTION", "PROCESSING_FOR_APP_STORE", "UNKNOWN",
+        ):
+            with self.subTest(state=current_state):
+                self.api.versions[0]["attributes"]["appVersionState"] = current_state
+                plan = release.inspect_release(self.api, "123", now=NOW)
+                self.assertNotEqual(plan["action"], "rename_version_and_submit")
+                with self.assertRaisesRegex(release.ReleaseError, "Another iOS App Store version"):
+                    release.submit_release(self.api, "123")
+                self.assertFalse(self.api.writes)
+
+    def test_another_version_in_review_blocks_renaming_the_editable_draft(self):
+        for current_state in ("WAITING_FOR_REVIEW", "IN_REVIEW", "READY_FOR_REVIEW"):
+            with self.subTest(state=current_state):
+                self.api.versions.append(version_fixture("in-review", "2.4.2", current_state))
+                with self.assertRaisesRegex(release.ReleaseError, "Another iOS App Store version"):
+                    release.submit_release(self.api, "123")
+                self.assertFalse(self.api.writes)
+                self.api.versions.pop()
+
+    def test_existing_requirements_block_before_renaming(self):
+        for requirement in ("whats_new", "review", "compliance", "active_submission"):
+            with self.subTest(requirement=requirement):
+                api = deepcopy(self.api)
+                if requirement == "whats_new":
+                    api.localizations[0]["attributes"]["whatsNew"] = ""
+                elif requirement == "review":
+                    api.review = None
+                elif requirement == "compliance":
+                    api.builds[0]["attributes"]["usesNonExemptEncryption"] = None
+                else:
+                    api.submissions = [resource("reviewSubmissions", "active", {"state": "IN_REVIEW"})]
+                    api.items["active"] = []
+                with self.assertRaises(release.ReleaseError):
+                    release.submit_release(api, "123")
+                self.assertFalse(api.writes)
+
+    def test_candidate_in_ready_review_submission_is_never_renamed(self):
+        self.api.submissions = [resource("reviewSubmissions", "existing", {"state": "READY_FOR_REVIEW"})]
+        self.api.items["existing"] = [resource("reviewSubmissionItems", "item", {"state": "READY_FOR_REVIEW"}, appStoreVersion=("appStoreVersions", "draft"))]
+        plan = release.inspect_release(self.api, "123", now=NOW)
+        self.assertTrue(any("active iOS review submission" in reason for reason in plan["blockers"]))
+        with self.assertRaisesRegex(release.ReleaseError, "will not rename"):
+            release.submit_release(self.api, "123")
+        self.assertFalse(self.api.writes)
+
+    def test_expected_build_guard_blocks_before_renaming(self):
+        with self.assertRaisesRegex(release.ReleaseError, "changed since selection"):
+            release.submit_release(self.api, "123", expected_build_id="old-selection")
+        self.assertFalse(self.api.writes)
+
+    def test_missing_metadata_after_rename_stops_before_binding_or_review(self):
+        original_request = self.api.request
+        def request(method, path, **kwargs):
+            result = original_request(method, path, **kwargs)
+            if method == "PATCH" and "versionString" in kwargs.get("data", {}).get("data", {}).get("attributes", {}):
+                self.api.localizations[0]["attributes"]["whatsNew"] = ""
+            return result
+        with patch.object(self.api, "request", side_effect=request):
+            with self.assertRaisesRegex(release.ReleaseError, "Renamed App Store draft draft, but did not submit"):
+                release.submit_release(self.api, "123")
+        self.assertEqual(len(self.api.writes), 1)
+        self.assertEqual(self.api.versions[0]["attributes"]["versionString"], "2.5.0")
+
+    def test_build_change_after_rename_stops_before_binding_or_review(self):
+        original_request = self.api.request
+        def request(method, path, **kwargs):
+            result = original_request(method, path, **kwargs)
+            if method == "PATCH" and "versionString" in kwargs.get("data", {}).get("data", {}).get("attributes", {}):
+                build, included = build_fixture("new-build", "2.5.0", "2026-10-28T00:00:00Z")
+                self.api.builds.append(build)
+                self.api.included.extend(included)
+            return result
+        with patch.object(self.api, "request", side_effect=request):
+            with self.assertRaisesRegex(release.ReleaseError, "changed while preparing"):
+                release.submit_release(self.api, "123", expected_build_id="build-10")
+        self.assertEqual(len(self.api.writes), 1)
+
+    def test_active_review_after_rename_stops_before_binding_or_review(self):
+        original_request = self.api.request
+        def request(method, path, **kwargs):
+            result = original_request(method, path, **kwargs)
+            if method == "PATCH" and "versionString" in kwargs.get("data", {}).get("data", {}).get("attributes", {}):
+                self.api.versions[0]["attributes"]["appVersionState"] = "IN_REVIEW"
+            return result
+        with patch.object(self.api, "request", side_effect=request):
+            with self.assertRaisesRegex(release.ReleaseError, "Renamed App Store draft draft, but did not submit"):
+                release.submit_release(self.api, "123")
+        self.assertEqual(len(self.api.writes), 1)
+
+
 class APIAndCLITests(unittest.TestCase):
     def setUp(self):
         clock_patch = patch.object(release, "datetime", wraps=datetime)
@@ -354,13 +537,12 @@ class APIAndCLITests(unittest.TestCase):
         self.assertFalse(api.writes)
 
     def test_note_file_requires_actual_locale_text(self):
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "notes.json"
-            for value in [[], {}, {"en-US": ""}, {"en-US": False}]:
-                path.write_text(json.dumps(value))
+        path = Path("notes.json")
+        for value in [[], {}, {"en-US": ""}, {"en-US": False}]:
+            with patch.object(Path, "read_text", return_value=json.dumps(value)):
                 with self.assertRaises(release.ReleaseError):
                     release.read_notes(path)
-            path.write_text(json.dumps({"en-US": "Actual release changes."}))
+        with patch.object(Path, "read_text", return_value=json.dumps({"en-US": "Actual release changes."})):
             self.assertEqual(release.read_notes(path), {"en-US": "Actual release changes."})
 
 

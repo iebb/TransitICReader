@@ -1,7 +1,8 @@
 """Promote an existing iOS TestFlight build without building or uploading binaries.
 
-``select`` performs GET requests only. ``submit`` may create an App Store version,
-associate the selected build, set automatic release, and submit it for review.
+``select`` performs GET requests only. ``submit`` may create an App Store version
+or rename one lower editable draft, associate the selected build, set automatic
+release, and submit it for review.
 Apple inherits listing metadata when creating a version; this command never
 invents export-compliance, review, privacy, or advertising answers. Missing
 requirements must be completed in App Store Connect, or supplied as explicit
@@ -35,6 +36,7 @@ EDITABLE_STATES = {
     "PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED",
     "METADATA_REJECTED", "INVALID_BINARY", "READY_FOR_REVIEW",
 }
+RENAMABLE_STATES = {"PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED"}
 IN_REVIEW_STATES = {"WAITING_FOR_REVIEW", "IN_REVIEW"}
 PUBLISHING_STATES = {"PENDING_APPLE_RELEASE", "PROCESSING_FOR_DISTRIBUTION", "PROCESSING_FOR_APP_STORE"}
 DISTRIBUTED_STATES = {"READY_FOR_DISTRIBUTION", "READY_FOR_SALE", "REPLACED_WITH_NEW_VERSION"}
@@ -276,6 +278,13 @@ def inspect_release(api, app_id: str, *, notes: dict | None = None, now: datetim
     if len(matching) > 1:
         raise ReleaseError("Multiple iOS App Store versions match the selected marketing version.")
     version = matching[0] if matching else None
+    selected_key = version_key(chosen["version"])
+    rename_candidates = [] if version else [
+        item for item in versions if state(item) in RENAMABLE_STATES
+        and version_key(item["attributes"]["versionString"]) < selected_key
+    ]
+    if len(rename_candidates) == 1:
+        version = rename_candidates[0]
     plan = {"app_id": app_id, "build": {k: v for k, v in chosen.items() if k != "resource"},
             "app_store_version_id": version["id"] if version else None,
             "app_store_state": state(version) if version else None,
@@ -284,7 +293,11 @@ def inspect_release(api, app_id: str, *, notes: dict | None = None, now: datetim
             "metadata": "Preserve the matching version's metadata" if version else "Apple transfers current listing metadata when creating the version; validate before submitting",
             "review_submission_id": None}
     blockers = plan["blockers"]
-    selected_key = version_key(chosen["version"])
+    if len(rename_candidates) == 1:
+        plan["action"] = "rename_version_and_submit"
+        plan["rename_from_version"] = version["attributes"]["versionString"]
+    elif rename_candidates:
+        blockers.append("Multiple lower editable iOS App Store drafts exist; resolve them in App Store Connect first.")
     for other in versions:
         if other is version:
             continue
@@ -319,7 +332,7 @@ def inspect_release(api, app_id: str, *, notes: dict | None = None, now: datetim
             blockers.append(f"The matching App Store version is {current_state}; no automatic state transition is safe.")
         elif current_state == "READY_FOR_REVIEW" and not same_build:
             blockers.append("The draft is already added for review with a different build; remove it from the draft review submission in App Store Connect first.")
-    if plan["action"] in {"submit_for_review", "create_version_and_submit"}:
+    if plan["action"] in {"submit_for_review", "create_version_and_submit", "rename_version_and_submit"}:
         build_attributes = chosen["resource"]["attributes"]
         if build_attributes.get("usesNonExemptEncryption") is None:
             blockers.append("The selected build has unanswered export-compliance questions; complete them in App Store Connect.")
@@ -349,6 +362,10 @@ def inspect_release(api, app_id: str, *, notes: dict | None = None, now: datetim
             only_target = bool(version) and len(live_items) == 1 and (relationship(live_items[0], "appStoreVersion") or {}).get("id") == version["id"]
             if submission["attributes"]["state"] != "READY_FOR_REVIEW":
                 blockers.append(f"An iOS review submission is {submission['attributes']['state']}; resolve its review issues first.")
+            elif plan["action"] == "rename_version_and_submit" and any(
+                (relationship(item, "appStoreVersion") or {}).get("id") == version["id"] for item in live_items
+            ):
+                blockers.append("The lower draft is already in an active iOS review submission; the helper will not rename it.")
             elif live_items and not only_target:
                 blockers.append("The existing draft review submission contains other items; the helper will not submit unrelated content.")
             elif only_target and live_items[0]["attributes"].get("state") != "READY_FOR_REVIEW":
@@ -390,18 +407,25 @@ def submit_release(api, app_id: str, *, notes: dict | None = None, expected_buil
             "appStoreVersions", resource_id=version_id, attributes={"releaseType": "AFTER_APPROVAL"},
         ))
         return {**plan, "result": "automatic_release_configured"}
-    if not version_id:
+    if action == "rename_version_and_submit" or not version_id:
         selected_build_id = plan["build"]["id"]
-        response = api.request("POST", "/v1/appStoreVersions", data=resource_payload(
-            "appStoreVersions", attributes={"platform": "IOS", "versionString": plan["build"]["version"], "releaseType": "AFTER_APPROVAL"},
-            relationships={"app": ("apps", app_id)},
-        ))
-        version_id = response["data"]["id"]
-        # Re-read Apple's inherited metadata and requirements before selecting a
-        # build or creating a review submission. Reruns reuse this draft.
+        if action == "rename_version_and_submit":
+            api.request("PATCH", f"/v1/appStoreVersions/{identifier(version_id)}", data=resource_payload(
+                "appStoreVersions", resource_id=version_id, attributes={"versionString": plan["build"]["version"]},
+            ))
+            prepared = "Renamed"
+        else:
+            response = api.request("POST", "/v1/appStoreVersions", data=resource_payload(
+                "appStoreVersions", attributes={"platform": "IOS", "versionString": plan["build"]["version"], "releaseType": "AFTER_APPROVAL"},
+                relationships={"app": ("apps", app_id)},
+            ))
+            version_id = response["data"]["id"]
+            prepared = "Created"
+        # Re-read metadata, state, and the selected build before binding or
+        # creating a review submission. Reruns reuse this draft.
         plan = inspect_release(api, app_id, notes=notes)
         if plan["blockers"]:
-            raise ReleaseError(f"Created App Store draft {version_id}, but did not submit: " + " ".join(plan["blockers"]))
+            raise ReleaseError(f"{prepared} App Store draft {version_id}, but did not submit: " + " ".join(plan["blockers"]))
         if plan["app_store_version_id"] != version_id or plan["action"] != "submit_for_review":
             raise ReleaseError("The App Store version changed while preparing the draft; rerun select.")
         if plan["build"]["id"] != selected_build_id:
