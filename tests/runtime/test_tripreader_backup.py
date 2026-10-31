@@ -309,7 +309,8 @@ extension TransitApplication {
                              + importer.replace("import Foundation\nimport SQLite3\n", "") + main)
             shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test-tripreader"
-            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"),
+            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/ScanProgress.swift"),
+                                    str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"),
                                     *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["SnapperPlusProtocol.swift", "AdditionalCardHistory.swift",
                                       "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)],
                                    capture_output=True, text=True)

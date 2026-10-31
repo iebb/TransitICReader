@@ -90,6 +90,7 @@ struct CityUnionDecoder: TransitCardDecoder {
             ])
         ]
 
+        ScanProgress.report(.balance)
         let balancePayloads = await readBalances(iso: iso)
         let parsedBalance = parseBalance(balancePayloads[0])
         rawSections.append(RawDataSection(
@@ -99,6 +100,7 @@ struct CityUnionDecoder: TransitCardDecoder {
             }
         ))
 
+        ScanProgress.report(.details)
         let cardInfo = await readFile15(iso: iso)
         let metadata = parseCardInfo(cardInfo)
         if let cardInfo {
@@ -126,6 +128,7 @@ struct CityUnionDecoder: TransitCardDecoder {
         }
 
         _ = await selectApplication(iso: iso)
+        ScanProgress.report(.transactions)
         var records = await PBOCApplicationReader.records(iso, sfi: 0x18, length: 23, kind: .transaction)
         let cityCode = cardInfo.flatMap { $0.count >= 4 ? $0.subdata(in: 2..<4).hexString.uppercased() : nil }
         if cityCode == "2000" {
@@ -480,6 +483,7 @@ struct TUnionDecoder: TransitCardDecoder {
         // P1=0x00, P2=0x02 -> Primary Purse (32.00)
         // P1=0x01, P2=0x02 -> Negative Balance / Debt (8.00)
         
+        ScanProgress.report(.balance)
         print("[TUnion] Reading Primary Purse (P1=00, P2=02)...")
         let apdu00 = CardAPDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
         if let resp = try? await iso.sendCommand(apdu: apdu00), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
@@ -619,6 +623,7 @@ struct TUnionDecoder: TransitCardDecoder {
             }
         }
         
+        ScanProgress.report(.details)
         let file15 = await PBOCApplicationReader.binary(iso, sfi: 0x15, length: 30)
         let file17 = await PBOCApplicationReader.binary(iso, sfi: 0x17, length: 60)
         let cityCode = file15.flatMap { $0.count >= 4 ? $0.subdata(in: 2..<4).hexString.uppercased() : nil } ?? metadataCityCode
@@ -643,11 +648,13 @@ struct TUnionDecoder: TransitCardDecoder {
                 RawDataField(title: "Payload", value: response.0.hexString)
             ]))
         }
+        ScanProgress.report(.transactions)
         var records = await PBOCApplicationReader.records(iso, sfi: 0x18, length: 23, kind: .transaction)
         if cityCode == "2900" {
             records += await PBOCApplicationReader.records(iso, sfi: 0x06, length: 23, kind: .transaction)
             records += await PBOCApplicationReader.shanghaiAuxiliary(iso)
         }
+        ScanProgress.report(.activity)
         records += await PBOCApplicationReader.records(iso, sfi: 0x1E, length: 48, kind: .transit)
         let transactions = records.filter { $0.kind == .transaction }.map(\.hex)
         let travelHistory = records.filter { $0.kind == .transit }.map(\.hex)

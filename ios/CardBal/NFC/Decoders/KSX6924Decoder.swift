@@ -39,6 +39,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             applicationFCI = res.0
         }
         
+        ScanProgress.report(.balance)
         let balanceApdu = CardAPDU(instructionClass: 0x90, instructionCode: 0x4C, p1Parameter: 0x00, p2Parameter: 0x00, data: Data(), expectedResponseLength: 4)
         logger.error("[KSX6924_APDU] TX Get Balance")
         let balanceResponse = try await iso.sendCommand(apdu: balanceApdu)
@@ -51,6 +52,7 @@ struct KSX6924Decoder: TransitCardDecoder {
             return snapper
         }
         
+        ScanProgress.report(.details)
         let infoApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x0C, data: Data(), expectedResponseLength: 256)
         logger.error("[KSX6924_APDU] TX Get Info (P1:01, P2:0C)")
         let infoResponse = try? await iso.sendCommand(apdu: infoApdu)
@@ -87,6 +89,8 @@ struct KSX6924Decoder: TransitCardDecoder {
         
         for sfi in profile.targetSFIs {
             logger.error("[KSX6924] Target SFI for \(profile.displayName): \(sfi)")
+            // SFIs 1-3 hold transit activity; the others hold transactions.
+            ScanProgress.report((1...3).contains(sfi) ? .activity : .transactions)
             
             // Try standard P2 (SFI in P2) and alternate P2 (SFI in P1)
             for p2 in [(sfi << 3) | 4, UInt8(0x00)] {
@@ -147,6 +151,7 @@ struct KSX6924Decoder: TransitCardDecoder {
 
         let developerBlocks: [RawDataField]
         if developerModeEnabled {
+            ScanProgress.report(.details)
             developerBlocks = await readAllReadableBlocks(from: iso, logger: logger)
         } else {
             developerBlocks = []
@@ -232,6 +237,7 @@ struct KSX6924Decoder: TransitCardDecoder {
               let purse = KSX6924PurseInfo(fciPayload: fci),
               let capture = await SnapperPlusProtocol.read(applicationAID: aid, issuerID: purse.issuerID, balance: balance,
                   readRecord: { number, sfi in
+                      ScanProgress.report(.transactions)
                       guard let response = await readRecord(recordNumber: UInt8(number), p2: UInt8((sfi << 3) | 4), from: iso) else { return nil }
                       return (response.data, response.sw1, response.sw2)
                   }) else { return nil }

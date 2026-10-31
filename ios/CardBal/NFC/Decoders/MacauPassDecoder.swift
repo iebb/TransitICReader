@@ -24,6 +24,7 @@ struct MacauPassDecoder: TransitCardDecoder {
         var failures: [RawDataField] = []
         var info: Data?
         var balance: Decimal?
+        ScanProgress.report(.details)
         do {
             info = try await read(card, command: command(ins: 0xB0, p1: 0x95, length: 256))
             sections.append(RawDataSection(title: "Macau Pass Information (SFI 15)", fields: [
@@ -34,6 +35,7 @@ struct MacauPassDecoder: TransitCardDecoder {
         } catch {
             failures.append(RawDataField(title: "Information", value: String(describing: error)))
         }
+        ScanProgress.report(.balance)
         do {
             let payload = try await read(card, command: command(cla: 0x80, ins: 0x5C, p2: 2, length: 4))
             sections.append(RawDataSection(title: "Macau Pass Balance", fields: [
@@ -55,6 +57,7 @@ struct MacauPassDecoder: TransitCardDecoder {
         }
 
         var records: [TransitApplicationRecord] = []
+        ScanProgress.report(.transactions)
         for index in 1...30 {
             do {
                 let payload = try await read(card, command: command(ins: 0xB2, p1: UInt8(index), p2: 0xC4, length: 23))

@@ -295,7 +295,9 @@ enum CalypsoProtocol {
         }
         return false
     }
-    static func read(initialAID: String? = nil, exchange: (Data) async throws -> (Data, UInt8, UInt8)) async -> ReadResult? {
+    /// `progress` receives each file's SFI before its records are read.
+    static func read(initialAID: String? = nil, exchange: (Data) async throws -> (Data, UInt8, UInt8),
+                     progress: (Int) -> Void = { _ in }) async -> ReadResult? {
         var aids = selectionAIDs
         if let initialAID, selectionAIDs.contains(where: { initialAID.uppercased().hasPrefix($0) }) { aids.insert(initialAID.uppercased(), at: 0) }
         var seen = Set<String>()
@@ -319,6 +321,7 @@ enum CalypsoProtocol {
                 var records = [Record(sfi: 7, number: 1, payload: env)]
                 let targets = [(2, 1), (8, 16), (9, 8), (10, 1), (11, 1), (12, 1), (13, 1), (25, 1), (29, 4), (30, 1)] + (network == .mobib ? [(23,16)] : [])
                 for (sfi, maximum) in targets {
+                    progress(sfi)
                     for number in 1...maximum {
                         guard let data = await read(sfi, number), (1...256).contains(data.count),
                               (!data.allSatisfy({ $0 == 0 }) || [10,11,12,13,25].contains(sfi)), !data.allSatisfy({ $0 == 255 }) else { break }

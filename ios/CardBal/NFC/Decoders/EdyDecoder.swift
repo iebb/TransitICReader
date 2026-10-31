@@ -11,6 +11,7 @@ struct EdyDecoder: TransitCardDecoder {
         
         // 1. Switch to FE00 system
         guard await RetailFeliCaRead.select(feliCa) else { throw NFCTestError.unsupportedCard }
+        ScanProgress.report(.balance)
         
         // 2. Read balance (1317) and number (110B)
         let svcBalance = Data([0x17, 0x13])
@@ -19,6 +20,7 @@ struct EdyDecoder: TransitCardDecoder {
         guard let balanceBlock = await RetailFeliCaRead.block(feliCa, service: svcBalance) else {
             throw NFCTestError.unsupportedCard
         }
+        ScanProgress.report(.details)
         let numberBlock = await RetailFeliCaRead.block(feliCa, service: svcNumber)
         
         // Balance: 4 bytes Little Endian at offset 0 of svc 1317
@@ -64,6 +66,7 @@ struct EdyDecoder: TransitCardDecoder {
             finalResultFields.insert(ResultField(title: "Issue Date", value: issuedDateText), at: edyId == nil ? 0 : 1)
         }
 
+        ScanProgress.report(.transactions)
         let transactions = await readHistoryRecords(feliCa: feliCa)
 
         var rawSections = [

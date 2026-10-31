@@ -46,6 +46,10 @@ enum CEPASProtocol {
         var balanceMinor: Int64 { purse.balanceMinor }
     }
 
+    /// Read progress for the scan sheet: the purse, then each history page
+    /// by its first record number and the purse's record count.
+    enum ReadStage { case purse, history(next: Int, total: Int) }
+
     static func selectFileCommand() -> Data { Data([0, 0xA4, 0, 0, 2, 0x40, 0]) }
     static func purseCommand() -> Data { Data([0x90, 0x32, purseID, 0, 0]) }
     static func historyCommand(offset: Int, count: Int) -> Data? {
@@ -112,14 +116,17 @@ enum CEPASProtocol {
 
     /// Select file 4000 before GET PURSE, as in CENFC's tested CEPAS flow.
     /// Optional log failures never erase a validated balance.
-    static func read(exchange: (Data) async throws -> Data) async -> ReadResult? {
-        guard await request(selectFileCommand(), maximum: 256, exchange: exchange) != nil,
-              let payload = await request(purseCommand(), maximum: 256, exchange: exchange),
+    static func read(exchange: (Data) async throws -> Data,
+                     progress: (ReadStage) -> Void = { _ in }) async -> ReadResult? {
+        guard await request(selectFileCommand(), maximum: 256, exchange: exchange) != nil else { return nil }
+        progress(.purse)
+        guard let payload = await request(purseCommand(), maximum: 256, exchange: exchange),
               let purse = parsePurse(payload) else { return nil }
         var records: [Data] = []
         var offset = 0
         while offset < purse.historyCount {
             let requestedCount = min(15, purse.historyCount - offset)
+            progress(.history(next: offset + 1, total: purse.historyCount))
             guard let command = historyCommand(offset: offset, count: requestedCount),
                   let page = await request(command, maximum: requestedCount * 16, exchange: exchange),
                   !page.isEmpty, page.count % 16 == 0 else { break }

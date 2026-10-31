@@ -52,6 +52,7 @@ class ClipperTests(unittest.TestCase):
         cls.executable = directory / "clipper-tests"
         sources = [
             "ios/CardBal/NFC/CardTransport.swift",
+            "ios/CardBal/NFC/ScanProgress.swift",
             "ios/CardBal/NFC/DESFireReader.swift",
             "ios/CardBal/NFC/ExternalCardReader.swift",
             "ios/CardBal/NFC/Decoders/TransitCardDecoder.swift",

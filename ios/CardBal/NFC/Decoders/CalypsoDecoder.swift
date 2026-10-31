@@ -16,6 +16,15 @@ struct CalypsoDecoder: TransitCardDecoder {
               let result = await CalypsoProtocol.read(initialAID: iso.initialSelectedAID, exchange: { command in
                   guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
                   return try await iso.sendCommand(apdu: apdu)
+              }, progress: { sfi in
+                  // ICC and contracts are card details, the event log is the
+                  // card's transaction history and counters hold the balance.
+                  switch sfi {
+                  case 2, 9: ScanProgress.report(.details)
+                  case 8: ScanProgress.report(.transactions)
+                  case 10: ScanProgress.report(.balance)
+                  default: break
+                  }
               }), result.hasDecodedData else { throw NFCTestError.unsupportedCard }
         let uid = iso.identifier.hexString
         let uidSerial = iso.identifier.count <= 8

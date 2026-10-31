@@ -27,6 +27,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private var secondSideTimeout: Task<Void, Never>?
     private var isReadingTag = false
     private var session: NFCTagReaderSession?
+    private var scanProgress: ScanProgress?
 
     #endif
 
@@ -85,9 +86,15 @@ final class NFCTransitReader: NSObject, ObservableObject {
             updateStatus(String(localized: "Reading card on external reader…"), kind: .idle)
             externalScanTask = Task { [weak self] in
                 guard let self else { return }
-                defer { self.isScanning = false; self.externalScanTask = nil }
+                let progress = ScanProgress { [weak self] message in
+                    self?.updateStatus(message, kind: .idle)
+                }
+                // Runs before any queued step can apply, so the result stays.
+                defer { progress.finish(); self.isScanning = false; self.externalScanTask = nil }
                 do {
-                    let snapshot = try await self.externalReader.scan(readerName: self.selectedExternalReaderName, options: options)
+                    let snapshot = try await ScanProgress.$current.withValue(progress) {
+                        try await self.externalReader.scan(readerName: self.selectedExternalReaderName, options: options)
+                    }
                     try Task.checkCancellation()
                     self.latestSnapshot = snapshot
                     self.updateStatus(String(localized: "Read successful: ") + snapshot.cardFamily, kind: .success)
@@ -201,7 +208,26 @@ final class NFCTransitReader: NSObject, ObservableObject {
         }
     }
 
+    /// Shows reading steps on this session's sheet and in the app status.
+    private func beginProgress(for session: NFCTagReaderSession) -> ScanProgress {
+        endProgress()
+        let progress = ScanProgress { [weak self] message in
+            guard let self, self.session === session else { return }
+            session.alertMessage = Localizer.localize(message)
+            self.updateStatus(message, kind: .idle)
+        }
+        scanProgress = progress
+        return progress
+    }
+
+    /// Final, error and prompt lines replace any step still pending.
+    private func endProgress() {
+        scanProgress?.finish()
+        scanProgress = nil
+    }
+
     private func resetScan() {
+        endProgress()
         secondSideTimeout?.cancel()
         secondSideTimeout = nil
         pendingPrimary = nil
@@ -218,6 +244,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
         updateStatus("Read successful: \(snapshot.cardFamily)", kind: .success)
         self.session = nil
         resetScan()
+        session.alertMessage = Localizer.localize(ScanStep.done.message)
         session.invalidate()
     }
 
@@ -227,7 +254,10 @@ final class NFCTransitReader: NSObject, ObservableObject {
         updateStatus("Read successful: \(pendingPrimary.cardFamily)", kind: .success)
         self.session = nil
         resetScan()
-        if !alreadyInvalidated { session.invalidate() }
+        if !alreadyInvalidated {
+            session.alertMessage = Localizer.localize(ScanStep.done.message)
+            session.invalidate()
+        }
     }
 
     private func fail(_ message: String, session: NFCTagReaderSession) {
@@ -257,6 +287,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
             // other protocol while the user keeps the same physical card in place.
             pendingPrimary = snapshot
             phase = hasOctopus ? .mainland : .octopus
+            endProgress()
             let message = String(localized: "Keep the same card near your iPhone while reading finishes.")
             updateStatus(message, kind: .idle)
             session.alertMessage = Localizer.localize(message)
@@ -322,6 +353,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 && tags.count == 2 && felicaTags.count == 1 && isoTags.count == 1
             guard (tags.count == 1 || dualDiscovery),
                   let tag = dualDiscovery ? felicaTags.first : tags.first else {
+                self.endProgress()
                 session.alertMessage = String(localized: "Present only one transit card.")
                 self.restartPolling(session)
                 return
@@ -335,6 +367,9 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                     self.fail("Could not read any supported transit card data.", session: session)
                     return
                 }
+                let progress = self.beginProgress(for: session)
+                // The second-side line stays until that side's first step.
+                if self.phase == .regular { progress.report(.found) }
                 let decoders: [TransitCardDecoder.Type] = phase == .mainland
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [JapaneseICDecoder.self] : [
@@ -345,7 +380,9 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 var snapshot: TransitCardSnapshot?
                 for decoder in decoders {
                     if await decoder.canDecode(tag: cardTag) {
-                        snapshot = try? await decoder.decode(tag: cardTag, scannedAt: Date())
+                        snapshot = try? await ScanProgress.$current.withValue(progress) {
+                            try await decoder.decode(tag: cardTag, scannedAt: Date())
+                        }
                         if snapshot != nil { break }
                     }
                 }
@@ -359,7 +396,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                             let storageIdentifier = "FeliCa|\(detectedSnapshot.rawIdentifierValue)"
                             let alreadyDecoded = checkIfCardAlreadyEnhanced?(storageIdentifier) ?? false
                             if !alreadyDecoded {
-                                self.updateStatus("Retrieving real serial number...", kind: .idle)
+                                progress.report(.details)
                                 if let sn = try? await performEnhancedFeliCaHandshake(tag: feliCa) {
                                     let systemCodes = (try? await feliCa.requestSystemCode().map { $0.hexString.uppercased() }) ?? [detectedSnapshot.systemCode ?? "0003"]
                                     let detectedBrand = FeliCaProfile.all[0].detectedBrand(using: systemCodes, realSN: sn)
@@ -394,9 +431,11 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                     }
 
                 if dualDiscovery && snapshot?.applicationSnapshots.contains(where: \.isOctopus) != true {
+                    self.endProgress()
                     session.alertMessage = String(localized: "Present only one transit card.")
                     self.restartPolling(session)
                 } else if let snapshot {
+                    progress.report(.finishing)
                     self.accept(snapshot, session: session)
                 } else {
                     self.fail("Could not read any supported transit card data.", session: session)

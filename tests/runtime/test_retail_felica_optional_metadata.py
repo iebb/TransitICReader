@@ -182,6 +182,7 @@ static func main() async throws {
 }
 '''
         files = [
+            "ios/CardBal/NFC/ScanProgress.swift",
             "ios/CardBal/NFC/Profiles/RetailFeliCaRead.swift",
             "ios/CardBal/NFC/Decoders/EdyDecoder.swift",
             "ios/CardBal/NFC/Decoders/NanacoDecoder.swift",

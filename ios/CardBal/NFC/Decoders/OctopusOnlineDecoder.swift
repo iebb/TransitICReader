@@ -18,6 +18,7 @@ enum OctopusOnlineDecoder {
         if metadata == nil && onlineEnabled && client.isConfigured {
             defer { client.close() }
             defer { skippedCardUpdates = client.skippedCardUpdates }
+            ScanProgress.report(.octopusOnline)
             do {
                 let (result, opcodes) = try await client.enquire(allowsCardUpdates: allowsCardUpdates) { command in
                     try await exchange(command, card: card, idm: idm)
@@ -38,6 +39,7 @@ enum OctopusOnlineDecoder {
             } catch {
                 enquiryFailed = true
             }
+            if enquiryFailed { ScanProgress.report(.octopusUnavailable) }
         }
         let raw = currentBlock.bigEndianInt(start: 0, length: 4)
         let balance = metadata.map { formatCurrency(amount: Decimal(raw - $0.offset) / 10, code: "HKD", fractionDigits: 1) }
@@ -80,7 +82,8 @@ enum OctopusOnlineDecoder {
             let bytes = Array(command)
             guard bytes.count == 5, [Data([0x80, 0x08]), Data([0xFF, 0xFF])].contains(Data(bytes[1...2])),
                   bytes[3] <= 1, bytes[4] == 0 else { throw OctopusProtocolError.invalidData }
-            let (pmm, system) = try await card.polling(systemCode: Data(bytes[1...2]), requestCode: bytes[3] == 1 ? .systemCode : .noRequest, timeSlot: .max1)
+            // Core NFC polling rejects wildcard (FF) bytes, so FFFF polls 8008, Octopus's only system.
+            let (pmm, system) = try await card.polling(systemCode: Data([0x80, 0x08]), requestCode: bytes[3] == 1 ? .systemCode : .noRequest, timeSlot: .max1)
             guard card.currentIDm == idm, pmm.count == 8, bytes[3] == 0 || system.count == 2 else {
                 throw OctopusProtocolError.invalidResponse
             }

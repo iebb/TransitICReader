@@ -1059,3 +1059,15 @@
 "Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "允许八达通在线查询更改卡内保存的信息，例如汇率。CardBal 无法查看或撤销这些更改。关闭时，八达通在线查询只读取卡片。";
 
 "Skipped Card Updates" = "已跳过的卡片更新";
+
+/* Scan sheet reading steps */
+"Card found. Reading…" = "已找到卡片，正在读取…";
+"Reading balance…" = "正在读取余额…";
+"Reading transactions…" = "正在读取交易记录…";
+"Reading transactions (%lld of %lld)…" = "正在读取交易记录（%1$lld/%2$lld）…";
+"Reading transit activity…" = "正在读取乘车记录…";
+"Reading card details…" = "正在读取卡片信息…";
+"Checking Octopus online… Keep the card in place." = "正在在线查询八达通…请勿移动卡片。";
+"Octopus Online is unavailable. Finishing the read…" = "八达通在线查询不可用，正在完成读取…";
+"Almost done…" = "即将完成…";
+"Card read." = "读取完成。";

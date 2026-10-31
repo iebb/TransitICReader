@@ -31,11 +31,14 @@ struct ClipperDecoder: TransitCardDecoder {
         }
         try Task.checkCancellation()
         try await reader.select(application: Data(hexString: applicationID))
+        ScanProgress.report(.balance)
         var files: [UInt8: Data] = [:]
         files[8] = try await reader.readFile(8)
         files[2] = try await reader.readFile(2)
         var unavailable: [UInt8] = []
         for number: UInt8 in [1, 4, 14] {
+            // Expiry, refills, then trips.
+            ScanProgress.report(number == 1 ? .details : number == 4 ? .transactions : .activity)
             do {
                 files[number] = try await reader.readFile(number)
             } catch is CancellationError {

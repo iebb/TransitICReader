@@ -1059,3 +1059,15 @@
 "Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "オクトパスのオンライン照会で、為替レートなどカードに保存された情報を変更できるようにします。CardBalでは変更内容を確認したり、元に戻したりできません。オフの場合、オクトパスのオンライン照会はカードの読み取りのみを行います。";
 
 "Skipped Card Updates" = "スキップしたカードの更新";
+
+/* Scan sheet reading steps */
+"Card found. Reading…" = "カードを検出しました。読み取っています…";
+"Reading balance…" = "残高を読み取っています…";
+"Reading transactions…" = "取引を読み取っています…";
+"Reading transactions (%lld of %lld)…" = "取引を読み取っています（%1$lld/%2$lld）…";
+"Reading transit activity…" = "交通利用履歴を読み取っています…";
+"Reading card details…" = "カード情報を読み取っています…";
+"Checking Octopus online… Keep the card in place." = "オクトパスをオンラインで照会しています…カードを動かさないでください。";
+"Octopus Online is unavailable. Finishing the read…" = "オクトパスのオンライン照会を利用できません。読み取りを続けています…";
+"Almost done…" = "まもなく完了します…";
+"Card read." = "読み取りました。";

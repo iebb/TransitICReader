@@ -11,6 +11,7 @@ struct WAONDecoder: TransitCardDecoder {
         
         // 1. Switch to FE00 system
         guard await RetailFeliCaRead.select(feliCa) else { throw NFCTestError.unsupportedCard }
+        ScanProgress.report(.balance)
         
         // 2. Read balance (6817), number (684F), and points (684B)
         let svcBalance = Data([0x17, 0x68])
@@ -20,6 +21,7 @@ struct WAONDecoder: TransitCardDecoder {
         guard let balanceBlock = await RetailFeliCaRead.block(feliCa, service: svcBalance) else {
             throw NFCTestError.unsupportedCard
         }
+        ScanProgress.report(.details)
         let numberBlock = await RetailFeliCaRead.block(feliCa, service: svcNumber)
         let pointsBlock = await RetailFeliCaRead.block(feliCa, service: svcPoints)
         
@@ -40,6 +42,7 @@ struct WAONDecoder: TransitCardDecoder {
         if let pointsVal { resultFields.append(ResultField(title: "Points", value: "\(pointsVal) pts")) }
         resultFields.append(ResultField(title: "Card Number (IDm)", value: formattedIDm))
 
+        ScanProgress.report(.transactions)
         let transactions = await readHistoryRecords(feliCa: feliCa)
         
         var rawSections = [

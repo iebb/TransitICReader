@@ -17,7 +17,9 @@ struct TianfuTongDecoder: TransitCardDecoder {
               let info = await PBOCApplicationReader.binary(iso, sfi: 0x15, length: 33),
               let metadata = parseCardInfo(info) else { throw NFCTestError.unsupportedCard }
 
+        ScanProgress.report(.balance)
         let balance = await PBOCApplicationReader.command(iso, cla: 0x80, ins: 0x5C, p1: 0, p2: 2, length: 4)
+        ScanProgress.report(.transactions)
         var records = await PBOCApplicationReader.records(iso, sfi: 0x18, length: 23, kind: .transaction)
         records += await PBOCApplicationReader.records(iso, sfi: 0x09, length: 23, kind: .transaction)
         var fields = [ResultField(title: "Brand", value: "天府通"),
@@ -35,6 +37,7 @@ struct TianfuTongDecoder: TransitCardDecoder {
 
         // The monthly application is a ride purse, never another CNY balance.
         // Read only its dated allocation table; do not mix ride debits into cash history.
+        ScanProgress.report(.details)
         if await PBOCApplicationReader.select(iso, aid: monthlyAID) != nil,
            let monthlyInfo = await PBOCApplicationReader.binary(iso, sfi: 0x15, length: 33),
            let monthlyMetadata = parseCardInfo(monthlyInfo),

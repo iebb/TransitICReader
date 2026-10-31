@@ -1060,3 +1060,15 @@
 "Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "옥토퍼스 온라인 조회가 환율 등 카드에 저장된 정보를 변경할 수 있도록 합니다. CardBal은 변경 내용을 확인하거나 되돌릴 수 없습니다. 끄면 옥토퍼스 온라인 조회는 카드를 읽기만 합니다.";
 
 "Skipped Card Updates" = "건너뛴 카드 업데이트";
+
+/* Scan sheet reading steps */
+"Card found. Reading…" = "카드를 찾았습니다. 읽는 중…";
+"Reading balance…" = "잔액을 읽는 중…";
+"Reading transactions…" = "거래 내역을 읽는 중…";
+"Reading transactions (%lld of %lld)…" = "거래 내역을 읽는 중 (%1$lld/%2$lld)…";
+"Reading transit activity…" = "교통 이용 내역을 읽는 중…";
+"Reading card details…" = "카드 정보를 읽는 중…";
+"Checking Octopus online… Keep the card in place." = "옥토퍼스를 온라인으로 조회하는 중… 카드를 움직이지 마세요.";
+"Octopus Online is unavailable. Finishing the read…" = "옥토퍼스 온라인 조회를 사용할 수 없습니다. 계속 읽는 중…";
+"Almost done…" = "거의 완료되었습니다…";
+"Card read." = "읽기를 완료했습니다.";

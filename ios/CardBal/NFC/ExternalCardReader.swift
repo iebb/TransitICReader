@@ -25,6 +25,7 @@ final class ExternalCardReader {
         card.isSensitive = true
         try await card.beginSession()
         defer { card.endSession() }
+        ScanProgress.report(.found)
         let connection = SmartCardConnection(card: card)
         let uidResponse = try? await connection.exchange(Data([0xFF, 0xCA, 0, 0, 0]))
         let uid = uidResponse.flatMap { $0.1 == 0x90 && $0.2 == 0 ? $0.0 : nil } ?? Data()

@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"所有协议"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"当前视野内全部（%lld）"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"允许更新卡片"</string>
+    <string name="text_6441e229e8fea70e" formatted="false">"即将完成…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"已是最新"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金额"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"需要在线查询以确定此卡的余额偏移量。"</string>
@@ -152,7 +153,9 @@
     <string name="text_55a751381380ba66" formatted="false">"开卡"</string>
     <string name="text_93985f8467340507" formatted="false">"卡片详情"</string>
     <string name="text_5a03ebc3230271dd" formatted="false">"卡面"</string>
+    <string name="text_20bfc99b5bf1f74f" formatted="false">"已找到卡片，正在读取…"</string>
     <string name="text_00e31d238f2eceed" formatted="false">"卡片排序"</string>
+    <string name="text_d2de6f1c666f157e" formatted="false">"读取完成。"</string>
     <string name="text_0ecd2e5adad08ae0" formatted="false">"CardBal 备份已导出"</string>
     <string name="text_5cef14dba2374bc6" formatted="false">"CardBal 样本几何推断"</string>
     <string name="text_b409eea03cff96fc" formatted="false">"CardBal 是一个非官方交通卡读取器，不使用官方票务 API。"</string>
@@ -164,6 +167,7 @@
     <string name="text_f733012fdfc79e1c" formatted="false">"充值金额"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"在线查询"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"提交前请核对自动填入的代码。车站信息会显示在公开列表中；卡 ID 和设备 ID 不会公开。"</string>
+    <string name="text_2b1c4b424ab89ed3" formatted="false">"正在在线查询八达通…请勿移动卡片。"</string>
     <string name="text_2e5f79bb94a8c40b" formatted="false">"正在查询…"</string>
     <string name="text_10436829032f361a" formatted="false">"中国"</string>
     <string name="text_a99973a7e4fe13c1" formatted="false">"交通联合"</string>
@@ -497,6 +501,7 @@
     <string name="text_04cd5de1493d0e37" formatted="false">"八达通 + %@"</string>
     <string name="text_581fd35f5df43bff" formatted="false">"八达通卡号"</string>
     <string name="text_7565d55aa34264fe" formatted="false">"八达通在线查询"</string>
+    <string name="text_a14e6e958ca18940" formatted="false">"八达通在线查询不可用，正在完成读取…"</string>
     <string name="text_81725243263f33f7" formatted="false">"八达通公式：(原始值 - %lld) / 10。"</string>
     <string name="text_9d13a2f382bf7f16" formatted="false">"冲绳巴士"</string>
     <string name="text_58ddaeaeb2498986" formatted="false">"适用于旧版 DESFire；不解析新版 Clipper"</string>
@@ -604,8 +609,13 @@
     <string name="text_d8554253f56d58e8" formatted="false">"读卡器"</string>
     <string name="text_ffe0563a92ebf8ea" formatted="false">"读卡器命令失败（%02X）。"</string>
     <string name="text_967e9a5444a12e3d" formatted="false">"正在读取读卡识途备份…"</string>
+    <string name="text_f4d2658c8edefe69" formatted="false">"正在读取余额…"</string>
+    <string name="text_43ab56f7b701df24" formatted="false">"正在读取卡片信息…"</string>
     <string name="text_c03e917604df7a78" formatted="false">"正在通过外接读卡器读卡…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"正在读卡…"</string>
+    <string name="text_668570fc07fbd43b" formatted="false">"正在读取交易记录（%1$lld/%2$lld）…"</string>
+    <string name="text_c7b7c8add23db536" formatted="false">"正在读取交易记录…"</string>
+    <string name="text_e3a4d62b241ef756" formatted="false">"正在读取乘车记录…"</string>
     <string name="text_0fc985ca26decc9e" formatted="false">"可读取 Suica、PASMO、ICOCA 等日本交通 IC 卡，nanaco、乐天 Edy、WAON，T-money、EZL、Cashbee，U-Money，八达通，交通联合与城市一卡通卡片，以及 Lignes d’Azur。"</string>
     <string name="text_092938788836b819" formatted="false">"NFC 已就绪。"</string>
     <string name="text_efc846b39baa3363" formatted="false">"准备读取卡片"</string>

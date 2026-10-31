@@ -1057,3 +1057,15 @@
 "Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card." = "Lets Octopus Online change information stored on your card, such as exchange rates. CardBal can't see or undo these changes. When this is off, Octopus Online only reads your card.";
 
 "Skipped Card Updates" = "Skipped Card Updates";
+
+/* Scan sheet reading steps */
+"Card found. Reading…" = "Card found. Reading…";
+"Reading balance…" = "Reading balance…";
+"Reading transactions…" = "Reading transactions…";
+"Reading transactions (%lld of %lld)…" = "Reading transactions (%lld of %lld)…";
+"Reading transit activity…" = "Reading transit activity…";
+"Reading card details…" = "Reading card details…";
+"Checking Octopus online… Keep the card in place." = "Checking Octopus online… Keep the card in place.";
+"Octopus Online is unavailable. Finishing the read…" = "Octopus Online is unavailable. Finishing the read…";
+"Almost done…" = "Almost done…";
+"Card read." = "Card read.";

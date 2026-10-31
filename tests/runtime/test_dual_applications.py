@@ -349,6 +349,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             check(session.pollingOption == (pair[0].technology == "FeliCa" ? [.iso14443] : [.iso18092]), "Wrong companion protocol polled")
             reader.accept(pair[1], session: session)
             check(!reader.isScanning && session.invalidated, "Dual scan did not finish")
+            check(session.alertMessage == ScanStep.done.message, "Finished scan sheet did not say the card was read")
             check(reader.latestSnapshot?.applications?.count == 2, "Automatic scan lost one interface")
         }
         let felicaOnly = NFCTransitReader(); felicaOnly.startScanning(options: [.iso18092])
@@ -370,6 +371,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         discovery.tagReaderSession(discoverySession, didDetect: [.iso7816(NFCISO7816Tag()), .feliCa(TestFeliCaTag(octopus))])
         try await Task.sleep(for: .milliseconds(30))
         check(discoverySession.pollingOption == [.iso14443] && discovery.pendingPrimary != nil, "Dual discovery was rejected as two cards")
+        check(discoverySession.alertMessage == "Keep the same card near your iPhone while reading finishes.", "A reading step replaced the second-side line")
         discovery.accept(national, session: discoverySession)
         check(discovery.latestSnapshot?.applications?.count == 2, "Dual discovery did not produce one combined snapshot")
         let multiple = NFCTransitReader(); multiple.startScanning()
@@ -403,7 +405,7 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
             swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing + tianfu + tianfu_tests)
             shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test-dual"
-            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/Helpers/Localizer.swift"), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/ScanProgress.swift"), str(ROOT / "ios/CardBal/Helpers/Localizer.swift"), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             run = subprocess.run([str(binary), str(ROOT)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

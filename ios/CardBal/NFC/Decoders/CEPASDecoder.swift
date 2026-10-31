@@ -30,7 +30,12 @@ struct CEPASDecoder: TransitCardDecoder {
             exchange = { try await mifare.sendMiFareCommand(commandPacket: $0) }
         default: throw NFCTestError.unsupportedCard
         }
-        guard let card = await CEPASProtocol.read(exchange: exchange) else { throw NFCTestError.unsupportedCard }
+        guard let card = await CEPASProtocol.read(exchange: exchange, progress: { stage in
+            switch stage {
+            case .purse: ScanProgress.report(.balance)
+            case .history(let next, let total): ScanProgress.report(.transactionCount(next, total))
+            }
+        }) else { throw NFCTestError.unsupportedCard }
         let rawPurse = card.purse.raw.map { String(format: "%02X", $0) }.joined()
         let history = card.rawHistory.map { $0.map { String(format: "%02X", $0) }.joined() }
         let uid = identifier.map { String(format: "%02X", $0) }.joined()

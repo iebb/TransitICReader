@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"모든 프로토콜"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"현재 범위 전체 (%lld)"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"카드 업데이트 허용"</string>
+    <string name="text_6441e229e8fea70e" formatted="false">"거의 완료되었습니다…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"이미 최신 상태입니다"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"금액"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"이 카드의 잔액 보정값을 확인하려면 온라인 조회가 필요합니다."</string>
@@ -152,7 +153,9 @@
     <string name="text_55a751381380ba66" formatted="false">"카드 발급"</string>
     <string name="text_93985f8467340507" formatted="false">"카드 상세 정보"</string>
     <string name="text_5a03ebc3230271dd" formatted="false">"카드 디자인"</string>
+    <string name="text_20bfc99b5bf1f74f" formatted="false">"카드를 찾았습니다. 읽는 중…"</string>
     <string name="text_00e31d238f2eceed" formatted="false">"카드 정렬"</string>
+    <string name="text_d2de6f1c666f157e" formatted="false">"읽기를 완료했습니다."</string>
     <string name="text_0ecd2e5adad08ae0" formatted="false">"CardBal 백업을 내보냈습니다"</string>
     <string name="text_5cef14dba2374bc6" formatted="false">"CardBal 표본의 지리 추론"</string>
     <string name="text_b409eea03cff96fc" formatted="false">"CardBal은 비공식 교통카드 리더입니다. 발권용 공식 API는 사용하지 않습니다."</string>
@@ -164,6 +167,7 @@
     <string name="text_f733012fdfc79e1c" formatted="false">"충전 금액"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"온라인 조회"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"제출 전에 자동 입력된 코드를 확인하세요. 역 정보는 공개 목록에 표시되지만 카드와 기기 ID는 공개되지 않습니다."</string>
+    <string name="text_2b1c4b424ab89ed3" formatted="false">"옥토퍼스를 온라인으로 조회하는 중… 카드를 움직이지 마세요."</string>
     <string name="text_2e5f79bb94a8c40b" formatted="false">"조회 중…"</string>
     <string name="text_10436829032f361a" formatted="false">"중국"</string>
     <string name="text_a99973a7e4fe13c1" formatted="false">"중국 T-Union"</string>
@@ -497,6 +501,7 @@
     <string name="text_04cd5de1493d0e37" formatted="false">"옥토퍼스 + %@"</string>
     <string name="text_581fd35f5df43bff" formatted="false">"옥토퍼스 번호"</string>
     <string name="text_7565d55aa34264fe" formatted="false">"옥토퍼스 온라인 조회"</string>
+    <string name="text_a14e6e958ca18940" formatted="false">"옥토퍼스 온라인 조회를 사용할 수 없습니다. 계속 읽는 중…"</string>
     <string name="text_81725243263f33f7" formatted="false">"옥토퍼스 계산식: (원본 값 - %lld) / 10."</string>
     <string name="text_9d13a2f382bf7f16" formatted="false">"오키나와 버스"</string>
     <string name="text_58ddaeaeb2498986" formatted="false">"구형 DESFire용이며 신형 Clipper는 해독하지 않습니다"</string>
@@ -604,8 +609,13 @@
     <string name="text_d8554253f56d58e8" formatted="false">"리더"</string>
     <string name="text_ffe0563a92ebf8ea" formatted="false">"리더 명령 실패(%02X)."</string>
     <string name="text_967e9a5444a12e3d" formatted="false">"Trip Reader 백업을 읽는 중…"</string>
+    <string name="text_f4d2658c8edefe69" formatted="false">"잔액을 읽는 중…"</string>
+    <string name="text_43ab56f7b701df24" formatted="false">"카드 정보를 읽는 중…"</string>
     <string name="text_c03e917604df7a78" formatted="false">"외부 리더로 카드를 읽는 중…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"카드를 읽는 중…"</string>
+    <string name="text_668570fc07fbd43b" formatted="false">"거래 내역을 읽는 중 (%1$lld/%2$lld)…"</string>
+    <string name="text_c7b7c8add23db536" formatted="false">"거래 내역을 읽는 중…"</string>
+    <string name="text_e3a4d62b241ef756" formatted="false">"교통 이용 내역을 읽는 중…"</string>
     <string name="text_0fc985ca26decc9e" formatted="false">"Suica, PASMO, ICOCA 등 일본 교통 IC 카드, nanaco, 라쿠텐 Edy, WAON, 티머니, EZL, 캐시비, U-Money, 옥토퍼스, 중국 교통연합·City Union 카드, Lignes d’Azur를 읽을 수 있어요."</string>
     <string name="text_092938788836b819" formatted="false">"NFC 준비 완료."</string>
     <string name="text_efc846b39baa3363" formatted="false">"카드를 읽을 준비가 되었어요"</string>

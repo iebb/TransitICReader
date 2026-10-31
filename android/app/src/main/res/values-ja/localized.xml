@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"すべてのプロトコル"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"表示範囲のすべて（%lld）"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"カードの更新を許可"</string>
+    <string name="text_6441e229e8fea70e" formatted="false">"まもなく完了します…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"最新の状態です"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金額"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"このカードの残高の補正値を確認するにはオンライン照会が必要です。"</string>
@@ -152,7 +153,9 @@
     <string name="text_55a751381380ba66" formatted="false">"カード発行"</string>
     <string name="text_93985f8467340507" formatted="false">"カードの詳細"</string>
     <string name="text_5a03ebc3230271dd" formatted="false">"カードのデザイン"</string>
+    <string name="text_20bfc99b5bf1f74f" formatted="false">"カードを検出しました。読み取っています…"</string>
     <string name="text_00e31d238f2eceed" formatted="false">"カードの並び順"</string>
+    <string name="text_d2de6f1c666f157e" formatted="false">"読み取りました。"</string>
     <string name="text_0ecd2e5adad08ae0" formatted="false">"CardBal のバックアップを書き出しました"</string>
     <string name="text_5cef14dba2374bc6" formatted="false">"CardBal サンプルの形状推定"</string>
     <string name="text_b409eea03cff96fc" formatted="false">"CardBal は非公式の交通カードリーダーです。発券用の公式APIは使用していません。"</string>
@@ -164,6 +167,7 @@
     <string name="text_f733012fdfc79e1c" formatted="false">"チャージ額"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"オンライン照会"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"送信前に自動入力されたコードを確認してください。駅の情報は公開リストに表示されますが、カードIDと端末IDは公開されません。"</string>
+    <string name="text_2b1c4b424ab89ed3" formatted="false">"オクトパスをオンラインで照会しています…カードを動かさないでください。"</string>
     <string name="text_2e5f79bb94a8c40b" formatted="false">"照会中…"</string>
     <string name="text_10436829032f361a" formatted="false">"中国"</string>
     <string name="text_a99973a7e4fe13c1" formatted="false">"中国 T-Union"</string>
@@ -497,6 +501,7 @@
     <string name="text_04cd5de1493d0e37" formatted="false">"オクトパス + %@"</string>
     <string name="text_581fd35f5df43bff" formatted="false">"オクトパス番号"</string>
     <string name="text_7565d55aa34264fe" formatted="false">"オクトパスのオンライン照会"</string>
+    <string name="text_a14e6e958ca18940" formatted="false">"オクトパスのオンライン照会を利用できません。読み取りを続けています…"</string>
     <string name="text_81725243263f33f7" formatted="false">"Octopus の式：(生データ - %lld) / 10。"</string>
     <string name="text_9d13a2f382bf7f16" formatted="false">"沖縄バス"</string>
     <string name="text_58ddaeaeb2498986" formatted="false">"旧世代の DESFire。新世代の Clipper は解析対象外です"</string>
@@ -604,8 +609,13 @@
     <string name="text_d8554253f56d58e8" formatted="false">"リーダー"</string>
     <string name="text_ffe0563a92ebf8ea" formatted="false">"リーダーコマンドが失敗しました（%02X）。"</string>
     <string name="text_967e9a5444a12e3d" formatted="false">"Trip Reader のバックアップを読み取り中…"</string>
+    <string name="text_f4d2658c8edefe69" formatted="false">"残高を読み取っています…"</string>
+    <string name="text_43ab56f7b701df24" formatted="false">"カード情報を読み取っています…"</string>
     <string name="text_c03e917604df7a78" formatted="false">"外部リーダーでカードを読み取り中…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"カードを読み取り中…"</string>
+    <string name="text_668570fc07fbd43b" formatted="false">"取引を読み取っています（%1$lld/%2$lld）…"</string>
+    <string name="text_c7b7c8add23db536" formatted="false">"取引を読み取っています…"</string>
+    <string name="text_e3a4d62b241ef756" formatted="false">"交通利用履歴を読み取っています…"</string>
     <string name="text_0fc985ca26decc9e" formatted="false">"Suica、PASMO、ICOCAなどの交通系ICカード、nanaco、楽天Edy、WAON、T-money、EZL、Cashbee、U-Money、Octopus、交通聯合・City Unionのカード、Lignes d’Azurを読み取れます。"</string>
     <string name="text_092938788836b819" formatted="false">"NFC の準備ができました。"</string>
     <string name="text_efc846b39baa3363" formatted="false">"カードを読み取る準備ができました"</string>

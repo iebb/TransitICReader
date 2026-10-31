@@ -70,6 +70,7 @@
 		D4A120012F6F2ACB0071B6C4 /* CityAtlasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A120002F6F2ACB0071B6C4 /* CityAtlasView.swift */; };
 		E7D07B5BA9DD2ABE3DB0E5AA /* NFCTransitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */; };
 		B13000000000000000000002 /* CardTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000001; };
+		B18000000000000000000002 /* ScanProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18000000000000000000001 /* ScanProgress.swift */; };
 		B13000000000000000000004 /* CoreNFCCardTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000003; };
 		B13000000000000000000006 /* ExternalCardReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000000000000000000005; };
 		B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14000000000000000000001; };
@@ -152,6 +153,7 @@
 		D6427D57C19C8455241DEEE3 /* NFCTransitReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NFCTransitReader.swift; sourceTree = "<group>"; };
 		EC38266AABB2DF946A942826 /* JPStationCodes.csv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = JPStationCodes.csv; sourceTree = "<group>"; };
 		B13000000000000000000001 /* CardTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/CardTransport.swift; sourceTree = "<group>"; };
+		B18000000000000000000001 /* ScanProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/ScanProgress.swift; sourceTree = "<group>"; };
 		B13000000000000000000003 /* CoreNFCCardTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/CoreNFCCardTransport.swift; sourceTree = "<group>"; };
 		B13000000000000000000005 /* ExternalCardReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFC/ExternalCardReader.swift; sourceTree = "<group>"; };
 		B14000000000000000000001 /* SingaporeTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers/SingaporeTransitCatalog.swift; sourceTree = "<group>"; };
@@ -319,6 +321,7 @@
 				8C46922F2F6F2ACB0071B6C4 /* Utils */,
 				A00000000000000000000001 /* CardBalApp.swift */,
 				B13000000000000000000001 /* CardTransport.swift */,
+				B18000000000000000000001 /* ScanProgress.swift */,
 				B13000000000000000000003 /* CoreNFCCardTransport.swift */,
 				B13000000000000000000005 /* ExternalCardReader.swift */,
 				B14000000000000000000001 /* SingaporeTransitCatalog.swift */,
@@ -496,6 +499,7 @@
 				B13000000000000000000006 /* ExternalCardReader.swift in Sources */,
 				B13000000000000000000004 /* CoreNFCCardTransport.swift in Sources */,
 				B13000000000000000000002 /* CardTransport.swift in Sources */,
+				B18000000000000000000002 /* ScanProgress.swift in Sources */,
 				66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */,
 				E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */,
 				F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */,

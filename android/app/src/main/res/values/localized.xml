@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"All Protocols"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"All in view (%lld)"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"Allow Card Updates"</string>
+    <string name="text_6441e229e8fea70e" formatted="false">"Almost done…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"Already up to date"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"Amount"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"An online enquiry is needed to determine this card's balance offset."</string>
@@ -152,7 +153,9 @@
     <string name="text_55a751381380ba66" formatted="false">"Card creation"</string>
     <string name="text_93985f8467340507" formatted="false">"Card details"</string>
     <string name="text_5a03ebc3230271dd" formatted="false">"Card faces"</string>
+    <string name="text_20bfc99b5bf1f74f" formatted="false">"Card found. Reading…"</string>
     <string name="text_00e31d238f2eceed" formatted="false">"Card ordering"</string>
+    <string name="text_d2de6f1c666f157e" formatted="false">"Card read."</string>
     <string name="text_0ecd2e5adad08ae0" formatted="false">"CardBal backup exported"</string>
     <string name="text_5cef14dba2374bc6" formatted="false">"CardBal corpus geometry inference"</string>
     <string name="text_b409eea03cff96fc" formatted="false">"CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing."</string>
@@ -164,6 +167,7 @@
     <string name="text_f733012fdfc79e1c" formatted="false">"Charge Amount"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"Check Online"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private."</string>
+    <string name="text_2b1c4b424ab89ed3" formatted="false">"Checking Octopus online… Keep the card in place."</string>
     <string name="text_2e5f79bb94a8c40b" formatted="false">"Checking..."</string>
     <string name="text_10436829032f361a" formatted="false">"China"</string>
     <string name="text_a99973a7e4fe13c1" formatted="false">"China T-Union"</string>
@@ -497,6 +501,7 @@
     <string name="text_04cd5de1493d0e37" formatted="false">"Octopus + %@"</string>
     <string name="text_581fd35f5df43bff" formatted="false">"Octopus Number"</string>
     <string name="text_7565d55aa34264fe" formatted="false">"Octopus Online"</string>
+    <string name="text_a14e6e958ca18940" formatted="false">"Octopus Online is unavailable. Finishing the read…"</string>
     <string name="text_81725243263f33f7" formatted="false">"Octopus formula: (raw - %lld) / 10."</string>
     <string name="text_9d13a2f382bf7f16" formatted="false">"Okinawa Bus"</string>
     <string name="text_58ddaeaeb2498986" formatted="false">"Older DESFire generation; newer Clipper generations are not decoded"</string>
@@ -604,8 +609,13 @@
     <string name="text_d8554253f56d58e8" formatted="false">"Reader"</string>
     <string name="text_ffe0563a92ebf8ea" formatted="false">"Reader command failed (%02X)."</string>
     <string name="text_967e9a5444a12e3d" formatted="false">"Reading Trip Reader backup…"</string>
+    <string name="text_f4d2658c8edefe69" formatted="false">"Reading balance…"</string>
+    <string name="text_43ab56f7b701df24" formatted="false">"Reading card details…"</string>
     <string name="text_c03e917604df7a78" formatted="false">"Reading card on external reader…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"Reading card..."</string>
+    <string name="text_668570fc07fbd43b" formatted="false">"Reading transactions (%lld of %lld)…"</string>
+    <string name="text_c7b7c8add23db536" formatted="false">"Reading transactions…"</string>
+    <string name="text_e3a4d62b241ef756" formatted="false">"Reading transit activity…"</string>
     <string name="text_0fc985ca26decc9e" formatted="false">"Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur."</string>
     <string name="text_092938788836b819" formatted="false">"Ready for NFC."</string>
     <string name="text_efc846b39baa3363" formatted="false">"Ready to Read a Card"</string>

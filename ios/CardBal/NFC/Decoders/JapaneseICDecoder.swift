@@ -16,6 +16,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
             let isKMT = profile.systemCode == KMTCardFormat.systemCode
             if isKMT && !KMTCardFormat.isSelectedSystem(selected.1) { continue }
 
+            ScanProgress.report(.balance)
             if let readResult = try? await feliCa.readWithoutEncryption(
                 serviceCodeList: [profile.serviceCodeLittleEndian],
                 blockList: [Data([0x80, 0x00])]
@@ -78,6 +79,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         var transitHistory: [String] = []
         var serialNumber: String?
         if profile.systemCode == KMTCardFormat.systemCode {
+            ScanProgress.report(.details)
             if let identifierBlock = await readKMTBlock(feliCa: feliCa, service: KMTCardFormat.identifierService, index: 0) {
                 serialNumber = KMTCardFormat.identifier(identifierBlock)
                 if let serialNumber { resultFields.append(ResultField(title: "KMT Card Number", value: serialNumber)) }
@@ -85,6 +87,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
                     RawDataField(title: "Raw Block", value: identifierBlock.hexString.uppercased())
                 ]))
             }
+            ScanProgress.report(.transactions)
             for index in 0..<KMTCardFormat.historyReadLimit {
                 guard let block = await readKMTBlock(feliCa: feliCa, service: KMTCardFormat.historyService, index: index) else { break }
                 if KMTCardFormat.isHistoryBlock(block) { transactions.append(block.hexString.uppercased()) }
@@ -93,16 +96,21 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 RawDataField(title: "History", value: "Preserved as raw records; dates are not verified.")
             ]))
         } else if suicaStyleFamilies.contains(profile.displayName) {
+             ScanProgress.report(.transactions)
              transactions = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0F, 0x09]))   // 090F
+             ScanProgress.report(.activity)
              let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x8F, 0x10])) // 108F
              let entryExit = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0xCB, 0x10]))   // 10CB
              transitHistory = gateHistory + entryExit
         } else if profile.displayName == "OKICA" {
+             ScanProgress.report(.transactions)
              transactions = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x8F, 0x02]))   // 028F
+             ScanProgress.report(.activity)
              let gateHistory = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0F, 0x05]), maxBlocks: 3, stopAtEmptyPrefix: false) // 050F
              let sfEntry = await readServiceRecords(feliCa: feliCa, serviceCode: Data([0x0B, 0x06]), maxBlocks: 2, stopAtEmptyPrefix: false)     // 060B
              transitHistory = gateHistory + sfEntry
         } else if profile.displayName == "Ryuto" {
+             ScanProgress.report(.transactions)
              transactions = await readServiceRecords(feliCa: feliCa, serviceCode: RyutoCardFormat.service, stopAtEmptyPrefix: false)
         }
         

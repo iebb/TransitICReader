@@ -37,6 +37,9 @@ class LocalizationTests(unittest.TestCase):
                 ("Vending Machine", language, table["Vending Machine"]),
                 ("Consumption", language, table["consumption"]),
                 ("Import failed: $1\\path", language, table["Import failed: %@"].replace("%@", "$1\\path")),
+                ("Reading transactions (3 of 30)…", language,
+                 table["Reading transactions (%lld of %lld)…"].replace("%1$lld", "3").replace("%2$lld", "30")
+                 .replace("%lld", "3", 1).replace("%lld", "30", 1)),
                 ("A000000632010105", language, "A000000632010105"),
                 ("My commuter card", language, "My commuter card"),
             ])

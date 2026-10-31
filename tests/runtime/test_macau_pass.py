@@ -811,6 +811,7 @@ class MacauPassTests(unittest.TestCase):
         cls.executable = directory / "macau-pass-tests"
         sources = [
             "ios/CardBal/NFC/CardTransport.swift",
+            "ios/CardBal/NFC/ScanProgress.swift",
             "ios/CardBal/NFC/Decoders/TransitCardDecoder.swift",
             "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift",
             "ios/CardBal/NFC/Decoders/MacauPassDecoder.swift",

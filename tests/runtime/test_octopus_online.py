@@ -123,9 +123,11 @@ final class InventedCard: FeliCaCard {
     var currentIDm = Data(hexString: "0102030405060708")
     var raw: Int = 900
     var operations: [UInt8] = []
+    var polled: [Data] = []
     var block: Data { Data([UInt8(raw >> 24 & 255), UInt8(raw >> 16 & 255), UInt8(raw >> 8 & 255), UInt8(raw & 255)]) + Data(repeating: 0, count: 12) }
     func polling(systemCode: Data, requestCode: FeliCaRequestCode, timeSlot: FeliCaTimeSlot) async throws -> (Data, Data) {
-        (Data(repeating: 0, count: 8), systemCode)
+        polled.append(systemCode)
+        return (Data(repeating: 0, count: 8), systemCode)
     }
     func requestSystemCode() async throws -> [Data] { [Data([0x80, 8])] }
     func readWithoutEncryption(serviceCodeList: [Data], blockList: [Data]) async throws -> (Int, Int, [Data]) { (0, 0, [block]) }
@@ -172,6 +174,16 @@ static func main() async throws {
     let reader = OctopusEnquiryVM(inputs: [:], deadline: Date().addingTimeInterval(10)) { Data([2, $0[0] + 1]) }
     _ = try await reader.run(read)
     precondition(reader.skippedCardUpdates == 0 && reader.cardOpcodes == [0x14])
+    // Core NFC cannot poll wildcard system codes; a server FFFF poll uses 8008.
+    let wildcard = InventedCard()
+    let polled = try await OctopusOnlineDecoder.exchange(Data([0, 0xFF, 0xFF, 1, 0]), card: wildcard, idm: wildcard.currentIDm)
+    precondition(wildcard.polled == [Data([0x80, 0x08])] && polled.count == 20 && polled[0] == 20 && polled.suffix(2) == Data([0x80, 0x08]))
+    let octopusPoll = InventedCard()
+    let direct = try await OctopusOnlineDecoder.exchange(Data([0, 0x80, 0x08, 0, 0]), card: octopusPoll, idm: octopusPoll.currentIDm)
+    precondition(octopusPoll.polled == [Data([0x80, 0x08])] && direct.count == 18 && direct[0] == 18)
+    let otherSystem = InventedCard()
+    await rejects { _ = try await OctopusOnlineDecoder.exchange(Data([0, 0x00, 0x03, 1, 0]), card: otherSystem, idm: otherSystem.currentIDm) }
+    precondition(otherSystem.polled.isEmpty)
     let result = try JSONSerialization.data(withJSONObject: fixture["result"]!)
     let opcodes: Set<UInt8> = [0x10, 0x12, 0x14]
     let confirmed = OctopusCardMetadata.calibrated(result: result, rawValue: 900, opcodes: opcodes)!
@@ -247,6 +259,7 @@ static func main() async throws {
                 binary = directory / "octopus-test"
                 build = subprocess.run([
                     "swiftc", str(ROOT / "ios/CardBal/NFC/CardTransport.swift"),
+                    str(ROOT / "ios/CardBal/NFC/ScanProgress.swift"),
                     str(ROOT / "ios/CardBal/NFC/Profiles/OctopusOnlineProtocol.swift"),
                     str(ROOT / "ios/CardBal/NFC/Decoders/OctopusOnlineDecoder.swift"),
                     str(directory / "Harness.swift"), "-o", str(binary),
