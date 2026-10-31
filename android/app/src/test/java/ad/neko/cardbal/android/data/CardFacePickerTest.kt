@@ -74,6 +74,30 @@ class CardFacePickerTest {
         .map { RemoteFaceManifest.token("cn/2900", it) }
     private val peerTokens = listOf("blue", "default").map { RemoteFaceManifest.token("cn/city-peer", it) }
 
+    @Test fun sheetSeparatesPhotosAndPresetsWithoutLosingSelectionOrMatchingOrder() {
+        val sections = manifest.pickerSectionsFor(
+            shanghai(face = "custom.jpg"), savedFaces = listOf("from-ios.png", "custom.jpg", "suica"),
+        )
+        assertEquals(shanghaiTokens + peerTokens, sections.matching.map { it.fileName })
+        assertTrue(sections.otherPresets.none { it.fileName in shanghaiTokens + peerTokens })
+        assertTrue(sections.matching.none { it.selected })
+        assertEquals(setOf("custom.jpg", "from-ios.png"), sections.photos.map { it.fileName }.toSet())
+        assertEquals("custom.jpg", sections.photos.single { it.selected }.fileName)
+        assertTrue(sections.otherPresets.any { it.fileName == "remote.jp.suica.default.png" })
+        assertFalse(sections.color.selected)
+    }
+
+    @Test fun colorModeRetainsSavedPhotosAndUnlistedPublishedPresetsInTheirTabs() {
+        val sections = RemoteFaceManifest(2).pickerSectionsFor(
+            shanghai(face = "remote.kr.tmoney.logo.png", usingImage = false), savedFaces = listOf("old.jpg"),
+        )
+        assertTrue(sections.color.selected)
+        assertTrue(sections.matching.isEmpty())
+        assertEquals("remote.kr.tmoney.logo.png", sections.otherPresets.single().fileName)
+        assertEquals("old.jpg", sections.photos.single().fileName)
+        assertTrue((sections.photos + sections.otherPresets).none { it.selected })
+    }
+
     @Test fun cityPresetsAndPeersPrecedeCurrentUnrelatedArtwork() {
         val choices = manifest.pickerChoicesFor(shanghai(face = "suica"))
         assertNull(choices.first().fileName)

@@ -887,6 +887,7 @@ struct BalanceRows: View {
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType = .camera
     var didFinish: (UIImage) -> Void
+    var didCancel: (() -> Void)?
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -906,7 +907,10 @@ struct ImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage { parent.didFinish(image) }
             picker.dismiss(animated: true)
         }
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.didCancel?()
+            picker.dismiss(animated: true)
+        }
     }
 }
 struct QuickHistorySheet: View {

@@ -135,6 +135,20 @@ data class RemoteFaceManifest(val schemaVersion: Int, val cards: List<Card> = em
             names.map { CardFaceChoice(it, entry(it), selected = it == active) }
     }
 
+    fun pickerSectionsFor(card: SavedCardRecord, savedFaces: List<String> = emptyList()): CardFacePickerSections {
+        val choices = pickerChoicesFor(card, savedFaces)
+        val relevant = relevantEntriesFor(card.remoteFaceMatchInput()).map { it.token }.toSet()
+        val presets = choices.filter { choice ->
+            choice.fileName != null && (choice.entry != null || publishedToken(choice.fileName) != null)
+        }
+        return CardFacePickerSections(
+            color = choices.first(),
+            matching = presets.filter { it.fileName in relevant },
+            otherPresets = presets.filter { it.fileName !in relevant },
+            photos = choices.filter { it.fileName != null && it !in presets },
+        )
+    }
+
     private fun longestMatch(values: (Match) -> List<String>, matches: (String) -> Boolean): Card? =
         cards.flatMap { card -> values(card.match).filter { it.isNotBlank() && matches(it) }.map { card to it.length } }
             .maxByOrNull { it.second }?.first
@@ -208,6 +222,13 @@ data class CardFaceChoice(
     val fileName: String?,
     val entry: RemoteFaceManifest.Entry? = null,
     val selected: Boolean = false,
+)
+
+data class CardFacePickerSections(
+    val color: CardFaceChoice,
+    val matching: List<CardFaceChoice>,
+    val otherPresets: List<CardFaceChoice>,
+    val photos: List<CardFaceChoice>,
 )
 
 /** Disabling artwork retains the saved photo/preset so it can be selected again. */

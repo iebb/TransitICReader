@@ -24,19 +24,29 @@ after the catalog refresh; Android resolves them when rendering. Custom photos,
 remote alternates and explicit color-only choices are preserved. Downloaded
 files stay outside the backed-up custom-photo directory.
 
-Both platforms offer the published defaults and alternates in a horizontal
-appearance picker. After the color option, designs for the physical card's type
-come first, followed by other cards for the same city in the same country.
+Both platforms open card-face selection in a sheet with Presets, Gallery and
+Take a Photo tabs. Presets use a lazy grid: after the color option, designs for
+the physical card's type come first, followed by other cards for the same city
+in the same region. Unrelated presets appear in a separate group below.
 City matches use the catalog's city codes or nonempty localized city names.
 The card's current artwork does not affect this order: a Shanghai card wearing
-Suica artwork still offers Shanghai designs first. The current unrelated face
-and saved photos follow the matching presets, then the rest of the collection.
+Suica artwork still offers Shanghai designs first.
 Opening the picker preserves the current selection, including color-only mode.
 It hides duplicate bundled tiles once those designs are in the catalog.
+Gallery contains previously saved card photos and opens the system photo picker
+to import another. Take a Photo requires an explicit capture action. Imported
+and captured images use the existing `CardFaces` storage and backup format;
+remote preset downloads remain outside backups. Cancelling photo selection or
+capture leaves the current face unchanged. On iOS the sheet dismisses before
+the camera or crop editor opens; camera permission is requested only when the
+capture button is pressed. Devices without a camera direct users to Gallery.
 The Korean collection offers five researched T-money physical designs in
 addition to its existing two backgrounds, and five EZL/Cashbee designs including
 the yellow default. Research references and the visual preview live in the
 artwork repository.
+The collection also includes Standard Adult, Child and Elder Octopus fronts for
+Hong Kong, with separate text alternatives. Both clients discover these through
+the shared manifest and match the `Octopus` family without bundled artwork.
 
 Default artwork prefers no text, with an exception for lettering used as
 decoration, such as PASMO's train and bus motif. Ordinary names, service labels,

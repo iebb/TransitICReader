@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"所有协议"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"当前视野内全部（%lld）"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"允许更新卡片"</string>
+    <string name="text_3ebbac683fde3bf8" formatted="false">"请在设置中允许相机访问，以拍摄卡片照片。"</string>
     <string name="text_6441e229e8fea70e" formatted="false">"即将完成…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"已是最新"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金额"</string>
@@ -126,6 +127,8 @@
     <string name="text_3c4f629a81828aa3" formatted="false">"CEPAS 记录 0x%02X"</string>
     <string name="text_a8e863c8f1778a92" formatted="false">"人民币余额"</string>
     <string name="text_464b21ea40c748de" formatted="false">"Calypso SFI %02X 记录 %d"</string>
+    <string name="text_2bfcff4560c57a01" formatted="false">"需要相机权限"</string>
+    <string name="text_0bff6378346cdbb5" formatted="false">"此设备无法使用相机，请从图库选择照片。"</string>
     <string name="text_19766ed6ccb2f4a3" formatted="false">"取消"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"取消扫描"</string>
     <string name="text_c17e79e634568fb0" formatted="false">"已取消的事件"</string>
@@ -135,6 +138,7 @@
     <string name="text_02203cd02fe512e7" formatted="false">"卡片应用"</string>
     <string name="text_1e391240c3556325" formatted="false">"卡片颜色"</string>
     <string name="text_df20cc445f6b44e3" formatted="false">"卡面"</string>
+    <string name="text_dd2959d28ce3c1bb" formatted="false">"卡面来源"</string>
     <string name="text_e78492f0f93cb24d" formatted="false">"卡面"</string>
     <string name="text_632465953e056422" formatted="false">"卡片类型"</string>
     <string name="text_0f7dcaa5c3f98b7d" formatted="false">"卡片图标"</string>
@@ -174,9 +178,12 @@
     <string name="text_a99973a7e4fe13c1" formatted="false">"交通联合"</string>
     <string name="text_b68a243116330e78" formatted="false">"China T-Union 车站数据基于 domosekai/tripreader-data，这是下游项目使用的原始数据源。"</string>
     <string name="text_8fef796e63c010f2" formatted="false">"选择发卡方时区时，China T-Union 使用中国标准时间，韩国卡使用韩国标准时间，U-Money 使用乌兰巴托时间。"</string>
+    <string name="text_fd4f33168acac301" formatted="false">"选择卡面"</string>
     <string name="text_7634684570d0c09f" formatted="false">"从图库选择"</string>
     <string name="text_53b951bdadd12d7a" formatted="false">"从预设设计中选择"</string>
     <string name="text_4bdf6ee11ddebd54" formatted="false">"在地图上选择图钉"</string>
+    <string name="text_c064f689d698c3ff" formatted="false">"选择预设卡面、图库中的照片，或拍摄一张照片。"</string>
+    <string name="text_9accdfe7680fa6e1" formatted="false">"请选择其他照片后重试。"</string>
     <string name="text_b93d3bcecff5d749" formatted="false">"圆形"</string>
     <string name="text_95697d144956e80b" formatted="false">"城市"</string>
     <string name="text_fc33f73246f48295" formatted="false">"城市"</string>
@@ -321,6 +328,7 @@
     <string name="text_546ebb8eb993ea56" formatted="false">"筛选"</string>
     <string name="text_236d66b9ac5fab2e" formatted="false">"最终余额（B0 - B1）"</string>
     <string name="text_9c807f46c9741095" formatted="false">"读取 Apple 钱包交通卡时，请在另一台设备上开启服务模式"</string>
+    <string name="text_764fb7f4bd36c0ef" formatted="false">"此卡及同城卡面"</string>
     <string name="text_df21130d813b09a4" formatted="false">"若要修正代码，请填写 CardBal 显示的代码和正确的车站名称。正确代码可选填。"</string>
     <string name="text_2f343666aaa88c44" formatted="false">"格式"</string>
     <string name="text_efeb572e22678765" formatted="false">"来自 FCI"</string>
@@ -329,6 +337,7 @@
     <string name="text_008dacb6d1e85bd8" formatted="false">"完整"</string>
     <string name="text_964cd2804b8350e5" formatted="false">"完整 FeliCa 扫描"</string>
     <string name="text_9ec96fc538a1d993" formatted="false">"完整载荷"</string>
+    <string name="text_352cfc749e55222e" formatted="false">"图库"</string>
     <string name="text_f59a640d0bc48bb8" formatted="false">"闸机日期"</string>
     <string name="text_5daf7b4d4db2eaf3" formatted="false">"闸机设备 %04d"</string>
     <string name="text_51a7a953fdbf4618" formatted="false">"闸机终端"</string>
@@ -367,6 +376,7 @@
     <string name="text_5fca26fb1c3cded8" formatted="false">"已导入 %lld 张卡片（替换 %lld 张）。"</string>
     <string name="text_a3140f62fb2b27eb" formatted="false">"已从读卡识途导入 %lld 张卡片和 %lld 条记录。"</string>
     <string name="text_a5920e6affcc1e60" formatted="false">"已导入卡面"</string>
+    <string name="text_e3f47e37659ec981" formatted="false">"正在导入照片…"</string>
     <string name="text_b7a3cd401b23dd41" formatted="false">"正在导入…"</string>
     <string name="text_ba0eb24926ce4a1d" formatted="false">"使用中"</string>
     <string name="text_1cb0ba125f84c982" formatted="false">"信息"</string>
@@ -508,6 +518,7 @@
     <string name="text_b37c7879f6c359f6" formatted="false">"未记录"</string>
     <string name="text_8a7525b1492fb848" formatted="false">"备注"</string>
     <string name="text_d1e4fff9526fcb86" formatted="false">"备注不会公开。请勿填写个人信息或原始行程记录。"</string>
+    <string name="text_565339bc4d33d728" formatted="false">"好"</string>
     <string name="text_213f84c35030dd05" formatted="false">"OKICA 交易 %08X"</string>
     <string name="text_a7c7b3a28a6194e5" formatted="false">"八达通"</string>
     <string name="text_04cd5de1493d0e37" formatted="false">"八达通 + %@"</string>
@@ -535,6 +546,7 @@
     <string name="text_c9876250b567859b" formatted="false">"打开国土交通部车站数据"</string>
     <string name="text_8067702ca345d572" formatted="false">"打开 OpenStreetMap 版权页"</string>
     <string name="text_27db8c1b91049821" formatted="false">"打开首尔大数据车站来源"</string>
+    <string name="text_3f940108cb1ecd9c" formatted="false">"打开设置"</string>
     <string name="text_e17edb9565869d3f" formatted="false">"打开 geoBoundaries"</string>
     <string name="text_b0323de96eccab4b" formatted="false">"在 GitHub 查看 station_database"</string>
     <string name="text_e204114d8cc9a303" formatted="false">"在 GitHub 上打开 tripreader-data"</string>
@@ -549,6 +561,7 @@
     <string name="text_0b186258ab89628e" formatted="false">"钱包原始单位"</string>
     <string name="text_9c0919a5f3d8a40f" formatted="false">"其他公司补票"</string>
     <string name="text_cbacfd650dbd90ff" formatted="false">"其他公司进站补票"</string>
+    <string name="text_109ceb7823deeeae" formatted="false">"其他预设"</string>
     <string name="text_1674a1b6fc5e8eca" formatted="false">"透支上限"</string>
     <string name="text_495d415f75ef78ff" formatted="false">"打包日期时间"</string>
     <string name="text_c254a27960b416b1" formatted="false">"解析结果"</string>
@@ -691,6 +704,7 @@
     <string name="text_1509f561f2416598" formatted="false">"保存"</string>
     <string name="text_315acc9aa091b988" formatted="false">"保存为卡面"</string>
     <string name="text_ba74fb2cebc400a5" formatted="false">"已保存设计"</string>
+    <string name="text_7c3f52bbe988e237" formatted="false">"已保存的照片"</string>
     <string name="text_ea1c510d1ddb7264" formatted="false">"扫描"</string>
     <string name="text_b60b5bc57d6ec318" formatted="false">"扫描卡片"</string>
     <string name="text_a48b9cef583f1c89" formatted="false">"扫描卡号"</string>
@@ -787,6 +801,8 @@
     <string name="text_78590556d5b7ae9a" formatted="false">"交易类型"</string>
     <string name="text_1503916a2ab2b0fd" formatted="false">"标签"</string>
     <string name="text_1ca36a90c342fa4f" formatted="false">"拍照"</string>
+    <string name="text_ea4e02603cb85d01" formatted="false">"拍照"</string>
+    <string name="text_d4fc20fdb918ea4a" formatted="false">"拍摄卡片照片以用作卡面。"</string>
     <string name="text_7592881e64563357" formatted="false">"下车刷卡"</string>
     <string name="text_a5e2f98e337ca57e" formatted="false">"上车刷卡"</string>
     <string name="text_3bdb1af69dafef8e" formatted="false">"刷卡被拒绝"</string>
@@ -864,6 +880,7 @@
     <string name="text_36ad6bc8245efca9" formatted="false">"剩余次数"</string>
     <string name="text_c3af076f92c5ed8d" formatted="false">"故障排除"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"类型"</string>
+    <string name="text_b7af865b39a1bfb3" formatted="false">"无法使用照片"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"无法加载开发示例"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"无法加载开发示例：%@"</string>
     <string name="text_3b02980673d24b06" formatted="false">"无法打开导出位置"</string>
@@ -924,6 +941,7 @@
     <string name="text_03be090ed822ff63" formatted="false">"你去过的城市将在这里点亮"</string>
     <string name="text_97ba7ec4cc110e0b" formatted="false">"不会自动读取您的位置。只有您选择的图钉会随报告发送。"</string>
     <string name="text_2c81c25a819d0715" formatted="false">"你去过的省级区域将在这里点亮"</string>
+    <string name="text_c0c919005a3207dc" formatted="false">"保存的卡片照片会显示在此处。"</string>
     <string name="text_fa86d119f5d55862" formatted="false">"冲绳都市单轨"</string>
     <string name="text_7dc5bb225c93d47d" formatted="false">"冲绳单轨充值"</string>
     <string name="text_5279cdfd8afab7c7" formatted="false">"区域 %d"</string>

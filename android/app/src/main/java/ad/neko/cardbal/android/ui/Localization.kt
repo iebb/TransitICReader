@@ -4,7 +4,17 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import ad.neko.cardbal.android.R
 import ad.neko.cardbal.android.data.SavedCardRecord
+
+// Android-only failure/cancellation messages supplement the generated shared catalog.
+private val presentationResources = localizedResources + mapOf(
+    "Could not import this photo. Try another image." to R.string.card_face_import_failed,
+    "Photo selection canceled." to R.string.card_face_selection_canceled,
+    "Photo capture canceled." to R.string.card_face_capture_canceled,
+    "Photo picker is unavailable. Try again." to R.string.card_face_picker_unavailable,
+    "Camera is unavailable. Try choosing a photo from Gallery." to R.string.card_face_camera_unavailable,
+)
 
 /** Only pass app-owned text here; card identifiers and user titles stay verbatim. */
 @Composable
@@ -14,7 +24,7 @@ fun tr(text: String): String {
 }
 
 fun Context.tr(text: String): String =
-    PresentationStrings.translate(text, localizedResources.keys) { key -> localizedResources[key]?.let(::getString) }
+    PresentationStrings.translate(text, presentationResources.keys) { key -> presentationResources[key]?.let(::getString) }
 
 @Composable
 fun cardTitle(card: SavedCardRecord): String =

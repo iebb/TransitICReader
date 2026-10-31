@@ -1088,3 +1088,23 @@
 "Rate Valid Until" = "환율 유효기간";
 "Expired %@" = "%@ 만료";
 "Exchange rate: 1 Hong Kong dollar equals %@ Chinese yuan." = "환율: 1홍콩달러는 %@위안.";
+
+// Card face picker
+"Choose Card Face" = "카드 디자인 선택";
+"Gallery" = "갤러리";
+"Take a Photo" = "사진 촬영";
+"Card Face Source" = "카드 디자인 소스";
+"For This Card" = "이 카드 및 같은 도시";
+"Other Presets" = "다른 프리셋";
+"Saved Photos" = "저장된 사진";
+"Your saved card photos will appear here." = "저장한 카드 사진이 여기에 표시됩니다.";
+"Choose a preset, a photo from your gallery, or take a photo." = "프리셋이나 갤러리 사진을 선택하거나 새로 촬영하세요.";
+"Take a photo of your card to use as its face." = "카드를 촬영해 카드 디자인으로 사용하세요.";
+"Camera is unavailable on this device. Choose a photo from Gallery." = "이 기기에서는 카메라를 사용할 수 없습니다. 갤러리에서 사진을 선택하세요.";
+"Unable to Use Photo" = "사진을 사용할 수 없음";
+"Choose another photo and try again." = "다른 사진을 선택한 후 다시 시도하세요.";
+"Camera Access Needed" = "카메라 접근 권한 필요";
+"Allow camera access in Settings to take a card photo." = "카드를 촬영하려면 설정에서 카메라 접근을 허용하세요.";
+"Open Settings" = "설정 열기";
+"Importing photo..." = "사진 가져오는 중...";
+"OK" = "확인";

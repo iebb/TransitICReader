@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_face_import_failed">Could not import this photo. Try another image.</string>
+    <string name="card_face_selection_canceled">Photo selection canceled.</string>
+    <string name="card_face_capture_canceled">Photo capture canceled.</string>
+    <string name="card_face_picker_unavailable">Photo picker is unavailable. Try again.</string>
+    <string name="card_face_camera_unavailable">Camera is unavailable. Try choosing a photo from Gallery.</string>
+</resources>

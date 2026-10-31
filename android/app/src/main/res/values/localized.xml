@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"All Protocols"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"All in view (%lld)"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"Allow Card Updates"</string>
+    <string name="text_3ebbac683fde3bf8" formatted="false">"Allow camera access in Settings to take a card photo."</string>
     <string name="text_6441e229e8fea70e" formatted="false">"Almost done…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"Already up to date"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"Amount"</string>
@@ -126,6 +127,8 @@
     <string name="text_3c4f629a81828aa3" formatted="false">"CEPAS record 0x%02X"</string>
     <string name="text_a8e863c8f1778a92" formatted="false">"CNY Balance"</string>
     <string name="text_464b21ea40c748de" formatted="false">"Calypso SFI %02X Record %d"</string>
+    <string name="text_2bfcff4560c57a01" formatted="false">"Camera Access Needed"</string>
+    <string name="text_0bff6378346cdbb5" formatted="false">"Camera is unavailable on this device. Choose a photo from Gallery."</string>
     <string name="text_19766ed6ccb2f4a3" formatted="false">"Cancel"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"Cancel Scan"</string>
     <string name="text_c17e79e634568fb0" formatted="false">"Cancelled event"</string>
@@ -135,6 +138,7 @@
     <string name="text_02203cd02fe512e7" formatted="false">"Card Applications"</string>
     <string name="text_1e391240c3556325" formatted="false">"Card Color"</string>
     <string name="text_df20cc445f6b44e3" formatted="false">"Card Face"</string>
+    <string name="text_dd2959d28ce3c1bb" formatted="false">"Card Face Source"</string>
     <string name="text_e78492f0f93cb24d" formatted="false">"Card Faces"</string>
     <string name="text_632465953e056422" formatted="false">"Card Family"</string>
     <string name="text_0f7dcaa5c3f98b7d" formatted="false">"Card Icon"</string>
@@ -174,9 +178,12 @@
     <string name="text_a99973a7e4fe13c1" formatted="false">"China T-Union"</string>
     <string name="text_b68a243116330e78" formatted="false">"China T-Union station data is based on domosekai/tripreader-data, the original source used by downstream projects."</string>
     <string name="text_8fef796e63c010f2" formatted="false">"China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected."</string>
+    <string name="text_fd4f33168acac301" formatted="false">"Choose Card Face"</string>
     <string name="text_7634684570d0c09f" formatted="false">"Choose From Gallery"</string>
     <string name="text_53b951bdadd12d7a" formatted="false">"Choose From Preset Designs"</string>
     <string name="text_4bdf6ee11ddebd54" formatted="false">"Choose a Pin on Map"</string>
+    <string name="text_c064f689d698c3ff" formatted="false">"Choose a preset, a photo from your gallery, or take a photo."</string>
+    <string name="text_9accdfe7680fa6e1" formatted="false">"Choose another photo and try again."</string>
     <string name="text_b93d3bcecff5d749" formatted="false">"Circle"</string>
     <string name="text_95697d144956e80b" formatted="false">"Cities"</string>
     <string name="text_fc33f73246f48295" formatted="false">"City"</string>
@@ -321,6 +328,7 @@
     <string name="text_546ebb8eb993ea56" formatted="false">"Filters"</string>
     <string name="text_236d66b9ac5fab2e" formatted="false">"Final Balance (B0 - B1)"</string>
     <string name="text_9c807f46c9741095" formatted="false">"For Apple Wallet cards, turn on Service Mode on the other device"</string>
+    <string name="text_764fb7f4bd36c0ef" formatted="false">"For This Card"</string>
     <string name="text_df21130d813b09a4" formatted="false">"For a code correction, enter the code shown by CardBal and the correct station name. The correct code is optional."</string>
     <string name="text_2f343666aaa88c44" formatted="false">"Format"</string>
     <string name="text_efeb572e22678765" formatted="false">"Found in FCI"</string>
@@ -329,6 +337,7 @@
     <string name="text_008dacb6d1e85bd8" formatted="false">"Full"</string>
     <string name="text_964cd2804b8350e5" formatted="false">"Full FeliCa Scan"</string>
     <string name="text_9ec96fc538a1d993" formatted="false">"Full Payload"</string>
+    <string name="text_352cfc749e55222e" formatted="false">"Gallery"</string>
     <string name="text_f59a640d0bc48bb8" formatted="false">"Gate Date"</string>
     <string name="text_5daf7b4d4db2eaf3" formatted="false">"Gate Device %04d"</string>
     <string name="text_51a7a953fdbf4618" formatted="false">"Gate Terminal"</string>
@@ -367,6 +376,7 @@
     <string name="text_5fca26fb1c3cded8" formatted="false">"Imported %lld cards (%lld replaced)."</string>
     <string name="text_a3140f62fb2b27eb" formatted="false">"Imported %lld cards and %lld records from Trip Reader."</string>
     <string name="text_a5920e6affcc1e60" formatted="false">"Imported faces"</string>
+    <string name="text_e3f47e37659ec981" formatted="false">"Importing photo..."</string>
     <string name="text_b7a3cd401b23dd41" formatted="false">"Importing..."</string>
     <string name="text_ba0eb24926ce4a1d" formatted="false">"In Use"</string>
     <string name="text_1cb0ba125f84c982" formatted="false">"Information"</string>
@@ -508,6 +518,7 @@
     <string name="text_b37c7879f6c359f6" formatted="false">"Not recorded"</string>
     <string name="text_8a7525b1492fb848" formatted="false">"Notes"</string>
     <string name="text_d1e4fff9526fcb86" formatted="false">"Notes stay private. Do not include personal details or raw trip data."</string>
+    <string name="text_565339bc4d33d728" formatted="false">"OK"</string>
     <string name="text_213f84c35030dd05" formatted="false">"OKICA transaction %08X"</string>
     <string name="text_a7c7b3a28a6194e5" formatted="false">"Octopus"</string>
     <string name="text_04cd5de1493d0e37" formatted="false">"Octopus + %@"</string>
@@ -535,6 +546,7 @@
     <string name="text_c9876250b567859b" formatted="false">"Open MOLIT station data"</string>
     <string name="text_8067702ca345d572" formatted="false">"Open OpenStreetMap Copyright Page"</string>
     <string name="text_27db8c1b91049821" formatted="false">"Open Seoul Big Data station source"</string>
+    <string name="text_3f940108cb1ecd9c" formatted="false">"Open Settings"</string>
     <string name="text_e17edb9565869d3f" formatted="false">"Open geoBoundaries"</string>
     <string name="text_b0323de96eccab4b" formatted="false">"Open station_database on GitHub"</string>
     <string name="text_e204114d8cc9a303" formatted="false">"Open tripreader-data on GitHub"</string>
@@ -549,6 +561,7 @@
     <string name="text_0b186258ab89628e" formatted="false">"Original purse units"</string>
     <string name="text_9c0919a5f3d8a40f" formatted="false">"Other Co. Adjustment"</string>
     <string name="text_cbacfd650dbd90ff" formatted="false">"Other Co. Entry Adjustment"</string>
+    <string name="text_109ceb7823deeeae" formatted="false">"Other Presets"</string>
     <string name="text_1674a1b6fc5e8eca" formatted="false">"Overdraft Limit"</string>
     <string name="text_495d415f75ef78ff" formatted="false">"Packed DateTime"</string>
     <string name="text_c254a27960b416b1" formatted="false">"Parsed"</string>
@@ -691,6 +704,7 @@
     <string name="text_1509f561f2416598" formatted="false">"Save"</string>
     <string name="text_315acc9aa091b988" formatted="false">"Save as Card Face"</string>
     <string name="text_ba74fb2cebc400a5" formatted="false">"Saved Designs"</string>
+    <string name="text_7c3f52bbe988e237" formatted="false">"Saved Photos"</string>
     <string name="text_ea1c510d1ddb7264" formatted="false">"Scan"</string>
     <string name="text_b60b5bc57d6ec318" formatted="false">"Scan Card"</string>
     <string name="text_a48b9cef583f1c89" formatted="false">"Scan Card Number"</string>
@@ -787,6 +801,8 @@
     <string name="text_78590556d5b7ae9a" formatted="false">"TX Type"</string>
     <string name="text_1503916a2ab2b0fd" formatted="false">"Tag"</string>
     <string name="text_1ca36a90c342fa4f" formatted="false">"Take Photo"</string>
+    <string name="text_ea4e02603cb85d01" formatted="false">"Take a Photo"</string>
+    <string name="text_d4fc20fdb918ea4a" formatted="false">"Take a photo of your card to use as its face."</string>
     <string name="text_7592881e64563357" formatted="false">"Tap off"</string>
     <string name="text_a5e2f98e337ca57e" formatted="false">"Tap on"</string>
     <string name="text_3bdb1af69dafef8e" formatted="false">"Tap rejected"</string>
@@ -864,6 +880,7 @@
     <string name="text_36ad6bc8245efca9" formatted="false">"Trips Remaining"</string>
     <string name="text_c3af076f92c5ed8d" formatted="false">"Troubleshooting"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"Type"</string>
+    <string name="text_b7af865b39a1bfb3" formatted="false">"Unable to Use Photo"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"Unable to load development samples"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"Unable to load development samples: %@"</string>
     <string name="text_3b02980673d24b06" formatted="false">"Unable to open export destination"</string>
@@ -924,6 +941,7 @@
     <string name="text_03be090ed822ff63" formatted="false">"Your cities will glow here"</string>
     <string name="text_97ba7ec4cc110e0b" formatted="false">"Your location is never read automatically. Only a pin you choose is sent with this report."</string>
     <string name="text_2c81c25a819d0715" formatted="false">"Your provinces will glow here"</string>
+    <string name="text_c0c919005a3207dc" formatted="false">"Your saved card photos will appear here."</string>
     <string name="text_fa86d119f5d55862" formatted="false">"Yui Rail"</string>
     <string name="text_7dc5bb225c93d47d" formatted="false">"Yui Rail Top-up"</string>
     <string name="text_5279cdfd8afab7c7" formatted="false">"Zone %d"</string>

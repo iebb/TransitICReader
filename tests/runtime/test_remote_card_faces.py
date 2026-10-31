@@ -11,6 +11,86 @@ from tools.paths import ROOT
 
 @unittest.skipUnless(shutil.which("swiftc"), "Requires the Swift toolchain")
 class RemoteCardFaceTests(unittest.TestCase):
+    def test_photo_import_failure_and_saved_photo_selection(self):
+        source = (ROOT / "ios/CardBal/Models/CardWalletStore.swift").read_text()
+        methods = "\n".join(
+            re.search(rf"^    func {name}\(.*?^    }}", source, re.M | re.S).group()
+            for name in ("setFaceImage", "applyFaceAsset", "setIsUsingImage")
+        )
+        harness = r'''
+import Foundation
+struct UIImage {
+    let data: Data?
+    func jpegData(compressionQuality: Double) -> Data? { data }
+}
+struct SavedCardRecord {
+    let id: String
+    var faceImageFileName: String?
+    var isUsingImage: Bool?
+}
+enum StorageError: Error { case unavailable }
+final class Store {
+    let directory: URL
+    var failWrites = false
+    var saves = 0
+    var cards = [SavedCardRecord(id: "card", faceImageFileName: "remote.jp.suica.default.png",
+                                isUsingImage: true)]
+    init(_ directory: URL) { self.directory = directory }
+    func ensureCardFaceDirectoryExists() throws {
+        if failWrites { throw StorageError.unavailable }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+    func cardFaceFileURL(fileName: String) -> URL { directory.appendingPathComponent(fileName) }
+    func existingFaceAssetFileName(forJPEGData data: Data) -> String? {
+        ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []).first {
+            (try? Data(contentsOf: cardFaceFileURL(fileName: $0))) == data
+        }
+    }
+    func loadFaceImage(fileName: String) -> UIImage? {
+        guard let data = try? Data(contentsOf: cardFaceFileURL(fileName: fileName)) else { return nil }
+        return UIImage(data: data)
+    }
+    func applyAutoImageTextColors(to card: inout SavedCardRecord, image: UIImage) {}
+    func applyAutoMarkerColor(to card: inout SavedCardRecord, image: UIImage) {}
+    func save() { saves += 1 }
+''' + methods + r'''
+}
+let directory = URL(fileURLWithPath: CommandLine.arguments[1])
+let store = Store(directory)
+let original = store.cards[0].faceImageFileName
+precondition(!store.setFaceImage(UIImage(data: nil), for: "card"))
+precondition(store.cards[0].faceImageFileName == original && store.saves == 0)
+store.failWrites = true
+precondition(!store.setFaceImage(UIImage(data: Data([1,2,3])), for: "card"))
+precondition(store.cards[0].faceImageFileName == original && store.saves == 0)
+store.failWrites = false
+let photo = UIImage(data: Data([1,2,3]))
+precondition(store.setFaceImage(photo, for: "card"))
+let imported = store.cards[0].faceImageFileName!
+precondition(imported.hasSuffix(".jpg") && store.cards[0].isUsingImage == true)
+let importedData = try Data(contentsOf: directory.appendingPathComponent(imported))
+precondition(importedData == photo.data)
+precondition(store.setFaceImage(photo, for: "card"))
+precondition(store.cards[0].faceImageFileName == imported, "Duplicate imports must reuse saved photos")
+store.setIsUsingImage(false, for: "card")
+precondition(store.cards[0].isUsingImage == false && store.cards[0].faceImageFileName == imported)
+store.applyFaceAsset("missing.jpg", to: "card")
+precondition(store.cards[0].isUsingImage == false, "Missing photos must not replace the choice")
+store.applyFaceAsset(imported, to: "card")
+precondition(store.cards[0].isUsingImage == true && store.cards[0].faceImageFileName == imported)
+print("PASS: photo bytes, deduplication, write failures, color mode and saved photo selection")
+'''
+        with tempfile.TemporaryDirectory(prefix="cardbal-photo-import-") as temporary:
+            directory = Path(temporary)
+            swift = directory / "main.swift"
+            binary = directory / "photo-test"
+            swift.write_text(harness)
+            compiled = subprocess.run(["swiftc", str(swift), "-o", str(binary)], capture_output=True, text=True)
+            self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+            result = subprocess.run([str(binary), str(directory / "CardFaces")], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("PASS:", result.stdout)
+
     def test_picker_prioritizes_physical_card_and_city(self):
         source = (ROOT / "ios/CardBal/Models/RemoteCardFaceCatalog.swift").read_text()
         manifest = source[:source.index("final class RemoteCardFaceCatalog:")]

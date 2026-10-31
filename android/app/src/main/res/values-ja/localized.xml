@@ -59,6 +59,7 @@
     <string name="text_24ea7a8bdcbeff6a" formatted="false">"すべてのプロトコル"</string>
     <string name="text_42083cb8d1fce884" formatted="false">"表示範囲のすべて（%lld）"</string>
     <string name="text_3a5cbd6608b16118" formatted="false">"カードの更新を許可"</string>
+    <string name="text_3ebbac683fde3bf8" formatted="false">"カードを撮影するには、設定でカメラへのアクセスを許可してください。"</string>
     <string name="text_6441e229e8fea70e" formatted="false">"まもなく完了します…"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"最新の状態です"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金額"</string>
@@ -126,6 +127,8 @@
     <string name="text_3c4f629a81828aa3" formatted="false">"CEPAS 履歴 0x%02X"</string>
     <string name="text_a8e863c8f1778a92" formatted="false">"人民元残高"</string>
     <string name="text_464b21ea40c748de" formatted="false">"Calypso SFI %02X 履歴 %d"</string>
+    <string name="text_2bfcff4560c57a01" formatted="false">"カメラへのアクセスが必要です"</string>
+    <string name="text_0bff6378346cdbb5" formatted="false">"このデバイスではカメラを使えません。写真から選んでください。"</string>
     <string name="text_19766ed6ccb2f4a3" formatted="false">"キャンセル"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"スキャンをキャンセル"</string>
     <string name="text_c17e79e634568fb0" formatted="false">"取り消されたイベント"</string>
@@ -135,6 +138,7 @@
     <string name="text_02203cd02fe512e7" formatted="false">"カードのアプリ"</string>
     <string name="text_1e391240c3556325" formatted="false">"カードカラー"</string>
     <string name="text_df20cc445f6b44e3" formatted="false">"券面"</string>
+    <string name="text_dd2959d28ce3c1bb" formatted="false">"カードデザインの選択元"</string>
     <string name="text_e78492f0f93cb24d" formatted="false">"カードデザイン"</string>
     <string name="text_632465953e056422" formatted="false">"カード種別"</string>
     <string name="text_0f7dcaa5c3f98b7d" formatted="false">"カードアイコン"</string>
@@ -174,9 +178,12 @@
     <string name="text_a99973a7e4fe13c1" formatted="false">"中国 T-Union"</string>
     <string name="text_b68a243116330e78" formatted="false">"China T-Union の駅データは、下流プロジェクトでも使われている元データ domosekai/tripreader-data に基づいています。"</string>
     <string name="text_8fef796e63c010f2" formatted="false">"発行元のタイムゾーンを選ぶと、China T-Union は中国標準時、韓国カードは韓国標準時、U-Money はウランバートル時間を使用します。"</string>
+    <string name="text_fd4f33168acac301" formatted="false">"カードのデザインを選ぶ"</string>
     <string name="text_7634684570d0c09f" formatted="false">"写真から選ぶ"</string>
     <string name="text_53b951bdadd12d7a" formatted="false">"プリセットデザインから選ぶ"</string>
     <string name="text_4bdf6ee11ddebd54" formatted="false">"地図上でピンを選ぶ"</string>
+    <string name="text_c064f689d698c3ff" formatted="false">"プリセットや写真を選ぶか、新しく撮影できます。"</string>
+    <string name="text_9accdfe7680fa6e1" formatted="false">"別の写真を選んで、もう一度お試しください。"</string>
     <string name="text_b93d3bcecff5d749" formatted="false">"円"</string>
     <string name="text_95697d144956e80b" formatted="false">"都市"</string>
     <string name="text_fc33f73246f48295" formatted="false">"都市"</string>
@@ -321,6 +328,7 @@
     <string name="text_546ebb8eb993ea56" formatted="false">"フィルター"</string>
     <string name="text_236d66b9ac5fab2e" formatted="false">"最終残高（B0 - B1）"</string>
     <string name="text_9c807f46c9741095" formatted="false">"Appleウォレットのカードは、もう一方のデバイスでヘルプモードをオンにしてください"</string>
+    <string name="text_764fb7f4bd36c0ef" formatted="false">"このカード・同じ都市"</string>
     <string name="text_df21130d813b09a4" formatted="false">"コードを修正する場合は、CardBalに表示されたコードと正しい駅名を入力してください。正しいコードは任意です。"</string>
     <string name="text_2f343666aaa88c44" formatted="false">"形式"</string>
     <string name="text_efeb572e22678765" formatted="false">"FCI 内で検出"</string>
@@ -329,6 +337,7 @@
     <string name="text_008dacb6d1e85bd8" formatted="false">"すべて表示"</string>
     <string name="text_964cd2804b8350e5" formatted="false">"完全なFeliCaスキャン"</string>
     <string name="text_9ec96fc538a1d993" formatted="false">"全ペイロード"</string>
+    <string name="text_352cfc749e55222e" formatted="false">"写真"</string>
     <string name="text_f59a640d0bc48bb8" formatted="false">"改札日付"</string>
     <string name="text_5daf7b4d4db2eaf3" formatted="false">"改札端末 %04d"</string>
     <string name="text_51a7a953fdbf4618" formatted="false">"改札端末"</string>
@@ -367,6 +376,7 @@
     <string name="text_5fca26fb1c3cded8" formatted="false">"%lld 枚のカードを読み込みました（%lld 枚を置換）。"</string>
     <string name="text_a3140f62fb2b27eb" formatted="false">"Trip Reader から %lld 枚のカードと %lld 件の記録を読み込みました。"</string>
     <string name="text_a5920e6affcc1e60" formatted="false">"読み込んだデザイン"</string>
+    <string name="text_e3f47e37659ec981" formatted="false">"写真を読み込み中…"</string>
     <string name="text_b7a3cd401b23dd41" formatted="false">"読み込み中…"</string>
     <string name="text_ba0eb24926ce4a1d" formatted="false">"使用中"</string>
     <string name="text_1cb0ba125f84c982" formatted="false">"情報"</string>
@@ -508,6 +518,7 @@
     <string name="text_b37c7879f6c359f6" formatted="false">"記録なし"</string>
     <string name="text_8a7525b1492fb848" formatted="false">"補足"</string>
     <string name="text_d1e4fff9526fcb86" formatted="false">"補足は公開されません。個人情報や利用履歴の生データは記入しないでください。"</string>
+    <string name="text_565339bc4d33d728" formatted="false">"確認"</string>
     <string name="text_213f84c35030dd05" formatted="false">"OKICA 取引 %08X"</string>
     <string name="text_a7c7b3a28a6194e5" formatted="false">"オクトパス"</string>
     <string name="text_04cd5de1493d0e37" formatted="false">"オクトパス + %@"</string>
@@ -535,6 +546,7 @@
     <string name="text_c9876250b567859b" formatted="false">"国土交通部の駅・停留所データを開く"</string>
     <string name="text_8067702ca345d572" formatted="false">"OpenStreetMap の著作権ページを開く"</string>
     <string name="text_27db8c1b91049821" formatted="false">"ソウル・ビッグデータの駅情報を開く"</string>
+    <string name="text_3f940108cb1ecd9c" formatted="false">"設定を開く"</string>
     <string name="text_e17edb9565869d3f" formatted="false">"geoBoundariesを開く"</string>
     <string name="text_b0323de96eccab4b" formatted="false">"GitHub で station_database を開く"</string>
     <string name="text_e204114d8cc9a303" formatted="false">"GitHubで tripreader-data を開く"</string>
@@ -549,6 +561,7 @@
     <string name="text_0b186258ab89628e" formatted="false">"元の電子マネー単位"</string>
     <string name="text_9c0919a5f3d8a40f" formatted="false">"他社精算"</string>
     <string name="text_cbacfd650dbd90ff" formatted="false">"他社入場精算"</string>
+    <string name="text_109ceb7823deeeae" formatted="false">"その他のプリセット"</string>
     <string name="text_1674a1b6fc5e8eca" formatted="false">"オーバードラフト上限"</string>
     <string name="text_495d415f75ef78ff" formatted="false">"圧縮日時"</string>
     <string name="text_c254a27960b416b1" formatted="false">"解析結果"</string>
@@ -691,6 +704,7 @@
     <string name="text_1509f561f2416598" formatted="false">"保存"</string>
     <string name="text_315acc9aa091b988" formatted="false">"カードのデザインとして保存"</string>
     <string name="text_ba74fb2cebc400a5" formatted="false">"保存済みデザイン"</string>
+    <string name="text_7c3f52bbe988e237" formatted="false">"保存済みの写真"</string>
     <string name="text_ea1c510d1ddb7264" formatted="false">"スキャン"</string>
     <string name="text_b60b5bc57d6ec318" formatted="false">"カードをスキャン"</string>
     <string name="text_a48b9cef583f1c89" formatted="false">"カード番号をスキャン"</string>
@@ -787,6 +801,8 @@
     <string name="text_78590556d5b7ae9a" formatted="false">"取引種別"</string>
     <string name="text_1503916a2ab2b0fd" formatted="false">"タグ"</string>
     <string name="text_1ca36a90c342fa4f" formatted="false">"写真を撮る"</string>
+    <string name="text_ea4e02603cb85d01" formatted="false">"写真を撮る"</string>
+    <string name="text_d4fc20fdb918ea4a" formatted="false">"カードを撮影してデザインとして使えます。"</string>
     <string name="text_7592881e64563357" formatted="false">"降車タッチ"</string>
     <string name="text_a5e2f98e337ca57e" formatted="false">"乗車タッチ"</string>
     <string name="text_3bdb1af69dafef8e" formatted="false">"タッチ拒否"</string>
@@ -864,6 +880,7 @@
     <string name="text_36ad6bc8245efca9" formatted="false">"残り利用回数"</string>
     <string name="text_c3af076f92c5ed8d" formatted="false">"トラブルシューティング"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"種別"</string>
+    <string name="text_b7af865b39a1bfb3" formatted="false">"写真を使用できません"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"開発用サンプルを読み込めません"</string>
     <string name="text_c80fbb98b5d89844" formatted="false">"開発用サンプルを読み込めません：%@"</string>
     <string name="text_3b02980673d24b06" formatted="false">"書き出し先を開けません"</string>
@@ -924,6 +941,7 @@
     <string name="text_03be090ed822ff63" formatted="false">"訪れた都市がここで輝きます"</string>
     <string name="text_97ba7ec4cc110e0b" formatted="false">"位置情報は自動取得されません。選択したピンだけが報告とともに送信されます。"</string>
     <string name="text_2c81c25a819d0715" formatted="false">"訪れた都道府県がここで輝きます"</string>
+    <string name="text_c0c919005a3207dc" formatted="false">"保存したカードの写真がここに表示されます。"</string>
     <string name="text_fa86d119f5d55862" formatted="false">"ゆいレール"</string>
     <string name="text_7dc5bb225c93d47d" formatted="false">"ゆいレールチャージ"</string>
     <string name="text_5279cdfd8afab7c7" formatted="false">"ゾーン %d"</string>

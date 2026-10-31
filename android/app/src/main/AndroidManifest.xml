@@ -25,6 +25,15 @@
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
+        <provider
+            android:name=".ui.CardFaceFileProvider"
+            android:authorities="${applicationId}.cardfaces"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/card_face_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"
