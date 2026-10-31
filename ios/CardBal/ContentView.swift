@@ -246,9 +246,21 @@ struct ContentView: View {
 private struct AdaptiveTabPlacement: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
+        // Older SDKs cannot type-check the iOS 27 placement API.
+        #if compiler(>=6.4)
         if #available(iOS 27.0, *) {
             content.defaultTabBarPlacement(.sidebar)
-        } else if #available(iOS 18.0, *) {
+        } else {
+            sidebarTabs(content: content)
+        }
+        #else
+        sidebarTabs(content: content)
+        #endif
+    }
+
+    @ViewBuilder
+    private func sidebarTabs(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
             content.tabViewStyle(.sidebarAdaptable)
         } else {
             content
