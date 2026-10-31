@@ -210,11 +210,16 @@ final class NFCTransitReader: NSObject, ObservableObject {
         }
     }
 
+    /// How long to look for a dual card's other interface. A real dual Octopus/T-Union card showed
+    /// its other side about 0.13 s after polling restarted; single-interface cards pay this whole wait.
+    static let secondSideWait: Duration = .seconds(2)
+
     private func scheduleSecondSideTimeout(for session: NFCTagReaderSession) {
         secondSideTimeout?.cancel()
         secondSideTimeout = Task { @MainActor [weak self] in
-            do { try await Task.sleep(for: .seconds(6)) } catch { return }
+            do { try await Task.sleep(for: Self.secondSideWait) } catch { return }
             guard let self, self.session === session, self.phase != .regular else { return }
+            DebugLog.shared.log("Scan", "No second interface within \(Self.secondSideWait.components.seconds) s")
             self.finishPartial(session: session)
         }
     }
@@ -399,7 +404,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 if self.phase == .regular { progress.report(.found) }
                 let decoders: [TransitCardDecoder.Type] = phase == .mainland
                     ? [ChineseTransitDecoder.self]
-                    : phase == .octopus ? [JapaneseICDecoder.self] : [
+                    : phase == .octopus ? [OctopusFeliCaDecoder.self] : [
                         CEPASDecoder.self, MacauPassDecoder.self, ClipperDecoder.self, ClipperUltralightDecoder.self,
                         StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self

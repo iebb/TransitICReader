@@ -56,6 +56,7 @@ enum JapaneseICDecoder: TransitCardDecoder {
         return fixture.snapshot
     }
 }
+typealias OctopusFeliCaDecoder = JapaneseICDecoder
 enum UnsupportedTestDecoder: TransitCardDecoder {
     static func canDecode(tag: NFCTag) async -> Bool { false }
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {

@@ -7,12 +7,25 @@ struct JapaneseICDecoder: TransitCardDecoder {
     }
 
     static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+        try await decode(tag: tag, scannedAt: scannedAt, onlySystemCodes: nil)
+    }
+
+    /// `onlySystemCodes` limits polling to those systems, for a session that was restarted for them alone.
+    static func decode(tag: CardTag, scannedAt: Date, onlySystemCodes: Set<String>?) async throws -> TransitCardSnapshot {
         guard case .feliCa(let feliCa) = tag else { throw NFCTestError.unsupportedCard }
 
         var primarySnapshot: TransitCardSnapshot?
-        for profile in FeliCaProfile.all {
+        for profile in FeliCaProfile.all where onlySystemCodes?.contains(profile.systemCode) ?? true {
             let scBytes = Data(hexString: profile.systemCode)
-            guard let selected = try? await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1) else { continue }
+            let selected: (Data, Data)
+            do {
+                selected = try await feliCa.polling(systemCode: scBytes, requestCode: .systemCode, timeSlot: .max1)
+            } catch {
+                if onlySystemCodes != nil {
+                    DebugLog.shared.log("FeliCa", "System \(profile.systemCode) polling failed: " + DebugLog.describe(error))
+                }
+                continue
+            }
             let isKMT = profile.systemCode == KMTCardFormat.systemCode
             if isKMT && !KMTCardFormat.isSelectedSystem(selected.1) { continue }
 
@@ -852,3 +865,20 @@ struct JapaneseICDecoder: TransitCardDecoder {
 }
 
 // MARK: - Profiles handled by FeliCaProfiles.swift
+
+/// The Octopus side of a dual-interface card, read after its mainland side. That session is
+/// restarted for Octopus (8008) alone, so other FeliCa systems are not polled on it.
+enum OctopusFeliCaDecoder: TransitCardDecoder {
+    static func canDecode(tag: CardTag) async -> Bool { await JapaneseICDecoder.canDecode(tag: tag) }
+    static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
+        do {
+            return try await JapaneseICDecoder.decode(tag: tag, scannedAt: scannedAt, onlySystemCodes: ["8008"])
+        } catch {
+            // It throws only when nothing past polling and a public purse read reached the card,
+            // so one more try right after the card switches interface is harmless.
+            DebugLog.shared.log("FeliCa", "Octopus side did not answer; trying once more")
+            try await Task.sleep(for: .milliseconds(200))
+            return try await JapaneseICDecoder.decode(tag: tag, scannedAt: scannedAt, onlySystemCodes: ["8008"])
+        }
+    }
+}

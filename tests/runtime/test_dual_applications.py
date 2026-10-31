@@ -382,7 +382,10 @@ func snapshot(_ aid: String?, serial: String?, date: Double = 100, balance: Stri
         multiple.fail("Test complete", session: multipleSession)
         let timedOut = NFCTransitReader(); timedOut.startScanning()
         timedOut.accept(octopus, session: timedOut.session!)
+        check(NFCTransitReader.secondSideWait == .seconds(2), "Single-interface cards wait too long for a second side")
+        let waitStarted = ContinuousClock.now
         await timedOut.secondSideTimeout?.value
+        check(ContinuousClock.now - waitStarted < .seconds(3), "Companion timeout took too long")
         check(!timedOut.isScanning && timedOut.latestSnapshot?.storageIdentifier == octopus.storageIdentifier, "Companion timeout lost the first application")
         let opalRaw = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 0, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
         let opalSnapshot = TransitCardSnapshot(technology: "DESFire", cardFamily: "Opal", identifierLabel: "UID", identifierValue: "test", rawIdentifierValue: "test", pmm: nil, systemCode: nil, selectedAID: nil, balanceText: "AUD -1.25", balanceDetail: nil, realSerialNumber: nil, region: nil, resultFields: [], rawSections: [], rawTransactions: [opalRaw], rawTransitHistory: [], scannedAt: Date())
