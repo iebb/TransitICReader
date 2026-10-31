@@ -18,6 +18,42 @@ DEFAULT_CHECKOUT = ROOT / ".external/card-stations"
 OMITTED_OUTPUTS = {"JPStationCodes.json", "jp_stations_coverage.json", "ulaanbaatar_stations.tsv", "ulaanbaatar_routes.tsv", "ulaanbaatar_route_stations.tsv"}
 
 
+def normalize_korean_modes(path: Path) -> None:
+    """Keep station-derived additions separate from the official KOTRIS rows."""
+    if not path.is_file():
+        return
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    supplementary = payload.get("supplementaryModes", [])
+    supplementary_codes = {row["code"] for row in supplementary}
+    official = []
+    for row in payload["modes"]:
+        # The CSV catalog also includes observed codes without a known class.
+        # They remain in station aliases but cannot classify a transit record.
+        if not row["transportClass"]:
+            continue
+        if row["code"] in {736, 741}:
+            if row["code"] not in supplementary_codes:
+                supplementary.append({
+                    **row,
+                    "matchStatus": "station_catalog",
+                    "sourceTitle": "Reviewed Korean station catalog",
+                    "sourceURL": "https://github.com/iebb/korean-stations",
+                })
+                supplementary_codes.add(row["code"])
+        else:
+            official.append(row)
+    if len(official) != payload["source"]["rowCount"]:
+        raise ValueError("KOTRIS official row count does not match its source metadata")
+    rows = official + supplementary
+    if any(row["transportClass"] not in {"R", "B", "T"} for row in rows):
+        raise ValueError("KOTRIS transport class must be R, B or T")
+    if len({row["code"] for row in rows}) != len(rows):
+        raise ValueError("Duplicate KOTRIS transport code")
+    payload["modes"] = official
+    payload["supplementaryModes"] = supplementary
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def git(path: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(path), *args], check=True, text=True, capture_output=True).stdout.strip()
 
@@ -53,6 +89,7 @@ def resolve_source(source_root: Path | None = None) -> Path:
 def build_sources(python: str, output: Path, source_root: Path | None = None) -> dict:
     source = resolve_source(source_root)
     subprocess.run([python, str(source / "build.py"), "--source", str(source), "--output", str(output)], check=True)
+    normalize_korean_modes(output / "KOTRISTransportModes.json")
     manifest_path = output / "card-stations-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["outputs"] = {name: digest for name, digest in manifest["outputs"].items() if name not in OMITTED_OUTPUTS}

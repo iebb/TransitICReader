@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import io
 import os
 import subprocess
@@ -76,6 +77,62 @@ for name in names:
         })
         manifest = json.loads((output / "card-stations-manifest.json").read_text())
         self.assertEqual(set(manifest["outputs"]), {"JPStationCodes.csv", "tunion_tripreader_source.json"})
+
+    def test_compiler_repairs_kotris_catalog_and_hashes_the_published_payload(self):
+        payload = {
+            "source": {"rowCount": 1},
+            "modes": [
+                {"code": 201, "nameKo": "Rail", "transportClass": "R"},
+                {"code": 190, "nameKo": "Unclassified", "transportClass": ""},
+                {"code": 736, "nameKo": "Bus 736", "transportClass": "B"},
+                {"code": 741, "nameKo": "Bus 741", "transportClass": "B"},
+            ],
+            "supplementaryModes": [
+                {"code": 209, "nameKo": "Supplementary rail", "transportClass": "R"},
+            ],
+        }
+        (self.checkout / "build.py").write_text(
+            "import json, sys\nfrom pathlib import Path\n"
+            'output = Path(sys.argv[sys.argv.index("--output") + 1])\n'
+            f'payload = json.loads({json.dumps(json.dumps(payload))})\n'
+            '(output / "KOTRISTransportModes.json").write_text(json.dumps(payload))\n'
+            '(output / "card-stations-manifest.json").write_text(json.dumps({'
+            '"outputs": {"KOTRISTransportModes.json": "old-digest"}, "source_sha256": "fixture"}))\n'
+        )
+        output = self.root / "output"
+        output.mkdir()
+        manifest = source.build_sources(os.sys.executable, output, self.checkout)
+        path = output / "KOTRISTransportModes.json"
+        repaired = json.loads(path.read_text())
+        self.assertEqual(repaired["modes"], [payload["modes"][0]])
+        self.assertEqual(repaired["source"]["rowCount"], 1)
+        self.assertEqual([row["code"] for row in repaired["supplementaryModes"]], [209, 736, 741])
+        self.assertEqual(repaired["supplementaryModes"][1]["matchStatus"], "station_catalog")
+        self.assertEqual(manifest["outputs"][path.name], hashlib.sha256(path.read_bytes()).hexdigest())
+        before = path.read_bytes()
+        source.normalize_korean_modes(path)
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_kotris_projection_rejects_unexplained_counts_classes_and_duplicates(self):
+        payload = {
+            "source": {"rowCount": 1},
+            "modes": [{"code": 201, "nameKo": "Rail", "transportClass": "R"}],
+            "supplementaryModes": [],
+        }
+        path = self.root / "KOTRISTransportModes.json"
+        for description, mutate in [
+            ("row count", lambda value: value["source"].update(rowCount=2)),
+            ("transport class", lambda value: value["modes"][0].update(transportClass="X")),
+            ("Duplicate", lambda value: value["supplementaryModes"].extend(value["modes"])),
+        ]:
+            with self.subTest(description=description):
+                invalid = json.loads(json.dumps(payload))
+                mutate(invalid)
+                path.write_text(json.dumps(invalid))
+                before = path.read_bytes()
+                with self.assertRaisesRegex(ValueError, description):
+                    source.normalize_korean_modes(path)
+                self.assertEqual(path.read_bytes(), before)
 
 
 

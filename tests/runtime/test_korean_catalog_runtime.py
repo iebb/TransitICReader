@@ -1,4 +1,4 @@
-"""Run the production Swift SQLite reader against every reviewed Korean alias."""
+"""Run the production Swift readers against bundled Korean catalogs."""
 import shutil
 import sqlite3
 import subprocess
@@ -12,10 +12,10 @@ from tools.paths import ROOT, PORTABLE_OUTPUT
 
 @unittest.skipUnless(shutil.which("swiftc"), "Requires the Swift toolchain")
 class KoreanCatalogRuntimeTests(unittest.TestCase):
-    def run_catalog(self, main, resources):
+    def run_catalog(self, main, resources, include_modes=False):
         source = (ROOT / "ios/CardBal/NFC/Profiles/KoreanTransitCatalog.swift").read_text()
         # The alias reader is Foundation-only; omit unrelated NFC timestamp types.
-        start = source.index("struct KoreanStationAlias:")
+        start = source.index("enum KOTRISTransportClass:") if include_modes else source.index("struct KoreanStationAlias:")
         end = source.index("enum KoreanTransitOperatorFieldProfile:")
         catalog = "import Foundation\nimport SQLite3\n" + source[start:end]
         with tempfile.TemporaryDirectory(prefix="cardbal-korean-catalog-") as directory:
@@ -33,6 +33,52 @@ class KoreanCatalogRuntimeTests(unittest.TestCase):
             ], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return result.stdout
+
+    def test_bundled_transport_modes_decode_with_the_production_swift_reader(self):
+        name = "KOTRISTransportModes.json"
+        self.assertEqual(
+            (ROOT / "ios/CardBal/Resources" / name).read_bytes(),
+            (PORTABLE_OUTPUT / name).read_bytes(),
+            "The bundled catalog must match the shared platform build output",
+        )
+        main = r'''
+import Foundation
+enum KoreanTransitTimestampDecoder { static let recordLength = 52 }
+let root = URL(fileURLWithPath: CommandLine.arguments[1])
+let data = try Data(contentsOf: root.appendingPathComponent("KOTRISTransportModes.json"))
+let catalog = try KOTRISTransportModeCatalog(data: data)
+precondition(catalog.source.rowCount == 319, "Preserve the official source row count")
+precondition(catalog.modes.count == 327, "Keep all classified official and supplementary modes")
+precondition(catalog.mode(for: 201)?.transportClass == .rail)
+precondition(catalog.mode(for: 321)?.transportClass == .taxi)
+for code in [736, 741] {
+    precondition(catalog.mode(for: code)?.transportClass == .bus)
+    precondition(catalog.mode(for: code)?.matchStatus == "station_catalog")
+    precondition(catalog.mode(for: code)?.provenanceDisplayName == "Reviewed station catalog")
+}
+precondition(catalog.mode(forHexCode: " 00C9 ")?.code == 201)
+precondition(catalog.mode(forCodeBytes: Data([0, 201]))?.code == 201)
+precondition(catalog.mode(forCodeBytes: Data([201])) == nil)
+var record = Data(count: 52)
+record[10] = 201
+precondition(catalog.mode(forKoreanTransitRecord: record)?.transportClass == .rail)
+precondition(catalog.mode(forKoreanTransitRecord: record.dropLast()) == nil)
+precondition(catalog.mode(for: 190) == nil, "An unclassified observed code is not an official mode")
+precondition(catalog.mode(for: 65535) == nil)
+var payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+var source = payload["source"] as! [String: Any]
+source["rowCount"] = 318
+payload["source"] = source
+do {
+    _ = try KOTRISTransportModeCatalog(data: JSONSerialization.data(withJSONObject: payload))
+    preconditionFailure("Mismatched official row count unexpectedly loaded")
+} catch let error as KOTRISTransportModeCatalogError {
+    precondition(error == .rowCountMismatch(expected: 318, actual: 319))
+}
+print("Verified 327 bundled KOTRIS modes and the shared platform payload")
+'''
+        output = self.run_catalog(main, PORTABLE_OUTPUT, include_modes=True)
+        self.assertIn("Verified 327 bundled KOTRIS modes", output)
 
     def test_sqlite_preserves_every_tsv_alias(self):
         main = r'''

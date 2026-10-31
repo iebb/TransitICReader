@@ -40,6 +40,8 @@ struct KOTRISTransportMode: Codable, Equatable {
             return "Institutional reference"
         case "corpus_geometry_inference":
             return "CardBal corpus geometry inference"
+        case "station_catalog":
+            return "Reviewed station catalog"
         default:
             return matchStatus ?? "Unknown source"
         }

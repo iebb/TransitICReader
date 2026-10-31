@@ -64,6 +64,22 @@
       "sourceURL": "https://cppr.koti.re.kr/site.do?command=railwyDetail&railwyId=RID241201000022",
       "nameKo": "GTX-A",
       "transportClass": "R"
+    },
+    {
+      "code": 736,
+      "nameKo": "iM유페이 대구·경산 버스(736)",
+      "transportClass": "B",
+      "matchStatus": "station_catalog",
+      "sourceTitle": "Reviewed Korean station catalog",
+      "sourceURL": "https://github.com/iebb/korean-stations"
+    },
+    {
+      "code": 741,
+      "nameKo": "iM유페이 대구·경산 버스(741)",
+      "transportClass": "B",
+      "matchStatus": "station_catalog",
+      "sourceTitle": "Reviewed Korean station catalog",
+      "sourceURL": "https://github.com/iebb/korean-stations"
     }
   ],
   "modes": [
@@ -166,11 +182,6 @@
       "code": 152,
       "nameKo": "9호선급행순환버스",
       "transportClass": "B"
-    },
-    {
-      "code": 190,
-      "nameKo": "교통수단 코드 190",
-      "transportClass": ""
     },
     {
       "code": 200,
@@ -1365,16 +1376,6 @@
     {
       "code": 729,
       "nameKo": "강원시외",
-      "transportClass": "B"
-    },
-    {
-      "code": 736,
-      "nameKo": "iM유페이 대구·경산 버스(736)",
-      "transportClass": "B"
-    },
-    {
-      "code": 741,
-      "nameKo": "iM유페이 대구·경산 버스(741)",
       "transportClass": "B"
     },
     {
