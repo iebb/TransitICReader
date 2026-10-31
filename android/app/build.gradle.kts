@@ -142,7 +142,9 @@ dependencies {
     implementation("org.maplibre.gl:android-sdk:12.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
-    implementation(platform("com.google.firebase:firebase-bom:35.1.0"))
+    // 34.10.0 is the newest BoM whose Analytics (23.0.0) Kotlin 2.0.21 can compile against;
+    // Analytics 23.2.0+ ships Kotlin 2.2+ metadata. Raise it together with the Kotlin plugin.
+    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
     implementation("com.google.firebase:firebase-analytics")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
