@@ -801,6 +801,7 @@ private struct CardFacePickerSheet: View {
                     store.applyRemoteFace(entry.token, to: card.id)
                 } face: {
                     RemoteFaceThumbnail(token: entry.token)
+                        .id(entry.design.sha256)
                 }
                 .accessibilityIdentifier("card-face.preset.\(entry.token)")
             }
