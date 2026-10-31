@@ -403,6 +403,8 @@ struct ScanHomeView: View {
                 scanningSection
             }
         }
+        // 20 at the outer edge, 10 at the shared edge: a 20-point gap between panes.
+        .modifier(ScanPaneMargins(leading: 20, trailing: 10))
     }
 
     private var secondaryPane: some View {
@@ -418,6 +420,8 @@ struct ScanHomeView: View {
                 howToSection
             }
         }
+        // The trailing edge keeps the system margin, which clears the vertical tab bar.
+        .modifier(ScanPaneMargins(leading: 10, trailing: nil))
     }
 
     private func hasSecondarySections(snapshot: TransitCardSnapshot, card: SavedCardRecord) -> Bool {
@@ -1187,6 +1191,24 @@ struct RideMapTabView: View {
 
 /// Removes the grouped list's own top spacing in the history pane when the
 /// Transactions / Transit Activity switch sits above it (iOS 17 and later).
+/// Side margins for the two Scan pane lists, which otherwise run their
+/// grouped rows to the shared pane edge. A nil edge keeps the system margin;
+/// iOS 16 keeps the system margins.
+private struct ScanPaneMargins: ViewModifier {
+    let leading: CGFloat?
+    let trailing: CGFloat?
+
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content
+                .contentMargins(.leading, leading, for: .scrollContent)
+                .contentMargins(.trailing, trailing, for: .scrollContent)
+        } else {
+            content
+        }
+    }
+}
+
 private struct TrimmedPaneListTop: ViewModifier {
     let isTrimmed: Bool
 
