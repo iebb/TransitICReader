@@ -32,23 +32,29 @@ enum OctopusOnlineDecoder {
                 let (result, opcodes) = try await client.enquire(allowsCardUpdates: allowsCardUpdates) { command in
                     try await exchange(command, card: card, idm: idm)
                 }
-                // Enquiry may update card metadata. Re-poll and read the public
-                // purse again before comparing it with the server amount.
-                step = "re-poll after enquiry"
-                _ = try await card.polling(systemCode: Data([0x80, 0x08]), requestCode: .systemCode, timeSlot: .max1)
-                guard card.currentIDm == idm else {
-                    octopusDebugLog("Re-poll after enquiry: IDm changed to \(DebugLog.shortened(card.currentIDm))")
-                    throw OctopusProtocolError.invalidResponse
+                if Self.mayHaveUpdatedCard(opcodes) {
+                    // A card update may have changed the purse. Re-poll and read the public
+                    // purse again before comparing it with the server amount.
+                    step = "re-poll after enquiry"
+                    _ = try await card.polling(systemCode: Data([0x80, 0x08]), requestCode: .noRequest, timeSlot: .max1)
+                    guard card.currentIDm == idm else {
+                        octopusDebugLog("Re-poll after enquiry: IDm changed to \(DebugLog.shortened(card.currentIDm))")
+                        throw OctopusProtocolError.invalidResponse
+                    }
+                    step = "purse read after enquiry"
+                    let response = try await card.readWithoutEncryption(serviceCodeList: [Data([0x17, 1])], blockList: [Data([0x80, 0])])
+                    guard response.0 == 0, response.1 == 0, response.2.count == 1,
+                          response.2[0].count == 16 else {
+                        octopusDebugLog("Purse read after enquiry: status flags \(DebugLog.hex(UInt8(truncatingIfNeeded: response.0))) "
+                                        + "\(DebugLog.hex(UInt8(truncatingIfNeeded: response.1))), \(response.2.count) blocks")
+                        throw OctopusProtocolError.invalidResponse
+                    }
+                    currentBlock = response.2[0]
+                } else {
+                    // Only reads reached the card, so the purse read before the enquiry still holds.
+                    // Skipping the re-poll also avoids losing the tag right after authentication.
+                    octopusDebugLog("No card updates sent; using the purse read before the enquiry")
                 }
-                step = "purse read after enquiry"
-                let response = try await card.readWithoutEncryption(serviceCodeList: [Data([0x17, 1])], blockList: [Data([0x80, 0])])
-                guard response.0 == 0, response.1 == 0, response.2.count == 1,
-                      response.2[0].count == 16 else {
-                    octopusDebugLog("Purse read after enquiry: status flags \(DebugLog.hex(UInt8(truncatingIfNeeded: response.0))) "
-                                    + "\(DebugLog.hex(UInt8(truncatingIfNeeded: response.1))), \(response.2.count) blocks")
-                    throw OctopusProtocolError.invalidResponse
-                }
-                currentBlock = response.2[0]
                 let rawValue = currentBlock.bigEndianInt(start: 0, length: 4)
                 octopusDebugLog("Result: " + OctopusCardMetadata.resultSummary(result, rawValue: rawValue))
                 switch OctopusCardMetadata.calibration(result: result, rawValue: rawValue, opcodes: opcodes) {
@@ -102,6 +108,11 @@ enum OctopusOnlineDecoder {
             rawTransactions: [], rawTransitHistory: [], scannedAt: scannedAt)
         snapshot.applications = [TransitApplication(snapshot: snapshot)]
         return snapshot
+    }
+
+    /// True when a command outside polling and the read-only set reached the card.
+    static func mayHaveUpdatedCard(_ opcodes: Set<UInt8>) -> Bool {
+        !opcodes.subtracting([0x00]).isSubset(of: OctopusEnquiryVM.readOnlyCardOpcodes)
     }
 
     static func exchange(_ command: Data, card: any FeliCaCard, idm: Data) async throws -> Data {

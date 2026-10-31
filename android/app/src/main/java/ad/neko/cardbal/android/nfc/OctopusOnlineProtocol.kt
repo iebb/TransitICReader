@@ -128,6 +128,9 @@ internal class OctopusEnquiryVm(
         )
         /** An authenticated read in either generation: Authentication1, Authentication2 and Read. */
         val AUTHENTICATED_READ_OPCODES = listOf(setOf(0x10, 0x40), setOf(0x12, 0x42), setOf(0x14, 0x44))
+
+        /** True when a command outside polling and the read-only set reached the card. */
+        fun mayHaveUpdatedCard(opcodes: Set<Int>): Boolean = !READ_ONLY_CARD_OPCODES.containsAll(opcodes - 0x00)
     }
     val serverData = mutableMapOf<Int, ByteArray>()
     val cardOpcodes = mutableSetOf<Int>()

@@ -127,13 +127,16 @@ final class InventedCard: FeliCaCard {
     var operations: [UInt8] = []
     var polled: [Data] = []
     var repliesWithLength = false
+    var purseReads = 0
+    var pollRequests: [FeliCaRequestCode] = []
     var block: Data { Data([UInt8(raw >> 24 & 255), UInt8(raw >> 16 & 255), UInt8(raw >> 8 & 255), UInt8(raw & 255)]) + Data(repeating: 0, count: 12) }
     func polling(systemCode: Data, requestCode: FeliCaRequestCode, timeSlot: FeliCaTimeSlot) async throws -> (Data, Data) {
         polled.append(systemCode)
+        pollRequests.append(requestCode)
         return (Data(repeating: 0, count: 8), systemCode)
     }
     func requestSystemCode() async throws -> [Data] { [Data([0x80, 8])] }
-    func readWithoutEncryption(serviceCodeList: [Data], blockList: [Data]) async throws -> (Int, Int, [Data]) { (0, 0, [block]) }
+    func readWithoutEncryption(serviceCodeList: [Data], blockList: [Data]) async throws -> (Int, Int, [Data]) { purseReads += 1; return (0, 0, [block]) }
     func sendFeliCaCommand(commandPacket: Data) async throws -> Data {
         operations.append(commandPacket[0])
         return (repliesWithLength ? Data([3]) : Data()) + Data([commandPacket[0] + 1, 0])
@@ -249,6 +252,8 @@ static func main() async throws {
     let snapshot = await OctopusOnlineDecoder.decode(card: card, block: card.block, pmm: Data(), scannedAt: Date(),
         store: store, onlineEnabled: true, allowsCardUpdates: false, client: client)
     precondition(snapshot.realSerialNumber == "123456789" && snapshot.balanceText == "HKD 55")
+    // Reads alone cannot change the purse, so the card is not polled or read again after the enquiry.
+    precondition(card.purseReads == 0 && card.polled.count == 1)
     precondition(snapshot.rawTransactions.isEmpty && card.operations.contains(0x14) && !card.operations.contains(0x16))
     precondition(snapshot.rawSections.flatMap(\.fields).contains { $0.title == "Skipped Card Updates" && $0.value == "1" })
     // A V2 exchange calibrates with card updates off; Write V2 never reaches the card.
@@ -265,6 +270,11 @@ static func main() async throws {
     let updated = await OctopusOnlineDecoder.decode(card: updating, block: updating.block, pmm: Data(), scannedAt: Date(),
         store: store, onlineEnabled: true, allowsCardUpdates: true, client: OctopusEnquiryClient(baseURL: URL(string: server + "/success")))
     precondition(updated.realSerialNumber == "123456789" && updating.operations.contains(0x16))
+    // After a card update the purse is read again, after a plain poll like the one the service sends.
+    precondition(updating.purseReads == 1 && updating.polled.count == 2 && updating.pollRequests.last == .noRequest)
+    precondition(!OctopusOnlineDecoder.mayHaveUpdatedCard([0x00, 0x02, 0x10, 0x12, 0x14]))
+    precondition(!OctopusOnlineDecoder.mayHaveUpdatedCard([0x00, 0x40, 0x42, 0x44]) && !OctopusOnlineDecoder.mayHaveUpdatedCard([]))
+    precondition(OctopusOnlineDecoder.mayHaveUpdatedCard([0x00, 0x16]) && OctopusOnlineDecoder.mayHaveUpdatedCard([0x46]))
     precondition(!updated.rawSections.flatMap(\.fields).contains { $0.title == "Skipped Card Updates" })
     let unconfigured = InventedCard()
     unconfigured.currentIDm = Data(hexString: "C102030405060708")

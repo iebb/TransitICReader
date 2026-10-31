@@ -270,4 +270,13 @@ class OctopusOnlineTest {
             failure?.let { throw AssertionError("HTTP stand-in failed", it) }
         }
     }
+
+    @Test
+    fun onlyCardUpdatesRequireRereadingThePurse() {
+        assertFalse(OctopusEnquiryVm.mayHaveUpdatedCard(setOf(0x00, 0x02, 0x10, 0x12, 0x14)))
+        assertFalse(OctopusEnquiryVm.mayHaveUpdatedCard(setOf(0x00, 0x40, 0x42, 0x44)))
+        assertFalse(OctopusEnquiryVm.mayHaveUpdatedCard(emptySet()))
+        assertTrue(OctopusEnquiryVm.mayHaveUpdatedCard(setOf(0x00, 0x10, 0x12, 0x14, 0x16)))
+        assertTrue(OctopusEnquiryVm.mayHaveUpdatedCard(setOf(0x46)))
+    }
 }

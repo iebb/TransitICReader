@@ -58,8 +58,11 @@ internal object OctopusOnlineDecoder {
             val client = OctopusEnquiryClient(BuildConfig.OCTOPUS_ENQUIRY_BASE_URL)
             runCatching {
                 val (result, opcodes) = client.enquire(store.cardUpdatesAllowed, felica::exchangeOnline)
-                if (!felica.polling("8008") || !felica.idm.contentEquals(idm)) throw OctopusProtocolException()
-                currentBlock = felica.readWithoutEncryption("1701", 0) ?: throw OctopusProtocolException()
+                // Only a card update can change the purse; after reads alone the purse read before the enquiry still holds.
+                if (OctopusEnquiryVm.mayHaveUpdatedCard(opcodes)) {
+                    if (!felica.polling("8008") || !felica.idm.contentEquals(idm)) throw OctopusProtocolException()
+                    currentBlock = felica.readWithoutEncryption("1701", 0) ?: throw OctopusProtocolException()
+                }
                 metadata = OctopusCardMetadata.calibrated(result, rawValue(currentBlock), opcodes)
                 metadata?.let { store.save(identity, it); usedOnline = true } ?: run { failed = true }
             }.onFailure { failed = true }
