@@ -21,7 +21,7 @@ Singapore maps](docs/development/external-nfc-readers.md).
 | Directory | Purpose |
 | --- | --- |
 | `ios/CardBal/` | SwiftUI app, Core NFC readers, decoders, and iOS runtime resources |
-| `CardBal.xcodeproj/` | Stable Xcode and Xcode Cloud project entry point |
+| `CardBal.xcodeproj/` | Xcode project used locally and by GitHub Actions |
 | `android/` | Android app, Gradle wrapper, NFC readers, and unit tests |
 | `tools/stations/` | Pinned CSV compilation and unified database packaging |
 | `tools/boundaries/` | Geographic catalog maintenance |

@@ -32,10 +32,7 @@ jobs:
     timeout-minutes: 30
     env:
       ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
-      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_APP_ID: ${{ vars.ASC_APP_ID }}
-      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -61,6 +58,9 @@ jobs:
           PY
       - name: Select and pin latest test builds
         env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           PLATFORMS: ${{ inputs.platforms }}
           RELEASE_NOTES_JSON: ${{ inputs.release_notes }}
         run: |
@@ -68,6 +68,10 @@ jobs:
             --output build/review/selection.json
           cat build/review/selection.json
       - name: Submit selected existing binaries
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           python3 -m tools.release.review submit \
             --selection-file build/review/selection.json --output build/review/result.json

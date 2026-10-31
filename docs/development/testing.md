@@ -55,9 +55,9 @@ stay in ignored `build/ios/`. These commands act on the selected device and app.
 
 A local `ios/CardBal/Resources/GoogleService-Info.plist` enables the existing
 Firebase integration. It is ignored and copied into the app only when present.
-Without it, the app builds with analytics unconfigured. Xcode Cloud can provide
-`FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64`; the root
-`ci_scripts/ci_post_clone.sh` decodes it. Do not commit that generated file.
+Without it, the app builds with analytics unconfigured. The GitHub Actions
+TestFlight workflow can provide `FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64`;
+the root `ci_scripts/ci_post_clone.sh` decodes it. Do not commit that generated file.
 
 ## Local state
 
