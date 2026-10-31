@@ -28,10 +28,7 @@ class CardParityTests(unittest.TestCase):
             methods.append(method.group().replace("private func", "static func",1))
         data = utils[utils.index("extension Data {"):utils.index("struct BERTLVNode")]
         offset = utils[utils.index("func formatUTF8OrHex("):utils.index("func defaultFractionDigits(")]
-        offset += utils[utils.index("func octopusOffset("):utils.index("func formatFeliCaIDm(")]
         program = "import Foundation\n"+models+data+offset+"\nstruct Decoder {\n"+"\n".join(methods)+"\n}\n"+r'''
-precondition(octopusOffset(for: Date(timeIntervalSince1970:1506787199)) == 350)
-precondition(octopusOffset(for: Date(timeIntervalSince1970:1506787200)) == 500)
 let fixture = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))) as! [String:[String:Any]]
 for (family,row) in fixture {
     let raw=row["raw"] as! String

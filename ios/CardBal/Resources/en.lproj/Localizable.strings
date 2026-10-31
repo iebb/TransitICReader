@@ -1029,3 +1029,25 @@
 "Auto Charge" = "Auto Charge";
 "Move to New Card" = "Move to New Card";
 "Point Exchange" = "Point Exchange";
+
+"Octopus Online" = "Octopus Online";
+
+"Use online enquiry to save the card number and balance offset. Saved information remains available offline." = "Use online enquiry to save the card number and balance offset. Saved information remains available offline.";
+
+"Octopus Number" = "Octopus Number";
+
+"Balance Offset" = "Balance Offset";
+
+"Enquiry Status" = "Enquiry Status";
+
+"Online Enquiry" = "Online Enquiry";
+
+"An online enquiry is needed to determine this card's balance offset." = "An online enquiry is needed to determine this card's balance offset.";
+
+"Online balance checked against the public purse." = "Online balance checked against the public purse.";
+
+"Balance decoded using this card's saved offset." = "Balance decoded using this card's saved offset.";
+
+"Candidate Balance (offset 350)" = "Candidate Balance (offset 350)";
+
+"Candidate Balance (offset 500)" = "Candidate Balance (offset 500)";

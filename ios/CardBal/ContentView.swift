@@ -10,7 +10,6 @@ import AVFoundation
 
 enum KoreanTripCrowdsourcingPreferences {
     static let enabledKey = "koreanTripCrowdsourcingEnabled"
-    static let promptedKey = "koreanTripCrowdsourcingPrompted"
     static let endpointKey = "koreanTripCrowdsourcingEndpoint"
     static let uploadedHashesKey = "koreanTripCrowdsourcingUploadedHashes"
 }
@@ -117,7 +116,7 @@ actor KoreanTripCrowdsourcingUploader {
     }
 
     func uploadEligibleRecords(from snapshot: TransitCardSnapshot) async {
-        guard UserDefaults.standard.bool(forKey: KoreanTripCrowdsourcingPreferences.enabledKey) else { return }
+        guard UserDefaults.standard.object(forKey: KoreanTripCrowdsourcingPreferences.enabledKey) as? Bool ?? true else { return }
         guard KoreanTripCrowdsourcing.isEligible(snapshot: snapshot) else { return }
         guard let endpointString = UserDefaults.standard.string(forKey: KoreanTripCrowdsourcingPreferences.endpointKey),
               let url = URL(string: endpointString) else { return }
@@ -165,10 +164,7 @@ struct ContentView: View {
         #endif
         return 0
     }()
-    @State private var showKoreanCrowdsourcingPrompt = false
-    @State private var pendingKoreanCrowdsourcingSnapshot: TransitCardSnapshot?
-    @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
-    @AppStorage(KoreanTripCrowdsourcingPreferences.promptedKey) private var koreanTripCrowdsourcingPrompted = false
+    @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = true
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -210,32 +206,10 @@ struct ContentView: View {
                 handleKoreanCrowdsourcing(for: snapshot)
             }
         }
-        .alert("Join Korean Card Crowdsourcing?", isPresented: $showKoreanCrowdsourcingPrompt, presenting: pendingKoreanCrowdsourcingSnapshot) { snapshot in
-            Button("Not Now", role: .cancel) {
-                koreanTripCrowdsourcingPrompted = true
-                koreanTripCrowdsourcingEnabled = false
-                pendingKoreanCrowdsourcingSnapshot = nil
-            }
-            Button("Opt In") {
-                koreanTripCrowdsourcingPrompted = true
-                koreanTripCrowdsourcingEnabled = true
-                Task {
-                    await KoreanTripCrowdsourcingUploader.shared.uploadEligibleRecords(from: snapshot)
-                }
-                pendingKoreanCrowdsourcingSnapshot = nil
-            }
-        } message: { _ in
-            Text("Upload technical trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings.")
-        }
     }
 
     private func handleKoreanCrowdsourcing(for snapshot: TransitCardSnapshot) {
         guard KoreanTripCrowdsourcing.isEligible(snapshot: snapshot) else { return }
-        if !koreanTripCrowdsourcingPrompted {
-            pendingKoreanCrowdsourcingSnapshot = snapshot
-            showKoreanCrowdsourcingPrompt = true
-            return
-        }
         guard koreanTripCrowdsourcingEnabled else { return }
         Task {
             await KoreanTripCrowdsourcingUploader.shared.uploadEligibleRecords(from: snapshot)
@@ -1294,9 +1268,9 @@ struct SettingsView: View {
     @AppStorage("dateFormat") private var dateFormat = "yyyy-MM-dd"
     @AppStorage("cardTimeZonePreference") private var cardTimeZonePreference = CardTimeZonePreference.issuer.rawValue
     @AppStorage("snDisplayMode") private var snDisplayMode = 0
-    @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = false
-    @AppStorage(KoreanTripCrowdsourcingPreferences.promptedKey) private var koreanTripCrowdsourcingPrompted = false
+    @AppStorage(KoreanTripCrowdsourcingPreferences.enabledKey) private var koreanTripCrowdsourcingEnabled = true
     @AppStorage(DeveloperModePreferences.enabledKey) private var developerModeEnabled = false
+    @AppStorage(OctopusOnlinePreferences.enabledKey) private var octopusOnlineEnabled = true
     @State private var backupDocument = CardBalBackupDocument()
     @State private var isExportingBackup = false
     @State private var isImportingBackup = false
@@ -1347,11 +1321,6 @@ struct SettingsView: View {
                     }
                     Link(destination: URL(string: "https://t.me/cardbal")!) {
                         Label("Telegram Group", systemImage: "paperplane")
-                    }
-                }
-                Section("Station Data") {
-                    Link(destination: URL(string: "https://cardbal.ieb.app")!) {
-                        Label("View Station Requests", systemImage: "mappin.and.ellipse")
                     }
                 }
             }
@@ -1509,6 +1478,11 @@ struct SettingsView: View {
     private var privacySettings: some View {
         List {
             Section {
+                Toggle("Octopus Online", isOn: $octopusOnlineEnabled)
+            } footer: {
+                Text("Use online enquiry to save the card number and balance offset. Saved information remains available offline.")
+            }
+            Section {
                 Picker("Serial Number Display", selection: $snDisplayMode) {
                     Text("Full").tag(0)
                     Text("Masked (Last Digits)").tag(1)
@@ -1516,13 +1490,7 @@ struct SettingsView: View {
                 }
             }
             Section {
-                Toggle("Help Improve Korean Cards", isOn: Binding(
-                    get: { koreanTripCrowdsourcingEnabled },
-                    set: { newValue in
-                        koreanTripCrowdsourcingPrompted = true
-                        koreanTripCrowdsourcingEnabled = newValue
-                    }
-                ))
+                Toggle("Help Improve Korean Cards", isOn: $koreanTripCrowdsourcingEnabled)
                 DisclosureGroup("What is shared?") {
                     Text("When enabled, eligible T-money and EZL/Cashbee scans upload technical trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time.")
                         .font(.footnote)

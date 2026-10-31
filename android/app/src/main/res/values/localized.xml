@@ -60,6 +60,7 @@
     <string name="text_42083cb8d1fce884" formatted="false">"All in view (%lld)"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"Already up to date"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"Amount"</string>
+    <string name="text_30aba00c58e0cc1a" formatted="false">"An online enquiry is needed to determine this card's balance offset."</string>
     <string name="text_0d04bfeb7d64b71c" formatted="false">"App"</string>
     <string name="text_d6a2f871553b4b9d" formatted="false">"App Metadata"</string>
     <string name="text_da645334193e6576" formatted="false">"App Settings"</string>
@@ -93,9 +94,11 @@
     <string name="text_f925cbb56b5ce651" formatted="false">"Balance %lld"</string>
     <string name="text_0cc691184256bc23" formatted="false">"Balance APDU"</string>
     <string name="text_ac8ef414dbff994d" formatted="false">"Balance After"</string>
+    <string name="text_0e919773b74ff7b4" formatted="false">"Balance Offset"</string>
     <string name="text_f874f79bfeb2bdcb" formatted="false">"Balance Read"</string>
     <string name="text_4e79870def1ecd34" formatted="false">"Balance Registers"</string>
     <string name="text_a19bf759e922cb8a" formatted="false">"Balance and last-event summary; not full history"</string>
+    <string name="text_4faf805eb822919f" formatted="false">"Balance decoded using this card's saved offset."</string>
     <string name="text_291a81630d631d96" formatted="false">"Balances are shown as reported by each application and are not added together."</string>
     <string name="text_27f544bbd2655a39" formatted="false">"Blacklisted"</string>
     <string name="text_c83082a00fab0a4c" formatted="false">"Block %lld"</string>
@@ -123,6 +126,8 @@
     <string name="text_19766ed6ccb2f4a3" formatted="false">"Cancel"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"Cancel Scan"</string>
     <string name="text_c17e79e634568fb0" formatted="false">"Cancelled event"</string>
+    <string name="text_22a053671ec3c2d9" formatted="false">"Candidate Balance (offset 350)"</string>
+    <string name="text_0cef04f144c3984b" formatted="false">"Candidate Balance (offset 500)"</string>
     <string name="text_47da48edbccd893b" formatted="false">"Card Activation"</string>
     <string name="text_02203cd02fe512e7" formatted="false">"Card Applications"</string>
     <string name="text_1e391240c3556325" formatted="false">"Card Color"</string>
@@ -261,6 +266,7 @@
     <string name="text_c7e1e2c581a628e7" formatted="false">"Edy transaction"</string>
     <string name="text_72755d6de33db86f" formatted="false">"Encryption Algorithm"</string>
     <string name="text_b1465a137408339d" formatted="false">"End of line"</string>
+    <string name="text_bc927de639954a3f" formatted="false">"Enquiry Status"</string>
     <string name="text_2649e082d9a2ba37" formatted="false">"Entry"</string>
     <string name="text_0ff9decbdf045e5a" formatted="false">"Entry Code"</string>
     <string name="text_3c26e3d5df93be97" formatted="false">"Entry Fare Adjustment"</string>
@@ -487,6 +493,8 @@
     <string name="text_213f84c35030dd05" formatted="false">"OKICA transaction %08X"</string>
     <string name="text_a7c7b3a28a6194e5" formatted="false">"Octopus"</string>
     <string name="text_04cd5de1493d0e37" formatted="false">"Octopus + %@"</string>
+    <string name="text_581fd35f5df43bff" formatted="false">"Octopus Number"</string>
+    <string name="text_7565d55aa34264fe" formatted="false">"Octopus Online"</string>
     <string name="text_81725243263f33f7" formatted="false">"Octopus formula: (raw - %lld) / 10."</string>
     <string name="text_9d13a2f382bf7f16" formatted="false">"Okinawa Bus"</string>
     <string name="text_58ddaeaeb2498986" formatted="false">"Older DESFire generation; newer Clipper generations are not decoded"</string>
@@ -494,6 +502,8 @@
     <string name="text_04f88689ae558b3c" formatted="false">"On-board Terminal"</string>
     <string name="text_062f4509ebcfdeec" formatted="false">"On-card records read"</string>
     <string name="text_492fc2920e59d721" formatted="false">"On-card stored-value purse only. SimplyGo account balances are not read."</string>
+    <string name="text_37d365f00b8fda8b" formatted="false">"Online Enquiry"</string>
+    <string name="text_ecc389c9d9128735" formatted="false">"Online balance checked against the public purse."</string>
     <string name="text_a528507124e9a0cf" formatted="false">"Only high-confidence city matches are illuminated"</string>
     <string name="text_bcf4530e00fef3d2" formatted="false">"Only supported read commands are permitted"</string>
     <string name="text_9f2c138b7c075b34" formatted="false">"Open Busan bus data"</string>
@@ -851,6 +861,7 @@
     <string name="text_5178b8e0315b4f04" formatted="false">"Usage Amount"</string>
     <string name="text_4e00aa111d197638" formatted="false">"Use Current Location"</string>
     <string name="text_77ad630be8c9cb2f" formatted="false">"Use External Reader"</string>
+    <string name="text_338a62c3965a6021" formatted="false">"Use online enquiry to save the card number and balance offset. Saved information remains available offline."</string>
     <string name="text_1e8f9dc5aefbe330" formatted="false">"User Category"</string>
     <string name="text_f5162206318ee964" formatted="false">"Valid"</string>
     <string name="text_b252ed966022a8b8" formatted="false">"Valid Until"</string>

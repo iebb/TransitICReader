@@ -14,7 +14,7 @@ import kotlinx.datetime.toLocalDateTime
 import java.text.NumberFormat
 import java.util.Locale
 
-class JapaneseICDecoder : TransitCardDecoder {
+class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMetadataStore? = null) : TransitCardDecoder {
     override fun canDecode(tag: Tag): Boolean = NfcF.get(tag) != null
 
     override fun decode(tag: Tag, scannedAt: Instant): TransitCardSnapshot? {
@@ -27,12 +27,13 @@ class JapaneseICDecoder : TransitCardDecoder {
             for (profile in FeliCaProfile.entries) {
                 if (!felica.polling(profile.systemCode)) continue
                 val block = felica.readWithoutEncryption(profile.balanceService, 0) ?: continue
+                if (profile == FeliCaProfile.Octopus) return OctopusOnlineDecoder.decode(felica, block, scannedAt, octopusStore)
                 val parsed = profile.parseBalance(block, scannedAt) ?: continue
                 val systemCodes = felica.requestSystemCodes().ifEmpty { listOf(profile.systemCode) }
                 val detected = profile.detectedBrand(systemCodes)
                 val transactions = when (profile) {
                     FeliCaProfile.JapanTransit, FeliCaProfile.IruCa, FeliCaProfile.Paspy, FeliCaProfile.Sapica -> readService(felica, "0F09", 20)
-                    FeliCaProfile.Octopus -> readService(felica, "1701", 10, start = 1)
+                    FeliCaProfile.Octopus -> emptyList()
                     FeliCaProfile.Waon -> readPairedServiceRecords(felica, "0B68", 6)
                     FeliCaProfile.Edy -> readService(felica, "0F17", 6)
                     FeliCaProfile.Nanaco -> readService(felica, "4F56", 5)
@@ -222,19 +223,7 @@ private enum class FeliCaProfile(
                 if (this == Ryuto && JapaneseCardFormats.ryuto(block, block.hexString()) == null) return null
                 ParsedBalance("¥%,d".format(amount), "Stored balance from the latest transaction.", listOf(RawDataField("Balance", amount.toString())))
             }
-            Octopus -> {
-                val raw = ((block[0].toInt() and 0xff) shl 24) or
-                    ((block[1].toInt() and 0xff) shl 16) or
-                    ((block[2].toInt() and 0xff) shl 8) or
-                    (block[3].toInt() and 0xff)
-                val offset = octopusOffset(scannedAt)
-                val value = (raw - offset) / 10.0
-                ParsedBalance(
-                    "HK$%,.1f".format(value),
-                    "Octopus formula: (raw - $offset) / 10.",
-                    listOf(RawDataField("Raw Stored", raw.toString())),
-                )
-            }
+            Octopus -> null // Requires an IDm-specific calibration.
             Edy -> {
                 val balance = block.leInt(0, 4)
                 ParsedBalance("¥%,d".format(balance), "Parsed from service 0x1317 as 4-byte LE.", listOf(RawDataField("Balance", balance.toString())))
@@ -266,6 +255,3 @@ private fun ByteArray.leInt(start: Int, length: Int): Int {
     }
     return value
 }
-
-internal fun octopusOffset(scannedAt: Instant): Int =
-    if(scannedAt >= Instant.parse("2017-09-30T16:00:00Z")) 500 else 350

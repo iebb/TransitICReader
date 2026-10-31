@@ -1031,3 +1031,25 @@
 "Auto Charge" = "オートチャージ";
 "Move to New Card" = "新カードへ移行";
 "Point Exchange" = "ポイント交換";
+
+"Octopus Online" = "オクトパスのオンライン照会";
+
+"Use online enquiry to save the card number and balance offset. Saved information remains available offline." = "オンライン照会でカード番号と残高の補正値を保存します。保存した情報はオフラインでも利用できます。";
+
+"Octopus Number" = "オクトパス番号";
+
+"Balance Offset" = "残高の補正値";
+
+"Enquiry Status" = "照会ステータス";
+
+"Online Enquiry" = "オンライン照会";
+
+"An online enquiry is needed to determine this card's balance offset." = "このカードの残高の補正値を確認するにはオンライン照会が必要です。";
+
+"Online balance checked against the public purse." = "カードの公開残高データとオンライン残高を照合しました。";
+
+"Balance decoded using this card's saved offset." = "このカードに保存された補正値で残高を読み取りました。";
+
+"Candidate Balance (offset 350)" = "残高の候補（補正値 350）";
+
+"Candidate Balance (offset 500)" = "残高の候補（補正値 500）";

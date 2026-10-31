@@ -13,9 +13,10 @@ import kotlinx.datetime.Clock
 
 class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     private var clipperLookup: ClipperLookup = ClipperLookup.Numeric
+    private var octopusStore: OctopusMetadataStore? = null
     private val decoders: List<TransitCardDecoder> get() = listOf(
         CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
-        StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder(),
+        StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder(octopusStore),
     )
     private val _latestSnapshot = MutableStateFlow<TransitCardSnapshot?>(null)
     private val _status = MutableStateFlow("Ready to scan.")
@@ -28,6 +29,7 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
 
     fun start(activity: Activity) {
         clipperLookup = ClipperTransitCatalog.get(activity)
+        octopusStore = OctopusMetadataStore(activity.applicationContext.getSharedPreferences(OctopusMetadataStore.PREFERENCES, 0))
         val adapter = NfcAdapter.getDefaultAdapter(activity)
         if (adapter == null || !adapter.isEnabled) {
             _status.value = "NFC is not available."

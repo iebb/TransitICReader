@@ -1031,3 +1031,25 @@
 "Auto Charge" = "自动充值";
 "Move to New Card" = "转移至新卡";
 "Point Exchange" = "积分兑换";
+
+"Octopus Online" = "八达通在线查询";
+
+"Use online enquiry to save the card number and balance offset. Saved information remains available offline." = "通过在线查询保存卡号和余额偏移量。保存的信息可供离线使用。";
+
+"Octopus Number" = "八达通卡号";
+
+"Balance Offset" = "余额偏移量";
+
+"Enquiry Status" = "查询状态";
+
+"Online Enquiry" = "在线查询";
+
+"An online enquiry is needed to determine this card's balance offset." = "需要在线查询以确定此卡的余额偏移量。";
+
+"Online balance checked against the public purse." = "已通过卡片公开余额数据核对在线余额。";
+
+"Balance decoded using this card's saved offset." = "已使用此卡保存的偏移量解码余额。";
+
+"Candidate Balance (offset 350)" = "候选余额（偏移量 350）";
+
+"Candidate Balance (offset 500)" = "候选余额（偏移量 500）";

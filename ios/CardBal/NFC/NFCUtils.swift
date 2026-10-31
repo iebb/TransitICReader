@@ -1508,7 +1508,6 @@ private struct TUnionTravelRecordDetails {
     }
 }
 
-// octopusOffset moved to end of file
 // formatFeliCaIDm moved to end of file
 
 extension Data {
@@ -1644,12 +1643,6 @@ func defaultFractionDigits(for currencyCode: String) -> Int {
     default:
         return 2
     }
-}
-
-func octopusOffset(for date: Date) -> Int {
-    // Public purse units are HK$0.10; the public reference uses the scan date
-    // for the 2017-10-01 Hong Kong offset transition (350 -> 500 units).
-    date >= Date(timeIntervalSince1970: 1_506_787_200) ? 500 : 350
 }
 
 func formatFeliCaIDm(_ idm: String) -> String {

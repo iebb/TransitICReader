@@ -64,6 +64,7 @@ jobs:
           CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
           CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
           CARDBAL_UPLOAD_KEY_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_KEY_PASSWORD }}
+          OCTOPUS_ENQUIRY_BASE_URL: ${{ secrets.OCTOPUS_ENQUIRY_BASE_URL }}
         run: ./gradlew :app:testDebugUnitTest :app:bundleRelease --no-daemon -Ptransitic.versionName="$RELEASE_VERSION" -Ptransitic.versionCode="$ANDROID_VERSION_CODE"
       - name: Upload to Google Play internal testing
         env:

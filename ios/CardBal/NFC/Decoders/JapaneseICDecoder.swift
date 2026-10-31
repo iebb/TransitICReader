@@ -24,6 +24,10 @@ struct JapaneseICDecoder: TransitCardDecoder {
                     selectedSystem: selected.1, status1: readResult.0,
                     status2: readResult.1, blocks: readResult.2
                 ) == nil { continue }
+                if profile.systemCode == "8008" {
+                    guard readResult.2.count == 1, block.count == 16 else { continue }
+                    return await OctopusOnlineDecoder.decode(card: feliCa, block: block, pmm: selected.0, scannedAt: scannedAt)
+                }
                 if let parsed = profile.parseBalance(block, scannedAt) {
                     primarySnapshot = await createSnapshot(feliCa: feliCa, profile: profile, parsedBalance: parsed, scannedAt: scannedAt)
                     break
@@ -100,8 +104,6 @@ struct JapaneseICDecoder: TransitCardDecoder {
              transitHistory = gateHistory + sfEntry
         } else if profile.displayName == "Ryuto" {
              transactions = await readServiceRecords(feliCa: feliCa, serviceCode: RyutoCardFormat.service, stopAtEmptyPrefix: false)
-        } else if profile.displayName == "Octopus" {
-             transactions = await readOctopusRawTransactions(feliCa: feliCa)
         }
         
         var snapshot = TransitCardSnapshot(
@@ -153,20 +155,6 @@ struct JapaneseICDecoder: TransitCardDecoder {
                   readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first else { break }
             guard block.count >= 16 else { break }
             if stopAtEmptyPrefix && block[0] == 0 && block[1] == 0 { break }
-            results.append(block.hexString.uppercased())
-        }
-        return results
-    }
-
-    private static func readOctopusRawTransactions(feliCa: FeliCaCard) async -> [String] {
-        let serviceCode = Data([0x17, 0x01]) // Service 0117 (Little-Endian)
-        var results: [String] = []
-        // Octopus history usually starts from block 1. Block 0 is the current balance.
-        for i in 1..<11 {
-            let blockList = [Data([0x80, UInt8(i)])]
-            guard let readResult = try? await feliCa.readWithoutEncryption(serviceCodeList: [serviceCode], blockList: blockList),
-                  readResult.0 == 0, readResult.1 == 0, let block = readResult.2.first else { break }
-            guard block.count >= 16 else { break }
             results.append(block.hexString.uppercased())
         }
         return results

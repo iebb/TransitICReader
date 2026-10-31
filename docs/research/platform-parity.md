@@ -15,7 +15,7 @@ balance, ticket or travel-record support.
 | Edy | JPY purse, optional card number and issue date | Payments, top-ups and gifts |
 | WAON | JPY purse, optional number/points | Paired-block payments/top-ups |
 | nanaco | JPY purse, optional number/points/dates | Payments, top-ups, point redemption and transfers |
-| Octopus | HKD purse | Existing balance-delta records; no guessed trip dates |
+| Octopus | Online enquiry plus IDm-specific offline HKD purse calibration on both platforms | Card number and offset saved locally; no unverified public-block history |
 | T-money, EZL/Cashbee | KRW purse and metadata | Single transactions and Korean transit timestamps/fares; reviewed station aliases |
 | U-Money | Issuer + serial-prefix identification, MNT purse | Compatible records in Ulaanbaatar time; no Korean station inference |
 | NAMANE | KRW purse | SFI 14 compact transaction amounts/counters; no guessed dates |

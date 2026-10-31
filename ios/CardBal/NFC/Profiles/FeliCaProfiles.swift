@@ -123,17 +123,8 @@ public struct FeliCaProfile {
             serviceCode: "0117",
             serviceCodeLittleEndian: Data([0x17, 0x01]),
             brandOverrides: [:],
-            parseBalance: { block, scannedAt in
-                guard block.count >= 4 else { return nil }
-                let rawStored = block.bigEndianInt(start: 0, length: 4)
-                let offset = octopusOffset(for: scannedAt)
-                let value = Decimal(rawStored - offset) / 10
-                return ParsedBalance(
-                    formatted: formatCurrency(amount: value, code: "HKD", fractionDigits: 1),
-                    detail: "Octopus stores a raw value with an offset. formula: (raw - \(offset)) / 10.",
-                    rawFields: [RawDataField(title: "Raw Stored", value: "\(rawStored)")]
-                )
-            }
+            // Requires an IDm-specific calibration in OctopusOnlineDecoder.
+            parseBalance: { _, _ in nil }
         ),
         FeliCaProfile(
             displayName: "Ryuto", systemCode: RyutoCardFormat.systemCode,

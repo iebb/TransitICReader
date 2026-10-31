@@ -61,6 +61,19 @@ the root `ci_scripts/ci_post_clone.sh` decodes it. Do not commit that generated 
 
 ## Local state
 
+Set `OCTOPUS_ENQUIRY_BASE_URL` in the build environment, or copy `.env.example`
+to the ignored `.env` and supply the HTTPS enquiry base URL. iOS bundles a
+generated configuration plist; Android generates its BuildConfig value.
+The store upload workflows read the GitHub Actions secret of the same name.
+For Xcode Cloud, supply that secret in its workflow environment.
+The value is absent from tracked source but can be extracted from the built app.
+
+Without configuration, public Octopus reads and existing IDm calibrations still
+work. The Settings toggle controls whether new calibrations may contact the
+service. `python3 -m unittest tests.runtime.test_octopus_online -v` exercises the
+production Swift OCAP/HTTP path against a local synthetic server; Android's
+`OctopusOnlineTest` exercises the same invented fixture and failure cases.
+
 Keep Android SDK paths, signing configuration, caches, raw captures, and device
 logs out of version control. The reviewed, anonymized owner collection and
 explicitly synthetic wallets in `data/development/` are the documented exception;

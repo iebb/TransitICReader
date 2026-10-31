@@ -26,7 +26,7 @@ presentation logic.
 | Card family | iOS reader | Android reader | Notes |
 | --- | --- | --- | --- |
 | Japanese Transit IC | FeliCa | FeliCa | Full raw history and station lookup on both platforms. |
-| Octopus | FeliCa | FeliCa | Android decodes history and balance with the same service family. |
+| Octopus | FeliCa + optional online enquiry | FeliCa + optional online enquiry | Saves the card number and calibrated balance offset by IDm for later offline scans. |
 | Rakuten Edy | FeliCa | FeliCa | Balance, card number where available, and history. |
 | WAON | FeliCa | FeliCa | Balance, WAON number, points, and paired-block history. |
 | nanaco | FeliCa | FeliCa | Balance, points where available, metadata, and history. |
@@ -91,7 +91,7 @@ FeliCa cards are read by polling known system codes and services.
 | Family | System code | Balance service | History service | Extra services |
 | --- | --- | --- | --- | --- |
 | Japanese Transit IC | `0003` | `8B00` | `0F09` | Transit activity services `8F10`, `CB10`. |
-| Octopus | `8008` | `1701` | `1701` | History starts from block 1. |
+| Octopus | `8008` | `1701` | Not established | Public block 0 supplies the encoded purse; online enquiry calibrates its offset. |
 | IruCa | `80DE` | `8B00` | `0F09` | Both platforms; configured balance and history path. |
 | PASPY | `8592` | `8B00` | `0F09` | Both platforms; configured balance and history path. |
 | SAPICA | `865E` | `8B00` | `0F09` | Both platforms; configured balance and history path. |
@@ -165,17 +165,42 @@ when available. Portable backups keep their raw FeliCa records intact.
 
 ## Octopus
 
-Read process:
+Both platforms poll system `8008` and read the 16-byte public block 0 from
+service `0117` (wire order `17 01`). The first four bytes are an unsigned
+big-endian amount in HK$0.10 units. A scan date does not identify whether a
+particular card uses offset 350 or 500.
 
-- Poll FeliCa system `8008`.
-- Read service `1701`.
-- Treat block 0 as the balance source and subsequent blocks as history.
+When the IDm has no saved calibration and **Settings > Privacy > Octopus Online**
+is enabled, the reader performs an anonymous OCAP enquiry while the card remains
+present. OCAP uses HTTPS POSTs, a bounded instruction interpreter and a FeliCa
+relay. The service may issue authenticated reads and encrypted metadata writes;
+packets remain opaque to CardBal. The endpoint comes from
+`OCTOPUS_ENQUIRY_BASE_URL` in the build environment or an ignored local `.env`.
+GitHub store workflows use the repository secret of the same name. An absent
+endpoint disables network enquiry. The endpoint is included in the built app
+and is not a runtime credential.
 
-Balance is decoded from a big-endian value, divided by 10. On both platforms, the Octopus
-profile applies the historical offset rule: the public scan-date compatibility rule uses an
-offset of 500 from 2017-10-01 in Hong Kong time, and 350 before that scan-date transition. Transaction amounts are inferred from
-successive balance deltas when the card does not expose an explicit signed
-amount.
+Calibration requires a normal server farewell, completed authentication and an
+encrypted read, a card number, and an exact match between the returned balance
+and the public purse re-read after enquiry: `offset = raw - balance * 10` must be
+350 or 500. The service status remains available in Raw Data. In particular,
+`R30` is not interpreted as overall service success, and an error-only zero
+balance cannot create a calibration.
+
+The card number and offset are saved locally under the normalized eight-byte
+IDm, and are also included in the wallet data and ordinary backups. Later
+scans use the current public purse with that saved offset without contacting
+the service, including when Octopus Online is disabled. The switch defaults to
+on and preserves a user's saved off setting. Until calibration is available,
+the confirmed balance stays unavailable and Raw Data shows the two candidates.
+The reader does not treat unverified additional public blocks as transaction
+history. Existing saved history remains intact.
+
+The independently written implementations follow the user-supplied
+`octopus_online.py` and its protocol notes, investigated on 2026-10-31.
+`tests/runtime/fixtures/octopus-online.json` contains invented bytes used by
+Swift and Android protocol/HTTP tests; no real card captures or identifiers are
+included. Native app RF verification is still needed.
 
 ## Rakuten Edy
 

@@ -19,8 +19,8 @@ struct CardBalApp: App {
             "dateFormat": "yyyy-MM-dd",
             "cardTimeZonePreference": CardTimeZonePreference.issuer.rawValue,
             DeveloperModePreferences.enabledKey: false,
-            KoreanTripCrowdsourcingPreferences.enabledKey: false,
-            KoreanTripCrowdsourcingPreferences.promptedKey: false,
+            KoreanTripCrowdsourcingPreferences.enabledKey: true,
+            OctopusOnlinePreferences.enabledKey: true,
             KoreanTripCrowdsourcingPreferences.endpointKey: "https://korean-trip-crowdsourcing.ieb.app/ingest/korean-trip-records"
         ])
     }

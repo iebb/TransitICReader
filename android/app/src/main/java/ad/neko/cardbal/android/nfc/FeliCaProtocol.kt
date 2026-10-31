@@ -65,6 +65,19 @@ internal class FeliCaProtocol(
         }
     }
 
+    fun exchangeOnline(command: ByteArray): ByteArray {
+        if (!selected || command.isEmpty() || command.size > 253) throw OctopusProtocolException()
+        val previous = currentIdm.copyOf()
+        val response = exchange(byteArrayOf((command.size + 1).toByte()) + command)
+        if (response.size !in 2..255 || (response[0].toInt() and 255) != response.size ||
+            (response[1].toInt() and 255) != ((command[0].toInt() and 255) + 1) % 256) throw OctopusProtocolException()
+        if (command[0] == 0.toByte()) {
+            if (command.size != 5 || response.size !in setOf(18, 20) ||
+                !response.copyOfRange(2, 10).contentEquals(previous)) throw OctopusProtocolException()
+        }
+        return response
+    }
+
     private fun validAddressedFrame(response: ByteArray, command: Int): Boolean =
         response.size >= 10 && validFrame(response, command, response.size) &&
             response.copyOfRange(2, 10).contentEquals(currentIdm)

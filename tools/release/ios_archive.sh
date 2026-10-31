@@ -90,6 +90,7 @@ bash ci_scripts/ci_post_clone.sh
 # imported, so keep their contents out of the build process environment.
 unset IOS_CERTIFICATE_P12_BASE64 IOS_CERTIFICATE_PASSWORD IOS_PROVISION_PROFILE_BASE64
 unset FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64
+unset OCTOPUS_ENQUIRY_BASE_URL
 xcodebuild -project CardBal.xcodeproj -scheme CardBal -configuration Release \
     -destination 'generic/platform=iOS' -archivePath build/ios/CardBal.xcarchive \
     -derivedDataPath build/ios/DerivedData archive \

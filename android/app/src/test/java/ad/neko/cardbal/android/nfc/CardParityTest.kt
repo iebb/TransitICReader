@@ -78,10 +78,7 @@ class CardParityTest {
         val graph=mapOf("a" to listOf(TransitGeometry.Edge("b",10.0,null),TransitGeometry.Edge("c",1.0,null)),"c" to listOf(TransitGeometry.Edge("b",1.0,null)))
         assertEquals(listOf("c","b"),TransitGeometry.shortest("a","b",graph)!!.map{it.second.to})
     }
-    @Test fun octopusTransitionUsesHongKongMidnightAndMalformedHexIsSafe() {
-        assertEquals(350,octopusOffset(Instant.parse("2017-09-30T15:59:59Z")))
-        assertEquals(500,octopusOffset(Instant.parse("2017-09-30T16:00:00Z")))
-        assertEquals(500,octopusOffset(Instant.parse("2026-10-31T00:00:00Z")))
+    @Test fun malformedHexIsSafe() {
         assertTrue("not hex".hexToBytes().isEmpty())
         assertTrue("1".hexToBytes().isEmpty())
     }

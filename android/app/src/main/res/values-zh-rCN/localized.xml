@@ -60,6 +60,7 @@
     <string name="text_42083cb8d1fce884" formatted="false">"当前视野内全部（%lld）"</string>
     <string name="text_69f2e5f981095e84" formatted="false">"已是最新"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金额"</string>
+    <string name="text_30aba00c58e0cc1a" formatted="false">"需要在线查询以确定此卡的余额偏移量。"</string>
     <string name="text_0d04bfeb7d64b71c" formatted="false">"应用"</string>
     <string name="text_d6a2f871553b4b9d" formatted="false">"应用元数据"</string>
     <string name="text_da645334193e6576" formatted="false">"应用设置"</string>
@@ -93,9 +94,11 @@
     <string name="text_f925cbb56b5ce651" formatted="false">"余额 %lld"</string>
     <string name="text_0cc691184256bc23" formatted="false">"余额 APDU"</string>
     <string name="text_ac8ef414dbff994d" formatted="false">"交易后余额"</string>
+    <string name="text_0e919773b74ff7b4" formatted="false">"余额偏移量"</string>
     <string name="text_f874f79bfeb2bdcb" formatted="false">"余额读取时间"</string>
     <string name="text_4e79870def1ecd34" formatted="false">"余额寄存器"</string>
     <string name="text_a19bf759e922cb8a" formatted="false">"余额和最近事件摘要；并非完整历史"</string>
+    <string name="text_4faf805eb822919f" formatted="false">"已使用此卡保存的偏移量解码余额。"</string>
     <string name="text_291a81630d631d96" formatted="false">"分别显示各应用报告的余额，不进行相加。"</string>
     <string name="text_27f544bbd2655a39" formatted="false">"已列入黑名单"</string>
     <string name="text_c83082a00fab0a4c" formatted="false">"数据块 %lld"</string>
@@ -123,6 +126,8 @@
     <string name="text_19766ed6ccb2f4a3" formatted="false">"取消"</string>
     <string name="text_5085d45a3a7c9248" formatted="false">"取消扫描"</string>
     <string name="text_c17e79e634568fb0" formatted="false">"已取消的事件"</string>
+    <string name="text_22a053671ec3c2d9" formatted="false">"候选余额（偏移量 350）"</string>
+    <string name="text_0cef04f144c3984b" formatted="false">"候选余额（偏移量 500）"</string>
     <string name="text_47da48edbccd893b" formatted="false">"卡片激活"</string>
     <string name="text_02203cd02fe512e7" formatted="false">"卡片应用"</string>
     <string name="text_1e391240c3556325" formatted="false">"卡片颜色"</string>
@@ -261,6 +266,7 @@
     <string name="text_c7e1e2c581a628e7" formatted="false">"Edy 交易"</string>
     <string name="text_72755d6de33db86f" formatted="false">"加密算法"</string>
     <string name="text_b1465a137408339d" formatted="false">"线路终点"</string>
+    <string name="text_bc927de639954a3f" formatted="false">"查询状态"</string>
     <string name="text_2649e082d9a2ba37" formatted="false">"进站"</string>
     <string name="text_0ff9decbdf045e5a" formatted="false">"进站代码"</string>
     <string name="text_3c26e3d5df93be97" formatted="false">"进站补票"</string>
@@ -487,6 +493,8 @@
     <string name="text_213f84c35030dd05" formatted="false">"OKICA 交易 %08X"</string>
     <string name="text_a7c7b3a28a6194e5" formatted="false">"八达通"</string>
     <string name="text_04cd5de1493d0e37" formatted="false">"八达通 + %@"</string>
+    <string name="text_581fd35f5df43bff" formatted="false">"八达通卡号"</string>
+    <string name="text_7565d55aa34264fe" formatted="false">"八达通在线查询"</string>
     <string name="text_81725243263f33f7" formatted="false">"八达通公式：(原始值 - %lld) / 10。"</string>
     <string name="text_9d13a2f382bf7f16" formatted="false">"冲绳巴士"</string>
     <string name="text_58ddaeaeb2498986" formatted="false">"适用于旧版 DESFire；不解析新版 Clipper"</string>
@@ -494,6 +502,8 @@
     <string name="text_04f88689ae558b3c" formatted="false">"车载终端"</string>
     <string name="text_062f4509ebcfdeec" formatted="false">"已读取卡内记录"</string>
     <string name="text_492fc2920e59d721" formatted="false">"仅限卡内储值钱包。无法读取 SimplyGo 账户余额。"</string>
+    <string name="text_37d365f00b8fda8b" formatted="false">"在线查询"</string>
+    <string name="text_ecc389c9d9128735" formatted="false">"已通过卡片公开余额数据核对在线余额。"</string>
     <string name="text_a528507124e9a0cf" formatted="false">"仅点亮高置信度城市匹配"</string>
     <string name="text_bcf4530e00fef3d2" formatted="false">"仅允许支持的读取命令"</string>
     <string name="text_9f2c138b7c075b34" formatted="false">"打开釜山公交数据"</string>
@@ -851,6 +861,7 @@
     <string name="text_5178b8e0315b4f04" formatted="false">"消费金额"</string>
     <string name="text_4e00aa111d197638" formatted="false">"使用当前位置"</string>
     <string name="text_77ad630be8c9cb2f" formatted="false">"使用外接读卡器"</string>
+    <string name="text_338a62c3965a6021" formatted="false">"通过在线查询保存卡号和余额偏移量。保存的信息可供离线使用。"</string>
     <string name="text_1e8f9dc5aefbe330" formatted="false">"用户类别"</string>
     <string name="text_f5162206318ee964" formatted="false">"有效"</string>
     <string name="text_b252ed966022a8b8" formatted="false">"有效期至"</string>

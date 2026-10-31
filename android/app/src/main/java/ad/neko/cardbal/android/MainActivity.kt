@@ -51,6 +51,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +69,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -439,6 +442,8 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
 @Composable
 private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletRepository) {
     val context = LocalContext.current
+    val octopusPreferences = remember(context) { context.getSharedPreferences("octopus", 0) }
+    var octopusOnlineEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusOnlineEnabled", true)) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -534,6 +539,22 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         }
         item {
             SettingsSection(title = "Privacy") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Octopus Online"), modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = octopusOnlineEnabled,
+                        onCheckedChange = {
+                            octopusOnlineEnabled = it
+                            octopusPreferences.edit().putBoolean("octopusOnlineEnabled", it).apply()
+                        },
+                        modifier = Modifier.semantics { contentDescription = context.tr("Octopus Online") },
+                    )
+                }
+                Text(
+                    tr("Use online enquiry to save the card number and balance offset. Saved information remains available offline."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     tr("Scans are stored on this device."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

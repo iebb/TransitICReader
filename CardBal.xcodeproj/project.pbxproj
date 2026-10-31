@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B17000000000000000000002 /* OctopusOnlineProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17000000000000000000001 /* OctopusOnlineProtocol.swift */; };
+		B17000000000000000000004 /* OctopusOnlineDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17000000000000000000003 /* OctopusOnlineDecoder.swift */; };
 		B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15000000000000000000001 /* TianfuTongDecoder.swift */; };
 		66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */; };
 		E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */; };
@@ -81,6 +83,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B17000000000000000000001 /* OctopusOnlineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OctopusOnlineProtocol.swift; sourceTree = "<group>"; };
+		B17000000000000000000003 /* OctopusOnlineDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OctopusOnlineDecoder.swift; sourceTree = "<group>"; };
 		B15000000000000000000001 /* TianfuTongDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TianfuTongDecoder.swift; sourceTree = "<group>"; };
 		B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetailFeliCaRead.swift; sourceTree = "<group>"; };
 		BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredValueDecoder.swift; sourceTree = "<group>"; };
@@ -195,6 +199,7 @@
 		8C4691FD2F6F2ACB0071B6C4 /* Profiles */ = {
 			isa = PBXGroup;
 			children = (
+				B17000000000000000000001 /* OctopusOnlineProtocol.swift */,
 				B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */,
 				9BCF7E4C2068403798A4A14D /* StoredValueProtocol.swift */,
 				C20290B553C701A8BD665B22 /* CalypsoProtocol.swift */,
@@ -257,6 +262,7 @@
 		8C46921F2F6F2ACB0071B6C4 /* Decoders */ = {
 			isa = PBXGroup;
 			children = (
+				B17000000000000000000003 /* OctopusOnlineDecoder.swift */,
 				BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */,
 				24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */,
 				B15000000000000000000001 /* TianfuTongDecoder.swift */,
@@ -360,6 +366,7 @@
 				A00000000000000000000021 /* Frameworks */,
 				A00000000000000000000023 /* Resources */,
 				E5A100052F6F2ACB0071B6C4 /* Optional Firebase configuration */,
+				B17000000000000000000005 /* Optional Octopus configuration */,
 			);
 			buildRules = (
 			);
@@ -415,6 +422,19 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		B17000000000000000000005 /* Optional Octopus configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ();
+			name = "Optional Octopus configuration";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			showEnvVarsInLog = 0;
+			shellScript = "set -eu\n/usr/bin/python3 \"$SRCROOT/tools/octopus_config.py\" --output \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/OctopusEnquiryConfig.plist\"\n";
+		};
 		E5A100022F6F2ACB0071B6C4 /* Build CSV station database */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -470,6 +490,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B17000000000000000000002 /* OctopusOnlineProtocol.swift in Sources */,
+				B17000000000000000000004 /* OctopusOnlineDecoder.swift in Sources */,
 				B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */,
 				B13000000000000000000006 /* ExternalCardReader.swift in Sources */,
 				B13000000000000000000004 /* CoreNFCCardTransport.swift in Sources */,

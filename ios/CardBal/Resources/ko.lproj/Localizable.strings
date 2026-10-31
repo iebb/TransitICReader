@@ -1032,3 +1032,25 @@
 "Auto Charge" = "자동 충전";
 "Move to New Card" = "새 카드로 이전";
 "Point Exchange" = "포인트 교환";
+
+"Octopus Online" = "옥토퍼스 온라인 조회";
+
+"Use online enquiry to save the card number and balance offset. Saved information remains available offline." = "온라인 조회로 카드 번호와 잔액 보정값을 저장합니다. 저장한 정보는 오프라인에서도 사용할 수 있습니다.";
+
+"Octopus Number" = "옥토퍼스 번호";
+
+"Balance Offset" = "잔액 보정값";
+
+"Enquiry Status" = "조회 상태";
+
+"Online Enquiry" = "온라인 조회";
+
+"An online enquiry is needed to determine this card's balance offset." = "이 카드의 잔액 보정값을 확인하려면 온라인 조회가 필요합니다.";
+
+"Online balance checked against the public purse." = "카드의 공개 잔액 데이터와 온라인 잔액을 대조했습니다.";
+
+"Balance decoded using this card's saved offset." = "이 카드에 저장된 보정값으로 잔액을 읽었습니다.";
+
+"Candidate Balance (offset 350)" = "예상 잔액 (보정값 350)";
+
+"Candidate Balance (offset 500)" = "예상 잔액 (보정값 500)";

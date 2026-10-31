@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.net.URI
 
 plugins {
     id("com.android.application")
@@ -16,6 +17,20 @@ val localProperties = Properties().apply {
 
 fun localPropertyOrEnv(name: String): String? =
     localProperties.getProperty(name) ?: System.getenv(name)
+
+val octopusLocalEnvironment = Properties().apply {
+    val file = rootProject.projectDir.parentFile.resolve(".env")
+    if (file.isFile) file.inputStream().use(::load)
+}
+val octopusEndpoint = (System.getenv("OCTOPUS_ENQUIRY_BASE_URL")
+    ?: octopusLocalEnvironment.getProperty("OCTOPUS_ENQUIRY_BASE_URL") ?: "").trim().trimEnd('/')
+if (octopusEndpoint.isNotEmpty()) {
+    val uri = URI(octopusEndpoint)
+    require(uri.scheme == "https" && !uri.host.isNullOrEmpty() && uri.rawUserInfo == null &&
+        uri.rawQuery == null && uri.rawFragment == null) {
+        "OCTOPUS_ENQUIRY_BASE_URL must be an HTTPS URL without credentials, query, or fragment"
+    }
+}
 
 val buildArm64Split = providers.gradleProperty("cardbal.abiSplit")
     .map { it.equals("true", ignoreCase = true) }
@@ -46,6 +61,8 @@ android {
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
+        buildConfigField("String", "OCTOPUS_ENQUIRY_BASE_URL",
+            "\"" + octopusEndpoint.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
     }
 
     splits {
