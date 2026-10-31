@@ -103,6 +103,15 @@ class ScanAdaptiveLayoutTests(unittest.TestCase):
         self.assertIn("@State private var previewCardID: String?", cards)
         self.assertNotRegex(cards, r"\.onChange\(of:.*(?:size|width|horizontalSizeClass)")
 
+    def test_panes_keep_a_gap_between_their_lists(self):
+        primary = self.region("private var primaryPane", "private var secondaryPane")
+        secondary = self.region("private var secondaryPane", "private func hasSecondarySections")
+        self.assertIn(".modifier(ScanPaneMargins(leading: 20, trailing: 10))", primary)
+        self.assertIn(".modifier(ScanPaneMargins(leading: 10, trailing: nil))", secondary)
+        margins = self.source.split("private struct ScanPaneMargins: ViewModifier {", 1)[1].split("private struct", 1)[0]
+        self.assertIn(".contentMargins(.leading, leading, for: .scrollContent)", margins)
+        self.assertIn(".contentMargins(.trailing, trailing, for: .scrollContent)", margins)
+
     def test_reader_switch_needs_a_connected_external_reader(self):
         reader = (ROOT / "ios/CardBal/NFC/NFCTransitReader.swift").read_text()
         self.assertIn("var hasConnectedExternalReader: Bool { !externalReaderNames.isEmpty }", reader)
