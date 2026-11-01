@@ -1,0 +1,129 @@
+name: macOS release
+run-name: Release CardBal for macOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cardbal-macos-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Choose private signing directory
+        run: echo "MACOS_SIGNING_DIR=$RUNNER_TEMP/cardbal-macos-signing" >> "$GITHUB_ENV"
+      - id: version
+        name: Validate version
+        run: python3 -m tools.release.versions
+      - name: Check release notes and existing tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          test -s "docs/release-notes/macos-$RELEASE_VERSION.md"
+          if gh release view "macos-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "macos-v$RELEASE_VERSION already exists; refusing to replace a published release." >&2
+            exit 1
+          fi
+      - name: Install Apple API client
+        run: python3 -m pip install -r tools/release/requirements-appstore.txt
+      - name: Prepare Apple key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          os.umask(0o077)
+          directory = Path(os.environ['MACOS_SIGNING_DIR'])
+          directory.mkdir(parents=True, mode=0o700)
+          key = directory / 'AuthKey.p8'
+          key.write_text(os.environ['ASC_PRIVATE_KEY'])
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'ASC_PRIVATE_KEY_PATH={key}\n')
+          PY
+      - name: Restore or create CardBal Developer ID signing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_BUNDLE_BASE64: ${{ secrets.MACOS_SIGNING_BUNDLE_BASE64 }}
+        run: python3 -m tools.release.macos_signing
+      - name: Preserve encrypted signing identity for subsequent releases
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-signing-backup
+          path: ${{ runner.temp }}/cardbal-macos-signing/signing-backup.enc
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Compile pinned station catalog and test readers
+        run: |
+          python3 -m tools.stations.build --source csv --target all --no-sync-android
+          python3 -m unittest discover -s tests -t .
+      - name: Archive and export universal Mac app
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          MACOS_BUILD_NUMBER: ${{ github.run_number }}
+          OCTOPUS_ENQUIRY_BASE_URL: ${{ secrets.OCTOPUS_ENQUIRY_BASE_URL }}
+        run: |
+          python3 tools/octopus_config.py --output ios/CardBal/Resources/OctopusEnquiryConfig.plist
+          unset OCTOPUS_ENQUIRY_BASE_URL
+          bash tools/release/macos_archive.sh
+      - name: Notarize and staple
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
+        run: |
+          auth=(--key "$ASC_PRIVATE_KEY_PATH" --key-id "$ASC_KEY_ID")
+          if [ "$ASC_KEY_TYPE" != individual ]; then auth+=(--issuer "$ASC_ISSUER_ID"); fi
+          xcrun notarytool submit build/macos/CardBal-notarization.zip "${auth[@]}" \
+            --wait --output-format json > build/macos/notarization.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('build/macos/notarization.json').read_text())
+          print('Apple notarization:', result['status'], result['id'])
+          if result['status'] != 'Accepted':
+              raise SystemExit('Apple did not accept the macOS app.')
+          PY
+          xcrun stapler staple build/macos/export/CardBal.app
+          xcrun stapler validate build/macos/export/CardBal.app
+          spctl --assess --type execute --verbose=2 build/macos/export/CardBal.app
+      - name: Package release
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p build/macos/release
+          ditto -c -k --sequesterRsrc --keepParent build/macos/export/CardBal.app \
+            "build/macos/release/CardBal-$RELEASE_VERSION-macOS.zip"
+          cd build/macos/release
+          shasum -a 256 ./*.zip > SHA256SUMS.txt
+      - name: Publish macOS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "macos-v$RELEASE_VERSION" \
+            --target "$GITHUB_SHA" --title "CardBal $RELEASE_VERSION for macOS" \
+            --notes-file "docs/release-notes/macos-$RELEASE_VERSION.md" \
+            "build/macos/release/CardBal-$RELEASE_VERSION-macOS.zip" \
+            build/macos/release/SHA256SUMS.txt
+      - name: Remove private signing files
+        if: always()
+        run: rm -rf "$MACOS_SIGNING_DIR"

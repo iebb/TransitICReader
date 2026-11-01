@@ -1,5 +1,31 @@
 # Store workflows
 
+## macOS download
+
+The manual [macOS release](../../.github/workflows/macos-release.yml) workflow
+runs on `master`. It builds a universal Mac Catalyst app, signs it with Developer
+ID, submits it for Apple notarization, staples the accepted ticket and publishes
+`macos-v<version>` on GitHub with a ZIP and SHA-256 checksum. The marketing version
+comes from the existing app projects. Add
+`docs/release-notes/macos-<version>.md` before running it. Existing releases are
+never replaced.
+
+The first run creates a Developer ID Application G2 certificate and
+`MAC_CATALYST_APP_DIRECT` profile using the configured Apple team API key.
+The key needs certificate/profile access. The workflow retains an authenticated,
+encrypted signing backup as a private Actions artifact. Its password is the
+existing `IOS_CERTIFICATE_PASSWORD`; the backup uses scrypt and AES-256-GCM.
+Download `macos-signing-backup/signing-backup.enc`, preserve a private local copy,
+and set its base64 contents as the `MACOS_SIGNING_BUNDLE_BASE64` repository secret.
+Subsequent runs reuse the identity rather than creating another certificate.
+Failed first runs also preserve partial signing state for recovery.
+
+Only the app ZIP and checksum are attached to the public release. API keys,
+private signing keys, provisioning profiles and the encrypted signing backup
+are excluded. iOS and Android store uploads remain separate workflows.
+
+## iOS and Android stores
+
 Three manually triggered store workflows run from **Actions** on `master`.
 Pushing a commit does not upload or submit an app.
 
