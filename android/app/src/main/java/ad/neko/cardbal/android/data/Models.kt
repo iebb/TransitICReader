@@ -229,6 +229,14 @@ data class SavedCardRecord(
         get() {
             val custom = customTitle?.trim().orEmpty()
             if (custom.isNotEmpty()) return custom
+            if (cardFamily.equals("City Union", ignoreCase = true)) {
+                sequenceOf(
+                    applications?.firstOrNull { it.isCityUnion }?.cityCode,
+                    issuingCity,
+                    resultFields.firstOrNull { it.title == "Issuing City" }?.value,
+                ).mapNotNull { it?.let(ChineseCityCodes::cityUnionName) }
+                    .firstOrNull()?.let { return it }
+            }
             if ("union" in cardFamily.lowercase()) {
                 val brand = resultFields.firstOrNull { it.title == "Brand" }?.value
                 if (!brand.isNullOrBlank() && brand != "T-Union Cities") return brand

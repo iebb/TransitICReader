@@ -78,6 +78,14 @@ struct NFCISO7816APDU {
     let data: Data
     let expectedResponseLength: Int
 }
+extension NFCISO7816APDU {
+    init?(data bytes: Data) {
+        guard bytes.count >= 5 else { return nil }
+        let payload = bytes.count > 5 ? bytes.subdata(in: 5..<5 + Int(bytes[4])) : Data()
+        self.init(instructionClass: bytes[0], instructionCode: bytes[1], p1Parameter: bytes[2], p2Parameter: bytes[3], data: payload,
+                  expectedResponseLength: bytes.last == 0 ? 256 : Int(bytes.last!))
+    }
+}
 struct NFCISO7816ResponseAPDU { let statusWord1: UInt8, statusWord2: UInt8; let payload: Data? }
 final class NFCISO7816Tag {
     let identifier = Data(hexString: "01020304")
@@ -444,6 +452,7 @@ func testDualCurrency(octopus: TransitCardSnapshot, plain: TransitCardSnapshot) 
         let movedOpal = StoredValueProtocol.envelope(tag: 1, kind: 1, index: 3, data: Data(hexString: "785634F2479A60F0FF439CB0A4030000"))
         check(AdditionalCardHistory.merge([opalRaw, movedOpal]).count == 1, "Moving DESFire slot duplicated history")
         try await testTianfuTong()
+        try await testChineseLocal()
         print("PASS: dual applications, strict correlation, currencies, partial rescans, persistence, and APDU selection/status")
     }
 }
@@ -454,10 +463,12 @@ func testDualCurrency(octopus: TransitCardSnapshot, plain: TransitCardSnapshot) 
             chongqing = (ROOT / "tests/runtime/fixtures/chongqing_history.swift").read_text()
             tianfu = (ROOT / "ios/CardBal/NFC/Decoders/TianfuTongDecoder.swift").read_text()
             tianfu_tests = (ROOT / "tests/runtime/fixtures/tianfutong.swift").read_text()
-            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing + tianfu + tianfu_tests)
+            china = (ROOT / "ios/CardBal/NFC/Decoders/ChineseLocalDecoder.swift").read_text()
+            china_tests = (ROOT / "tests/runtime/fixtures/china_local.swift").read_text()
+            swift.write_text(adapters + models + decoder + applications + nfc_stubs + reader + main + chongqing + tianfu + tianfu_tests + china + china_tests)
             shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test-dual"
-            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/ScanProgress.swift"), str(ROOT / "ios/CardBal/Utils/DebugLog.swift"), str(ROOT / "ios/CardBal/Helpers/Localizer.swift"), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", "-parse-as-library", str(swift), str(ROOT / "ios/CardBal/NFC/ScanProgress.swift"), str(ROOT / "ios/CardBal/Utils/DebugLog.swift"), str(ROOT / "ios/CardBal/Helpers/Localizer.swift"), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift", "ChineseLocalProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             run = subprocess.run([str(binary), str(ROOT)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

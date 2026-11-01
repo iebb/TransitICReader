@@ -1,10 +1,33 @@
 package ad.neko.cardbal.android.nfc
 
 import ad.neko.cardbal.android.util.hexToBytes
+import ad.neko.cardbal.android.data.SavedCardRecord
+import kotlinx.datetime.Instant
 import org.junit.Assert.*
 import org.junit.Test
 
 class Iso7816ProtocolTest {
+    @Test fun shanghaiCityUnionUsesCity2000ForItsTitleAndRegion() {
+        val metadata = ByteArray(30).also {
+            it[2] = 0x20; it[19] = 1
+        }
+        val aid = "A00000000386980701"
+        val selection = Iso7816Protocol.select(aid) { "9000".hexToBytes() }!!
+        val card = Iso7816Decoder().readApplication("SYNTHETIC", selection, Instant.parse("2026-11-01T00:00:00Z")) { command ->
+            when (command.joinToString("") { "%02X".format(it) }) {
+                "805C000204" -> "000030399000".hexToBytes()
+                "00B095001E" -> metadata + "9000".hexToBytes()
+                else -> if(command.contentEquals(Iso7816Protocol.selectCommand(aid))) "9000".hexToBytes() else "6A83".hexToBytes()
+            }
+        }!!
+        assertEquals("上海市", card.region)
+        assertEquals("上海市", card.resultFields.first { it.title=="Brand" }.value)
+        assertEquals("上海市", card.resultFields.first { it.title=="Issuing City" }.value)
+        assertEquals("2000", card.applications!!.single().cityCode)
+        assertNotNull(card.balanceText)
+        assertEquals("上海市", SavedCardRecord.from(card).displayTitle)
+    }
+
     @Test fun koreanAndChineseBalancesUseTheirOwnReadOnlyCommands() {
         Iso7816Protocol.applications.filter { it.currency == "KRW" }.forEach {
             assertArrayEquals("904C000004".hexToBytes(), Iso7816Protocol.balanceCommand(it))

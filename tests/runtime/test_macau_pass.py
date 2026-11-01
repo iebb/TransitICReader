@@ -45,6 +45,7 @@ struct UnrelatedDecoder: TransitCardDecoder {
                                   kind: RawHistoryKind, relatedContext: [Data]) -> TransitTransaction? { nil }
     static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? { nil }
     static func decodeRecord(data: Data, index: Int) -> TransitTransaction? { nil }
+    static func decodeRecord(data: Data) -> TransitTransaction? { nil }
     static func decodeTransitRecord(data: Data, index: Int,
                                     auxiliary: [TransitApplicationRecord]) -> TransitTransaction? { nil }
     static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? { nil }
@@ -69,6 +70,7 @@ typealias EdyDecoder = UnrelatedDecoder
 typealias WAONDecoder = UnrelatedDecoder
 typealias NanacoDecoder = UnrelatedDecoder
 typealias TianfuTongDecoder = UnrelatedDecoder
+typealias ChineseLocalDecoder = UnrelatedDecoder
 
 // Envelope families use their own codecs. The Python test checks that the
 // production family list does not claim any Macau Pass alias.

@@ -6,6 +6,8 @@ import ad.neko.cardbal.android.nfc.KoreanCardFormat
 import ad.neko.cardbal.android.nfc.ClipperDecoder
 import ad.neko.cardbal.android.nfc.ClipperUltralightDecoder
 import ad.neko.cardbal.android.nfc.MacauPassDecoder
+import ad.neko.cardbal.android.nfc.ChineseLocalDecoder
+import ad.neko.cardbal.android.nfc.ChineseLocalProtocol
 import org.json.JSONObject
 import ad.neko.cardbal.android.util.beInt
 import ad.neko.cardbal.android.util.hexToBytes
@@ -170,6 +172,8 @@ class TransactionDecoder(context: Context) {
                 else ClipperDecoder.decodeTransaction(data, context.map { it.hexToBytes() }, index, clipperCatalog)
             family == "macau pass" && card.technology == "ISO7816" ->
                 if (kind == RawHistoryKind.Transactions) MacauPassDecoder.decodeTransaction(data) else null
+            ChineseLocalProtocol.Kind.from(family) != null ->
+                if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) ChineseLocalDecoder.decodeRecord(data) else null
             AdditionalCardHistory.handles(family) -> if(kind==RawHistoryKind.Transactions) AdditionalCardHistory.decode(raw,family,context) else null
             family == "snapper+" || family == "snapper plus" ->
                 if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) decodeSnapperHistory(data, raw) else null
@@ -189,6 +193,8 @@ class TransactionDecoder(context: Context) {
                 val isPurchase=data.size==23 && (data[9]==6.toByte() || data[9]==9.toByte())
                 val station=if(isPurchase) stationDb.cityUnionTerminal(tx.terminalID.orEmpty(),tx.date) else null
                 val direction=if(station!=null) ChineseHistoryMerge.cityUnionDirection(data,auxiliary) else null
+                val cityName=ChineseCityCodes.cityUnionName(tx.terminalID.orEmpty().take(4))
+                val place=station?.name ?: "Terminal ${tx.terminalID.orEmpty()}"
                 val bus=station?.type in setOf("BRT","公交","bus")
                 val category=when {
                     direction==true -> if(bus) TransactionCategory.busOn else TransactionCategory.trainOn
@@ -197,7 +203,7 @@ class TransactionDecoder(context: Context) {
                     else -> tx.category
                 }
                 tx.copy(type=if(direction==true) "Entry" else if(direction==false) "Exit" else "City Union ${tx.type}",category=category,
-                    location=station?.name,entryStation=station?.name.takeIf{direction==true},exitStation=station?.name.takeIf{direction==false},
+                    location=cityName?.let { "$it • $place" } ?: place,entryStation=station?.name.takeIf{direction==true},exitStation=station?.name.takeIf{direction==false},
                     entryStationCode=station?.key.takeIf{direction==true},exitStationCode=station?.key.takeIf{direction==false})
             }
             card.technology == "ISO7816" && ("union" in family || "china" in family) -> decodeTUnion(data, raw, index, kind)
@@ -410,24 +416,25 @@ class TransactionDecoder(context: Context) {
         val amount = JapaneseCardFormats.uint(data,17,4)
         val balance = JapaneseCardFormats.uint(data,21,4)
         val cityId = data.copyOfRange(32, 34).joinToString("") { "%02X".format(it) }
-        val station = stationDb.tUnionLocation(cityId + stationId)
-            ?: stationDb.tUnionTerminal("1e",data.copyOfRange(1,9).joinToString(""){"%02X".format(it)},cityId)
+        val terminalId = data.copyOfRange(1,9).joinToString("") { "%02X".format(it) }
+        val station = stationDb.tUnionTravel(cityId, stationId, terminalId)
         val travelType = tUnionTravelType(typeByte, subType)
-        val stationLabel = station?.name ?: "Station $stationId"
+        val stationLabel = station?.name ?: if(cityId=="5840") "Terminal $terminalId" else "Station $stationId"
+        val unresolvedCode = if(cityId=="5840") "TU:5840:1E:$terminalId" else cityId+stationId
         return TransitTransaction(
             date = bcdDateTime(data, dateStart = 25, timeStart = 29, zoneId = "Asia/Shanghai"),
             time = bcdTime(data, 29),
             amount = amount,
-            terminalID = data.copyOfRange(1, 9).joinToString("") { "%02X".format(it) },
+            terminalID = terminalId,
             recordNumber = index + 1,
             type = travelType.label,
             category = travelType.category,
             balanceAfter = balance,
-            location = stationLabel,
+            location = "${stationDb.tUnionCityName(cityId) ?: "City $cityId"} • $stationLabel",
             entryStation = if (travelType.isEntry) stationLabel else null,
             exitStation = if (travelType.isExit) stationLabel else null,
-            entryStationCode = if (travelType.isEntry) station?.key ?: (if(station==null) cityId+stationId else null) else null,
-            exitStationCode = if (travelType.isExit) station?.key ?: (if(station==null) cityId+stationId else null) else null,
+            entryStationCode = if (travelType.isEntry) station?.key ?: (if(station==null) unresolvedCode else null) else null,
+            exitStationCode = if (travelType.isExit) station?.key ?: (if(station==null) unresolvedCode else null) else null,
             currencyCode = "CNY", fractionDigits = 2, issuerTimeZone = "Asia/Shanghai",
             rawData = raw,
         )

@@ -16,7 +16,7 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     private var octopusStore: OctopusMetadataStore? = null
     private val decoders: List<TransitCardDecoder> get() = listOf(
         CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
-        StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder(octopusStore),
+        StoredValueDecoder(), ChineseLocalDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder(octopusStore),
     )
     private val _latestSnapshot = MutableStateFlow<TransitCardSnapshot?>(null)
     private val _status = MutableStateFlow("Ready to scan.")

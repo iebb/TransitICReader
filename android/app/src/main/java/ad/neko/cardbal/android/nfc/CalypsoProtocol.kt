@@ -14,7 +14,8 @@ internal object CalypsoProtocol {
     enum class Network(val id: Int, val family: String, val currency: String?, val timeZone: String) {
         Generic(0, "Calypso", null, "UTC"), Intercode(1, "Calypso", "EUR", "Europe/Paris"),
         Navigo(2, "Navigo", "EUR", "Europe/Paris"), Opus(3, "OPUS", "CAD", "America/Toronto"),
-        Mobib(4, "MOBIB", "EUR", "Europe/Brussels"), RavKav(5, "Rav-Kav", "ILS", "Asia/Jerusalem")
+        Mobib(4, "MOBIB", "EUR", "Europe/Brussels"), RavKav(5, "Rav-Kav", "ILS", "Asia/Jerusalem"),
+        Lisboa(6, "Lisboa Viva", "EUR", "Europe/Lisbon")
     }
     data class Record(val sfi: Int, val number: Int, val payload: ByteArray)
     data class Contract(val slot: Int, val productCode: Long?, val providerCode: Long?, val serialNumber: String?, val soldAt: String?,
@@ -96,6 +97,7 @@ internal object CalypsoProtocol {
 
     fun identify(environment: ByteArray): Network {
         if (environment.size != 29 || environment.all { it == 0.toByte() || it == 0xFF.toByte() }) return Network.Generic
+        if (at(environment, 13, 12) == 0x131L && parse(environment, "envLisboa") != null) return Network.Lisboa
         val rav = at(environment, 3, 20)
         if (rav == 0x37602L || rav == 0x37603L) return if (parse(environment, "envRav") != null) Network.RavKav else Network.Generic
         val id = at(environment, 13, 24)
@@ -143,6 +145,18 @@ internal object CalypsoProtocol {
         if (network == Network.Generic || record.sfi !in listOf(8, 23, 29) || record.payload.size != 29 || record.payload.all { it == 0.toByte() }) return null
         if (record.sfi == 23 && network != Network.Mobib) return null
         if (record.sfi == 29 && network !in listOf(Network.Intercode, Network.Navigo)) return null
+        if (network == Network.Lisboa) {
+            if (record.sfi != 8) return null
+            val values = parse(record.payload, "eventLisboa") ?: return null
+            val seconds = values["seconds"]?.takeIf { it in 1..0x3FFFFFFE } ?: return null
+            val minute = timestamp(seconds / 86400, (seconds % 86400) / 60, network.timeZone) ?: return null
+            val code = values["code"]?.toInt() ?: 0; val provider = values["provider"] ?: 0
+            val label = when (code) { 1 -> "Entry"; 3 -> "Transfer"; 4 -> "Exit"; else -> "Travel event" }
+            val agency = mapOf(1L to "Carris", 2L to "Metro", 3L to "CP")[provider]
+            val station = values["station"]?.let { if (provider == 2L) it ushr 2 else it }
+            return History(network, minute + seconds % 60 * 1000, null, "EUR", agency?.let { "$it · $label" } ?: label,
+                provider.toString(), values["route"]?.toString(), station?.toString(), code, null, null)
+        }
         val version = at(record.payload, 0, 6) ?: return null
         val layout = when (network) {
             Network.Opus -> "eventOpus"; Network.RavKav -> "eventRav"
@@ -190,9 +204,11 @@ internal object CalypsoProtocol {
     fun contracts(network: Network, records: List<Record>): List<Contract> {
         if (network == Network.Generic) return emptyList()
         val types = contractTypes(network, records.firstOrNull { it.sfi == 30 && it.number == 1 }?.payload)
-        return records.filter { it.sfi == 9 && it.payload.size == 29 && !it.payload.all { b -> b == 0.toByte() } && !it.payload.all { b -> b == 0xFF.toByte() } }.mapNotNull { record ->
+        val firstSlots = records.filter { it.sfi == 9 }.maxOfOrNull { it.number } ?: 0
+        return records.filter { (it.sfi == 9 || (network == Network.Lisboa && it.sfi == 6)) && it.payload.size == 29 && !it.payload.all { b -> b == 0.toByte() } && !it.payload.all { b -> b == 0xFF.toByte() } }.mapNotNull { record ->
             val version = at(record.payload, 0, 6) ?: return@mapNotNull null
             val layout = when (network) {
+                Network.Lisboa -> "contractLisboa"
                 Network.Opus -> "contractOpus"; Network.RavKav -> "contractRav"
                 Network.Mobib -> if (version <= 3) "contractMobibOld" else if (version == 4L) "contractMobibNew" else return@mapNotNull null
                 else -> when (types[record.number]) { 0x46 -> "contract46"; 0x20 -> "contract20"; 0xFF -> "contractFF"; else -> "commonContract" }
@@ -202,7 +218,8 @@ internal object CalypsoProtocol {
                 (network == Network.Navigo && values["network"] != 0x250901L))) return@mapNotNull null
             val product = values["product"] ?: return@mapNotNull null
             if (product == 0L) return@mapNotNull null
-            val count = counter(records, record.number)
+            val slot = record.number + if (record.sfi == 6) firstSlots else 0
+            val count = if (network == Network.Lisboa && slot > 4) null else counter(records, slot)
             val remaining = when (network) {
                 Network.Opus -> if ((values["end"] ?: 0) == 0L) count else null
                 Network.RavKav -> if ((product ushr 6) and 7 == 2L) count else null
@@ -212,21 +229,24 @@ internal object CalypsoProtocol {
                     (values["journeys"] ?: 0) > 0 -> count?.ushr(18); else -> null }
                 else -> null
             }
-            val balance = if (network == Network.RavKav && (product ushr 6) and 7 == 3L) count else null
+            val balance = if ((network == Network.RavKav && (product ushr 6) and 7 == 3L) ||
+                (network == Network.Lisboa && product == 33592L && values["provider"] == 31L)) count else null
             val start = date(values["start"]); val end = date(values["end"])
             if (start != null && end != null && start > end) return@mapNotNull null
-            Contract(record.number, product, values["provider"], values["serial"]?.toString(), date(values["sale"]), start, end, count, remaining, balance, network.currency)
+            Contract(slot, product, values["provider"], values["serial"]?.toString(), date(values["sale"]), start, end, count, remaining, balance, network.currency)
         }
     }
     private fun fields(network: Network, records: List<Record>, contracts: List<Contract>): List<Pair<String, String>> {
         val output = mutableListOf("Network" to network.family)
+        network.currency?.let { output.add("Currency" to it) }
         val env = records.firstOrNull { it.sfi == 7 && it.number == 1 }?.payload
-        val layout = when (network) { Network.RavKav -> "envRav"; Network.Mobib -> if ((env?.let { at(it,0,6) } ?: 63) <= 2) "envMobibOld" else "envMobibNew"; else -> "env" }
+        val layout = when (network) { Network.Lisboa -> "envLisboa"; Network.RavKav -> "envRav"; Network.Mobib -> if ((env?.let { at(it,0,6) } ?: 63) <= 2) "envMobibOld" else "envMobibNew"; else -> "env" }
         if (env != null && network != Network.Generic) date(parse(env, layout)?.get("expiry"))?.let { output.add("Card Valid Until" to it) }
         contracts.forEach { contract ->
             val p = "Contract ${contract.slot}"
             output.add("$p Product" to contract.productCode.toString())
             if (network == Network.Intercode) output.add("Ticket" to "Product ${contract.productCode}")
+            if (network == Network.Lisboa && contract.productCode == 33592L && contract.providerCode == 31L) output.add("Ticket" to "Zapping")
             contract.serialNumber?.let { output.add("$p Serial Number" to it) }; contract.soldAt?.let { output.add("$p Sold At" to it) }
             contract.providerCode?.let { output.add("$p Provider Code" to it.toString()) }
             contract.validFrom?.let { output.add("$p Valid From" to it) }; contract.validUntil?.let { output.add("$p Valid Until" to it) }
@@ -257,7 +277,7 @@ internal object CalypsoProtocol {
                 response(byteArrayOf(cla.toByte(), 0xA4.toByte(), 8, 0, 2, 0x20, 0), exchange)
                 fun read(sfi: Int, number: Int): ByteArray? {
                     response(byteArrayOf(cla.toByte(), 0xB2.toByte(), number.toByte(), ((sfi shl 3) or 4).toByte(), 0x1D), exchange)?.let { return it }
-                    val file = mapOf(2 to 0x0002, 7 to 0x2001, 8 to 0x2010, 9 to 0x2020, 10 to 0x202A,
+                    val file = mapOf(6 to 0x2030, 2 to 0x0002, 7 to 0x2001, 8 to 0x2010, 9 to 0x2020, 10 to 0x202A,
                         11 to 0x202B, 12 to 0x202C, 13 to 0x202D, 25 to 0x2069, 29 to 0x2040, 30 to 0x2050)[sfi] ?: return null
                     val path = (if (sfi == 2) byteArrayOf() else byteArrayOf(0x20, 0)) + byteArrayOf((file ushr 8).toByte(), file.toByte())
                     if (response(byteArrayOf(cla.toByte(), 0xA4.toByte(), 8, 0, path.size.toByte()) + path, exchange) == null) return null
@@ -267,11 +287,12 @@ internal object CalypsoProtocol {
                 val network = identify(environment)
                 val records = mutableListOf(Record(7, 1, environment))
                 val targets = listOf(2 to 1, 8 to 16, 9 to 8, 10 to 1, 11 to 1, 12 to 1, 13 to 1, 25 to 1, 29 to 4, 30 to 1) +
-                    if (network == Network.Mobib) listOf(23 to 16) else emptyList()
+                    (if (network == Network.Mobib) listOf(23 to 16) else emptyList()) +
+                    (if (network == Network.Lisboa) listOf(6 to 8) else emptyList())
                 for ((sfi, maximum) in targets) {
                     for (number in 1..maximum) {
                         val payload = read(sfi, number)?.takeIf { it.size in 1..256 } ?: break
-                        if ((payload.all { it == 0.toByte() } && sfi !in listOf(10,11,12,13,25)) || payload.all { it == 0xFF.toByte() }) break
+                        if ((payload.all { it == 0.toByte() } && sfi !in listOf(10,11,12,13,25) && !(network == Network.Lisboa && sfi in listOf(6,9))) || payload.all { it == 0xFF.toByte() }) break
                         records.add(Record(sfi, number, payload))
                     }
                 }
@@ -279,7 +300,9 @@ internal object CalypsoProtocol {
                 val money = contracts.mapNotNull { it.balanceMinor }.singleOrNull()
                 val remaining = contracts.mapNotNull { it.remainingTrips }.firstOrNull { it > 0 } ?: contracts.mapNotNull { it.remainingTrips }.firstOrNull()
                 val icc = records.firstOrNull { it.sfi == 2 && it.number == 1 }?.payload
-                val serial = if (network in listOf(Network.Navigo, Network.Opus) && icc != null) {
+                val serial = if (network == Network.Lisboa) {
+                    "%03d %09d".format(java.util.Locale.ROOT, at(environment, 30, 8), at(environment, 38, 24))
+                } else if (network in listOf(Network.Navigo, Network.Opus) && icc != null) {
                     val value = at(icc, 128, 32)?.takeIf { it != 0L && it != 0xFFFFFFFFL } ?: at(icc, 0, 32)?.takeIf { it != 0L && it != 0xFFFFFFFFL }
                     value?.toString()
                 } else null
@@ -290,6 +313,9 @@ internal object CalypsoProtocol {
         return null
     }
     private val schemas = mapOf(
+        "envLisboa" to "_:13,country:12,_:5,prefix:8,serial:24,issued:14,expiry:14,_:15,_:32,_:95",
+        "contractLisboa" to "provider:7,product:16,_:2,start:14,_:5,_:19,units:16,end:14,period:7,_:38",
+        "eventLisboa" to "seconds:30,_:3,_:30,_:5,contracts:4,_:29,code:3,provider:5,vehicle:16,_:4,device:16,route:16,station:8,_:63",
         "env" to "version:6,[network:24,issuer:8,expiry:14,_:11,_:16,_:32,_:1]",
         "envRav" to "version:3,network:20,_:26,issued:14,expiry:14",
         "envMobibOld" to "version:6,_:7,network:24,_:9,expiry:14",

@@ -77,7 +77,9 @@ class TripReaderSourceTests(unittest.TestCase):
         else:
             self.assertTrue(payload["sources"])
         with contextlib.closing(sqlite3.connect(assets / "cardbal_transit.sqlite")) as connection:
-            rows = connection.execute("SELECT terminal_prefix, station_key, source_json FROM cityunion_terminal_prefixes").fetchall()
+            rows = connection.execute(
+                "SELECT terminal_prefix, station_key, source_json FROM cityunion_terminal_prefixes WHERE city_id='2000'"
+            ).fetchall()
             self.assertEqual(len(rows), 614)
             self.assertEqual(sum(key is not None for _, key, _ in rows), 577)
             for prefix, key, metadata in rows:
@@ -92,6 +94,35 @@ class TripReaderSourceTests(unittest.TestCase):
             self.assertEqual(connection.execute(
                 "SELECT station_name, station_key FROM cityunion_terminal_prefixes WHERE terminal_prefix = '2000110111'"
             ).fetchone(), ("莘庄", "290000010011"))
+
+    def test_report_review_keeps_terminal_and_city_names_separate_from_station_ids(self):
+        with contextlib.closing(sqlite3.connect(PORTABLE_OUTPUT / "cardbal_transit.sqlite")) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*), COUNT(station_key) FROM cityunion_terminal_prefixes WHERE city_id='5180'"
+            ).fetchone(), (284, 0))
+            for prefix, name, line in [
+                ("518068035", "后瑞", "1号线"),
+                ("518068007", "岗厦", "1号线"),
+                ("518040013", "岗厦", "10号线"),
+                ("518068008", "会展中心", "1号线"),
+            ]:
+                self.assertEqual(connection.execute(
+                    "SELECT station_name,line_name FROM cityunion_terminal_prefixes WHERE terminal_prefix=?", (prefix,)
+                ).fetchone(), (name, line))
+            self.assertEqual(connection.execute(
+                "SELECT COUNT(*) FROM station_identifiers WHERE namespace='cn.tunion.station_key' "
+                "AND code='584000000000000016'"
+            ).fetchone(), (0,))
+            self.assertEqual(connection.execute(
+                "SELECT i.display_name, i.city_id=j.city_id FROM city_identifiers i JOIN city_identifiers j "
+                "ON j.namespace='cn.tunion.city_code' AND j.code='9101' "
+                "WHERE i.namespace='cn.tunion.city_alias' AND i.code='0344'"
+            ).fetchone(), ("香港", 1))
+            self.assertEqual(connection.execute(
+                "SELECT i.city_id=j.city_id FROM city_identifiers i JOIN city_identifiers j "
+                "ON j.namespace='cn.tunion.city_code' AND j.code='2900' "
+                "WHERE i.namespace='cn.city_union.city_code' AND i.code='2000'"
+            ).fetchone(), (1,))
 
     def test_conflicting_station_keys_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "Conflicting station"):

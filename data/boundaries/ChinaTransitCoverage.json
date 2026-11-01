@@ -124,6 +124,12 @@
         "scope": "Every reviewed issuer-region code resolves to one non-stacked City boundary or, when no honest single-city parent exists, to Province only"
       }
     },
+    "stationReportReview": {
+      "reviewedAt": "2026-11-01",
+      "notes": "Observed TU travel city 0344 resolves to Hong Kong 9101. No MTR station-field mapping is inferred.",
+      "numericRegionRegistryURL": "https://unstats.un.org/unsd/methodology/m49/overview/",
+      "mtrAcceptanceURL": "https://cq.gov.cn/ywdt/bmts/202503/t20250331_14468183.html"
+    },
     "provinceGeometry": {
       "repository": "https://github.com/wmgeolab/geoBoundaries",
       "commit": "9469f09592ced973a3448cf66b6100b741b64c0d",
@@ -190,6 +196,7 @@
       "9046"
     ],
     "cityToProvince": {
+      "0344": "Hong Kong Special Administrative Region",
       "1000": "Beijing Municipality",
       "1001": "Beijing Municipality",
       "1121": "Tianjin Municipality",
@@ -622,6 +629,7 @@
       "9101": "Hong Kong Special Administrative Region"
     },
     "cityToBoundaryAlias": {
+      "0344": "9101",
       "1001": "1000",
       "1364": "1340",
       "1962": "1960",
@@ -688,6 +696,7 @@
       "8800"
     ],
     "cityCodeDisplayNames": {
+      "0344": "香港",
       "1001": "北京市",
       "1364": "雄安新区",
       "1600": "山西省",

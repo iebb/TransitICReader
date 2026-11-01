@@ -9,7 +9,8 @@ import SQLite3
 /// file `txSFI`, `txTUResult` a 48-byte T-Union SFI 0x1E travel record. CardBal
 /// replays those files through its own City Union and T-Union readers, so an
 /// imported card decodes and merges exactly like a scan. Other card families
-/// (Beijing, Shenzhen Tong, Lingnan Pass, Suzhou, Tianfu Tong) are skipped.
+/// (Beijing, Shenzhen Tong, Lingnan Pass, Suzhou, Tianfu Tong) are skipped:
+/// live-reader support does not establish this backup's family-specific schema.
 enum TripReaderBackup {
     struct Application {
         var file15: Data?

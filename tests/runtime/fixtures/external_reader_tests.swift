@@ -18,6 +18,7 @@ typealias ClipperDecoder = UnsupportedDecoder
 typealias ClipperUltralightDecoder = UnsupportedDecoder
 typealias MacauPassDecoder = UnsupportedDecoder
 typealias TianfuTongDecoder = UnsupportedDecoder
+typealias ChineseLocalDecoder = UnsupportedDecoder
 typealias WAONDecoder = UnsupportedDecoder
 typealias NanacoDecoder = UnsupportedDecoder
 typealias JapaneseICDecoder = UnsupportedDecoder

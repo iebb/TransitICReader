@@ -38,6 +38,9 @@ presentation logic.
 | Kartu Multi Trip / KMT (Indonesia, FeliCa generation) | FeliCa | FeliCa | Whole-IDR balance, optional printable card number, and raw history; history timestamps remain unresolved. |
 | China T-Union | ISO 7816 | ISO 7816 | PBOC transaction records plus travel records on both platforms. |
 | Local 天府通 CPU | ISO 7816 / CCID | Not implemented | CNY cash purse, purchase/top-up history and dated monthly ride allocations; [format review](tianfutong.md). |
+| Newer Shenzhen Tong / Wuhan Tong | ISO 7816 / CCID | ISO-DEP | Local CNY balance, serial/validity and PBOC purchase/top-up history. [Formats](china-local.md). |
+| Legacy Beijing Yikatong | External ISO 7816 / CCID | ISO-DEP | CNY balance and PBOC history. Short `OC` / `PBOC` names prevent built-in iPhone discovery. [Boundary](china-local.md#platform-boundary). |
+| Lisboa Viva / navegante Zapping | ISO 7816 / CCID | ISO-DEP | EUR Zapping counter, contract details and public entry/transfer/exit events; event amounts unavailable. [Format](lisboa-zapping.md). |
 | Named Calypso networks | ISO 7816 | ISO 7816 | Network-specific public contracts, counters and travel events. |
 | IruCa / PASPY / SAPICA / OKICA / Ryuto | FeliCa | FeliCa | Balance and their configured record services on both. |
 | CEPAS / NETS FlashPay / stored-value EZ-Link | ISO/MIFARE | ISO-DEP | SGD balance and records; no SimplyGo backend balance. |

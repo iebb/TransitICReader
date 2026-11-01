@@ -736,8 +736,9 @@ struct TUnionDecoder: TransitCardDecoder {
 
         let locationPrefix = TUnionCityDatabase.lookupCityName(for: cityID) ?? "City \(cityID)"
         let station = TUnionCityDatabase.lookupTravelStation(cityID: cityID, stationID: stationID, terminalID: terminalID)
-        let stationLabel = station?.name ?? "Station \(stationID)"
-        let resolvedStationKey = station?.stationKey ?? (station == nil ? cityID + stationID : nil)
+        let stationLabel = station?.name ?? (cityID == "5840" ? "Terminal \(terminalID)" : "Station \(stationID)")
+        let unresolvedCode = cityID == "5840" ? "TU:5840:1E:\(terminalID)" : cityID + stationID
+        let resolvedStationKey = station?.stationKey ?? (station == nil ? unresolvedCode : nil)
         let location = "\(locationPrefix) • \(stationLabel)"
         let amount = Decimal(Int(amountVal)) / 100
         let balance = Decimal(Int(balanceVal)) / 100
@@ -1004,14 +1005,31 @@ enum CityUnionStationDatabase {
         return result
     }()
 
-    static func cityName(_ code: String) -> String? { code == "2000" ? "上海市" : nil }
+    static func cityName(_ code: String) -> String? {
+        switch code {
+        case "2000": return "上海市"
+        case "5180": return "深圳市"
+        default: return nil
+        }
+    }
 
     static func lookup(terminalID: String, date: Date?) -> Station? {
         let terminal = terminalID.uppercased()
-        guard terminal.count == 12, terminal.allSatisfy(\.isHexDigit), terminal.hasPrefix("2000"),
-              let date, date.timeIntervalSince1970 >= 1_483_200_000 else { return nil }
+        guard terminal.count == 12, terminal.allSatisfy(\.isHexDigit) else { return nil }
+        let city = String(terminal.prefix(4))
+        guard cityName(city) != nil else { return nil }
         // Before 2017 some Shanghai buses reused metro terminal numbers.
-        return stations.first { terminal.hasPrefix($0.prefix) }
+        if city == "2000" {
+            guard let date, date.timeIntervalSince1970 >= 1_483_200_000 else { return nil }
+        }
+        return stations.first { $0.prefix.hasPrefix(city) && terminal.hasPrefix($0.prefix) }
+    }
+
+    static func shenzhenTravelTerminal(cityID: String, terminalID: String) -> String? {
+        let terminal = terminalID.uppercased()
+        guard cityID == "5840", terminal.count == 16, terminal.hasPrefix("00000002"),
+              terminal.allSatisfy(\.isHexDigit) else { return nil }
+        return "5180" + terminal.suffix(8)
     }
 }
 
@@ -1073,8 +1091,13 @@ struct TUnionCityDatabase {
         if let station = lookupTerminalStation(recordKind: "1e", terminalID: terminalID, cityID: cityID) {
             return station
         }
-        if terminalID.count == 16, terminalID.hasPrefix("0000") {
-            return lookupTerminalStation(recordKind: "18", terminalID: String(terminalID.suffix(12)), cityID: cityID)
+        if terminalID.count == 16, terminalID.hasPrefix("0000"),
+           let station = lookupTerminalStation(recordKind: "18", terminalID: String(terminalID.suffix(12)), cityID: cityID) {
+            return station
+        }
+        if let terminal = CityUnionStationDatabase.shenzhenTravelTerminal(cityID: cityID, terminalID: terminalID),
+           let station = CityUnionStationDatabase.lookup(terminalID: terminal, date: nil) {
+            return StationMatch(cityID: cityID, name: station.name, stationKey: station.stationKey)
         }
         return nil
     }
@@ -1147,7 +1170,7 @@ struct TUnionCityDatabase {
             guard names.updateValue(name, forKey: code) == nil else { return [:] }
             stepResult = sqlite3_step(statement)
         }
-        guard stepResult == SQLITE_DONE, names.count == 62 else { return [:] }
+        guard stepResult == SQLITE_DONE, names.count == 63 else { return [:] }
         return names
     }()
 

@@ -15,7 +15,7 @@ func data(_ hex: String) -> Data {
     let chars=Array(hex); return Data(stride(from:0,to:chars.count,by:2).map { UInt8(String(chars[$0...$0+1]),radix:16)! })
 }
 func network(_ name: String) -> CalypsoProtocol.Network {
-    switch name { case "intercode": return .intercode; case "navigo": return .navigo; case "opus": return .opus; case "mobib": return .mobib; case "ravKav": return .ravKav; default: return .generic }
+    switch name { case "intercode": return .intercode; case "navigo": return .navigo; case "opus": return .opus; case "mobib": return .mobib; case "lisboa": return .lisboa; case "ravKav": return .ravKav; default: return .generic }
 }
 let json=try JSONSerialization.jsonObject(with:Data(contentsOf:URL(fileURLWithPath:CommandLine.arguments[1]))) as! [String:Any]
 let environments=json["environments"] as! [String:String]
@@ -53,6 +53,9 @@ for item in json["histories"] as! [[String:Any]] {
         assert(event!.amountMinor == (item["amount"] as? NSNumber)?.int64Value,name)
         assert(event!.eventCode == item["code"] as? Int,name)
         assert(event!.currency == net.currency,name)
+        if let provider = item["provider"] as? String { assert(event!.operatorCode == provider,name) }
+        if let station = item["station"] as? String { assert(event!.stationCode == station,name) }
+        if let label = item["description"] as? String { assert(event!.description.contains(label),name) }
         validEnvelope=envelope
     }
 }
@@ -100,6 +103,19 @@ assert(!ticketResult!.fields.contains { $0.1.contains("Nice") || $0.1.contains("
 assert(read!.records.contains { $0.sfi==10 && $0.payload==Data(repeating:0,count:3) })
 assert(commands.contains { $0[1]==0xB2 && $0[3]==0x3C && $0.last==0 })
 assert(commands.allSatisfy { $0[1]==0xA4 || $0[1]==0xB2 })
+let lisbon=(json["contracts"] as! [[String:Any]]).first { $0["name"] as? String == "lisboa-contracts2-slot2" }!
+var lisbonFiles: [String:Data]=[:]
+for record in records(lisbon) { lisbonFiles["\(record.sfi)/\(record.number)"]=record.payload }
+lisbonFiles["7/1"]=data(environments["lisboa"]!)
+let lisbonResult=await CalypsoProtocol.read { command in
+    if command[1]==0xA4 { return (Data(),0x90,0) }
+    if command[1]==0xB2, let payload=lisbonFiles["\(command[3]>>3)/\(command[2])"] { return (payload,0x90,0) }
+    return (Data(),0x6A,0x82)
+}
+assert(lisbonResult?.balanceMinor==5000 && lisbonResult?.serial=="007 000123456")
+assert(lisbonResult?.balanceText=="EUR 50.00" && lisbonResult?.timeZone=="Europe/Lisbon")
+assert(lisbonResult!.fields.contains { $0.1=="Zapping" })
+assert(lisbonResult!.records.contains { $0.sfi==6 })
 let failed=await CalypsoProtocol.read { _ in (data(environments["navigo"]!),0x69,0x82) }
 assert(failed==nil)
 let empty=CalypsoProtocol.ReadResult(network:.opus,selectedAID:"315449432E494341",serial:"123",balanceMinor:nil,remainingTrips:nil,fields:[],records:[],contracts:[],rawHistories:[])

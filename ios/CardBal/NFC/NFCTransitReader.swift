@@ -414,7 +414,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [OctopusFeliCaDecoder.self] : [
                         CEPASDecoder.self, MacauPassDecoder.self, ClipperDecoder.self, ClipperUltralightDecoder.self,
-                        StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
+                        StoredValueDecoder.self, TianfuTongDecoder.self, ChineseLocalDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
                     ]
                 var snapshot: TransitCardSnapshot?

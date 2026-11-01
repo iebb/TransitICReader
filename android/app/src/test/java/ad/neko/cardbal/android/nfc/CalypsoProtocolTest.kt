@@ -52,6 +52,9 @@ class CalypsoProtocolTest {
                 assertEquals(c.getValue("amount").jsonPrimitive.longOrNull,event.amountMinor)
                 assertEquals(c.getValue("code").jsonPrimitive.intOrNull,event.eventCode)
                 assertEquals(net.currency,event.currency)
+                c["provider"]?.let { assertEquals(it.jsonPrimitive.content, event.operatorCode) }
+                c["station"]?.let { assertEquals(it.jsonPrimitive.content, event.stationCode) }
+                c["description"]?.let { assertTrue(event.description.contains(it.jsonPrimitive.content)) }
             }
         }
     }
@@ -103,6 +106,22 @@ class CalypsoProtocolTest {
         assertTrue(result.records.any { it.sfi==10 && it.payload.contentEquals(ByteArray(3)) })
         assertTrue(commands.any { it[1]==0xB2.toByte() && it[3]==0x3C.toByte() && it.last()==0.toByte() })
         assertTrue(commands.all { it[1]==0xA4.toByte() || it[1]==0xB2.toByte() })
+    }
+
+    @Test fun lisbonReadsSecondContractFileWithoutDroppingEmptySlots() {
+        val c=fixture.getValue("contracts").jsonArray.single { it.jsonObject.getValue("name").jsonPrimitive.content=="lisboa-contracts2-slot2" }.jsonObject
+        val files=records(c).associateBy { it.sfi to it.number } + ((7 to 1) to CalypsoProtocol.Record(7,1,environment("lisboa")))
+        val result=CalypsoProtocol.read { command ->
+            if (command[1]==0xA4.toByte()) success
+            else if (command[1]==0xB2.toByte()) files[((command[3].toInt() and 255) ushr 3) to (command[2].toInt() and 255)]?.payload?.plus(success) ?: missing
+            else missing
+        }!!
+        assertEquals(5000L, result.balanceMinor)
+        assertEquals("007 000123456", result.serial)
+        assertEquals("EUR 50.00", result.balanceText)
+        assertEquals("Europe/Lisbon", result.timeZone)
+        assertTrue(result.records.any { it.sfi==6 })
+        assertTrue(result.fields.any { it.second=="Zapping" })
     }
 
     @Test fun legacyTicketCounterWorksWithoutGuessingNiceBranding() {

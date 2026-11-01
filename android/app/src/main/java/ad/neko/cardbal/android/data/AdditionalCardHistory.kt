@@ -8,7 +8,7 @@ import ad.neko.cardbal.android.util.hexString
 import kotlinx.datetime.Instant
 
 internal object AdditionalCardHistory {
-    private val families=setOf("ez-link","nets flashpay","opal","hsl","waltti","clipper","calypso","lignes d'azur card","navigo","opus","mobib","rav-kav")
+    private val families=setOf("ez-link","nets flashpay","opal","hsl","waltti","clipper","calypso","lignes d'azur card","navigo","opus","mobib","rav-kav", "lisboa viva")
     fun handles(family:String)=family.lowercase() in families
     fun merge(records:List<String>):List<String> = CalypsoProtocol.mergeHistory(records).distinctBy { raw ->
         val b=raw.hexToBytes()
@@ -44,7 +44,9 @@ internal object AdditionalCardHistory {
         }
         val h=CalypsoProtocol.parseHistory(raw.hexToBytes())?.takeIf{it.network.family.lowercase()==name} ?: return null
         return TransitTransaction(date=h.timestampMillis?.let(Instant::fromEpochMilliseconds),amount=h.amountMinor ?: 0,
-            type=h.description,category=TransactionCategory.train,terminalID=h.operatorCode,
+            type=h.description,category=if(h.network==CalypsoProtocol.Network.Lisboa) when(h.eventCode) {
+                1->TransactionCategory.tapOn;4->TransactionCategory.tapOff;else->TransactionCategory.train
+            } else TransactionCategory.train,terminalID=h.operatorCode,
             location=listOfNotNull(h.routeCode?.let{"Route $it"},h.stationCode?.let{"Station code $it"}).joinToString(" · ").ifEmpty{null},
             rawData=raw,currencyCode=h.currency ?: "EUR",fractionDigits=2,issuerTimeZone=h.network.timeZone,
             amountIsSigned=true,amountKnown=h.amountMinor!=null,recordCounter=h.counter)

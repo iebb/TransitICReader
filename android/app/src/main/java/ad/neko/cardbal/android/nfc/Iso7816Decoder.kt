@@ -74,7 +74,14 @@ class Iso7816Decoder : TransitCardDecoder {
                     }
                 }
                 fields.add(ResultField("App Metadata",info.hexString()))
-                city?.let { fields.add(ResultField("Issuing City",if(it=="2000") "上海市" else it)) }
+                city?.let {
+                    val cityName=if(family=="City Union") ChineseCityCodes.cityUnionName(it) else null
+                    fields.add(ResultField("Issuing City",cityName ?: it))
+                    if(cityName!=null) {
+                        fields.removeAll { field -> field.title=="Brand" }
+                        fields.add(ResultField("Brand",cityName))
+                    }
+                }
             }
             // A file SELECT above changes the current DF. Always restore the application.
             if(IsoRecordReader.command(Iso7816Protocol.selectCommand(aid),exchange)==null) return null
@@ -98,7 +105,7 @@ class Iso7816Decoder : TransitCardDecoder {
         if(purse?.isClimate==true) fields.add(ResultField("Ticket Status","Unlimited pass; no stored-value balance"))
         val snapshot=TransitCardSnapshot(technology="ISO7816",cardFamily=resolvedFamily,identifierLabel="UID",identifierValue=uid.chunked(4).joinToString(" "),rawIdentifierValue=uid,
             selectedAID=aid,balanceText=balance,balanceDetail=if(purse?.isClimate==true) "Climate Card (Unlimited Pass)" else if(snapper!=null) "Snapper+ on-card purse (NZD cents)" else "$resolvedFamily on-card balance",
-            realSerialNumber=serial,resultFields=fields,
+            realSerialNumber=serial,region=if(family=="City Union") city?.let(ChineseCityCodes::cityUnionName) else null,resultFields=fields,
             rawSections=listOf(RawDataSection("Application",listOf(RawDataField("AID",aid),RawDataField("Select Response",select.hexString())))),
             rawTransactions=records.filter{it.kind=="transaction"}.map{it.hex},rawTransitHistory=records.filter{it.kind=="transit"}.map{it.hex},scannedAt=scannedAt)
         return if(currency=="CNY") snapshot.copy(applications=listOf(TransitApplication.from(snapshot,records,city))) else snapshot

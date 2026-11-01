@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        FB2E78A75C274D188FB45FBC /* ChineseLocalDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D29014F4D0B4EA08742D5E3 /* ChineseLocalDecoder.swift */; };
+        0965B199C24B4FE0823CA193 /* ChineseLocalProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECDDDA6837941559146B087 /* ChineseLocalProtocol.swift */; };
 		B17000000000000000000002 /* OctopusOnlineProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17000000000000000000001 /* OctopusOnlineProtocol.swift */; };
 		B17000000000000000000004 /* OctopusOnlineDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17000000000000000000003 /* OctopusOnlineDecoder.swift */; };
 		B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15000000000000000000001 /* TianfuTongDecoder.swift */; };
@@ -85,6 +87,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        8D29014F4D0B4EA08742D5E3 /* ChineseLocalDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChineseLocalDecoder.swift; sourceTree = "<group>"; };
+        DECDDDA6837941559146B087 /* ChineseLocalProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChineseLocalProtocol.swift; sourceTree = "<group>"; };
 		B17000000000000000000001 /* OctopusOnlineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OctopusOnlineProtocol.swift; sourceTree = "<group>"; };
 		B17000000000000000000003 /* OctopusOnlineDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OctopusOnlineDecoder.swift; sourceTree = "<group>"; };
 		B15000000000000000000001 /* TianfuTongDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TianfuTongDecoder.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 				B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */,
 				9BCF7E4C2068403798A4A14D /* StoredValueProtocol.swift */,
 				C20290B553C701A8BD665B22 /* CalypsoProtocol.swift */,
+                DECDDDA6837941559146B087 /* ChineseLocalProtocol.swift */,
 				1CDE4F7D2DC975F09118D5D3 /* CEPASProtocol.swift */,
 				28EF6BB41DA21BF325CCD29C /* AdditionalCardHistory.swift */,
 				228DB146941972BDD5D49908 /* RyutoCardFormat.swift */,
@@ -270,6 +275,7 @@
 				BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */,
 				24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */,
 				B15000000000000000000001 /* TianfuTongDecoder.swift */,
+                8D29014F4D0B4EA08742D5E3 /* ChineseLocalDecoder.swift */,
 				B15100000000000000000001 /* MacauPassDecoder.swift */,
 				B16000000000000000000003 /* ClipperUltralightDecoder.swift */,
 				B16000000000000000000001 /* ClipperDecoder.swift */,
@@ -507,6 +513,8 @@
 				E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */,
 				F6AAA3EB709AE4F7CDB6DF8A /* CEPASDecoder.swift in Sources */,
 				B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */,
+                FB2E78A75C274D188FB45FBC /* ChineseLocalDecoder.swift in Sources */,
+                0965B199C24B4FE0823CA193 /* ChineseLocalProtocol.swift in Sources */,
 				B15100000000000000000002 /* MacauPassDecoder.swift in Sources */,
 				B16000000000000000000008 /* ClipperTransitCatalog.swift in Sources */,
 				B16000000000000000000006 /* DESFireReader.swift in Sources */,

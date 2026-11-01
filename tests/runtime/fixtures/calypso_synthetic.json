@@ -5,7 +5,8 @@
     "opus": "042892000D5F0000000000000000000000000000000000000000000000",
     "mobib": "0C002B00082AF800000000000000000000000000000000000000000000",
     "ravKav": "26EC040000004E2157C000000000000000000000000000000000000000",
-    "intercode": "04292803255F0000000000000000000000000000000000000000000000"
+    "intercode": "04292803255F0000000000000000000000000000000000000000000000",
+    "lisboa": "000098801C0789027F3C20400000000000000000000000000000000000"
   },
   "contracts": [
     {
@@ -258,6 +259,132 @@
       "balance": null,
       "start": "2024-05-19",
       "end": "2024-05-29"
+    },
+    {
+      "name": "lisboa-zapping",
+      "network": "lisboa",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3F067052DC00000002134D4BC000000000000000000000000000000000"
+        },
+        {
+          "sfi": 25,
+          "number": 1,
+          "payload": "0004D2"
+        }
+      ],
+      "product": 33592,
+      "trips": null,
+      "balance": 1234,
+      "start": "2026-01-15",
+      "end": "2026-03-15"
+    },
+    {
+      "name": "lisboa-zero-own-counter",
+      "network": "lisboa",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3F067052DC00000002134D4BC000000000000000000000000000000000"
+        },
+        {
+          "sfi": 10,
+          "number": 1,
+          "payload": "000000"
+        }
+      ],
+      "product": 33592,
+      "trips": null,
+      "balance": 0,
+      "start": "2026-01-15",
+      "end": "2026-03-15"
+    },
+    {
+      "name": "lisboa-contracts2-slot2",
+      "network": "lisboa",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "0000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "sfi": 6,
+          "number": 1,
+          "payload": "3F067052DC00000002134D4BC000000000000000000000000000000000"
+        },
+        {
+          "sfi": 25,
+          "number": 1,
+          "payload": "000063001388"
+        }
+      ],
+      "product": 33592,
+      "trips": null,
+      "balance": 5000,
+      "start": "2026-01-15",
+      "end": "2026-03-15"
+    },
+    {
+      "name": "lisboa-missing-counter",
+      "network": "lisboa",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3F067052DC00000002134D4BC000000000000000000000000000000000"
+        }
+      ],
+      "product": 33592,
+      "trips": null,
+      "balance": null,
+      "start": "2026-01-15",
+      "end": "2026-03-15"
+    },
+    {
+      "name": "lisboa-wrong-provider",
+      "network": "lisboa",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3D067052DC00000002134D4BC000000000000000000000000000000000"
+        },
+        {
+          "sfi": 25,
+          "number": 1,
+          "payload": "0004D2"
+        }
+      ],
+      "product": 33592,
+      "trips": null,
+      "balance": null,
+      "start": "2026-01-15",
+      "end": "2026-03-15"
+    },
+    {
+      "name": "lisboa-pass-not-money",
+      "network": "lisboa",
+      "records": [
+        {
+          "sfi": 9,
+          "number": 1,
+          "payload": "3E071452DC00000002134D4BC000000000000000000000000000000000"
+        },
+        {
+          "sfi": 25,
+          "number": 1,
+          "payload": "0004D2"
+        }
+      ],
+      "product": 906,
+      "trips": null,
+      "balance": null,
+      "start": "2026-01-15",
+      "end": "2026-03-15"
     }
   ],
   "histories": [
@@ -325,6 +452,61 @@
       "name": "paris-dst-repeat",
       "network": "navigo",
       "payload": "AA244B0000000000000000000000000000000000000000000000000000",
+      "invalid": true
+    },
+    {
+      "name": "lisboa-winter-entry",
+      "network": "lisboa",
+      "payload": "DA7BF2C46D3DF8EA01000000011003D800E400039A0000000000000000",
+      "amount": null,
+      "code": 1,
+      "provider": "2",
+      "station": "13",
+      "description": "Entry",
+      "millis": 1768465841000
+    },
+    {
+      "name": "lisboa-summer-exit",
+      "network": "lisboa",
+      "payload": "DE38A3046F1C510A01000000041803D800E40003B18000000000000000",
+      "amount": null,
+      "code": 4,
+      "provider": "3",
+      "station": "99",
+      "description": "Exit",
+      "millis": 1784136625000
+    },
+    {
+      "name": "lisboa-transfer",
+      "network": "lisboa",
+      "payload": "DE38868C6F1C42CE01000000030803D800E40003860000000000000000",
+      "amount": null,
+      "code": 3,
+      "provider": "1",
+      "station": "12",
+      "description": "Transfer",
+      "millis": 1784134803000
+    },
+    {
+      "name": "lisboa-dst-skipped",
+      "network": "lisboa",
+      "payload": "DBFB5E606DFDAEB801000000011003D800E400039A0000000000000000",
+      "amount": null,
+      "code": 1,
+      "provider": "2",
+      "station": "13",
+      "description": "Entry",
+      "invalid": true
+    },
+    {
+      "name": "lisboa-dst-repeated",
+      "network": "lisboa",
+      "payload": "E04ECA60702764B801000000011003D800E400039A0000000000000000",
+      "amount": null,
+      "code": 1,
+      "provider": "2",
+      "station": "13",
+      "description": "Entry",
       "invalid": true
     }
   ]

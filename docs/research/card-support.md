@@ -1,5 +1,9 @@
 # Additional card support research
 
+The [2026-11-01 balance-only follow-up](other-balance-readers.md) records the
+China/Lisbon implementation, remaining platform gaps and candidates found in
+other iOS/Android reader projects. It supersedes the ranked historical list here.
+
 The [2026-10-31 platform matrix](platform-parity.md) records the implemented
 readers, decoded fields and generation limits. The ranked candidates below are
 the initial research snapshot; Snapper+, KMT, CEPAS, DESFire and named Calypso

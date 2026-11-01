@@ -2,7 +2,7 @@ import Foundation
 
 /// Routes each public on-card envelope to its own codec before generic ISO/FeliCa decoding.
 enum AdditionalCardHistory {
-    static let families: Set<String> = ["ez-link", "ezlink", "ez-link (cepas)", "nets flashpay", "opal", "hsl", "waltti", "clipper", "calypso", "lignes d'azur card", "navigo", "opus", "mobib", "rav-kav"]
+    static let families: Set<String> = ["ez-link", "ezlink", "ez-link (cepas)", "nets flashpay", "opal", "hsl", "waltti", "clipper", "calypso", "lignes d'azur card", "navigo", "opus", "mobib", "rav-kav", "lisboa viva"]
     static func handles(_ family: String) -> Bool { families.contains(family.lowercased()) }
     static func merge(_ records: [String]) -> [String] {
         var seen = Set<String>()
@@ -50,7 +50,7 @@ enum AdditionalCardHistory {
         guard let history = CalypsoProtocol.parseHistory(Data(hexString: raw)), history.network.family.lowercased() == normalized else { return nil }
         return transaction(raw: raw, date: history.timestamp, amount: history.amountMinor, balance: nil,
                            currency: history.currency ?? "EUR", zone: history.network.timeZone,
-                           label: history.description, category: .train, terminal: history.operatorCode,
+                           label: history.description, category: history.network == .lisboa ? (history.eventCode == 1 ? .tapOn : history.eventCode == 4 ? .tapOff : .train) : .train, terminal: history.operatorCode,
                            location: [history.routeCode.map { "Route \($0)" }, history.stationCode.map { "Station code \($0)" }].compactMap { $0 }.joined(separator: " · "),
                            counter: history.counter.map(Int.init))
     }

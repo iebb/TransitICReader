@@ -7,17 +7,17 @@ import Foundation
 /// Square schema groups carry LSB-first presence bits, not fixed offsets.
 enum CalypsoProtocol {
     enum Network: UInt8, CaseIterable {
-        case generic = 0, intercode, navigo, opus, mobib, ravKav
+        case generic = 0, intercode, navigo, opus, mobib, ravKav, lisboa
         var family: String {
             switch self { case .generic: return "Calypso"; case .intercode: return "Calypso"
-            case .navigo: return "Navigo"; case .opus: return "OPUS"; case .mobib: return "MOBIB"; case .ravKav: return "Rav-Kav" }
+            case .lisboa: return "Lisboa Viva"; case .navigo: return "Navigo"; case .opus: return "OPUS"; case .mobib: return "MOBIB"; case .ravKav: return "Rav-Kav" }
         }
         var currency: String? {
             switch self { case .generic: return nil; case .opus: return "CAD"; case .ravKav: return "ILS"; default: return "EUR" }
         }
         var timeZone: String {
             switch self { case .generic: return "UTC"; case .opus: return "America/Toronto"; case .ravKav: return "Asia/Jerusalem"
-            case .mobib: return "Europe/Brussels"; default: return "Europe/Paris" }
+            case .lisboa: return "Europe/Lisbon"; case .mobib: return "Europe/Brussels"; default: return "Europe/Paris" }
         }
     }
     struct Record { let sfi: Int; let number: Int; let payload: Data }
@@ -109,6 +109,7 @@ enum CalypsoProtocol {
     }
     static func identify(_ environment: Data) -> Network {
         guard environment.count == 29, !environment.allSatisfy({ $0 == 0 || $0 == 255 }) else { return .generic }
+        if at(environment, 13, 12) == 0x131, parse(environment, "envLisboa") != nil { return .lisboa }
         let rav = at(environment, 3, 20)
         if rav == 0x37602 || rav == 0x37603 { return parse(environment, "envRav") != nil ? .ravKav : .generic }
         let id = at(environment, 13, 24)
@@ -174,6 +175,19 @@ enum CalypsoProtocol {
               record.payload.count == 29, !record.payload.allSatisfy({ $0 == 0 }), let version = at(record.payload, 0, 6) else { return nil }
         if record.sfi == 29, ![.intercode, .navigo].contains(network) { return nil }
         if record.sfi == 23, network != .mobib { return nil }
+        if network == .lisboa {
+            guard record.sfi == 8, let values = parse(record.payload, "eventLisboa"),
+                  let seconds = values["seconds"], (1...0x3FFFFFFE).contains(seconds),
+                  let minute = timestamp(seconds / 86400, (seconds % 86400) / 60, network.timeZone) else { return nil }
+            let code = Int(values["code"] ?? 0); let provider = values["provider"] ?? 0
+            let label = code == 1 ? "Entry" : code == 3 ? "Transfer" : code == 4 ? "Exit" : "Travel event"
+            let agency = [Int64(1): "Carris", 2: "Metro", 3: "CP"][provider]
+            let station = values["station"].map { provider == 2 ? $0 >> 2 : $0 }
+            return History(network: network, timestamp: minute.addingTimeInterval(Double(seconds % 60)), amountMinor: nil,
+                currency: "EUR", description: agency.map { "\($0) · \(label)" } ?? label,
+                operatorCode: String(provider), routeCode: values["route"].map(String.init), stationCode: station.map(String.init),
+                eventCode: code, resultCode: nil, counter: nil)
+        }
         let layout: String
         switch network {
         case .opus: layout = "eventOpus"
@@ -223,10 +237,12 @@ enum CalypsoProtocol {
     static func contracts(network: Network, records: [Record]) -> [Contract] {
         guard network != .generic else { return [] }
         let types = contractTypes(network, records.first(where: { $0.sfi == 30 && $0.number == 1 })?.payload)
-        return records.filter { $0.sfi == 9 && $0.payload.count == 29 && !$0.payload.allSatisfy({ $0 == 0 }) && !$0.payload.allSatisfy({ $0 == 255 }) }.compactMap { record in
+        let firstSlots = records.filter { $0.sfi == 9 }.map(\.number).max() ?? 0
+        return records.filter { ($0.sfi == 9 || (network == .lisboa && $0.sfi == 6)) && $0.payload.count == 29 && !$0.payload.allSatisfy({ $0 == 0 }) && !$0.payload.allSatisfy({ $0 == 255 }) }.compactMap { record in
             guard let version = at(record.payload, 0, 6) else { return nil }
             let layout: String
             switch network {
+            case .lisboa: layout = "contractLisboa"
             case .opus: layout = "contractOpus"
             case .ravKav: layout = "contractRav"
             case .mobib:
@@ -236,7 +252,8 @@ enum CalypsoProtocol {
             }
             guard let values = parse(record.payload, layout), let product = values["product"], product != 0 else { return nil }
             if let id = values["network"], (network == .intercode && id >> 12 != 0x250) || (network == .navigo && id != 0x250901) { return nil }
-            let count = counter(records, record.number)
+            let slot = record.number + (record.sfi == 6 ? firstSlots : 0)
+            let count = network == .lisboa && slot > 4 ? nil : counter(records, slot)
             let remaining: Int64?
             switch network {
             case .opus: remaining = (values["end"] ?? 0) == 0 ? count : nil
@@ -249,23 +266,26 @@ enum CalypsoProtocol {
                 else { remaining = nil }
             default: remaining = nil
             }
-            let money = network == .ravKav && (product >> 6) & 7 == 3 ? count : nil
+            let money = (network == .ravKav && (product >> 6) & 7 == 3) ||
+                (network == .lisboa && product == 33592 && values["provider"] == 31) ? count : nil
             let start = dayString(values["start"]); let end = dayString(values["end"])
             if let start, let end, start > end { return nil }
-            return Contract(slot: record.number, productCode: product, providerCode: values["provider"], serialNumber: values["serial"].map(String.init), soldAt: dayString(values["sale"]), validFrom: start,
+            return Contract(slot: slot, productCode: product, providerCode: values["provider"], serialNumber: values["serial"].map(String.init), soldAt: dayString(values["sale"]), validFrom: start,
                 validUntil: end, counter: count, remainingTrips: remaining, balanceMinor: money, currency: network.currency)
         }
     }
     private static func fields(_ network: Network, _ records: [Record], _ contracts: [Contract]) -> [(String, String)] {
         var output = [("Network", network.family)]
+        if let currency = network.currency { output.append(("Currency", currency)) }
         if let env = records.first(where: { $0.sfi == 7 && $0.number == 1 })?.payload, network != .generic {
-            let layout = network == .ravKav ? "envRav" : (network == .mobib ? ((at(env, 0, 6) ?? 63) <= 2 ? "envMobibOld" : "envMobibNew") : "env")
+            let layout = network == .lisboa ? "envLisboa" : network == .ravKav ? "envRav" : (network == .mobib ? ((at(env, 0, 6) ?? 63) <= 2 ? "envMobibOld" : "envMobibNew") : "env")
             if let expiry = dayString(parse(env, layout)?["expiry"]) { output.append(("Card Valid Until", expiry)) }
         }
         for c in contracts {
             let p = "Contract \(c.slot)"
             if let product = c.productCode { output.append((p + " Product", String(product)))
                 if network == .intercode { output.append(("Ticket", "Product \(product)")) }
+                if network == .lisboa && product == 33592 && c.providerCode == 31 { output.append(("Ticket", "Zapping")) }
             }
             if let value = c.providerCode { output.append((p + " Provider Code", String(value))) }
             if let value = c.serialNumber { output.append((p + " Serial Number", value)) }
@@ -310,7 +330,7 @@ enum CalypsoProtocol {
                 _ = await response(Data([cla, 0xA4, 8, 0, 2, 0x20, 0]), exchange: exchange)
                 func read(_ sfi: Int, _ number: Int) async -> Data? {
                     if let data = await response(Data([cla, 0xB2, UInt8(number), UInt8((sfi << 3) | 4), 0x1D]), exchange: exchange) { return data }
-                    let files = [2: 0x0002, 7: 0x2001, 8: 0x2010, 9: 0x2020, 10: 0x202A, 11: 0x202B, 12: 0x202C, 13: 0x202D, 25: 0x2069, 29: 0x2040, 30: 0x2050]
+                    let files = [6: 0x2030, 2: 0x0002, 7: 0x2001, 8: 0x2010, 9: 0x2020, 10: 0x202A, 11: 0x202B, 12: 0x202C, 13: 0x202D, 25: 0x2069, 29: 0x2040, 30: 0x2050]
                     guard let file = files[sfi] else { return nil }
                     let path = (sfi == 2 ? Data() : Data([0x20, 0])) + Data([UInt8(file >> 8), UInt8(file & 255)])
                     guard await response(Data([cla, 0xA4, 8, 0, UInt8(path.count)]) + path, exchange: exchange) != nil else { return nil }
@@ -319,12 +339,12 @@ enum CalypsoProtocol {
                 guard let env = await read(7, 1), env.count == 29, !env.allSatisfy({ $0 == 0 || $0 == 255 }) else { continue }
                 let network = identify(env)
                 var records = [Record(sfi: 7, number: 1, payload: env)]
-                let targets = [(2, 1), (8, 16), (9, 8), (10, 1), (11, 1), (12, 1), (13, 1), (25, 1), (29, 4), (30, 1)] + (network == .mobib ? [(23,16)] : [])
+                let targets = [(2, 1), (8, 16), (9, 8), (10, 1), (11, 1), (12, 1), (13, 1), (25, 1), (29, 4), (30, 1)] + (network == .mobib ? [(23,16)] : []) + (network == .lisboa ? [(6,8)] : [])
                 for (sfi, maximum) in targets {
                     progress(sfi)
                     for number in 1...maximum {
                         guard let data = await read(sfi, number), (1...256).contains(data.count),
-                              (!data.allSatisfy({ $0 == 0 }) || [10,11,12,13,25].contains(sfi)), !data.allSatisfy({ $0 == 255 }) else { break }
+                              (!data.allSatisfy({ $0 == 0 }) || [10,11,12,13,25].contains(sfi) || (network == .lisboa && [6,9].contains(sfi))), !data.allSatisfy({ $0 == 255 }) else { break }
                         records.append(Record(sfi: sfi, number: number, payload: data))
                     }
                 }
@@ -335,6 +355,9 @@ enum CalypsoProtocol {
                 if [.navigo, .opus].contains(network), let icc = records.first(where: { $0.sfi == 2 && $0.number == 1 })?.payload {
                     if let value = at(icc, 128, 32), value != 0 && value != 0xFFFFFFFF { serial = String(value) }
                     else if let value = at(icc, 0, 32), value != 0 && value != 0xFFFFFFFF { serial = String(value) }
+                }
+                if network == .lisboa, let prefix = at(env, 30, 8), let value = at(env, 38, 24) {
+                    serial = String(format: "%03d %09d", Int(prefix), Int(value))
                 }
                 return ReadResult(network: network, selectedAID: aid, serial: serial, balanceMinor: balances.count == 1 ? balances[0] : nil,
                     remainingTrips: remaining.first(where: { $0 > 0 }) ?? remaining.first, fields: fields(network, records, contracts),
@@ -357,6 +380,9 @@ enum CalypsoProtocol {
         return formatter.string(from: NSDecimalNumber(decimal: Decimal(minor) / 100)) ?? "Unavailable"
     }
     private static let schemas: [String: String] = [
+        "envLisboa": "_:13,country:12,_:5,prefix:8,serial:24,issued:14,expiry:14,_:15,_:32,_:95",
+        "contractLisboa": "provider:7,product:16,_:2,start:14,_:5,_:19,units:16,end:14,period:7,_:38",
+        "eventLisboa": "seconds:30,_:3,_:30,_:5,contracts:4,_:29,code:3,provider:5,vehicle:16,_:4,device:16,route:16,station:8,_:63",
         "env": "version:6,[network:24,issuer:8,expiry:14,_:11,_:16,_:32,_:1]",
         "envRav": "version:3,network:20,_:26,issued:14,expiry:14",
         "envMobibOld": "version:6,_:7,network:24,_:9,expiry:14",

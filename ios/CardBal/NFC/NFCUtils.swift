@@ -29,7 +29,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case octopus
     case ezlink, netsFlashPay
     case clipper, macauPass
-    case tUnion, tianfuTong
+    case tUnion, tianfuTong, shenzhenTong, wuhanTong, beijingYikatong
     case snapperPlus, kmt
     case other
     public var region: ICCardRegion {
@@ -41,7 +41,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .ezlink, .netsFlashPay: return .singapore
         case .clipper: return .usa
         case .macauPass: return .macau
-        case .tUnion, .tianfuTong: return .china
+        case .tUnion, .tianfuTong, .shenzhenTong, .wuhanTong, .beijingYikatong: return .china
         case .snapperPlus: return .newZealand
         case .kmt: return .indonesia
         case .other: return .other
@@ -96,6 +96,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "snapper+": .snapperPlus, "snapper plus": .snapperPlus,
             "kmt": .kmt, "kartu multi trip": .kmt,
             "t-union": .tUnion, "china t-union": .tUnion, "city union": .tUnion,
+            "shenzhen tong": .shenzhenTong, "wuhan tong": .wuhanTong, "beijing yikatong": .beijingYikatong,
             "天府通": .tianfuTong, "tianfu tong": .tianfuTong, "tianfutong": .tianfuTong
         ]
         
@@ -282,6 +283,9 @@ struct TransactionDecoderRegistry {
         if brand == .macauPass {
             return technology == "ISO7816" && kind == .transactions
                 ? MacauPassDecoder.decodeTransaction(data) : nil
+        }
+        if [.shenzhenTong, .wuhanTong, .beijingYikatong].contains(brand) {
+            return technology == "ISO7816" && kind == .transactions ? ChineseLocalDecoder.decodeRecord(data: data) : nil
         }
         if brand == .tianfuTong {
             return technology == "ISO7816" && kind == .transactions

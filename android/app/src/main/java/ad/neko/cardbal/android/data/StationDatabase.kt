@@ -126,6 +126,19 @@ class StationDatabase private constructor(private val context: Context) {
     }
 
     data class ChineseLocation(val name:String,val key:String?,val type:String?)
+    fun tUnionCityName(code: String): String? {
+        unifiedDb.rawQuery("""
+            SELECT COALESCE(i.display_name, c.native_name) FROM city_identifiers i
+            JOIN cities c ON c.id=i.city_id
+            WHERE i.namespace IN ('cn.tunion.city_code','cn.tunion.city_alias') AND i.code=?
+            UNION ALL
+            SELECT i.display_name FROM province_identifiers i
+            WHERE i.namespace='cn.tunion.province_only_city_code' AND i.code=?
+        """.trimIndent(), arrayOf(code, code)).use {
+            return if(it.moveToFirst()) it.getString(0) else null
+        }
+    }
+
     fun tUnionLocation(code:String):ChineseLocation? {
         val normalized=normalizeCode(code) ?: return null
         tUnionDb.rawQuery("SELECT COALESCE(display_name,station_name),station_key,source_type FROM tunion_stations WHERE station_key=? OR ? LIKE station_key || '%' ORDER BY length(station_key) DESC LIMIT 1",arrayOf(normalized,normalized)).use {
@@ -142,10 +155,25 @@ class StationDatabase private constructor(private val context: Context) {
     }
 
     fun cityUnionTerminal(terminal: String, date: kotlinx.datetime.Instant?): ChineseLocation? {
-        if(terminal.length!=12 || !terminal.startsWith("2000") || date==null || date.epochSeconds<1483200000) return null
-        unifiedDb.rawQuery("SELECT station_name,station_key,station_type FROM cityunion_terminal_prefixes WHERE ? LIKE terminal_prefix || '%' ORDER BY length(terminal_prefix) DESC LIMIT 1",arrayOf(terminal)).use {
+        val normalized = terminal.uppercase()
+        if(normalized.length!=12 || normalized.any { it !in "0123456789ABCDEF" }) return null
+        val city = normalized.take(4)
+        if(ChineseCityCodes.cityUnionName(city)==null) return null
+        // Before 2017 some Shanghai buses reused metro terminal numbers.
+        if(city=="2000" && (date==null || date.epochSeconds<1483200000)) return null
+        unifiedDb.rawQuery("SELECT station_name,station_key,station_type FROM cityunion_terminal_prefixes WHERE city_id=? AND ? LIKE terminal_prefix || '%' ORDER BY length(terminal_prefix) DESC LIMIT 1",arrayOf(city,normalized)).use {
             return if(it.moveToFirst()) ChineseLocation(it.getString(0),it.getString(1),it.getString(2)) else null
         }
+    }
+
+    fun tUnionTravel(city: String, station: String, terminal: String): ChineseLocation? {
+        tUnionLocation(city + station)?.let { return it }
+        tUnionTerminal("1e", terminal, city)?.let { return it }
+        if(terminal.length==16 && terminal.startsWith("0000")) {
+            tUnionTerminal("18", terminal.takeLast(12), city)?.let { return it }
+        }
+        val shenzhenTerminal = ChineseCityCodes.shenzhenTravelTerminal(city, terminal) ?: return null
+        return cityUnionTerminal(shenzhenTerminal, null)
     }
 
     private fun findJapaneseStationByStationCode(stationCode: String): StationPoint? {

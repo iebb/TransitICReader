@@ -1549,16 +1549,21 @@ def validate_database(connection: sqlite3.Connection) -> None:
             WHERE s.country_code = 'CN'
                 AND i.namespace NOT IN ('cn.tunion.station_key', 'cn.cityunion.terminal_prefix')
         """,
-        "invalid Shanghai City Union mappings": """
+        "invalid City Union terminal mappings": """
             SELECT COUNT(*) FROM cityunion_terminal_prefixes t
-            WHERE t.city_id <> '2000' OR t.terminal_prefix NOT LIKE '2000%'
-                OR length(t.terminal_prefix) NOT IN (8, 10, 12)
+            WHERE NOT (
+                    (t.city_id = '2000' AND t.terminal_prefix LIKE '2000%'
+                        AND length(t.terminal_prefix) IN (8, 10, 12))
+                    OR (t.city_id = '5180' AND t.terminal_prefix LIKE '5180%'
+                        AND length(t.terminal_prefix) = 9)
+                )
                 OR t.terminal_prefix GLOB '*[^0-9A-F]*'
                 OR t.station_name = ''
                 OR (t.station_key IS NOT NULL AND NOT EXISTS (
                     SELECT 1 FROM station_identifiers i
                     WHERE i.namespace = 'cn.tunion.station_key'
-                        AND i.code = t.station_key AND i.code LIKE '2900%'
+                        AND i.code = t.station_key
+                        AND i.code LIKE CASE t.city_id WHEN '2000' THEN '2900%' WHEN '5180' THEN '5840%' END
                 ))
         """,
         "invalid China terminal station mappings": """

@@ -10,7 +10,7 @@ physical-card test.
 
 A follow-up [Shanghai dual-application review](../decoding/shanghai.md)
 compares City Union and T-Union selection, balances, history reconciliation,
-and the separate Shanghai CU station mappings, now integrated in the iOS reader.
+and the separate Shanghai CU station mappings, integrated on iOS and Android.
 
 ## Integrated coverage
 
@@ -89,6 +89,49 @@ as `cn.cityunion.terminal_prefix`. The remaining 37 retain names and provenance
 without fabricated coordinates. These are additional identifiers, not 614 new
 physical stations. Both portable and iOS databases retain every source row.
 
+## Chinese station-report review, 2026-11-01
+
+The report-led follow-up adds **284 Shenzhen station terminal prefixes** from
+public `Guangdong/Shenzhen/cu.csv` at the same pinned revision. CU city `5180`
+is Shenzhen; TU city `5840` is Shenzhen. The City Union table now contains
+**898** rows: 614 Shanghai and 284 Shenzhen. Thirty broader line/operator
+prefixes from Shenzhen are excluded. No coordinates or TU station links are
+inferred for the new rows.
+
+Shenzhen metro uses the terminal field in CU file `18` and TU file `1E`, as
+documented in the public Shenzhen README. For TU travel city `5840`, an
+eight-byte terminal starting `00000002` resolves through the CU table using
+`5180` plus the terminal's final four bytes. Prefix matching runs only after
+the city and discriminator are verified. Other cities retain their exact
+terminal rules. Both iOS and Android use this lookup.
+
+The reported station-field key `584000000000000016` was associated with both
+后瑞 and 岗厦, so its earlier 后瑞 alias is removed. Unknown Shenzhen trips
+now display and report their terminal as `TU:5840:1E:<terminal>` rather than
+presenting the seven-byte field as a station identifier. The two previously
+reviewed Chengdu aliases remain; the station-key table now has 5,715 rows.
+
+Observed TU travel city `0344` resolves to 香港 and the existing `9101` city
+boundary. No MTR station code is inferred from a single report. City Union
+`2000` continues to resolve to 上海市, including Android's card title, region
+and transaction location when no station is known. The Shanghai pre-2017
+terminal ambiguity guard is retained. Existing Android cards also resolve
+the title from saved CU city metadata; custom titles take precedence.
+
+See [the report review](../research/station-reports-2026-11-01.md) for evidence
+and deferrals. The authoritative CSV contribution is published in
+`iebb/card-stations` at `a8e923c85ab61135640ae7a13d52055cbe578c67`
+and pinned by CardBal. Normal builds include the reviewed mappings:
+
+```sh
+python3 -m tools.stations.build --source csv --target all
+./android/gradlew -p android :app:assembleDebug
+```
+
+Xcode and Gradle regenerate their assets from this pin. For future CSV
+contributions, use `--csv-source` or `CARDBAL_STATIONS_SOURCE` to select a
+local checkout explicitly.
+
 ## Attribution
 
 Published CSV data is by **Domosekai Limited and the Trip Reader data
@@ -158,8 +201,10 @@ appearance and wallet place; each application keeps its newer reading, so an
 older backup adds history without rolling back a balance. On iOS a file import
 also restores a previously deleted card. The backup has no UID: a UID from an
 earlier scan is kept. Beijing, Shenzhen Tong, Lingnan Pass, Suzhou and Tianfu
-Tong cards, and cards without a readable serial, are counted as skipped. Trip
-Reader's titles, comments, colors and trip annotations are not imported.
+Tong cards, and cards without a readable serial, are counted as skipped.
+This remains a backup-schema boundary even where CardBal now has live NFC
+readers, including Shenzhen/Beijing and the iOS Tianfu Tong reader.
+Trip Reader's titles, comments, colors and trip annotations are not imported.
 
 `tests/runtime/test_tripreader_backup.py` builds a synthetic WAL backup with
 this schema and imports it through the production iOS readers and wallet merge;

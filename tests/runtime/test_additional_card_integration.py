@@ -43,6 +43,9 @@ enum KSX6924Decoder {
 }
 enum NAMANEDecoder { static func parseNAMANELog(_ data: Data, sfi: Int, recordIndex: Int, isNAMANE: Bool, logger: Logger) -> TransitTransaction? { fatalError("Korean fallback used") } }
 '''
+        china = (ROOT / "ios/CardBal/NFC/Decoders/ChineseLocalDecoder.swift").read_text()
+        china_history = re.search(r"    static func decodeRecord\(.*?^    }", china, re.M | re.S).group()
+        stubs += "enum ChineseLocalDecoder {\n" + china_history + "\n}\n"
         main = r'''
 precondition(ICCardBrand.from(family: "Snapper+") == .snapperPlus)
 precondition(ICCardBrand.from(family: "Kartu Multi Trip") == .kmt)
@@ -125,15 +128,32 @@ for kind: UInt8 in [0xF0, 0x05] {
     precondition(event.amount == 0 && event.category == .adjustment && event.entryStationCode == nil)
 }
 
+for family in ["Shenzhen Tong", "Wuhan Tong", "Beijing Yikatong"] {
+    let raw = "0123000000000000FA0901020304050620260715083041"
+    let tx = TransactionDecoderRegistry.decode(raw: raw, family: family, technology: "ISO7816", context: [raw], at: 0)!
+    precondition(tx.amount == Decimal(string: "-2.50") && tx.amountKnown && tx.currencyCode == "CNY")
+    precondition(tx.time == "08:30:41" && tx.issuerTimeZone == "Asia/Shanghai")
+    precondition(tx.entryStationCode == nil && tx.exitStationCode == nil)
+    precondition(WalletCountryVisibility.countryCodes(cardFamilies: [family]) == ["CN"])
+    precondition(TransactionDecoderRegistry.decode(raw: raw, family: family, technology: "ISO7816", context: [raw], at: 0, kind: .transit) == nil)
+}
+let lisboaFixture = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: "__LISBOA_FIXTURE__"))) as! [String:Any]
+let lisboaEvent = (lisboaFixture["histories"] as! [[String:Any]]).first { $0["name"] as? String == "lisboa-winter-entry" }!
+let lisboaRaw = CalypsoProtocol.encodeRecord(network: .lisboa, record: .init(sfi: 8, number: 1, payload: Data(hexString: lisboaEvent["payload"] as! String)))!.hexString
+let lisboaTx = TransactionDecoderRegistry.decode(raw: lisboaRaw, family: "Lisboa Viva", technology: "ISO7816", context: [lisboaRaw], at: 0)!
+precondition(lisboaTx.category == .tapOn && lisboaTx.currencyCode == "EUR" && lisboaTx.issuerTimeZone == "Europe/Lisbon")
+precondition(!lisboaTx.amountKnown && lisboaTx.time == "08:30:41" && lisboaTx.type.contains("Metro"))
+precondition(lisboaTx.entryStationCode == nil && lisboaTx.exitStationCode == nil)
 print("PASS new-card production integration")
 '''
+        main = main.replace("__LISBOA_FIXTURE__", str(ROOT / "tests/runtime/fixtures/calypso_synthetic.json"))
         with tempfile.TemporaryDirectory(prefix="cardbal-additional-") as directory:
             directory = Path(directory)
             program = directory / "main.swift"
             program.write_text(stubs + brands + models + registry + data + digits + "\nclass Wallet {\n" + merge + "\n}\n" + main)
             shutil.copy2(ROOT / "data/stations/SingaporeTransit.json", directory / "SingaporeTransit.json")
             binary = directory / "test"
-            build = subprocess.run(["swiftc", str(program), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), str(ROOT / "ios/CardBal/Utils/DateFormatting.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
+            build = subprocess.run(["swiftc", str(program), str(ROOT / "ios/CardBal/Helpers/SingaporeTransitCatalog.swift"), str(ROOT / "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift"), str(ROOT / "ios/CardBal/Utils/DateFormatting.swift"), *[str(ROOT / "ios/CardBal/NFC/Profiles" / name) for name in ["AdditionalCardHistory.swift", "CEPASProtocol.swift", "CalypsoProtocol.swift", "StoredValueProtocol.swift", "ChineseLocalProtocol.swift"]], "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             result = subprocess.run([str(binary)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

@@ -17,7 +17,7 @@ from tools.paths import ROOT
 class TUnionStationRuntimeTests(unittest.TestCase):
     def test_exact_terminal_fallbacks_and_station_prefix_precedence(self):
         source = (ROOT / "ios/CardBal/NFC/Decoders/TUnionDecoder.swift").read_text()
-        catalog = source[source.index("struct TUnionCityDatabase {"):].replace("Bundle.main.url(", "resourceURL(")
+        catalog = source[source.index("enum CityUnionStationDatabase {"):].replace("Bundle.main.url(", "resourceURL(")
         methods = []
         for name in ("decodePBOC", "decodeTravelRecord", "decodePBOCType", "decodeTravelType", "formatBCDTime"):
             match = re.search(r"^    (?:private )?static func " + name + r"\(.*?^    }", source, re.M | re.S)
@@ -78,6 +78,20 @@ let priority = TUnionCityDatabase.lookupTravelStation(cityID: "3320", stationID:
 check(priority?.name == "高桥西", "Terminal overrode exact station prefix")
 check(TUnionCityDatabase.lookupTravelStation(cityID: "3310", stationID: "FFFFFFFFFFFFFF", terminalID: "0000413101784816")?.name == "市民中心", "Padded PBOC terminal fallback")
 check(TUnionCityDatabase.lookupTravelStation(cityID: "3310", stationID: "FFFFFFFFFFFFFF", terminalID: "FFFF413101784816") == nil, "Nonzero terminal prefix truncated")
+check(CityUnionStationDatabase.cityName("2000") == "上海市", "CU city 2000 must be Shanghai")
+check(CityUnionStationDatabase.cityName("5180") == "深圳市", "CU Shenzhen city differs from TU 5840")
+check(CityUnionStationDatabase.lookup(terminalID: "200011011101", date: nil) == nil, "Undated Shanghai CU terminal guessed")
+check(CityUnionStationDatabase.lookup(terminalID: "200011011101", date: Date(timeIntervalSince1970: 1_000_000_000)) == nil, "Pre-2017 Shanghai CU terminal guessed")
+check(CityUnionStationDatabase.lookup(terminalID: "200011011101", date: Date(timeIntervalSince1970: 1_800_000_000))?.name == "莘庄", "Shanghai prefix lookup regressed")
+let shenzhen = TUnionCityDatabase.lookupTravelStation(cityID: "5840", stationID: "00000000000016", terminalID: "0000000268035001")
+check(shenzhen?.name == "后瑞" && shenzhen?.stationKey == nil, "Shenzhen terminal lookup or invented map code")
+check(TUnionCityDatabase.lookupTravelStation(cityID: "5840", stationID: "00000000000016", terminalID: "0000000240013001")?.name == "岗厦", "Conflicting station field overrode Shenzhen terminal")
+check(TUnionCityDatabase.lookupTravelStation(cityID: "5840", stationID: "00000000000015", terminalID: "0000000268008001")?.name == "会展中心", "Shenzhen second reported field")
+check(TUnionCityDatabase.lookupTravelStation(cityID: "5840", stationID: "00000000000016", terminalID: "0000000368035001") == nil, "Shenzhen discriminator ignored")
+check(TUnionCityDatabase.lookupTravelStation(cityID: "3320", stationID: "FFFFFFFFFFFFFF", terminalID: "0000000268035001") == nil, "Wrong city used Shenzhen terminal")
+check(CityUnionStationDatabase.shenzhenTravelTerminal(cityID: "5840", terminalID: "0000000268035ZZZ") == nil, "Invalid Shenzhen terminal accepted")
+check(CityUnionStationDatabase.lookup(terminalID: "518068035001", date: nil)?.name == "后瑞", "Shenzhen CU terminal lookup")
+check(CityUnionStationDatabase.lookup(terminalID: "518068099001", date: nil) == nil, "Broad Shenzhen line prefix matched a station")
 var pboc = Data(repeating: 0, count: 23)
 pboc[9] = 0x06
 pboc.replaceSubrange(10..<16, with: Data(hex: "413101784816"))
@@ -93,6 +107,15 @@ travel.replaceSubrange(10..<17, with: Data(hex: "FFFFFFFFFFFFFF"))
 travel.replaceSubrange(32..<34, with: Data(hex: "3610"))
 let trip = TUnionDecoder.decodeTravelRecord(data: travel, index: 0)
 check(trip?.entryStation == "铜陵新村" && trip?.entryStationCode == nil, "BRT decoder output")
+travel.replaceSubrange(1..<9, with: Data(hex: "0000000268035001"))
+travel.replaceSubrange(10..<17, with: Data(hex: "00000000000016"))
+travel.replaceSubrange(32..<34, with: Data(hex: "5840"))
+let shenzhenTrip = TUnionDecoder.decodeTravelRecord(data: travel, index: 0)
+check(shenzhenTrip?.entryStation == "后瑞" && shenzhenTrip?.entryStationCode == nil, "Shenzhen decoder output")
+travel.replaceSubrange(1..<9, with: Data(hex: "0000000268099001"))
+let unknownShenzhen = TUnionDecoder.decodeTravelRecord(data: travel, index: 0)
+check(unknownShenzhen?.entryStationCode == "TU:5840:1E:0000000268099001", "Shenzhen report repeated a non-station field")
+check(unknownShenzhen?.location?.contains("Terminal 0000000268099001") == true, "Unknown Shenzhen terminal not surfaced")
 print("PASS: production T-Union station and terminal decoding")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-tunion-") as temporary:
@@ -106,6 +129,13 @@ print("PASS: production T-Union station and terminal decoding")
                     ("1e", "3610", "0000413106085352", "铜陵新村", None),
                     ("18", "3310", "AABBCCDDEEFF", "杭州市站", None),
                     ("18", "3320", "AABBCCDDEEFF", "宁波市站", None),
+                ])
+                connection.execute("CREATE TABLE cityunion_terminal_prefixes (terminal_prefix, station_name, line_name, station_type, station_key)")
+                connection.executemany("INSERT INTO cityunion_terminal_prefixes VALUES (?, ?, ?, ?, ?)", [
+                    ("2000110111", "莘庄", "1号线", "地铁", "290000010011"),
+                    ("518068035", "后瑞", "1号线", "地铁", None),
+                    ("518040013", "岗厦", "10号线", "地铁", None),
+                    ("518068008", "会展中心", "1号线", "地铁", None),
                 ])
             swift = directory / "main.swift"
             swift.write_text(adapters + catalog + "\nstruct TUnionDecoder {\n" + "\n".join(methods) + "\n}\n" + main)
