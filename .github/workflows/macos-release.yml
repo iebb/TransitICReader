@@ -62,6 +62,7 @@ jobs:
           ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           MACOS_SIGNING_BUNDLE_BASE64: ${{ secrets.MACOS_SIGNING_BUNDLE_BASE64 }}
+          MACOS_SIGNING_BUNDLE_PASSWORD: ${{ secrets.MACOS_SIGNING_BUNDLE_PASSWORD }}
         run: python3 -m tools.release.macos_signing
       - name: Preserve encrypted signing identity for subsequent releases
         if: always()

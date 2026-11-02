@@ -46,9 +46,9 @@ def backup(directory: Path, password: str) -> None:
 
 
 def prepare(directory: Path, api: AppStoreAPI) -> tuple[str, str]:
-    password = os.environ.get("IOS_CERTIFICATE_PASSWORD", "")
+    password = os.environ.get("MACOS_SIGNING_BUNDLE_PASSWORD") or os.environ.get("IOS_CERTIFICATE_PASSWORD", "")
     if not password:
-        raise ReleaseError("IOS_CERTIFICATE_PASSWORD must protect the Mac signing backup.")
+        raise ReleaseError("MACOS_SIGNING_BUNDLE_PASSWORD or IOS_CERTIFICATE_PASSWORD must protect the Mac signing backup.")
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     encoded = os.environ.get("MACOS_SIGNING_BUNDLE_BASE64", "").strip()
     if encoded:

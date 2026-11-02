@@ -3,6 +3,7 @@ silicon and Intel Macs. The app is signed with Developer ID and notarized by
 Apple.
 
 Download `CardBal-2.5.2-macOS.zip`, open it, and move CardBal to Applications.
+CardBal requires macOS 13 Ventura or later.
 A compatible external USB NFC / CCID reader is required to scan cards on a Mac.
 The ACR122U has been verified with Edy, EZLink and Tianfu Tong CPU cards.
 

@@ -11,7 +11,8 @@ root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
 cd "$root"
 umask 077
 keychain="$MACOS_SIGNING_DIR/signing.keychain-db"
-profile="$HOME/Library/MobileDevice/Provisioning Profiles/$MACOS_PROFILE_UUID.provisionprofile"
+# Xcode versions differ in which directory they search for installed profiles.
+profile_dirs=("$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles")
 cleanup() {
     if [ -f "$MACOS_SIGNING_DIR/keychains.json" ]; then
         python3 - <<'PY' || true
@@ -22,11 +23,14 @@ subprocess.run(['security', 'list-keychains', '-d', 'user', '-s',
 PY
     fi
     security delete-keychain "$keychain" >/dev/null 2>&1 || true
-    if [ -f "$MACOS_SIGNING_DIR/prior-profile" ]; then
-        cp "$MACOS_SIGNING_DIR/prior-profile" "$profile"
-    elif [ -f "$MACOS_SIGNING_DIR/installed-profile" ]; then
-        rm -f "$profile"
-    fi
+    for index in "${!profile_dirs[@]}"; do
+        profile="${profile_dirs[$index]}/$MACOS_PROFILE_UUID.provisionprofile"
+        if [ -f "$MACOS_SIGNING_DIR/prior-profile-$index" ]; then
+            cp "$MACOS_SIGNING_DIR/prior-profile-$index" "$profile"
+        elif [ -f "$MACOS_SIGNING_DIR/installed-profile-$index" ]; then
+            rm -f "$profile"
+        fi
+    done
 }
 trap cleanup EXIT
 
@@ -47,7 +51,9 @@ out.mkdir(parents=True, exist_ok=True)
 }))
 PY
 openssl x509 -inform DER -in "$MACOS_SIGNING_DIR/certificate.cer" -out "$MACOS_SIGNING_DIR/certificate.pem"
+# `security import` rejects OpenSSL 3's default AES/SHA-256 PKCS#12 encoding.
 openssl pkcs12 -export -inkey "$MACOS_SIGNING_DIR/key.pem" -in "$MACOS_SIGNING_DIR/certificate.pem" \
+    -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
     -out "$MACOS_SIGNING_DIR/identity.p12" -passout "file:$MACOS_SIGNING_DIR/p12-password"
 keychain_password="$(cat "$MACOS_SIGNING_DIR/keychain-password")"
 security create-keychain -p "$keychain_password" "$keychain"
@@ -56,14 +62,21 @@ security unlock-keychain -p "$keychain_password" "$keychain"
 security import "$MACOS_SIGNING_DIR/identity.p12" -k "$keychain" \
     -P "$(cat "$MACOS_SIGNING_DIR/p12-password")" -T /usr/bin/codesign -T /usr/bin/security >/dev/null
 security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" >/dev/null
-security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
-mkdir -p "$(dirname "$profile")"
-if [ -f "$profile" ]; then cp "$profile" "$MACOS_SIGNING_DIR/prior-profile"; fi
-touch "$MACOS_SIGNING_DIR/installed-profile"
-cp "$MACOS_SIGNING_DIR/profile.provisionprofile" "$profile"
+python3 - "$keychain" <<'PY'
+import json, os, pathlib, subprocess, sys
+prior = json.loads((pathlib.Path(os.environ['MACOS_SIGNING_DIR']) / 'keychains.json').read_text())
+subprocess.run(['security', 'list-keychains', '-d', 'user', '-s', sys.argv[1], *prior], check=True)
+PY
+for index in "${!profile_dirs[@]}"; do
+    profile="${profile_dirs[$index]}/$MACOS_PROFILE_UUID.provisionprofile"
+    mkdir -p "${profile_dirs[$index]}"
+    if [ -f "$profile" ]; then cp "$profile" "$MACOS_SIGNING_DIR/prior-profile-$index"; fi
+    touch "$MACOS_SIGNING_DIR/installed-profile-$index"
+    cp "$MACOS_SIGNING_DIR/profile.provisionprofile" "$profile"
+done
 
 # Private values must not enter Xcode's script-phase environment logs.
-unset ASC_PRIVATE_KEY IOS_CERTIFICATE_PASSWORD MACOS_SIGNING_BUNDLE_BASE64
+unset ASC_PRIVATE_KEY IOS_CERTIFICATE_PASSWORD MACOS_SIGNING_BUNDLE_BASE64 MACOS_SIGNING_BUNDLE_PASSWORD
 xcodebuild -project CardBal.xcodeproj -scheme CardBal -configuration Release \
     -destination 'generic/platform=macOS,variant=Mac Catalyst' \
     -archivePath build/macos/CardBal.xcarchive -derivedDataPath build/macos/DerivedData archive \
@@ -76,5 +89,7 @@ PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH" xcodebuild -exportArchive \
     -exportPath build/macos/export
 app="build/macos/export/CardBal.app"
 codesign --verify --deep --strict --verbose=2 "$app"
-lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/CardBal"
+archs=" $(lipo -archs "$app/Contents/MacOS/CardBal") "
+case "$archs" in *" arm64 "*) ;; *) echo "Mac app lacks arm64: $archs" >&2; exit 1;; esac
+case "$archs" in *" x86_64 "*) ;; *) echo "Mac app lacks x86_64: $archs" >&2; exit 1;; esac
 ditto -c -k --sequesterRsrc --keepParent "$app" build/macos/CardBal-notarization.zip

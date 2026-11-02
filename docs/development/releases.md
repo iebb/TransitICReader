@@ -10,15 +10,17 @@ comes from the existing app projects. Add
 `docs/release-notes/macos-<version>.md` before running it. Existing releases are
 never replaced.
 
-The first run creates a Developer ID Application G2 certificate and
-`MAC_CATALYST_APP_DIRECT` profile using the configured Apple team API key.
-The key needs certificate/profile access. The workflow retains an authenticated,
-encrypted signing backup as a private Actions artifact. Its password is the
-existing `IOS_CERTIFICATE_PASSWORD`; the backup uses scrypt and AES-256-GCM.
-Download `macos-signing-backup/signing-backup.enc`, preserve a private local copy,
-and set its base64 contents as the `MACOS_SIGNING_BUNDLE_BASE64` repository secret.
-Subsequent runs reuse the identity rather than creating another certificate.
-Failed first runs also preserve partial signing state for recovery.
+Signing comes from the `MACOS_SIGNING_BUNDLE_BASE64` repository secret: an
+encrypted bundle (scrypt and AES-256-GCM) holding the Developer ID Application
+G2 private key, certificate, certificate ID and `MAC_CATALYST_APP_DIRECT`
+profile. It is decrypted with `MACOS_SIGNING_BUNDLE_PASSWORD`, falling back to
+`IOS_CERTIFICATE_PASSWORD`. Only the Account Holder can create Developer ID
+certificates, so App Store Connect API keys cannot bootstrap one; create the
+certificate in the developer portal from a locally generated CSR, then build
+the bundle with `encrypt_bundle` from `tools/release/macos_signing.py`. If the
+bundle has a certificate but no profile, the workflow creates the profile with
+the team API key. Each run retains the encrypted bundle as a private Actions
+artifact.
 
 Only the app ZIP and checksum are attached to the public release. API keys,
 private signing keys, provisioning profiles and the encrypted signing backup
@@ -99,6 +101,7 @@ the manual store jobs. The public CI workflow does not reference them.
 | `ASC_KEY_ID`, `ASC_PRIVATE_KEY` | App Store Connect authentication; private key is PEM text |
 | `ASC_ISSUER_ID` | Required for a team API key; unused for an individual key |
 | `IOS_CERTIFICATE_P12_BASE64`, `IOS_CERTIFICATE_PASSWORD` | Matching Apple Distribution identity |
+| `MACOS_SIGNING_BUNDLE_BASE64`, `MACOS_SIGNING_BUNDLE_PASSWORD` | Encrypted Developer ID identity and Mac Catalyst profile for the macOS release |
 | `IOS_PROVISION_PROFILE_BASE64` | CardBal App Store provisioning profile |
 | `FIREBASE_GOOGLE_SERVICE_INFO_PLIST_BASE64` | Optional existing iOS Firebase configuration |
 | `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` | Optional Android Firebase configuration (base64 of `google-services.json`) |
