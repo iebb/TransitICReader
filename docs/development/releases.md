@@ -2,13 +2,16 @@
 
 ## macOS download
 
-The manual [macOS release](../../.github/workflows/macos-release.yml) workflow
-runs on `master`. It builds a universal Mac Catalyst app, signs it with Developer
-ID, submits it for Apple notarization, staples the accepted ticket and publishes
+The [macOS release](../../.github/workflows/macos-release.yml) workflow runs on
+`master` automatically. Each push first runs a cheap plan job: if the repository
+version already has a `macos-v<version>` release it stops, otherwise it requires
+`docs/release-notes/macos-<version>.md` and starts the build. Releasing a new
+macOS version is therefore: bump the app version, add the notes, and push. It can
+also be started by hand from **Actions**. The build produces a universal Mac Catalyst
+app, signs it with Developer ID, submits it for Apple notarization, staples the accepted ticket and publishes
 `macos-v<version>` on GitHub with a ZIP and SHA-256 checksum. The marketing version
-comes from the existing app projects. Add
-`docs/release-notes/macos-<version>.md` before running it. Existing releases are
-never replaced.
+comes from the existing app projects. Existing releases are never replaced, and
+a failed build is retried by the next push because no release exists yet.
 
 Signing comes from the `MACOS_SIGNING_BUNDLE_BASE64` repository secret: an
 encrypted bundle (scrypt and AES-256-GCM) holding the Developer ID Application
