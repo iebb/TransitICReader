@@ -11,6 +11,7 @@ import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -150,6 +151,7 @@ fun CardDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     var selectedRecord by remember { mutableStateOf<TransitTransaction?>(null) }
+    BackHandler(onBack = onBack)
     val dualBalance = remember(card.applications) { DualCurrencyBalance.from(card.applications) }
     val listState = rememberLazyListState()
     var showStationReport by rememberSaveable { mutableStateOf(false) }
@@ -209,8 +211,7 @@ fun CardDetailScreen(
                         tx = tx,
                         modifier = Modifier
                             .padding(vertical = 3.dp)
-                            .clickable { selectedRecord = tx }
-                            .swipeUpAction { selectedRecord = tx },
+                            .clickable { selectedRecord = tx },
                     )
                 }
             }
@@ -556,6 +557,9 @@ private fun MapBottomPanel(
     modifier: Modifier = Modifier,
 ) {
     var panelMode by remember { mutableStateOf<MapPanelMode>(MapPanelMode.Collapsed) }
+    BackHandler(enabled = panelMode != MapPanelMode.Collapsed) {
+        panelMode = MapPanelMode.Collapsed
+    }
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),

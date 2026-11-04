@@ -15,6 +15,17 @@ From this directory:
 ./gradlew :app:testDebugUnitTest :app:assembleDebug
 ```
 
+With an Android emulator running, exercise transaction scrolling, raw-record
+dialogs and system Back navigation through the Compose UI:
+
+```sh
+./gradlew :app:connectedDebugAndroidTest
+```
+
+The navigation tests load a synthetic card into the separate development wallet.
+The top-level navigation tests require an emulator; detail gesture tests also
+run on a connected device.
+
 On Windows, use `gradlew.bat`. Select JDK 17 through `JAVA_HOME` if another Java
 version is the default. The checked-in Gradle 8.11.1 wrapper verifies its
 download using the pinned distribution checksum.

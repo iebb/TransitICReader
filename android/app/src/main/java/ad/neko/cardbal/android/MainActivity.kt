@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
@@ -157,6 +158,10 @@ private fun CardBalApp(
     val transactionDecoder = remember { TransactionDecoder(activity.applicationContext) }
     val selectedCard = selectedCardId?.let { id -> cards.firstOrNull { it.id == id } }
 
+    BackHandler(enabled = selectedTab != Tab.Scan.ordinal) {
+        selectedTab = Tab.Scan.ordinal
+    }
+
     LaunchedEffect(latestSnapshot?.storageIdentifier, latestSnapshot?.scannedAt) {
         latestSnapshot?.let { snapshot ->
             repository.upsert(snapshot)
@@ -276,6 +281,9 @@ private fun CardsScreen(cards: List<SavedCardRecord>, onOpenCard: (SavedCardReco
     val tripCount = remember(cards) { cards.sumOf { it.rawTransitHistory.size } }
     var previewCardId by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedCard = previewCardId?.let { id -> cards.firstOrNull { it.id == id } }
+    BackHandler(enabled = selectedCard != null) {
+        previewCardId = null
+    }
     val stackedCards = remember(cards, previewCardId) {
         val selected = previewCardId?.let { id -> cards.firstOrNull { it.id == id } }
         if (selected == null) cards else listOf(selected) + cards.filterNot { it.id == selected.id }
@@ -394,6 +402,9 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
     val context = LocalContext.current
     var selectedMapCardId by rememberSaveable { mutableStateOf<String?>(null) }
     var mapViewport by remember { mutableStateOf<MapViewportBounds?>(null) }
+    BackHandler(enabled = selectedMapCardId != null) {
+        selectedMapCardId = null
+    }
     val scopedCards = remember(cards, selectedMapCardId) {
         selectedMapCardId?.let { id -> cards.filter { it.id == id } } ?: cards
     }
