@@ -64,6 +64,7 @@
     <string name="text_69f2e5f981095e84" formatted="false">"Already up to date"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"Amount"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"An online enquiry is needed to determine this card's balance offset."</string>
+    <string name="text_f1dd26a233574982" formatted="false">"Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again."</string>
     <string name="text_0d04bfeb7d64b71c" formatted="false">"App"</string>
     <string name="text_d6a2f871553b4b9d" formatted="false">"App Metadata"</string>
     <string name="text_da645334193e6576" formatted="false">"App Settings"</string>

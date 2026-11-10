@@ -81,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
+import ad.neko.cardbal.android.data.ImportErrors
 import ad.neko.cardbal.android.data.CardWalletRepository
 import ad.neko.cardbal.android.data.DualCurrencyBalance
 import ad.neko.cardbal.android.data.KoreanTripCrowdsourcingPreferences
@@ -506,7 +507,9 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                 Toast.LENGTH_LONG,
             ).show()
         }.onFailure {
-            Toast.makeText(context, context.tr("Import failed: ${it.localizedMessage}"), Toast.LENGTH_LONG).show()
+            val message = if (ImportErrors.isFileAccessDenied(it)) context.tr(ImportErrors.FILE_ACCESS_DENIED)
+                else context.tr("Import failed: ${it.localizedMessage}")
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
     val scope = rememberCoroutineScope()
@@ -529,7 +532,9 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                     val skipped = if (plan.skippedCards > 0) " " + context.tr("Skipped ${plan.skippedCards} cards of other types.") else ""
                     context.tr("Imported ${plan.snapshots.size} cards and ${plan.recordCount} records from Trip Reader.") + skipped
                 }
-            }.getOrElse { "Import failed: ${it.localizedMessage}" }
+            }.getOrElse {
+                if (ImportErrors.isFileAccessDenied(it)) ImportErrors.FILE_ACCESS_DENIED else "Import failed: ${it.localizedMessage}"
+            }
             isImportingTripReader = false
             Toast.makeText(context, context.tr(message), Toast.LENGTH_LONG).show()
         }

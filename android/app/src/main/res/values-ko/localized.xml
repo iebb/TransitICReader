@@ -64,6 +64,7 @@
     <string name="text_69f2e5f981095e84" formatted="false">"이미 최신 상태입니다"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"금액"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"이 카드의 잔액 보정값을 확인하려면 온라인 조회가 필요합니다."</string>
+    <string name="text_f1dd26a233574982" formatted="false">"Android가 이 파일에 대한 CardBal의 접근을 허용하지 않았습니다. 파일 선택기에서 다운로드나 최근 항목 대신 내장 메모리 › Download에서 열거나, 내 파일에서 파일을 옮긴 뒤 다시 시도하세요."</string>
     <string name="text_0d04bfeb7d64b71c" formatted="false">"앱"</string>
     <string name="text_d6a2f871553b4b9d" formatted="false">"애플리케이션 메타데이터"</string>
     <string name="text_da645334193e6576" formatted="false">"앱 설정"</string>

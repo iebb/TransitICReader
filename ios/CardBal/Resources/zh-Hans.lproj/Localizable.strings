@@ -1116,3 +1116,4 @@
 "Sold At" = "售出日期";
 "Last Ticket Event" = "最近一次使用";
 "Route" = "线路";
+"Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again." = "Android 未允许 CardBal 访问此文件。请在文件选择器中从“内部存储 › Download”打开，而不是“下载”或“最近”，或用“我的文件”移动该文件后重试。";

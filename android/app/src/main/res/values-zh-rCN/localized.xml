@@ -64,6 +64,7 @@
     <string name="text_69f2e5f981095e84" formatted="false">"已是最新"</string>
     <string name="text_49e96d7cdf58069c" formatted="false">"金额"</string>
     <string name="text_30aba00c58e0cc1a" formatted="false">"需要在线查询以确定此卡的余额偏移量。"</string>
+    <string name="text_f1dd26a233574982" formatted="false">"Android 未允许 CardBal 访问此文件。请在文件选择器中从“内部存储 › Download”打开，而不是“下载”或“最近”，或用“我的文件”移动该文件后重试。"</string>
     <string name="text_0d04bfeb7d64b71c" formatted="false">"应用"</string>
     <string name="text_d6a2f871553b4b9d" formatted="false">"应用元数据"</string>
     <string name="text_da645334193e6576" formatted="false">"应用设置"</string>

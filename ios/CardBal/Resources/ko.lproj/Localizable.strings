@@ -1117,3 +1117,4 @@
 "Sold At" = "판매일";
 "Last Ticket Event" = "마지막 이용";
 "Route" = "노선";
+"Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again." = "Android가 이 파일에 대한 CardBal의 접근을 허용하지 않았습니다. 파일 선택기에서 다운로드나 최근 항목 대신 내장 메모리 › Download에서 열거나, 내 파일에서 파일을 옮긴 뒤 다시 시도하세요.";

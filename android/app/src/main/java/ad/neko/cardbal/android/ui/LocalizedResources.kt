@@ -68,6 +68,7 @@ internal val localizedResources = mapOf(
     "Already up to date" to R.string.text_69f2e5f981095e84,
     "Amount" to R.string.text_49e96d7cdf58069c,
     "An online enquiry is needed to determine this card's balance offset." to R.string.text_30aba00c58e0cc1a,
+    "Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again." to R.string.text_f1dd26a233574982,
     "App" to R.string.text_0d04bfeb7d64b71c,
     "App Metadata" to R.string.text_d6a2f871553b4b9d,
     "App Settings" to R.string.text_da645334193e6576,
