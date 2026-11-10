@@ -73,3 +73,17 @@ No physical-card/RF verification has been performed, and no universal generation
 coverage is claimed. Nice city branding remains explicitly unresolved.
 
 Calypso adapter identity uses the decoded public serial when available; otherwise both platforms preserve the legacy unsigned UID-as-decimal serial. This protects existing Nice-card wallet identity while new scans use the generic Calypso label.
+
+## La Carte on iPhone (2.6.0)
+
+The owner reported that La Carte (Lignes d'Azur) no longer read on iPhone after the
+shared reader replaced the original Nice decoder. When Core NFC finds the card by
+`1TIC.ICA`, the iPhone now reads it before every other decoder, and first runs the
+pre-2.5.0 Nice reader on the application Core NFC already selected: SELECT the
+ticketing directory `2000` and READ RECORD SFI 07, 1E, 08, 09 and 0A with class
+`94`. That restores the "Lignes d'Azur card" label, the Nice ticket fields and
+Check Online. The shared public-record reader still runs afterwards; its result
+is used only for a positively identified non-Intercode network, or when the Nice
+records returned nothing. As before 2.5.0, a `1TIC.ICA` card is always shown, with
+the raw replies, and the debug log lists each command's status word. Event times
+are read as minutes. Android is unchanged. Not yet verified with a physical card.

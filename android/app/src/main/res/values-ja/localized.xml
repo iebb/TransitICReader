@@ -367,6 +367,7 @@
     <string name="text_88c25bfd8f13321c" formatted="false">"ISO 14443"</string>
     <string name="text_a35abcd6dac9a2e5" formatted="false">"アイコン"</string>
     <string name="text_1d1961dd22bf63e1" formatted="false">"アイコン記号"</string>
+    <string name="text_91f606b32dfc475e" formatted="false">"識別情報"</string>
     <string name="text_1aa4cb0bcca76e92" formatted="false">"画像"</string>
     <string name="text_2cff9baabf56ca00" formatted="false">"読み込む"</string>
     <string name="text_c7ab9b05afa9c446" formatted="false">"バックアップを読み込む"</string>
@@ -425,6 +426,7 @@
     <string name="text_40d370772f4df934" formatted="false">"韓国交通の未識別フラグ付きイベント"</string>
     <string name="text_c4414703d58bac03" formatted="false">"韓国の交通手段情報には、KORAILのKOTRIS公共交通コード表を使用しています。"</string>
     <string name="text_a8ed0c740d604fd6" formatted="false">"最終読み取り"</string>
+    <string name="text_d726ca13433aad43" formatted="false">"最終利用"</string>
     <string name="text_32d4c20f093ff613" formatted="false">"前回の取引額"</string>
     <string name="text_fc4d332eaa998f2f" formatted="false">"最終利用"</string>
     <string name="text_c871f20a18a204bb" formatted="false">"最終利用日"</string>
@@ -438,6 +440,7 @@
     <string name="text_fed696954300d76e" formatted="false">"路線 %02X / 駅 %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"路線"</string>
     <string name="text_bade54e8e36c75d6" formatted="false">"交通履歴を都市に関連付けています…"</string>
+    <string name="text_297957acec34b19e" formatted="false">"搭載チケット数"</string>
     <string name="text_10d9142b3c2d8682" formatted="false">"都市を読み込み中…"</string>
     <string name="text_7c8befec7864d8ef" formatted="false">"地図を読み込み中…"</string>
     <string name="text_02386a63846bb2ab" formatted="false">"都道府県を読み込み中…"</string>
@@ -607,6 +610,8 @@
     <string name="text_e7160a0e72ccf3e8" formatted="false">"商品 %@、ゾーン %@"</string>
     <string name="text_9994e57546dfb974" formatted="false">"商品 %lld"</string>
     <string name="text_0123f7e78f101348" formatted="false">"商品 %lld、ゾーン %lld"</string>
+    <string name="text_fe45bdfabed62460" formatted="false">"商品コード"</string>
+    <string name="text_f123dc0e0e44a188" formatted="false">"商品の種類"</string>
     <string name="text_abfcecfabeb7545e" formatted="false">"都道府県"</string>
     <string name="text_3261c5a271a143e8" formatted="false">"都道府県マップを利用できません"</string>
     <string name="text_cf688007f70222ab" formatted="false">"都道府県"</string>
@@ -687,6 +692,7 @@
     <string name="text_ef58e3c9c762774a" formatted="false">"特典・ポイント交換"</string>
     <string name="text_5864885934940b16" formatted="false">"乗車マップ"</string>
     <string name="text_c3613b1704f54c8b" formatted="false">"回転"</string>
+    <string name="text_adc74704d65d5cc9" formatted="false">"路線"</string>
     <string name="text_b3b566413ca802ab" formatted="false">"路線 %@"</string>
     <string name="text_e6333ac1c8b4c2df" formatted="false">"路線 0x%X"</string>
     <string name="text_2c5b669bcdeb51bf" formatted="false">"経路"</string>
@@ -761,6 +767,7 @@
     <string name="text_cc232756ff1b4533" formatted="false">"Snapper+ のカード内残高（NZD セント）"</string>
     <string name="text_93d0ab248b22191e" formatted="false">"Snapper+ の履歴は元の SFI 4 取引と、存在する場合は対応する SFI 3 を保持します。これらの履歴では駅名を表示できません。"</string>
     <string name="text_727d73c565ae42d5" formatted="false">"Snapper+ の残高単位はセントです"</string>
+    <string name="text_600bc01b6b86b102" formatted="false">"販売日"</string>
     <string name="text_c745f2a83ef0ac46" formatted="false">"一部のカード内履歴を読み取れませんでした"</string>
     <string name="text_ef6e6e2a6ec1b4ba" formatted="false">"出典：JPStationCodes、station_database、Trip Reader、© OpenStreetMap の貢献者。"</string>
     <string name="text_c85329e3779e4096" formatted="false">"韓国"</string>
@@ -833,10 +840,12 @@
     <string name="text_3d29af7acd545723" formatted="false">"このリーダーは必要なカードコマンドに対応していません。FeliCaの読み取りにはACR122U互換のリーダーが必要です。"</string>
     <string name="text_c5ecdc4884ed95fe" formatted="false">"保存したカードをウォレットから削除します。"</string>
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"チケット"</string>
+    <string name="text_ae63e705a5a8c2d8" formatted="false">"チケットの種類"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"改札機"</string>
     <string name="text_a4a454897222f91f" formatted="false">"乗車券の状態"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"券種"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"乗車券確認"</string>
+    <string name="text_b282639a4b87735c" formatted="false">"乗車券ディレクトリ"</string>
     <string name="text_3d131368b43397ff" formatted="false">"チケット"</string>
     <string name="text_33b93476cf597a33" formatted="false">"時刻"</string>
     <string name="text_115a2cc92c1097ac" formatted="false">"タイムスタンプ"</string>

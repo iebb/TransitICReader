@@ -367,6 +367,7 @@
     <string name="text_88c25bfd8f13321c" formatted="false">"ISO 14443"</string>
     <string name="text_a35abcd6dac9a2e5" formatted="false">"Icon"</string>
     <string name="text_1d1961dd22bf63e1" formatted="false">"Icon Symbol"</string>
+    <string name="text_91f606b32dfc475e" formatted="false">"Identification"</string>
     <string name="text_1aa4cb0bcca76e92" formatted="false">"Image"</string>
     <string name="text_2cff9baabf56ca00" formatted="false">"Import"</string>
     <string name="text_c7ab9b05afa9c446" formatted="false">"Import Backup"</string>
@@ -425,6 +426,7 @@
     <string name="text_40d370772f4df934" formatted="false">"Korean transit unknown flagged event"</string>
     <string name="text_c4414703d58bac03" formatted="false">"Korean transport modes use KORAIL's KOTRIS public-transport code table."</string>
     <string name="text_a8ed0c740d604fd6" formatted="false">"Last Scanned"</string>
+    <string name="text_d726ca13433aad43" formatted="false">"Last Ticket Event"</string>
     <string name="text_32d4c20f093ff613" formatted="false">"Last Transaction Amount"</string>
     <string name="text_fc4d332eaa998f2f" formatted="false">"Last Use"</string>
     <string name="text_c871f20a18a204bb" formatted="false">"Last Use Date"</string>
@@ -438,6 +440,7 @@
     <string name="text_fed696954300d76e" formatted="false">"Line %02X / Station %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"Line or Lines"</string>
     <string name="text_bade54e8e36c75d6" formatted="false">"Linking transit records to cities…"</string>
+    <string name="text_297957acec34b19e" formatted="false">"Loaded Tickets"</string>
     <string name="text_10d9142b3c2d8682" formatted="false">"Loading cities…"</string>
     <string name="text_7c8befec7864d8ef" formatted="false">"Loading map…"</string>
     <string name="text_02386a63846bb2ab" formatted="false">"Loading provinces…"</string>
@@ -607,6 +610,8 @@
     <string name="text_e7160a0e72ccf3e8" formatted="false">"Product %@, zone %@"</string>
     <string name="text_9994e57546dfb974" formatted="false">"Product %lld"</string>
     <string name="text_0123f7e78f101348" formatted="false">"Product %lld, zone %lld"</string>
+    <string name="text_fe45bdfabed62460" formatted="false">"Product Code"</string>
+    <string name="text_f123dc0e0e44a188" formatted="false">"Product Type"</string>
     <string name="text_abfcecfabeb7545e" formatted="false">"Province"</string>
     <string name="text_3261c5a271a143e8" formatted="false">"Province map unavailable"</string>
     <string name="text_cf688007f70222ab" formatted="false">"Provinces"</string>
@@ -687,6 +692,7 @@
     <string name="text_ef58e3c9c762774a" formatted="false">"Reward/Points Redemption"</string>
     <string name="text_5864885934940b16" formatted="false">"Ride map"</string>
     <string name="text_c3613b1704f54c8b" formatted="false">"Rotate"</string>
+    <string name="text_adc74704d65d5cc9" formatted="false">"Route"</string>
     <string name="text_b3b566413ca802ab" formatted="false">"Route %@"</string>
     <string name="text_e6333ac1c8b4c2df" formatted="false">"Route 0x%X"</string>
     <string name="text_2c5b669bcdeb51bf" formatted="false">"Routes"</string>
@@ -761,6 +767,7 @@
     <string name="text_cc232756ff1b4533" formatted="false">"Snapper+ on-card purse (NZD cents)"</string>
     <string name="text_93d0ab248b22191e" formatted="false">"Snapper+ records retain the original SFI 4 transaction and its optional SFI 3 companion. Station names are unavailable for these records."</string>
     <string name="text_727d73c565ae42d5" formatted="false">"Snapper+ stored-value units are cents"</string>
+    <string name="text_600bc01b6b86b102" formatted="false">"Sold At"</string>
     <string name="text_c745f2a83ef0ac46" formatted="false">"Some on-card records were unavailable"</string>
     <string name="text_ef6e6e2a6ec1b4ba" formatted="false">"Sources: JPStationCodes, station_database, Trip Reader and © OpenStreetMap contributors."</string>
     <string name="text_c85329e3779e4096" formatted="false">"South Korea"</string>
@@ -833,10 +840,12 @@
     <string name="text_3d29af7acd545723" formatted="false">"This reader does not support the required card commands. FeliCa reading requires an ACR122U-compatible reader."</string>
     <string name="text_c5ecdc4884ed95fe" formatted="false">"This removes the saved card from your wallet."</string>
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"Ticket"</string>
+    <string name="text_ae63e705a5a8c2d8" formatted="false">"Ticket Family"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"Ticket Gate"</string>
     <string name="text_a4a454897222f91f" formatted="false">"Ticket Status"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"Ticket Type"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"Ticket validation"</string>
+    <string name="text_b282639a4b87735c" formatted="false">"Ticketing Directory"</string>
     <string name="text_3d131368b43397ff" formatted="false">"Tickets"</string>
     <string name="text_33b93476cf597a33" formatted="false">"Time"</string>
     <string name="text_115a2cc92c1097ac" formatted="false">"Timestamp"</string>

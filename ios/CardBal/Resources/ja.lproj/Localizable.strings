@@ -1107,3 +1107,12 @@
 "Open Settings" = "設定を開く";
 "Importing photo..." = "写真を読み込み中…";
 "OK" = "確認";
+"Identification" = "識別情報";
+"Ticketing Directory" = "乗車券ディレクトリ";
+"Product Type" = "商品の種類";
+"Loaded Tickets" = "搭載チケット数";
+"Ticket Family" = "チケットの種類";
+"Product Code" = "商品コード";
+"Sold At" = "販売日";
+"Last Ticket Event" = "最終利用";
+"Route" = "路線";

@@ -62,6 +62,7 @@ enum UnsupportedTestDecoder: TransitCardDecoder {
     static func decode(tag: NFCTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         throw NFCTestError.unsupportedCard
     }
+    static func isPreselected(_ tag: NFCTag) -> Bool { false }
 }
 typealias CalypsoDecoder = UnsupportedTestDecoder
 typealias CEPASDecoder = UnsupportedTestDecoder

@@ -1107,3 +1107,12 @@
 "Open Settings" = "打开设置";
 "Importing photo..." = "正在导入照片…";
 "OK" = "好";
+"Identification" = "识别信息";
+"Ticketing Directory" = "票务目录";
+"Product Type" = "产品类型";
+"Loaded Tickets" = "已载入车票";
+"Ticket Family" = "车票类别";
+"Product Code" = "产品代码";
+"Sold At" = "售出日期";
+"Last Ticket Event" = "最近一次使用";
+"Route" = "线路";

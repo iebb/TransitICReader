@@ -410,13 +410,19 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 let progress = self.beginProgress(for: session)
                 // The second-side line stays until that side's first step.
                 if self.phase == .regular { progress.report(.found) }
-                let decoders: [TransitCardDecoder.Type] = phase == .mainland
+                var decoders: [TransitCardDecoder.Type] = phase == .mainland
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [OctopusFeliCaDecoder.self] : [
                         CEPASDecoder.self, MacauPassDecoder.self, ClipperDecoder.self, ClipperUltralightDecoder.self,
                         StoredValueDecoder.self, TianfuTongDecoder.self, ChineseLocalDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
                     ]
+                // When the phone found the card by a Calypso application (La Carte),
+                // read it before decoders that open other applications on the card.
+                if phase == .regular, CalypsoDecoder.isPreselected(cardTag),
+                   let index = decoders.firstIndex(where: { ObjectIdentifier($0) == ObjectIdentifier(CalypsoDecoder.self) }) {
+                    decoders.insert(decoders.remove(at: index), at: 0)
+                }
                 var snapshot: TransitCardSnapshot?
                 var declined: [String] = []
                 for decoder in decoders {

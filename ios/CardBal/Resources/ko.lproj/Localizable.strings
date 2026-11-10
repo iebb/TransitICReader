@@ -1108,3 +1108,12 @@
 "Open Settings" = "설정 열기";
 "Importing photo..." = "사진 가져오는 중...";
 "OK" = "확인";
+"Identification" = "식별 정보";
+"Ticketing Directory" = "승차권 디렉터리";
+"Product Type" = "상품 유형";
+"Loaded Tickets" = "충전된 승차권";
+"Ticket Family" = "승차권 종류";
+"Product Code" = "상품 코드";
+"Sold At" = "판매일";
+"Last Ticket Event" = "마지막 이용";
+"Route" = "노선";

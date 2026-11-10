@@ -367,6 +367,7 @@
     <string name="text_88c25bfd8f13321c" formatted="false">"ISO 14443"</string>
     <string name="text_a35abcd6dac9a2e5" formatted="false">"아이콘"</string>
     <string name="text_1d1961dd22bf63e1" formatted="false">"아이콘 심볼"</string>
+    <string name="text_91f606b32dfc475e" formatted="false">"식별 정보"</string>
     <string name="text_1aa4cb0bcca76e92" formatted="false">"이미지"</string>
     <string name="text_2cff9baabf56ca00" formatted="false">"가져오기"</string>
     <string name="text_c7ab9b05afa9c446" formatted="false">"백업 가져오기"</string>
@@ -425,6 +426,7 @@
     <string name="text_40d370772f4df934" formatted="false">"한국 교통 미확인 플래그 이벤트"</string>
     <string name="text_c4414703d58bac03" formatted="false">"한국 교통수단 정보는 한국철도공사의 KOTRIS 대중교통 코드표를 사용합니다."</string>
     <string name="text_a8ed0c740d604fd6" formatted="false">"마지막으로 읽은 시간"</string>
+    <string name="text_d726ca13433aad43" formatted="false">"마지막 이용"</string>
     <string name="text_32d4c20f093ff613" formatted="false">"최근 거래 금액"</string>
     <string name="text_fc4d332eaa998f2f" formatted="false">"최근 사용"</string>
     <string name="text_c871f20a18a204bb" formatted="false">"최근 사용일"</string>
@@ -438,6 +440,7 @@
     <string name="text_fed696954300d76e" formatted="false">"노선 %02X / 역 %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"노선"</string>
     <string name="text_bade54e8e36c75d6" formatted="false">"교통 기록을 도시에 연결하는 중…"</string>
+    <string name="text_297957acec34b19e" formatted="false">"충전된 승차권"</string>
     <string name="text_10d9142b3c2d8682" formatted="false">"도시를 불러오는 중…"</string>
     <string name="text_7c8befec7864d8ef" formatted="false">"지도를 불러오는 중…"</string>
     <string name="text_02386a63846bb2ab" formatted="false">"시·도를 불러오는 중…"</string>
@@ -607,6 +610,8 @@
     <string name="text_e7160a0e72ccf3e8" formatted="false">"상품 %@, 구역 %@"</string>
     <string name="text_9994e57546dfb974" formatted="false">"상품 %lld"</string>
     <string name="text_0123f7e78f101348" formatted="false">"상품 %lld, 구역 %lld"</string>
+    <string name="text_fe45bdfabed62460" formatted="false">"상품 코드"</string>
+    <string name="text_f123dc0e0e44a188" formatted="false">"상품 유형"</string>
     <string name="text_abfcecfabeb7545e" formatted="false">"시·도"</string>
     <string name="text_3261c5a271a143e8" formatted="false">"시·도 지도를 사용할 수 없음"</string>
     <string name="text_cf688007f70222ab" formatted="false">"시·도"</string>
@@ -687,6 +692,7 @@
     <string name="text_ef58e3c9c762774a" formatted="false">"보상 / 포인트 사용"</string>
     <string name="text_5864885934940b16" formatted="false">"승차 지도"</string>
     <string name="text_c3613b1704f54c8b" formatted="false">"회전"</string>
+    <string name="text_adc74704d65d5cc9" formatted="false">"노선"</string>
     <string name="text_b3b566413ca802ab" formatted="false">"노선 %@"</string>
     <string name="text_e6333ac1c8b4c2df" formatted="false">"노선 0x%X"</string>
     <string name="text_2c5b669bcdeb51bf" formatted="false">"경로"</string>
@@ -761,6 +767,7 @@
     <string name="text_cc232756ff1b4533" formatted="false">"Snapper+ 카드 내 잔액 (NZD 센트)"</string>
     <string name="text_93d0ab248b22191e" formatted="false">"Snapper+ 기록에는 원본 SFI 4 거래와 선택적 SFI 3 보조 기록이 보존됩니다. 이 기록에는 역명이 제공되지 않습니다."</string>
     <string name="text_727d73c565ae42d5" formatted="false">"Snapper+ 선불금 단위는 센트입니다"</string>
+    <string name="text_600bc01b6b86b102" formatted="false">"판매일"</string>
     <string name="text_c745f2a83ef0ac46" formatted="false">"일부 카드 내 기록을 읽지 못했습니다"</string>
     <string name="text_ef6e6e2a6ec1b4ba" formatted="false">"출처: JPStationCodes, station_database, Trip Reader 및 © OpenStreetMap 기여자."</string>
     <string name="text_c85329e3779e4096" formatted="false">"대한민국"</string>
@@ -833,10 +840,12 @@
     <string name="text_3d29af7acd545723" formatted="false">"이 리더는 필요한 카드 명령을 지원하지 않습니다. FeliCa를 읽으려면 ACR122U 호환 리더가 필요합니다."</string>
     <string name="text_c5ecdc4884ed95fe" formatted="false">"저장된 카드를 지갑에서 제거합니다."</string>
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"티켓"</string>
+    <string name="text_ae63e705a5a8c2d8" formatted="false">"승차권 종류"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"개찰구"</string>
     <string name="text_a4a454897222f91f" formatted="false">"승차권 상태"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"승차권 종류"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"승차권 확인"</string>
+    <string name="text_b282639a4b87735c" formatted="false">"승차권 디렉터리"</string>
     <string name="text_3d131368b43397ff" formatted="false">"티켓"</string>
     <string name="text_33b93476cf597a33" formatted="false">"시간"</string>
     <string name="text_115a2cc92c1097ac" formatted="false">"타임스탬프"</string>
