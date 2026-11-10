@@ -25,7 +25,7 @@ class NiceLaCarteSourceTests(unittest.TestCase):
         self.assertIn('cardFamily: "Lignes d\'Azur card"', decoder)
         # Read-only: the Nice reader only selects the ticketing directory and reads records.
         nice = decoder[decoder.index("enum NiceCalypsoReader"):decoder.index("enum NiceRecords")]
-        commands = set(re.findall(r"Data\(\[0x94, (0x[0-9A-F]{2})", nice))
+        commands = set(re.findall(r"Data\(\[cla, (0x[0-9A-F]{2})", nice))
         self.assertEqual(commands, {"0xA4", "0xB2"})
 
     def test_nice_ticket_titles_match_the_scan_screen(self):
@@ -82,6 +82,29 @@ print("ok")
             run = subprocess.run([str(binary)], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stderr + run.stdout)
             self.assertIn("ok", run.stdout)
+
+
+@unittest.skipUnless(shutil.which("swiftc"), "Requires Swift")
+class CalypsoApplicationMatchTests(unittest.TestCase):
+    def test_padded_application_names_count_as_calypso(self):
+        # Natun's La Carte on 2.6.0 (63): Core NFC reported 3MTR.ICA padded with zero bytes.
+        harness = r'''
+precondition(CalypsoCardProfile.matches(aid: "334D54522E4943410000000000000000"))
+precondition(CalypsoCardProfile.matches(aid: "315449432E494341"))
+precondition(CalypsoCardProfile.matches(aid: "A0000004040125090101"))
+precondition(!CalypsoCardProfile.matches(aid: "A000000632010105"))
+precondition(!CalypsoCardProfile.matches(aid: ""))
+print("ok")
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            main = Path(tmp) / "main.swift"
+            main.write_text(harness)
+            binary = Path(tmp) / "match"
+            sources = [ROOT / "ios/CardBal/NFC/Profiles/CalypsoProfiles.swift", ROOT / "ios/CardBal/NFC/Profiles/CalypsoProtocol.swift"]
+            build = subprocess.run(["swiftc", str(main), *map(str, sources), "-o", str(binary)], capture_output=True, text=True)
+            self.assertEqual(build.returncode, 0, build.stderr)
+            run = subprocess.run([str(binary)], capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr + run.stdout)
 
 
 if __name__ == "__main__":

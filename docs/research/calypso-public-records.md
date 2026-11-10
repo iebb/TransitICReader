@@ -87,3 +87,11 @@ is used only for a positively identified non-Intercode network, or when the Nice
 records returned nothing. As before 2.5.0, a `1TIC.ICA` card is always shown, with
 the raw replies, and the debug log lists each command's status word. Event times
 are read as minutes. Android is unchanged. Not yet verified with a physical card.
+
+Build 63 still failed on Natun's card: Core NFC reported the opened application as
+`334D54522E4943410000000000000000` (`3MTR.ICA` padded with zero bytes), which the
+exact AID comparison did not recognise, so Calypso was never tried. Calypso AIDs
+now match by prefix, and the Nice reader runs for any Calypso application the
+phone opened (as before 2.5.0, when only `A000000291`/`A000000404` were listed).
+If the card rejects class `94` (`6E00`), the Nice records are read again with
+class `00`. The debug log also lists the public reader's first command statuses.

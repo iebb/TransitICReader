@@ -4,7 +4,7 @@ struct CalypsoDecoder: TransitCardDecoder {
     static func canDecode(tag: CardTag) async -> Bool {
         guard case .iso7816(let iso) = tag else { return false }
         let aid = iso.initialSelectedAID.uppercased()
-        if CalypsoCardProfile.matches(aid: aid) || CalypsoProtocol.selectionAIDs.contains(aid) { return true }
+        if CalypsoCardProfile.matches(aid: aid) { return true }
         return await CalypsoProtocol.canSelect { command in
             guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
             return try await iso.sendCommand(apdu: apdu)
@@ -23,16 +23,24 @@ struct CalypsoDecoder: TransitCardDecoder {
         let initialAID = iso.initialSelectedAID.uppercased()
         DebugLog.shared.log("Calypso", "Opened application " + (initialAID.isEmpty ? "none" : initialAID))
         // La Carte (Lignes d'Azur) is read first, while the application the phone
-        // opened is still selected. This is the reader the iPhone used before the
-        // shared public-record reader replaced it.
+        // opened is still selected. As before 2.5.0, this runs for every Calypso
+        // application the phone opened; La Carte answers as 3MTR.ICA.
         var niceCard: (snapshot: TransitCardSnapshot, hasRecords: Bool)?
-        if initialAID.hasPrefix(NiceCalypsoReader.applicationAID) {
+        if CalypsoCardProfile.matches(aid: initialAID) {
             ScanProgress.report(.details)
             niceCard = await NiceCalypsoReader.read(iso, scannedAt: scannedAt)
         }
+        var trace: [String] = []
         let publicRead = await CalypsoProtocol.read(initialAID: iso.initialSelectedAID, exchange: { command in
             guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
-            return try await iso.sendCommand(apdu: apdu)
+            do {
+                let reply = try await iso.sendCommand(apdu: apdu)
+                if trace.count < 12 { trace.append(String(format: "%02X%02X %02X%02X", command[0], command[1], reply.1, reply.2)) }
+                return reply
+            } catch {
+                if trace.count < 12 { trace.append(String(format: "%02X%02X error", command[0], command[1])) }
+                throw error
+            }
         }, progress: { sfi in
             switch sfi {
             case 2, 9: ScanProgress.report(.details)
@@ -41,6 +49,7 @@ struct CalypsoDecoder: TransitCardDecoder {
             default: break
             }
         })
+        DebugLog.shared.log("Calypso", "Public reader commands: " + trace.joined(separator: ", "))
         if let publicRead {
             DebugLog.shared.log("Calypso", "Public records: network \(publicRead.network), \(publicRead.records.count) records, "
                                 + "\(publicRead.contracts.count) contracts" + (publicRead.hasDecodedData ? "" : ", nothing decodable"))
@@ -96,7 +105,7 @@ enum NiceCalypsoReader {
 
     private struct Probe {
         let title: String; let sfi: UInt8; let record: UInt8
-        var command: Data { Data([0x94, 0xB2, record, (sfi << 3) | 0x04, 0x1D]) }
+        func command(_ cla: UInt8) -> Data { Data([cla, 0xB2, record, (sfi << 3) | 0x04, 0x1D]) }
     }
     private struct Reply {
         let payload: Data; let sw1: UInt8; let sw2: UInt8
@@ -134,28 +143,37 @@ enum NiceCalypsoReader {
 
     /// `hasRecords` is false when the card answered none of the Nice records.
     static func read(_ iso: any ISO7816Card, scannedAt: Date) async -> (snapshot: TransitCardSnapshot, hasRecords: Bool) {
-        let directory = await send(Data([0x94, 0xA4, 0x08, 0x00, 0x02, 0x20, 0x00]), to: iso)
+        // Calypso cards take class 94; a card that rejects the class (6E00) is read again with class 00.
+        var cla: UInt8 = 0x94
+        var directory = Reply(payload: Data(), sw1: 0, sw2: 0)
         var replies: [String: Reply] = [:]
+        for attempt in [UInt8(0x94), 0x00] {
+            cla = attempt
+            directory = await send(Data([cla, 0xA4, 0x08, 0x00, 0x02, 0x20, 0x00]), to: iso)
+            replies = [:]
+            for probe in probes { replies[probe.title] = await send(probe.command(cla), to: iso) }
+            DebugLog.shared.log("Calypso", String(format: "La Carte records (class %02X): directory %@, ", cla, directory.status)
+                + probes.map { "\($0.title) \(replies[$0.title]?.status ?? "-")" }.joined(separator: ", "))
+            let rejectedClass = ([directory] + Array(replies.values)).contains { $0.sw1 == 0x6E }
+            if replies.values.contains(where: \.hasData) || !rejectedClass { break }
+        }
         var sections = [RawDataSection(title: "Identification", fields: [
             RawDataField(title: "Technology", value: "ISO7816"),
             RawDataField(title: "UID", value: iso.identifier.hexString),
-            RawDataField(title: "Application AID", value: applicationAID),
+            RawDataField(title: "Application AID", value: iso.initialSelectedAID.uppercased()),
             RawDataField(title: "Application Data", value: iso.applicationData?.hexString ?? "Unavailable")
         ]), RawDataSection(title: "Ticketing Directory", fields: [
-            RawDataField(title: "Command", value: "94A4080002 2000"),
+            RawDataField(title: "Command", value: String(format: "%02XA4080002 2000", cla)),
             RawDataField(title: "SW1SW2", value: directory.status)
         ])]
         for probe in probes {
-            let reply = await send(probe.command, to: iso)
-            replies[probe.title] = reply
+            let reply = replies[probe.title] ?? Reply(payload: Data(), sw1: 0, sw2: 0)
             sections.append(RawDataSection(title: probe.title, fields: [
-                RawDataField(title: "Command", value: probe.command.hexString),
+                RawDataField(title: "Command", value: probe.command(cla).hexString),
                 RawDataField(title: "Response Payload", value: reply.payload.hexString),
                 RawDataField(title: "SW1SW2", value: reply.status)
             ]))
         }
-        DebugLog.shared.log("Calypso", "La Carte records: directory \(directory.status), "
-            + probes.map { "\($0.title) \(replies[$0.title]?.status ?? "-")" }.joined(separator: ", "))
         let hasRecords = replies.values.contains(where: \.hasData)
 
         let bestContracts = NiceRecords.bestContracts(replies["Best Contracts"].flatMap { $0.ok ? $0.payload : nil } ?? Data())
@@ -209,7 +227,7 @@ enum NiceCalypsoReader {
         let snapshot = TransitCardSnapshot(
             technology: "ISO7816", cardFamily: "Lignes d'Azur card", identifierLabel: "UID",
             identifierValue: iso.identifier.hexString, rawIdentifierValue: iso.identifier.hexString,
-            pmm: nil, systemCode: nil, selectedAID: applicationAID,
+            pmm: nil, systemCode: nil, selectedAID: iso.initialSelectedAID.uppercased(),
             balanceText: remaining.map { $0 == 1 ? "1 trip" : "\($0) trips" }, balanceDetail: balanceDetail,
             realSerialNumber: uidDecimal, region: "Nice, France", resultFields: fields,
             rawSections: sections, rawTransactions: [], rawTransitHistory: [], scannedAt: scannedAt
