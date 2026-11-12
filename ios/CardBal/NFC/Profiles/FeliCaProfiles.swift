@@ -199,6 +199,13 @@ public struct FeliCaProfile {
                     rawFields: [RawDataField(title: "Value", value: "\(balance)")]
                 )
             }
+        ),
+        // Last: only a Hanica card answers 84A1, so other cards skip one failed poll.
+        FeliCaProfile(
+            displayName: "Hanica", systemCode: HanicaCardFormat.systemCode,
+            serviceCode: "898F", serviceCodeLittleEndian: HanicaCardFormat.service,
+            // One record cannot place the balance; JapaneseICDecoder reads the whole log.
+            brandOverrides: [:], parseBalance: { _, _ in nil }
         )
     ]
 }

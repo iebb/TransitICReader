@@ -1,6 +1,7 @@
 package ad.neko.cardbal.android.data
 
 import android.content.Context
+import ad.neko.cardbal.android.nfc.HanicaCardFormat
 import ad.neko.cardbal.android.nfc.JapaneseCardFormats
 import ad.neko.cardbal.android.nfc.KoreanCardFormat
 import ad.neko.cardbal.android.nfc.ClipperDecoder
@@ -179,6 +180,7 @@ class TransactionDecoder(context: Context) {
                 if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) decodeSnapperHistory(data, raw) else null
             family == "kmt" || family == "kartu multi trip" -> null
             card.technology == "FeliCa" && family == "ryuto" -> if(kind==RawHistoryKind.Transactions) JapaneseCardFormats.ryuto(data,raw) else null
+            card.technology == "FeliCa" && family == "hanica" -> if(kind==RawHistoryKind.Transactions) HanicaCardFormat.transaction(data,raw,context.map { it.hexToBytes() },index) else null
             card.technology == "FeliCa" && family == "okica" -> if(kind==RawHistoryKind.Transactions) JapaneseCardFormats.okica(data,raw,context.getOrNull(index+1)?.hexToBytes())?.let { tx ->
                 tx.copy(entryStation=tx.entryStationCode?.let{stationDb.findJapaneseStation(it)?.name} ?: tx.entryStation,
                     exitStation=tx.exitStationCode?.let{stationDb.findJapaneseStation(it)?.name} ?: tx.exitStation)

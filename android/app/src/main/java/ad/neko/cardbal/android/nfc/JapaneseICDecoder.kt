@@ -26,6 +26,9 @@ class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMe
             }
             for (profile in FeliCaProfile.entries) {
                 if (!felica.polling(profile.systemCode)) continue
+                // Hanica's balance can only be placed from its whole log, so it is
+                // recognised even when that balance stays unconfirmed.
+                if (profile == FeliCaProfile.Hanica) return hanicaSnapshot(felica, scannedAt)
                 val block = felica.readWithoutEncryption(profile.balanceService, 0) ?: continue
                 if (profile == FeliCaProfile.Octopus) return OctopusOnlineDecoder.decode(felica, block, scannedAt, octopusStore)
                 val parsed = profile.parseBalance(block, scannedAt) ?: continue
@@ -33,7 +36,7 @@ class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMe
                 val detected = profile.detectedBrand(systemCodes)
                 val transactions = when (profile) {
                     FeliCaProfile.JapanTransit, FeliCaProfile.IruCa, FeliCaProfile.Paspy, FeliCaProfile.Sapica -> readService(felica, "0F09", 20)
-                    FeliCaProfile.Octopus -> emptyList()
+                    FeliCaProfile.Octopus, FeliCaProfile.Hanica -> emptyList()
                     FeliCaProfile.Waon -> readPairedServiceRecords(felica, "0B68", 6)
                     FeliCaProfile.Edy -> readService(felica, "0F17", 6)
                     FeliCaProfile.Nanaco -> readService(felica, "4F56", 5)
@@ -149,6 +152,42 @@ class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMe
         )
     }
 
+    private fun hanicaSnapshot(felica: FeliCaTransceiver, scannedAt: Instant): TransitCardSnapshot {
+        val systemCodes = felica.requestSystemCodes().ifEmpty { listOf(HanicaCardFormat.SYSTEM_CODE) }
+        val blocks = mutableListOf<ByteArray>()
+        for (index in 0 until HanicaCardFormat.HISTORY_READ_LIMIT) {
+            val block = felica.readWithoutEncryption(HanicaCardFormat.SERVICE, index) ?: break
+            if (!HanicaCardFormat.isLogBlock(block)) break
+            blocks.add(block)
+        }
+        val confirmed = HanicaCardFormat.confirmedBalance(blocks)
+        val detail = confirmed?.let { "Stored balance from the latest Hanica record (${it.first.summary})." }
+            ?: "Hanica balance layout unconfirmed; the log does not prove where the balance is stored."
+        val identifier = formatFeliCaId(felica.idmHex)
+        val decoded = buildList {
+            add(RawDataField("Decoder", detail))
+            confirmed?.let { add(RawDataField("Balance", it.second.toString())) }
+            blocks.forEachIndexed { index, block -> add(RawDataField("Log Block $index", block.hexString())) }
+        }
+        return TransitCardSnapshot(
+            technology = "FeliCa", cardFamily = FeliCaProfile.Hanica.displayName, identifierLabel = "IDm",
+            identifierValue = identifier, rawIdentifierValue = felica.idmHex,
+            pmm = null, systemCode = HanicaCardFormat.SYSTEM_CODE,
+            balanceText = confirmed?.let { "¥%,d".format(it.second) }, balanceDetail = detail,
+            resultFields = listOf(ResultField("Card Number (IDm)", identifier)),
+            rawSections = listOf(
+                RawDataSection("Tag", listOf(
+                    RawDataField("Technology", "FeliCa"),
+                    RawDataField("IDm", identifier),
+                    RawDataField("System Codes", systemCodes.joinToString(", ")),
+                )),
+                RawDataSection("Decoded Balance", decoded),
+            ),
+            rawTransactions = blocks.map { it.hexString() }, rawTransitHistory = emptyList(),
+            scannedAt = scannedAt,
+        )
+    }
+
     private fun readService(felica: FeliCaTransceiver, service: String, limit: Int, start: Int = 0): List<String> {
         val records = mutableListOf<String>()
         for (i in start until start + limit) {
@@ -205,7 +244,9 @@ private enum class FeliCaProfile(
     Octopus("Octopus", "8008", "1701", "1701"),
     Edy("Rakuten Edy", "FE00", "1713", "0F17"),
     Waon("WAON", "FE00", "1768", "0B68"),
-    Nanaco("nanaco", "FE00", "9755", "4F56");
+    Nanaco("nanaco", "FE00", "9755", "4F56"),
+    // Last: only a Hanica card answers 84A1, so other cards skip one failed poll.
+    Hanica("Hanica", "84A1", "8F89", "8F89");
 
     fun parseBalance(block: ByteArray, scannedAt: Instant): ParsedBalance? {
         if (block.size < 16) return null
@@ -224,6 +265,7 @@ private enum class FeliCaProfile(
                 ParsedBalance("¥%,d".format(amount), "Stored balance from the latest transaction.", listOf(RawDataField("Balance", amount.toString())))
             }
             Octopus -> null // Requires an IDm-specific calibration.
+            Hanica -> null // Placed from the whole log in hanicaSnapshot.
             Edy -> {
                 val balance = block.leInt(0, 4)
                 ParsedBalance("¥%,d".format(balance), "Parsed from service 0x1317 as 4-byte LE.", listOf(RawDataField("Balance", balance.toString())))

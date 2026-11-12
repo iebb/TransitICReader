@@ -122,3 +122,121 @@ internal object JapaneseCardFormats {
             rawData = raw, currencyCode = "JPY", issuerTimeZone = "Asia/Tokyo")
     }
 }
+
+/**
+ * Hanica (Hankyu Bus / Hanshin Bus): one system 84A1 with the bus-platform log shared by
+ * Ryuto, ICa and Passca (service 898F, newest first). Dates and stops share one packing;
+ * the balance position and unit differ across that family and Hanica's is undocumented,
+ * so a balance is used only when exactly one known layout makes the log self-consistent.
+ * Mirrors ios/CardBal/NFC/Profiles/HanicaCardFormat.swift.
+ */
+internal object HanicaCardFormat {
+    const val SYSTEM_CODE = "84A1"
+    const val SERVICE = "8F89"
+    const val HISTORY_READ_LIMIT = 20
+    /** The largest stored value a Japanese bus IC card accepts. */
+    const val MAXIMUM_BALANCE_YEN = 30_000
+    /** No fare or top-up is smaller; separates whole-yen from 10-yen units on the same bytes. */
+    const val MINIMUM_AMOUNT_YEN = 50
+
+    data class Layout(val name: String, val balanceOffset: Int, val amountOffset: Int, val unitYen: Int) {
+        fun balance(block: ByteArray): Int = JapaneseCardFormats.uint(block, balanceOffset, 2).toInt() * unitYen
+        fun amount(block: ByteArray): Int = JapaneseCardFormats.uint(block, amountOffset, 2).toInt() * unitYen
+        val summary: String get() = "$name: balance bytes $balanceOffset-${balanceOffset + 1}, amount bytes " +
+            "$amountOffset-${amountOffset + 1}, big-endian, ${if (unitYen == 1) "yen" else "units of $unitYen yen"}"
+    }
+
+    val ryutoStyle = Layout("Ryuto-style", 14, 10, 1)
+    val passcaStyle = Layout("Passca-style", 14, 10, 10)
+    val icaStyle = Layout("ICa-style", 13, 10, 1)
+    val layouts = listOf(ryutoStyle, passcaStyle, icaStyle)
+
+    data class Record(val boardingDate: Instant?, val date: Instant?, val boardingStop: String, val alightingStop: String, val typeCode: Int) {
+        val hasValidDates: Boolean get() = boardingDate != null && date != null
+        val isTopUpType: Boolean get() = typeCode == 0x55
+        val isRideType: Boolean get() = typeCode == 0x52
+    }
+
+    data class Value(val amount: Int, val balance: Int, val isTopUp: Boolean)
+
+    fun isLogBlock(block: ByteArray): Boolean = block.size == 16 && block.any { it != 0.toByte() }
+
+    fun decode(data: ByteArray): Record? {
+        if (!isLogBlock(data)) return null
+        val b = data.map { it.toInt() and 255 }
+        val year = 2000 + (b[0] shr 1); val month = ((b[0] and 1) shl 3) or (b[1] shr 5); val day = b[1] and 31
+        fun at(hour: Int, minute: Int) = if (hour in 0..23 && minute in 0..59) JapaneseCardFormats.date(year, month, day, hour, minute) else null
+        return Record(at((b[2] shr 2) and 31, ((b[2] and 3) shl 4) or (b[3] shr 4)), at(((b[3] and 7) shl 2) or (b[4] shr 6), b[4] and 63),
+            "%02X%02X".format(b[5], b[6]), "%02X%02X".format(b[7], b[8]), b[9])
+    }
+
+    /** The only layout the log (newest first) proves, or null when none or several fit. */
+    fun detectLayout(blocks: List<ByteArray>): Layout? = layouts.filter { accepts(it, blocks) }.singleOrNull()
+
+    /**
+     * At least two consecutive pairs move the balance by exactly the newer amount, no dated
+     * pair contradicts it, every balance is within the stored-value limit and every proven
+     * amount is a plausible fare or top-up.
+     */
+    fun accepts(layout: Layout, blocks: List<ByteArray>): Boolean {
+        val log = blocks.filter { isLogBlock(it) }
+        if (log.size < 3 || log.any { layout.balance(it) > MAXIMUM_BALANCE_YEN }) return false
+        var consistent = 0
+        for (index in 0 until log.size - 1) {
+            val newer = log[index]; val older = log[index + 1]
+            if (direction(layout, newer, older) != null) {
+                if (layout.amount(newer) < MINIMUM_AMOUNT_YEN) return false
+                consistent++
+                continue
+            }
+            // A zero-amount record that leaves the balance unchanged neither proves nor refutes.
+            if (layout.amount(newer) == 0 && layout.balance(newer) == layout.balance(older)) continue
+            if (decode(newer)?.hasValidDates == true && decode(older)?.hasValidDates == true) return false
+        }
+        return consistent >= 2
+    }
+
+    /** True for a top-up, false for a fare, null when the pair does not fit the layout. */
+    fun direction(layout: Layout, newer: ByteArray, older: ByteArray): Boolean? {
+        val amount = layout.amount(newer)
+        if (amount <= 0) return null
+        val balance = layout.balance(newer); val previous = layout.balance(older)
+        return when (balance) {
+            previous - amount -> false
+            previous + amount -> true
+            else -> null
+        }
+    }
+
+    /** Amount and balance of `blocks[index]` under `layout`; null without a confirmed layout. */
+    fun value(index: Int, blocks: List<ByteArray>, layout: Layout?): Value? {
+        val block = blocks.getOrNull(index) ?: return null
+        if (layout == null || !isLogBlock(block)) return null
+        val older = blocks.getOrNull(index + 1)?.takeIf { isLogBlock(it) }
+        val topUp = older?.let { direction(layout, block, it) } ?: ((block[9].toInt() and 255) == 0x55)
+        return Value(layout.amount(block), layout.balance(block), topUp)
+    }
+
+    /** The current balance in yen, from the newest record, when a layout is confirmed. */
+    fun confirmedBalance(blocks: List<ByteArray>): Pair<Layout, Int>? {
+        val layout = detectLayout(blocks) ?: return null
+        val newest = blocks.firstOrNull()?.takeIf { isLogBlock(it) } ?: return null
+        return layout to layout.balance(newest)
+    }
+
+    /** Dates and stops always; fare and balance only when the log confirms one layout. */
+    fun transaction(data: ByteArray, raw: String, context: List<ByteArray>, index: Int): TransitTransaction? {
+        val record = decode(data) ?: return null
+        val blocks = if (context.getOrNull(index)?.contentEquals(data) == true) context else listOf(data)
+        val value = value(if (blocks.size == 1) 0 else index, blocks, detectLayout(blocks))
+        val topUp = value?.isTopUp ?: record.isTopUpType
+        val ride = value?.let { !it.isTopUp } ?: record.isRideType
+        val stops = !topUp && (record.boardingStop != "0000" || record.alightingStop != "0000")
+        return TransitTransaction(date = record.date, amount = value?.amount?.toLong() ?: 0, balanceAfter = value?.balance?.toLong(),
+            type = if (topUp) "Top-up" else if (ride) "Bus" else "Transaction",
+            category = if (topUp) TransactionCategory.topUp else if (ride) TransactionCategory.bus else TransactionCategory.unknown,
+            entryStation = if (stops) "Bus stop ${record.boardingStop}" else null, exitStation = if (stops) "Bus stop ${record.alightingStop}" else null,
+            location = if (stops) "Bus stop ${record.boardingStop} → ${record.alightingStop}" else null,
+            rawData = raw, currencyCode = "JPY", issuerTimeZone = "Asia/Tokyo", amountKnown = value != null)
+    }
+}

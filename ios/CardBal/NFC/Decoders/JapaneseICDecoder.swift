@@ -30,6 +30,12 @@ struct JapaneseICDecoder: TransitCardDecoder {
             if isKMT && !KMTCardFormat.isSelectedSystem(selected.1) { continue }
 
             ScanProgress.report(.balance)
+            if profile.systemCode == HanicaCardFormat.systemCode {
+                // Hanica's balance can only be placed from its whole log, so it is
+                // recognised even when that balance stays unconfirmed.
+                primarySnapshot = await createHanicaSnapshot(feliCa: feliCa, profile: profile, scannedAt: scannedAt)
+                break
+            }
             let read = try? await feliCa.readWithoutEncryption(
                 serviceCodeList: [profile.serviceCodeLittleEndian],
                 blockList: [Data([0x80, 0x00])]
@@ -155,6 +161,64 @@ struct JapaneseICDecoder: TransitCardDecoder {
         return snapshot
     }
 
+    private static func createHanicaSnapshot(feliCa: FeliCaCard, profile: FeliCaProfile, scannedAt: Date) async -> TransitCardSnapshot {
+        let idm = feliCa.currentIDm.hexString.uppercased()
+        let formattedIDm = formatFeliCaIDm(idm)
+        let systemCodes = (try? await feliCa.requestSystemCode().map { $0.hexString.uppercased() }) ?? [profile.systemCode]
+
+        ScanProgress.report(.transactions)
+        var blocks: [Data] = []
+        for index in 0..<HanicaCardFormat.historyReadLimit {
+            guard let response = try? await feliCa.readWithoutEncryption(
+                serviceCodeList: [HanicaCardFormat.service], blockList: [Data([0x80, UInt8(index)])]
+            ), response.0 == 0, response.1 == 0, let block = response.2.first,
+                  HanicaCardFormat.isLogBlock(block) else { break }
+            blocks.append(block)
+        }
+        let confirmed = HanicaCardFormat.confirmedBalance(blocks)
+        DebugLog.shared.log("FeliCa", "System \(profile.systemCode) (\(profile.displayName)) answered polling; \(blocks.count) log blocks read")
+        DebugLog.shared.log("FeliCa", confirmed.map { "Hanica balance layout \($0.layout.summary)" } ?? "Hanica balance layout unconfirmed")
+        // Only the shape of the log goes here: the raw records stay in the card's raw data.
+        if !blocks.isEmpty {
+            let fits = HanicaCardFormat.layouts.filter { HanicaCardFormat.accepts($0, blocks: blocks) }.map(\.name)
+            DebugLog.shared.log("FeliCa", "Hanica layouts that fit: " + (fits.isEmpty ? "none" : fits.joined(separator: ", "))
+                                + "; type bytes " + blocks.prefix(10).map { String(format: "%02X", $0[$0.startIndex + 9]) }.joined(separator: " "))
+        }
+
+        let detail = confirmed.map { "Stored balance from the latest Hanica record (\($0.layout.summary))." }
+            ?? "Hanica balance layout unconfirmed; the log does not prove where the balance is stored."
+        var decoded = [RawDataField(title: "Decoder", value: detail)]
+        if let confirmed { decoded.append(RawDataField(title: "Balance", value: String(confirmed.balance))) }
+        decoded += blocks.enumerated().map { RawDataField(title: "Log Block \($0.offset)", value: $0.element.hexString.uppercased()) }
+
+        return TransitCardSnapshot(
+            technology: "FeliCa",
+            cardFamily: profile.displayName,
+            identifierLabel: "IDm",
+            identifierValue: formattedIDm,
+            rawIdentifierValue: idm,
+            pmm: "Unavailable",
+            systemCode: profile.systemCode,
+            selectedAID: nil,
+            balanceText: confirmed.map { formatCurrency(amount: Decimal($0.balance), code: "JPY") },
+            balanceDetail: detail,
+            realSerialNumber: nil,
+            region: nil,
+            resultFields: [ResultField(title: "Card Number (IDm)", value: formattedIDm)],
+            rawSections: [
+                RawDataSection(title: "Tag", fields: [
+                    RawDataField(title: "Technology", value: "FeliCa"),
+                    RawDataField(title: "IDm", value: formattedIDm),
+                    RawDataField.systemCodeRow(systemCodes)
+                ]),
+                RawDataSection(title: "Decoded Balance", fields: decoded)
+            ],
+            rawTransactions: blocks.map { $0.hexString.uppercased() },
+            rawTransitHistory: [],
+            scannedAt: scannedAt
+        )
+    }
+
     private static func readKMTBlock(feliCa: FeliCaCard, service: Data, index: Int) async -> Data? {
         guard let response = try? await feliCa.readWithoutEncryption(
             serviceCodeList: [service], blockList: [Data([0x80, UInt8(index)])]
@@ -198,6 +262,9 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 balanceAfter: Decimal(record.balance), location: record.isTopUp ? nil : "Bus stop \(record.boardingStop) → \(record.alightingStop)",
                 entryStation: record.isTopUp ? nil : "Bus stop \(record.boardingStop)",
                 exitStation: record.isTopUp ? nil : "Bus stop \(record.alightingStop)", rawData: block.hexString)
+        }
+        if family.caseInsensitiveCompare("Hanica") == .orderedSame {
+            return kind == .transactions ? decodeHanicaHistory(block: block, context: context, index: index) : nil
         }
         let brand = ICCardBrand.from(family: family)
         switch brand {
@@ -360,6 +427,34 @@ struct JapaneseICDecoder: TransitCardDecoder {
             rawData: block.hexString.uppercased(),
             recordNumber: Int(block[13]) << 8 | Int(block[14])
         )
+    }
+
+    /// Dates and stops always; fare and balance only when the log confirms one layout.
+    private static func decodeHanicaHistory(block: Data, context: [Data], index: Int) -> TransitTransaction? {
+        guard let record = HanicaCardFormat.decode(block) else { return nil }
+        let blocks = context.indices.contains(index) && context[index] == block ? context : [block]
+        let position = blocks.count == 1 ? 0 : index
+        let value = HanicaCardFormat.value(at: position, in: blocks, layout: HanicaCardFormat.detectLayout(blocks))
+        let isTopUp = value?.isTopUp ?? record.isTopUpType
+        let isRide = value.map { !$0.isTopUp } ?? record.isRideType
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        formatter.dateFormat = "HH:mm"
+        let stops = !isTopUp && (record.boardingStop != "0000" || record.alightingStop != "0000")
+        var transaction = TransitTransaction(
+            date: record.date, time: record.date.map { formatter.string(from: $0) },
+            amount: Decimal(value?.amount ?? 0), terminalID: nil,
+            type: isTopUp ? "Top-up" : isRide ? "Bus" : "Transaction",
+            category: isTopUp ? .topUp : isRide ? .bus : .unknown,
+            balanceAfter: value.map { Decimal($0.balance) },
+            location: stops ? "Bus stop \(record.boardingStop) → \(record.alightingStop)" : nil,
+            entryStation: stops ? "Bus stop \(record.boardingStop)" : nil,
+            exitStation: stops ? "Bus stop \(record.alightingStop)" : nil,
+            rawData: block.hexString.uppercased()
+        )
+        transaction.amountKnown = value != nil
+        return transaction
     }
 
     private static func decodeOKICAHistory(block: Data, context: [Data], index: Int) -> TransitTransaction? {
