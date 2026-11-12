@@ -90,6 +90,7 @@ struct NFCISO7816ResponseAPDU { let statusWord1: UInt8, statusWord2: UInt8; let 
 final class NFCISO7816Tag {
     let identifier = Data(hexString: "01020304")
     var initialSelectedAID = CityUnionDecoder.applicationAID
+    var selectsUnlistedApplications = true
     var available = Set([CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID])
     var selected = ""
     var selectedAIDs: [String] = []

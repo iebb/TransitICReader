@@ -14,10 +14,7 @@ import kotlinx.datetime.Clock
 class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     private var clipperLookup: ClipperLookup = ClipperLookup.Numeric
     private var octopusStore: OctopusMetadataStore? = null
-    private val decoders: List<TransitCardDecoder> get() = listOf(
-        CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
-        StoredValueDecoder(), ChineseLocalDecoder(), CalypsoDecoder(), Iso7816Decoder(), JapaneseICDecoder(octopusStore),
-    )
+    private val decoders: List<TransitCardDecoder> get() = orderedDecoders(clipperLookup, octopusStore)
     private val _latestSnapshot = MutableStateFlow<TransitCardSnapshot?>(null)
     private val _status = MutableStateFlow("Ready to scan.")
     private val _isScanning = MutableStateFlow(false)
@@ -63,14 +60,8 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     override fun onTagDiscovered(tag: Tag) {
         _status.value = "Reading card..."
         val scannedAt=Clock.System.now()
-        val results=mutableListOf<TransitCardSnapshot>()
-        for(decoder in decoders) {
-            if(results.isNotEmpty()) {
-                val mainland=results.any { s -> s.applications.orEmpty().any { it.isTUnion || it.isCityUnion } }
-                val macau=results.any { s -> s.applications.orEmpty().any { it.isMacauPass } }
-                if(!mainland || macau || decoder !is JapaneseICDecoder) continue
-            }
-            if(decoder.canDecode(tag)) runCatching { decoder.decode(tag,scannedAt) }.getOrNull()?.let(results::add)
+        val results=read(decoders) { decoder ->
+            if(decoder.canDecode(tag)) runCatching { decoder.decode(tag,scannedAt) }.getOrNull() else null
         }
         val snapshot=TransitApplication.combine(results)
         if (snapshot == null) {
@@ -80,5 +71,29 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
             _status.value = "Read successful: ${snapshot.cardFamily}"
         }
         _isScanning.value = readerModeEnabled
+    }
+
+    internal companion object {
+        // City Union / T-Union (Iso7816Decoder) are read before the local reader, whose
+        // SELECTs ran first in 2.6.0 and left City Union-only cards unreadable.
+        internal fun orderedDecoders(clipperLookup: ClipperLookup, octopusStore: OctopusMetadataStore?): List<TransitCardDecoder> = listOf(
+            CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
+            StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(), ChineseLocalDecoder(), JapaneseICDecoder(octopusStore),
+        )
+
+        /** Reads in order until one decoder succeeds. After a City Union / T-Union read, the local
+         *  application and the Octopus side of the same card are still read as extra applications. */
+        internal fun read(decoders: List<TransitCardDecoder>, attempt: (TransitCardDecoder) -> TransitCardSnapshot?): List<TransitCardSnapshot> {
+            val results=mutableListOf<TransitCardSnapshot>()
+            for(decoder in decoders) {
+                if(results.isNotEmpty()) {
+                    val mainland=results.any { s -> s.applications.orEmpty().any { it.isTUnion || it.isCityUnion } }
+                    val macau=results.any { s -> s.applications.orEmpty().any { it.isMacauPass } }
+                    if(!mainland || macau || (decoder !is JapaneseICDecoder && decoder !is ChineseLocalDecoder)) continue
+                }
+                attempt(decoder)?.let(results::add)
+            }
+            return results
+        }
     }
 }

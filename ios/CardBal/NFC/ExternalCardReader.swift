@@ -61,7 +61,6 @@ final class ExternalCardReader {
             if let snapshot = try? await ClipperDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await StoredValueDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await TianfuTongDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
-            if let snapshot = try? await ChineseLocalDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await CalypsoDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             let aids = [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID,
                         "D4100000030001", "D4100000140001", "D410000029000001", "D4100000300001", "D4106509900020",
@@ -75,9 +74,14 @@ final class ExternalCardReader {
                 iso.applicationData = response.0
                 for decoder in [ChineseTransitDecoder.self, KSX6924Decoder.self, CalypsoDecoder.self] as [TransitCardDecoder.Type] {
                     if await decoder.canDecode(tag: .iso7816(iso)),
-                       let snapshot = try? await decoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+                       let snapshot = try? await decoder.decode(tag: .iso7816(iso), scannedAt: Date()) {
+                        return await ChineseLocalDecoder.addingLocalApplication(to: snapshot, tag: .iso7816(iso))
+                    }
                 }
             }
+            // Local applications are read after City Union / T-Union, whose read their SELECTs could disturb.
+            try Task.checkCancellation()
+            if let snapshot = try? await ChineseLocalDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if supportsFeliCa, uid.count == 7 {
                 try Task.checkCancellation()
                 let ticket = ACR122UltralightCard(connection: connection, identifier: uid)
@@ -147,6 +151,7 @@ final class ExternalISO7816Card: ISO7816Card {
     let identifier: Data
     var initialSelectedAID = ""
     var applicationData: Data?
+    var selectsUnlistedApplications: Bool { true }
     init(connection: any CardCommandChannel, identifier: Data) { self.connection = connection; self.identifier = identifier }
     func sendCommand(apdu: CardAPDU) async throws -> (Data, UInt8, UInt8) { try await connection.exchange(apdu.encoded) }
 }

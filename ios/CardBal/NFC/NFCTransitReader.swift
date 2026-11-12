@@ -414,7 +414,9 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                     ? [ChineseTransitDecoder.self]
                     : phase == .octopus ? [OctopusFeliCaDecoder.self] : [
                         CEPASDecoder.self, MacauPassDecoder.self, ClipperDecoder.self, ClipperUltralightDecoder.self,
-                        StoredValueDecoder.self, TianfuTongDecoder.self, ChineseLocalDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
+                        StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,
+                        // After the 2.5.2 ISO readers: its SELECTs must not disturb a City Union / T-Union read.
+                        ChineseLocalDecoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
                     ]
                 // When the phone found the card by a Calypso application (La Carte),
@@ -442,6 +444,12 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 }
                 if !declined.isEmpty {
                     DebugLog.shared.log("Scan", "Not for this tag: " + declined.joined(separator: ", "))
+                }
+                // A card with a local application beside City Union / T-Union keeps both views.
+                if phase == .regular, let primary = snapshot {
+                    snapshot = await ScanProgress.$current.withValue(progress) {
+                        await ChineseLocalDecoder.addingLocalApplication(to: primary, tag: cardTag)
+                    }
                 }
                     if let detectedSnapshot = snapshot,
                        detectedSnapshot.technology == "FeliCa",

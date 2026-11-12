@@ -11,6 +11,7 @@ enum NFCTestError: Error { case unsupportedCard }
 struct UnsupportedDecoder: TransitCardDecoder {
  static func canDecode(tag: CardTag) async -> Bool { false }
  static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot { throw NFCTestError.unsupportedCard }
+ static func addingLocalApplication(to snapshot: TransitCardSnapshot, tag: CardTag) async -> TransitCardSnapshot { snapshot }
 }
 typealias EdyDecoder = UnsupportedDecoder
 typealias StoredValueDecoder = UnsupportedDecoder

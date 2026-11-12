@@ -8,7 +8,9 @@ struct ChineseLocalDecoder: TransitCardDecoder {
     static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
         ScanProgress.report(.balance)
-        guard let result = await ChineseLocalProtocol.read(exchange: { command in
+        // Beijing's OC/PBOC names are not in Info.plist; Core NFC cannot select them.
+        let kinds: [ChineseLocalProtocol.Kind] = iso.selectsUnlistedApplications ? ChineseLocalProtocol.Kind.allCases : [.shenzhen, .wuhan]
+        guard let result = await ChineseLocalProtocol.read(kinds: kinds, exchange: { command in
             guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
             return try await iso.sendCommand(apdu: apdu)
         }), !iso.identifier.isEmpty || result.serial != nil else { throw NFCTestError.unsupportedCard }
@@ -31,6 +33,28 @@ struct ChineseLocalDecoder: TransitCardDecoder {
         )
         snapshot.applications = [TransitApplication(snapshot: snapshot, records: records)]
         return snapshot
+    }
+    /// Adds the local application of a card that also has City Union / T-Union. Runs only after
+    /// that read succeeded, so these SELECTs cannot disturb it; the City Union / T-Union side stays primary.
+    static func addingLocalApplication(to snapshot: TransitCardSnapshot, tag: CardTag) async -> TransitCardSnapshot {
+        guard case .iso7816 = tag, snapshot.applicationSnapshots.contains(where: { $0.isCityUnion || $0.isTUnion }),
+              let local = try? await decode(tag: tag, scannedAt: snapshot.scannedAt),
+              let combined = TransitCardSnapshot.combining([snapshot, local]) else { return snapshot }
+        // The snapshot's fields already list its own applications; add only the local one's.
+        let added = local.applicationSnapshots.filter { app in !snapshot.applicationSnapshots.contains { $0.id == app.id } }
+        var result = TransitCardSnapshot(
+            technology: combined.technology, cardFamily: combined.cardFamily, identifierLabel: combined.identifierLabel,
+            identifierValue: combined.identifierValue, rawIdentifierValue: combined.rawIdentifierValue, pmm: combined.pmm,
+            systemCode: combined.systemCode, selectedAID: combined.selectedAID, balanceText: combined.balanceText,
+            balanceDetail: combined.balanceDetail, realSerialNumber: combined.realSerialNumber, region: combined.region,
+            resultFields: snapshot.resultFields + added.flatMap { app in
+                app.fields.map { ResultField(title: "\(app.label) · \($0.title)", value: $0.value) }
+            },
+            rawSections: combined.rawSections, rawTransactions: combined.rawTransactions,
+            rawTransitHistory: combined.rawTransitHistory, scannedAt: combined.scannedAt)
+        result.applications = combined.applications
+        result.exchangeRate = combined.exchangeRate
+        return result
     }
     static func decodeRecord(data: Data) -> TransitTransaction? {
         guard let history = ChineseLocalProtocol.history(data) else { return nil }

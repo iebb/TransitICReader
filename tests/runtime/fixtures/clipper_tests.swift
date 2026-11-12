@@ -59,6 +59,7 @@ struct UnrelatedDecoder: TransitCardDecoder {
     static func decodeTransitRecord(data: Data, index: Int, auxiliary: [TransitApplicationRecord]) -> TransitTransaction? { nil }
     static func decodeRecord(data: Data, index: Int) -> TransitTransaction? { nil }
     static func decodeRecord(data: Data) -> TransitTransaction? { nil }
+    static func addingLocalApplication(to snapshot: TransitCardSnapshot, tag: CardTag) async -> TransitCardSnapshot { snapshot }
     static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? { nil }
     static func decodePBOC(data: Data, index: Int, resolveTUnionTerminals: Bool) -> TransitTransaction? { nil }
     static func parseTransitHistory(_ data: Data, sfi: Int, recordIndex: Int, brand: ICCardBrand, logger: Logger) -> TransitTransaction? { nil }

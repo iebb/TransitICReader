@@ -49,6 +49,13 @@ advertised as built-in iPhone NFC support. Beijing T-Union products continue
 through the existing T-Union application. Adding a made-up padded Beijing AID
 would not resolve discovery.
 
+Built-in iPhone reads therefore try only `PAY.SZT` and `AP1.WHCTC`
+(`ISO7816Card.selectsUnlistedApplications` is false); external readers try all
+three. On every platform the local reader runs after the City Union / T-Union
+reader (2.6.0 ran it first, and City Union-only cards stopped reading). When a
+card has both, the local application is read after City Union / T-Union
+succeeded and added as another application; City Union / T-Union stays primary.
+
 Trip Reader database import remains limited to its existing City Union/T-Union
 backup layouts. Adding a live NFC reader does not establish a backup schema.
 The legacy FeliCa Shenzhen generation is also outside this addition.

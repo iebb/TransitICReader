@@ -42,7 +42,8 @@ enum ChineseLocalProtocol {
         return History(date: date, amountMinor: type == 2 ? amount : [UInt8(6), 9].contains(type) ? -amount : nil,
                        type: type, terminal: hex(bytes.subdata(in: 10..<16)), counter: Int(uint(Data(bytes.prefix(2)))))
     }
-    static func read(exchange: (Data) async throws -> (Data, UInt8, UInt8)) async -> Result? {
+    /// Core NFC can select only the Info.plist AIDs, so built-in reads pass [.shenzhen, .wuhan].
+    static func read(kinds: [Kind] = Kind.allCases, exchange: (Data) async throws -> (Data, UInt8, UInt8)) async -> Result? {
         func command(_ request: Data) async -> Data? {
             var current = request; var output = Data(); var corrected = false
             for _ in 0..<16 {
@@ -61,7 +62,7 @@ enum ChineseLocalProtocol {
             let name = unhex(aid)
             return await command(Data([0, 0xA4, 4, 0, UInt8(name.count)]) + name + Data([0]))
         }
-        for kind in Kind.allCases {
+        for kind in kinds {
             for aid in kind.aids {
                 guard let selection = await select(aid) else { continue }
                 var usesPurseDF = false

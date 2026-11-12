@@ -36,7 +36,13 @@ protocol ISO7816Card {
     var identifier: Data { get }
     var initialSelectedAID: String { get }
     var applicationData: Data? { get }
+    /// Core NFC only selects the AIDs listed in Info.plist; external readers can select any application.
+    var selectsUnlistedApplications: Bool { get }
     func sendCommand(apdu: CardAPDU) async throws -> (Data, UInt8, UInt8)
+}
+
+extension ISO7816Card {
+    var selectsUnlistedApplications: Bool { false }
 }
 
 struct CardResponseAPDU {

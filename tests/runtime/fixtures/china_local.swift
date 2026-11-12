@@ -74,5 +74,71 @@
     check(fallback?.serial == beijing["serial"] as? String && fallback?.balanceMinor == 1234 && fallback?.records.count == 1, "Beijing MF/purse DF/log path fallback")
     let invalidStatus = await ChineseLocalProtocol.read { _ in (Data(), 0x90, 1) }
     check(invalidStatus == nil, "Non-9000 success accepted")
+    try await testChineseLocalBesideCityUnion(fixture: fixture, histories: histories)
     print("PASS: China local balances, histories, identities, persistence and APDU procedures")
+}
+
+/// City Union / T-Union are read first (as in 2.5.2); a local application is added afterwards.
+@MainActor func testChineseLocalBesideCityUnion(fixture: [String: Any], histories: [[String: Any]]) async throws {
+    let cu = CityUnionDecoder.applicationAID, tu = TUnionDecoder.applicationAID
+    let cards = fixture["cards"] as! [[String: Any]]
+    let localAIDs = Set(cards.map { $0["aid"] as! String } + ["50424F43"])
+    // A City Union-only card on Core NFC: only the Info.plist names are tried, and nothing else is accepted.
+    var names: [String] = []
+    let none = await ChineseLocalProtocol.read(kinds: [.shenzhen, .wuhan]) { command in
+        guard command[1] == 0xA4, command[2] == 4 else { return (Data(), 0x6A, 0x82) }
+        let name = Data(command.dropFirst(5).prefix(Int(command[4]))).hexString
+        names.append(name)
+        return (Data(), name == cu ? 0x90 : 0x6A, name == cu ? 0 : 0x82)
+    }
+    check(none == nil && names == ["5041592E535A54", "4150312E5748435443"], "City Union-only card read as local")
+    check(!names.contains("4F43") && !names.contains("50424F43"), "Core NFC selected an unlisted Beijing name")
+
+    // Built-in reads never select OC/PBOC, so a Beijing card is for external readers only.
+    let beijing = cards[2], beijingAID = beijing["aid"] as! String
+    let builtIn = NFCISO7816Tag(); builtIn.selectsUnlistedApplications = false
+    builtIn.available = [beijingAID]; builtIn.balances = [beijingAID: Data(hexString: "800004D2")]
+    builtIn.binaryFiles = [beijingAID: [beijing["sfi"] as! Int: Data(hexString: beijing["info"] as! String)]]
+    do { _ = try await ChineseLocalDecoder.decode(tag: .iso7816(builtIn), scannedAt: Date()); preconditionFailure("Core NFC read Beijing") }
+    catch NFCTestError.unsupportedCard { }
+    check(!builtIn.selectedAIDs.contains("4F43") && !builtIn.selectedAIDs.contains("50424F43"), "Core NFC selected an unlisted Beijing name")
+
+    var infoCU = Data(repeating: 0, count: 30); infoCU.replaceSubrange(2..<4, with: Data(hexString: "2000")); infoCU[19] = 1
+    var infoTU = infoCU; infoTU.replaceSubrange(2..<4, with: Data(hexString: "2900"))
+    infoTU.replaceSubrange(10..<20, with: Data(hexString: "03100000000000000001"))
+
+    // (a) City Union only: read by the City Union reader; the local reader afterwards changes nothing.
+    let cityUnion = NFCISO7816Tag(); cityUnion.selectsUnlistedApplications = false
+    cityUnion.available = [cu]; cityUnion.info = [cu: infoCU]
+    let primary = try await ChineseTransitDecoder.decode(tag: .iso7816(cityUnion), scannedAt: Date())
+    check(primary.applications?.count == 1 && primary.applications?[0].isCityUnion == true, "City Union-only card not read")
+    check(!cityUnion.selectedAIDs.contains(where: { localAIDs.contains($0) }), "Local SELECT before the City Union read")
+    let readCount = cityUnion.selectedAIDs.count
+    let kept = await ChineseLocalDecoder.addingLocalApplication(to: primary, tag: .iso7816(cityUnion))
+    check(kept.applications == primary.applications && kept.balanceText == primary.balanceText
+          && kept.selectedAID == cu && kept.resultFields.map(\.title) == primary.resultFields.map(\.title), "Local reader changed a City Union result")
+    check(Array(cityUnion.selectedAIDs.dropFirst(readCount)) == ["5041592E535A54", "4150312E5748435443"], "Unexpected local SELECTs on Core NFC")
+
+    // (b) Shenzhen Tong beside City Union and T-Union: all three views, T-Union stays primary.
+    let shenzhen = cards[0], szt = shenzhen["aid"] as! String
+    let dual = NFCISO7816Tag(); dual.selectsUnlistedApplications = false
+    dual.available = [cu, tu, szt]; dual.info = [cu: infoCU, tu: infoTU]
+    dual.balances = [szt: Data(hexString: "800004D2")]
+    dual.binaryFiles = [szt: [shenzhen["sfi"] as! Int: Data(hexString: shenzhen["info"] as! String)]]
+    dual.files = [szt: [24: histories.prefix(2).map { Data(hexString: $0["hex"] as! String) }]]
+    let mainland = try await ChineseTransitDecoder.decode(tag: .iso7816(dual), scannedAt: Date())
+    let both = await ChineseLocalDecoder.addingLocalApplication(to: mainland, tag: .iso7816(dual))
+    let apps = both.applications ?? []
+    check(apps.count == 3 && apps.filter(\.isCityUnion).count == 1 && apps.filter(\.isTUnion).count == 1, "City Union / T-Union view lost")
+    check(apps.contains { $0.cardFamily == "Shenzhen Tong" && $0.selectedAID == szt && $0.records.count == 2 && $0.balanceText == "CNY 12.34" },
+          "Local view lost beside City Union / T-Union")
+    check(both.selectedAID == tu && both.cardFamily == mainland.cardFamily && both.realSerialNumber == mainland.realSerialNumber
+          && both.balanceText == mainland.balanceText, "Local application replaced the T-Union primary")
+    check(both.resultFields.filter { $0.title.hasPrefix("City Union · ") }.count == mainland.resultFields.filter { $0.title.hasPrefix("City Union · ") }.count,
+          "City Union fields duplicated")
+    check(both.resultFields.contains { $0.title == "Shenzhen Tong · Card Number" && $0.value == shenzhen["serial"] as! String }, "Local fields missing")
+    check(!dual.selectedAIDs.contains("4F43") && !dual.selectedAIDs.contains("50424F43"), "Core NFC selected an unlisted Beijing name")
+    let stored = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(apps))
+    check(stored == apps, "Combined local application lost in storage")
+    print("PASS: City Union read first; local application added beside City Union / T-Union")
 }
