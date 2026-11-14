@@ -348,6 +348,7 @@
     <string name="text_0e33d576fe774823" formatted="false">"购物"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"石墨色"</string>
     <string name="text_d486dfbd5fb57834" formatted="false">"绿色"</string>
+    <string name="text_494d7879fc98ed73" formatted="false">"广州"</string>
     <string name="text_11f836ed4dac947e" formatted="false">"港币余额"</string>
     <string name="text_3ac37944948bbc7a" formatted="false">"HSL V1/V2 或 Waltti DESFire 公开钱包、记录及票种"</string>
     <string name="text_a2eb11fb19c6ba94" formatted="false">"帮助改进韩国卡片读取"</string>
@@ -440,6 +441,7 @@
     <string name="text_624527a26b97667c" formatted="false">"基于 Creative Commons Attribution 4.0 International 许可。"</string>
     <string name="text_fed696954300d76e" formatted="false">"线路 %02X／车站 %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"线路"</string>
+    <string name="text_ba2401b930b8387f" formatted="false">"岭南通"</string>
     <string name="text_bade54e8e36c75d6" formatted="false">"正在将交通记录关联到城市…"</string>
     <string name="text_297957acec34b19e" formatted="false">"已载入车票"</string>
     <string name="text_10d9142b3c2d8682" formatted="false">"正在加载城市…"</string>

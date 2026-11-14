@@ -76,6 +76,63 @@ class ChineseLocalDecoderTest {
         }
     }
 
+    private val ticl = ChineseLocalProtocol.LINGNAN_PURSE_AID
+    private val appy = ChineseLocalProtocol.LINGNAN_INFO_AID
+    /** A real PAY.TICL SELECT reply (flutter_nfc_kit issue #32). Its 9F0C is not the card details file. */
+    private val ticlFci = "6f3484085041592e5449434ca5289f0801029f0c21ffffffffffffffff000000000000000000000000000000002019082400000186a0".hexToBytes()
+
+    private fun lingnanCard(applications: Map<String, ByteArray>, balance: String, selects: MutableList<String>): (ByteArray) -> ByteArray {
+        var selected = ""
+        val histories = fixture.getValue("histories").jsonArray
+        return { command ->
+            when (command[1].toInt() and 255) {
+                0xA4 -> {
+                    val name = command.copyOfRange(5, 5 + (command[4].toInt() and 255)).hexString()
+                    if (command[2] == 4.toByte()) selects.add(name)
+                    val reply = applications[name].takeIf { command[2] == 4.toByte() }
+                    if (reply != null) { selected = name; reply + success } else missing
+                }
+                0x5C -> if (selected == ticl) balance.hexToBytes() + success else missing
+                0xB2 -> if (selected == ticl && command[2].toInt() in 1..3)
+                    histories[command[2].toInt() - 1].jsonObject["hex"]!!.jsonPrimitive.content.hexToBytes() + success else missing
+                else -> missing
+            }
+        }
+    }
+
+    @Test fun lingnanPassReadsDetailsFromAppyAndThePurseFromTicl() {
+        val info = fixture.getValue("cards").jsonArray[3].jsonObject["info"]!!.jsonPrimitive.content.hexToBytes()
+        val appyFci = "6F2D8408".hexToBytes() + appy.hexToBytes() + "A5219F0C1E".hexToBytes() + info
+        val selects = mutableListOf<String>()
+        val result = ChineseLocalDecoder.read("01020304", Instant.parse("2026-11-01T00:00:00Z"),
+            lingnanCard(mapOf(appy to appyFci, ticl to ticlFci), "00000BB8" , selects))!!
+        assertEquals("Lingnan Pass", result.cardFamily)
+        assertEquals(ticl, result.selectedAID)
+        assertEquals("Guangzhou", result.region)
+        assertEquals("5123456789", result.realSerialNumber)
+        assertNotNull(result.balanceText)
+        assertEquals(3, result.rawTransactions.size)
+        assertTrue(result.resultFields.any { it.title == "Issue Date" && it.value == "2020-01-01" })
+        assertTrue(result.resultFields.any { it.title == "Expiry Date" && it.value == "2030-12-31" })
+        assertEquals(listOf("5041592E535A54", "4150312E5748435443", appy, ticl), selects.take(4))
+        assertTrue(result.applications!!.single().isLingnan)
+        assertTrue(result.rawSections.first().fields.any { it.value == appyFci.hexString() })
+        val saved = Json.decodeFromString<List<TransitApplication>>(Json.encodeToString(result.applications!!))
+        assertEquals(result.applications, saved)
+    }
+
+    @Test fun ticlReplyAloneGivesTheBalanceButNoInventedDetails() {
+        val selects = mutableListOf<String>()
+        val result = ChineseLocalDecoder.read("01020304", Instant.parse("2026-11-01T00:00:00Z"),
+            lingnanCard(mapOf(ticl to ticlFci), "000186A0", selects))!!
+        assertEquals("Lingnan Pass", result.cardFamily)
+        assertEquals(ticl, result.selectedAID)
+        assertNull(result.realSerialNumber)
+        assertFalse(result.resultFields.any { it.title == "Issue Date" || it.title == "Expiry Date" })
+        assertNull(ChineseLocalDecoder.read("01020304", Instant.parse("2026-11-01T00:00:00Z"),
+            lingnanCard(mapOf(ticl to ticlFci), "FFFFFFFF", mutableListOf())))
+    }
+
     @Test fun beijingCanReadMetadataFromMasterFileAndHistoryByPath() {
         val c = fixture.getValue("cards").jsonArray[2].jsonObject
         var selected = ""
@@ -122,7 +179,7 @@ class ChineseLocalDecoderTest {
         assertNull(ChineseLocalProtocol.read { "000004D29001".hexToBytes() })
         var requests = 0
         assertNull(ChineseLocalProtocol.read { requests++; "6100".hexToBytes() })
-        assertTrue(requests <= 4 * 16)
+        assertTrue(requests <= 6 * 16)
         assertNull(ChineseLocalProtocol.read { command ->
             when (command[1].toInt() and 255) {
                 0xA4 -> if (command[2] == 4.toByte() && command[4] <= 4.toByte()) success else missing

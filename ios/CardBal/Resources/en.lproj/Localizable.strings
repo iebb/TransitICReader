@@ -986,6 +986,8 @@
 "Network" = "Network";
 "Octopus" = "Octopus";
 "Octopus + %@" = "Octopus + %@";
+"Lingnan Pass" = "Lingnan Pass";
+"Guangzhou" = "Guangzhou";
 "SFI 4 bytes 10–13" = "SFI 4 bytes 10–13";
 "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes." = "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes.";
 "Snapper+ stored-value units are cents" = "Snapper+ stored-value units are cents";

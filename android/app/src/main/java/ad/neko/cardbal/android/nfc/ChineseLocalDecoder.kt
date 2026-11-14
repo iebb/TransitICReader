@@ -13,15 +13,22 @@ import java.time.ZoneId
 /** Independent implementation of public PBOC wire facts. See docs/decoding/china-local.md. */
 internal object ChineseLocalProtocol {
     enum class Kind(val aids: List<String>, val family: String, val city: String) {
+        // Specific names before Beijing's generic short ones.
         Shenzhen(listOf("5041592E535A54"), "Shenzhen Tong", "Shenzhen"),
         Wuhan(listOf("4150312E5748435443"), "Wuhan Tong", "Wuhan"),
+        // The purse is PAY.TICL; PAY.APPY holds the card details (and is tried for the purse when TICL is absent).
+        Lingnan(listOf(LINGNAN_PURSE_AID, LINGNAN_INFO_AID), "Lingnan Pass", "Guangzhou"),
         Beijing(listOf("4F43", "50424F43"), "Beijing Yikatong", "Beijing");
         companion object { fun from(family: String) = entries.firstOrNull { it.family.equals(family, true) } }
     }
+    const val LINGNAN_PURSE_AID = "5041592E5449434C" // PAY.TICL
+    const val LINGNAN_INFO_AID = "5041592E41505059" // PAY.APPY
     data class File(val sfi: Int, val data: ByteArray)
     data class Record(val number: Int, val data: ByteArray)
     data class Result(val kind: Kind, val aid: String, val selection: ByteArray, val balance: ByteArray, val balanceMinor: Long,
-        val serial: String?, val issueDate: String?, val expiryDate: String?, val files: List<File>, val records: List<Record>)
+        val serial: String?, val issueDate: String?, val expiryDate: String?, val files: List<File>, val records: List<Record>,
+        /** Another application of the card that supplied its details (Lingnan Pass: PAY.APPY). */
+        val infoAid: String? = null, val infoSelection: ByteArray? = null)
     data class History(val date: Instant, val amountMinor: Long?, val type: Int, val terminal: String, val counter: Int)
 
     fun balanceMinor(bytes: ByteArray): Long? {
@@ -59,56 +66,66 @@ internal object ChineseLocalProtocol {
             return null
         }
         fun select(aid: String) = command(Iso7816Protocol.selectCommand(aid))
-        for (kind in Kind.entries) for (aid in kind.aids) {
-            val selection = select(aid) ?: continue
-            var usesPurseDF = false
-            var balance = command("805C000204".hexToBytes())
-            if (balance == null && kind == Kind.Beijing && command("00A4000002100100".hexToBytes()) != null) {
-                usesPurseDF = true
-                balance = command("805C000204".hexToBytes())
+        for (kind in Kind.entries) {
+            // Lingnan Pass keeps its details in PAY.APPY: FCI tag 9F0C, else SFI 15 (as NFSee reads them).
+            var lingnanInfo: Pair<ByteArray, ByteArray?>? = null
+            if (kind == Kind.Lingnan) select(LINGNAN_INFO_AID)?.let { fci ->
+                lingnanInfo = fci to (tlv(0x9F0C, fci) ?: command("00B0950000".hexToBytes()))
             }
-            balance ?: continue
-            val minor = balanceMinor(balance) ?: continue
-            fun file(sfi: Int): ByteArray? {
-                select(aid)
-                command(byteArrayOf(0, 0xB0.toByte(), (0x80 or sfi).toByte(), 0, 0))?.let { return it }
-                for (path in listOf(byteArrayOf(0x10, 1, 0, sfi.toByte()), byteArrayOf(0, sfi.toByte()))) {
-                    select(aid)
-                    if (command(byteArrayOf(0, 0xA4.toByte(), 8, 0, path.size.toByte()) + path + byteArrayOf(0)) != null)
-                        command("00B0000000".hexToBytes())?.let { return it }
+            for (aid in kind.aids) {
+                if (kind == Kind.Lingnan && aid == LINGNAN_INFO_AID && lingnanInfo == null) continue // Already tried above.
+                val selection = select(aid) ?: continue
+                var usesPurseDF = false
+                var balance = command("805C000204".hexToBytes())
+                if (balance == null && kind == Kind.Beijing && command("00A4000002100100".hexToBytes()) != null) {
+                    usesPurseDF = true
+                    balance = command("805C000204".hexToBytes())
                 }
-                if (kind != Kind.Shenzhen && command("00A40000023F0000".hexToBytes()) != null)
-                    return command(byteArrayOf(0, 0xB0.toByte(), (0x80 or sfi).toByte(), 0, 0))
-                return null
-            }
-            val infoSfi = when (kind) { Kind.Shenzhen -> 0x15; Kind.Wuhan -> 5; Kind.Beijing -> 4 }
-            val files = mutableListOf<File>()
-            val info = file(infoSfi)?.also { files.add(File(infoSfi, it)) }
-            val serialFile = if (kind == Kind.Wuhan) file(10)?.also { files.add(File(10, it)) } else null
-            val metadata = metadata(kind, info, serialFile, selection)
-            // Short generic PBOC names require corroborating Beijing metadata.
-            if (kind == Kind.Beijing && (metadata.first == null || metadata.second == null || metadata.third == null)) continue
-            select(aid)
-            if (usesPurseDF) command("00A4000002100100".hexToBytes())
-            val records = mutableListOf<Record>(); var recordP2 = 0xC4
-            for (number in 1..30) {
-                var payload = command(byteArrayOf(0, 0xB2.toByte(), number.toByte(), recordP2.toByte(), 23))
-                if (number == 1 && payload == null) {
-                    for (path in listOf("10010018", "0018")) {
+                balance ?: continue
+                val minor = balanceMinor(balance) ?: continue
+                fun file(sfi: Int): ByteArray? {
+                    select(aid)
+                    command(byteArrayOf(0, 0xB0.toByte(), (0x80 or sfi).toByte(), 0, 0))?.let { return it }
+                    for (path in listOf(byteArrayOf(0x10, 1, 0, sfi.toByte()), byteArrayOf(0, sfi.toByte()))) {
                         select(aid)
-                        val bytes = path.hexToBytes()
-                        if (command(byteArrayOf(0, 0xA4.toByte(), 8, 0, bytes.size.toByte()) + bytes + byteArrayOf(0)) != null) {
-                            recordP2 = 4
-                            payload = command(byteArrayOf(0, 0xB2.toByte(), 1, recordP2.toByte(), 23))
-                            if (payload != null) break
+                        if (command(byteArrayOf(0, 0xA4.toByte(), 8, 0, path.size.toByte()) + path + byteArrayOf(0)) != null)
+                            command("00B0000000".hexToBytes())?.let { return it }
+                    }
+                    if (kind != Kind.Shenzhen && kind != Kind.Lingnan && command("00A40000023F0000".hexToBytes()) != null)
+                        return command(byteArrayOf(0, 0xB0.toByte(), (0x80 or sfi).toByte(), 0, 0))
+                    return null
+                }
+                val infoSfi = when (kind) { Kind.Shenzhen, Kind.Lingnan -> 0x15; Kind.Wuhan -> 5; Kind.Beijing -> 4 }
+                val files = mutableListOf<File>()
+                val info = ((if (kind == Kind.Lingnan) lingnanInfo?.second else null) ?: file(infoSfi))?.also { files.add(File(infoSfi, it)) }
+                val serialFile = if (kind == Kind.Wuhan) file(10)?.also { files.add(File(10, it)) } else null
+                val metadata = metadata(kind, info, serialFile, selection)
+                // Short generic PBOC names require corroborating Beijing metadata.
+                if (kind == Kind.Beijing && (metadata.first == null || metadata.second == null || metadata.third == null)) continue
+                select(aid)
+                if (usesPurseDF) command("00A4000002100100".hexToBytes())
+                val records = mutableListOf<Record>(); var recordP2 = 0xC4
+                for (number in 1..30) {
+                    var payload = command(byteArrayOf(0, 0xB2.toByte(), number.toByte(), recordP2.toByte(), 23))
+                    if (number == 1 && payload == null) {
+                        for (path in listOf("10010018", "0018")) {
+                            select(aid)
+                            val bytes = path.hexToBytes()
+                            if (command(byteArrayOf(0, 0xA4.toByte(), 8, 0, bytes.size.toByte()) + bytes + byteArrayOf(0)) != null) {
+                                recordP2 = 4
+                                payload = command(byteArrayOf(0, 0xB2.toByte(), 1, recordP2.toByte(), 23))
+                                if (payload != null) break
+                            }
                         }
                     }
+                    val bytes = payload ?: break
+                    if (bytes.size != 23 || bytes.all { it == 0.toByte() || it == 0xFF.toByte() }) break
+                    records.add(Record(number, bytes))
                 }
-                val bytes = payload ?: break
-                if (bytes.size != 23 || bytes.all { it == 0.toByte() || it == 0xFF.toByte() }) break
-                records.add(Record(number, bytes))
+                val details = lingnanInfo?.takeIf { kind == Kind.Lingnan && aid != LINGNAN_INFO_AID }
+                return Result(kind, aid, selection, balance, minor, metadata.first, metadata.second, metadata.third, files, records,
+                    details?.let { LINGNAN_INFO_AID }, details?.first)
             }
-            return Result(kind, aid, selection, balance, minor, metadata.first, metadata.second, metadata.third, files, records)
         }
         return null
     }
@@ -127,9 +144,13 @@ internal object ChineseLocalProtocol {
             }
             Kind.Wuhan -> serialFile?.takeIf { it.size >= 5 }?.copyOfRange(0, 5)?.takeIf(::validSerial)?.hexString()
             Kind.Beijing -> info?.takeIf { it.size >= 32 }?.copyOfRange(0, 8)?.takeIf(::validSerial)?.hexString()
+            // Card number: bytes 11-15 of the details (NFSee); dates at the standard bytes 20-23 / 24-27.
+            Kind.Lingnan -> info?.takeIf { it.size >= 16 }?.copyOfRange(11, 16)?.takeIf(::validSerial)?.hexString()
         }
         val issue = date(if (kind == Kind.Beijing) 24 else 20)
         val expiry = date(when (kind) { Kind.Beijing -> 28; Kind.Wuhan -> 16; else -> 24 })
+        // Lingnan dates are unconfirmed on real cards: show them only as a consistent pair.
+        if (kind == Kind.Lingnan && (issue == null || expiry == null)) return Triple(serial, null, null)
         return if (issue != null && expiry != null && issue > expiry) Triple(serial, null, null) else Triple(serial, issue, expiry)
     }
     private fun validSerial(bytes: ByteArray) = bytes.any { it != 0.toByte() } && bytes.any { it != 0xFF.toByte() }
@@ -142,13 +163,16 @@ internal object ChineseLocalProtocol {
         val offset = ZoneId.of("Asia/Shanghai").rules.getValidOffsets(local).singleOrNull() ?: return null
         return Instant.fromEpochSeconds(local.toEpochSecond(offset))
     }
+    /** [wanted] is the whole tag: 0x8C, or 0x9F0C for a two-byte tag. */
     private fun tlv(wanted: Int, bytes: ByteArray, depth: Int = 0): ByteArray? {
         if (depth >= 8) return null
         var position = 0
         while (position + 2 <= bytes.size) {
-            val tag = bytes[position++].toInt() and 255
-            if (tag and 31 == 31) do {
-                if (position >= bytes.size) return null
+            val first = bytes[position++].toInt() and 255
+            var tag = first
+            if (first and 31 == 31) do {
+                if (position >= bytes.size || tag > 0xFFFFFF) return null
+                tag = (tag shl 8) or (bytes[position].toInt() and 255)
             } while (bytes[position++].toInt() and 128 != 0)
             if (position >= bytes.size) return null
             var length = bytes[position++].toInt() and 255
@@ -160,7 +184,7 @@ internal object ChineseLocalProtocol {
             if (position + length > bytes.size) return null
             val body = bytes.copyOfRange(position, position + length); position += length
             if (tag == wanted) return body
-            if (tag and 32 != 0) tlv(wanted, body, depth + 1)?.let { return it }
+            if (first and 32 != 0) tlv(wanted, body, depth + 1)?.let { return it }
         }
         return null
     }
@@ -192,7 +216,8 @@ class ChineseLocalDecoder : TransitCardDecoder {
                 selectedAID = result.aid, balanceText = formatCardMoney(result.balanceMinor, "CNY", 2),
                 realSerialNumber = result.serial, region = result.kind.city, resultFields = fields,
                 rawSections = listOf(RawDataSection("Application", listOf(RawDataField("AID", result.aid),
-                    RawDataField("SELECT", result.selection.hexString()), RawDataField("Balance", result.balance.hexString())))) +
+                    RawDataField("SELECT", result.selection.hexString()), RawDataField("Balance", result.balance.hexString())) +
+                    (result.infoAid?.let { listOf(RawDataField("AID", it), RawDataField("SELECT", result.infoSelection?.hexString().orEmpty())) } ?: emptyList()))) +
                     result.files.map { RawDataSection("SFI %02X".format(it.sfi), listOf(RawDataField("Payload", it.data.hexString()))) },
                 rawTransactions = records.map { it.hex }, rawTransitHistory = emptyList(), scannedAt = scannedAt,
             )

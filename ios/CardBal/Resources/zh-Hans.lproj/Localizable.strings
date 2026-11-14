@@ -988,6 +988,8 @@
 "Network" = "交通网络";
 "Octopus" = "八达通";
 "Octopus + %@" = "八达通 + %@";
+"Lingnan Pass" = "岭南通";
+"Guangzhou" = "广州";
 "SFI 4 bytes 10–13" = "SFI 4 字节 10–13";
 "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes." = "SFI 4 交易及可选的原始 SFI 3 配套记录；运营商 ID 不是车站代码。";
 "Snapper+ stored-value units are cents" = "Snapper+ 储值单位为分";

@@ -42,6 +42,8 @@ struct TransitApplication: Codable, Hashable, Identifiable {
     var isTUnion: Bool { selectedAID == "A000000632010105" }
     var isOctopus: Bool { technology == "FeliCa" && systemCode == "8008" }
     var isMacauPass: Bool { selectedAID == "B0C4C3C5CDA8C7AEB0FC" }
+    /// Lingnan Pass purse (PAY.TICL), or PAY.APPY when a card has no separate purse application.
+    var isLingnan: Bool { ["5041592E5449434C", "5041592E41505059"].contains(selectedAID ?? "") }
     var label: String { isCityUnion ? "City Union" : isTUnion ? "T-Union" : cardFamily }
     var identityAlias: String { "\(technology)|\(serialNumber?.isEmpty == false ? serialNumber! : identifier)" }
     var identityAliases: Set<String> {
@@ -131,7 +133,8 @@ struct TransitApplication: Codable, Hashable, Identifiable {
 
     static func family(_ apps: [Self]) -> String {
         guard let primary = primary(in: apps) else { return "Unknown" }
-        if apps.contains(where: \.isOctopus), let mainland = apps.first(where: { $0.isTUnion }) ?? apps.first(where: { $0.isCityUnion }) {
+        if apps.contains(where: \.isOctopus),
+           let mainland = apps.first(where: { $0.isTUnion }) ?? apps.first(where: { $0.isCityUnion }) ?? apps.first(where: \.isLingnan) {
             return "Octopus + \(mainland.cardFamily)"
         }
         return primary.cardFamily

@@ -3,19 +3,27 @@ import Foundation
 /// Independent implementation of public PBOC wire facts; see docs/decoding/china-local.md.
 enum ChineseLocalProtocol {
     enum Kind: String, CaseIterable {
-        case shenzhen, wuhan, beijing
+        // Specific names before Beijing's generic short ones.
+        case shenzhen, wuhan, lingnan, beijing
         var aids: [String] {
             switch self {
             case .shenzhen: return ["5041592E535A54"] // PAY.SZT
             case .wuhan: return ["4150312E5748435443"] // AP1.WHCTC
+            // The purse is PAY.TICL; PAY.APPY holds the card details (and is tried for the purse when TICL is absent).
+            case .lingnan: return [Self.lingnanPurseAID, Self.lingnanInfoAID]
             case .beijing: return ["4F43", "50424F43"] // OC / PBOC (external readers on iOS)
             }
         }
+        static let lingnanPurseAID = "5041592E5449434C" // PAY.TICL
+        static let lingnanInfoAID = "5041592E41505059" // PAY.APPY
         var family: String {
-            switch self { case .shenzhen: return "Shenzhen Tong"; case .wuhan: return "Wuhan Tong"; case .beijing: return "Beijing Yikatong" }
+            switch self {
+            case .shenzhen: return "Shenzhen Tong"; case .wuhan: return "Wuhan Tong"
+            case .lingnan: return "Lingnan Pass"; case .beijing: return "Beijing Yikatong"
+            }
         }
         var city: String {
-            switch self { case .shenzhen: return "Shenzhen"; case .wuhan: return "Wuhan"; case .beijing: return "Beijing" }
+            switch self { case .shenzhen: return "Shenzhen"; case .wuhan: return "Wuhan"; case .lingnan: return "Guangzhou"; case .beijing: return "Beijing" }
         }
         static func from(family: String) -> Kind? { allCases.first { $0.family.lowercased() == family.lowercased() } }
     }
@@ -25,6 +33,8 @@ enum ChineseLocalProtocol {
         let kind: Kind; let aid: String; let selection: Data; let balance: Data; let balanceMinor: Int64
         let serial: String?; let issueDate: String?; let expiryDate: String?
         let files: [File]; let records: [Record]
+        /// Another application of the card that supplied its details (Lingnan Pass: PAY.APPY).
+        var infoAID: String? = nil; var infoSelection: Data? = nil
     }
     struct History {
         let date: Date; let amountMinor: Int64?; let type: UInt8; let terminal: String; let counter: Int
@@ -42,12 +52,24 @@ enum ChineseLocalProtocol {
         return History(date: date, amountMinor: type == 2 ? amount : [UInt8(6), 9].contains(type) ? -amount : nil,
                        type: type, terminal: hex(bytes.subdata(in: 10..<16)), counter: Int(uint(Data(bytes.prefix(2)))))
     }
-    /// Core NFC can select only the Info.plist AIDs, so built-in reads pass [.shenzhen, .wuhan].
-    static func read(kinds: [Kind] = Kind.allCases, exchange: (Data) async throws -> (Data, UInt8, UInt8)) async -> Result? {
+    /// Readable application name for the debug log ("PAY.TICL"); AIDs are public, not card data.
+    static func name(_ aid: String) -> String {
+        let bytes = unhex(aid)
+        guard bytes.allSatisfy({ (0x20..<0x7F).contains($0) }) else { return aid }
+        return String(decoding: bytes, as: UTF8.self) + " (" + aid + ")"
+    }
+    /// Core NFC can select only the Info.plist AIDs, so built-in reads pass [.shenzhen, .wuhan, .lingnan].
+    /// `log` receives the applications tried and their status words (never card data).
+    static func read(kinds: [Kind] = Kind.allCases, log: ((String) -> Void)? = nil,
+                     exchange: (Data) async throws -> (Data, UInt8, UInt8)) async -> Result? {
+        var status = "no reply"
         func command(_ request: Data) async -> Data? {
             var current = request; var output = Data(); var corrected = false
             for _ in 0..<16 {
-                guard let (body, sw1, sw2) = try? await exchange(current) else { return nil }
+                let reply: (Data, UInt8, UInt8)
+                do { reply = try await exchange(current) } catch { status = "no reply"; return nil }
+                let (body, sw1, sw2) = reply
+                status = String(format: "SW %02X%02X", sw1, sw2)
                 if sw1 == 0x6C, !corrected {
                     current[current.count - 1] = sw2; corrected = true; continue
                 }
@@ -63,8 +85,24 @@ enum ChineseLocalProtocol {
             return await command(Data([0, 0xA4, 4, 0, UInt8(name.count)]) + name + Data([0]))
         }
         for kind in kinds {
+            // Lingnan Pass keeps its details in PAY.APPY: FCI tag 9F0C, else SFI 15 (as NFSee reads them).
+            var lingnanInfo: (selection: Data, info: Data?)?
+            if kind == .lingnan {
+                if let fci = await select(Kind.lingnanInfoAID) {
+                    var info = tlv(0x9F0C, in: fci)
+                    if info == nil { info = await command(Data([0, 0xB0, 0x95, 0, 0])) }
+                    log?("\(kind.family): SELECT \(name(Kind.lingnanInfoAID)) \(status); details " + (info == nil ? "not readable" : "read (\(info!.count) bytes)"))
+                    lingnanInfo = (fci, info)
+                } else {
+                    log?("\(kind.family): SELECT \(name(Kind.lingnanInfoAID)) \(status)")
+                }
+            }
             for aid in kind.aids {
-                guard let selection = await select(aid) else { continue }
+                if kind == .lingnan, aid == Kind.lingnanInfoAID, lingnanInfo == nil { continue } // Already tried above.
+                guard let selection = await select(aid) else {
+                    log?("\(kind.family): SELECT \(name(aid)) \(status)")
+                    continue
+                }
                 var usesPurseDF = false
                 var balance = await command(Data([0x80, 0x5C, 0, 2, 4]))
                 if balance == nil, kind == .beijing,
@@ -72,7 +110,10 @@ enum ChineseLocalProtocol {
                     usesPurseDF = true
                     balance = await command(Data([0x80, 0x5C, 0, 2, 4]))
                 }
-                guard let balance, let minor = balanceMinor(balance) else { continue }
+                guard let balance, let minor = balanceMinor(balance) else {
+                    log?("\(kind.family): SELECT \(name(aid)) SW 9000; GET BALANCE " + (balance == nil ? status : "not a balance (\(balance!.count) bytes)"))
+                    continue
+                }
                 func file(_ sfi: Int) async -> Data? {
                     _ = await select(aid)
                     if let bytes = await command(Data([0, 0xB0, UInt8(0x80 | sfi), 0, 0])) { return bytes }
@@ -82,15 +123,16 @@ enum ChineseLocalProtocol {
                         if await command(Data([0, 0xA4, 8, 0, UInt8(path.count)]) + path + Data([0])) != nil,
                            let bytes = await command(Data([0, 0xB0, 0, 0, 0])) { return bytes }
                     }
-                    if kind != .shenzhen,
+                    if kind != .shenzhen, kind != .lingnan,
                        await command(Data([0, 0xA4, 0, 0, 2, 0x3F, 0, 0])) != nil {
                         return await command(Data([0, 0xB0, UInt8(0x80 | sfi), 0, 0]))
                     }
                     return nil
                 }
-                let infoSFI = kind == .shenzhen ? 0x15 : kind == .wuhan ? 5 : 4
+                let infoSFI = kind == .shenzhen || kind == .lingnan ? 0x15 : kind == .wuhan ? 5 : 4
                 var files: [File] = []
-                let info = await file(infoSFI)
+                var info = kind == .lingnan ? lingnanInfo?.info : nil
+                if info == nil { info = await file(infoSFI) }
                 if let info { files.append(File(sfi: infoSFI, data: info)) }
                 let serialFile = kind == .wuhan ? await file(10) : nil
                 if let serialFile { files.append(File(sfi: 10, data: serialFile)) }
@@ -117,9 +159,15 @@ enum ChineseLocalProtocol {
                     if bytes.allSatisfy({ $0 == 0 || $0 == 255 }) { break }
                     records.append(Record(number: number, data: bytes))
                 }
-                return Result(kind: kind, aid: aid, selection: selection, balance: balance, balanceMinor: minor,
-                              serial: metadata.serial, issueDate: metadata.issue, expiryDate: metadata.expiry,
-                              files: files, records: records)
+                log?("\(kind.family): read from \(name(aid)); \(records.count) record(s)"
+                     + (metadata.serial == nil ? ", no card number" : "") + (info == nil ? ", no details file" : ""))
+                var result = Result(kind: kind, aid: aid, selection: selection, balance: balance, balanceMinor: minor,
+                                    serial: metadata.serial, issueDate: metadata.issue, expiryDate: metadata.expiry,
+                                    files: files, records: records)
+                if kind == .lingnan, aid != Kind.lingnanInfoAID, let lingnanInfo {
+                    result.infoAID = Kind.lingnanInfoAID; result.infoSelection = lingnanInfo.selection
+                }
+                return result
             }
         }
         return nil
@@ -145,9 +193,17 @@ enum ChineseLocalProtocol {
             }
         case .wuhan: if let serialFile, serialFile.count >= 5, validSerial(Data(serialFile.prefix(5))) { serial = hex(Data(serialFile.prefix(5))) }
         case .beijing: if let info, info.count >= 32, validSerial(Data(info.prefix(8))) { serial = hex(Data(info.prefix(8))) }
+        case .lingnan:
+            // Card number: bytes 11-15 of the details (NFSee); dates at the standard bytes 20-23 / 24-27.
+            if let info, info.count >= 16 {
+                let bytes = info.subdata(in: 11..<16)
+                if validSerial(bytes) { serial = hex(bytes) }
+            }
         }
         let issue = date(kind == .beijing ? 24 : 20)
         let expiry = date(kind == .beijing ? 28 : kind == .wuhan ? 16 : 24)
+        // Lingnan dates are unconfirmed on real cards: show them only as a consistent pair.
+        if kind == .lingnan, issue == nil || expiry == nil { return (serial, nil, nil) }
         guard issue == nil || expiry == nil || issue! <= expiry! else { return (serial, nil, nil) }
         return (serial, issue, expiry)
     }
@@ -161,13 +217,18 @@ enum ChineseLocalProtocol {
         guard let date = formatter.date(from: text), formatter.string(from: date) == text else { return nil }
         return date
     }
-    private static func tlv(_ wanted: UInt8, in bytes: Data, depth: Int = 0) -> Data? {
+    /// `wanted` is the whole tag: 0x8C, or 0x9F0C for a two-byte tag.
+    private static func tlv(_ wanted: Int, in bytes: Data, depth: Int = 0) -> Data? {
         guard depth < 8 else { return nil }
         let bytes = Array(bytes); var position = 0
         while position + 2 <= bytes.count {
-            let tag = bytes[position]; position += 1
-            if tag & 31 == 31 {
-                repeat { guard position < bytes.count else { return nil }; position += 1 } while bytes[position - 1] & 128 != 0
+            let first = bytes[position]; position += 1
+            var tag = Int(first)
+            if first & 31 == 31 {
+                repeat {
+                    guard position < bytes.count, tag <= 0xFFFFFF else { return nil }
+                    tag = (tag << 8) | Int(bytes[position]); position += 1
+                } while bytes[position - 1] & 128 != 0
             }
             guard position < bytes.count else { return nil }
             var length = Int(bytes[position]); position += 1
@@ -178,7 +239,7 @@ enum ChineseLocalProtocol {
             guard position + length <= bytes.count else { return nil }
             let body = Data(bytes[position..<position + length]); position += length
             if tag == wanted { return body }
-            if tag & 32 != 0, let found = tlv(wanted, in: body, depth: depth + 1) { return found }
+            if first & 32 != 0, let found = tlv(wanted, in: body, depth: depth + 1) { return found }
         }
         return nil
     }

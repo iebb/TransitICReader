@@ -128,7 +128,7 @@ for kind: UInt8 in [0xF0, 0x05] {
     precondition(event.amount == 0 && event.category == .adjustment && event.entryStationCode == nil)
 }
 
-for family in ["Shenzhen Tong", "Wuhan Tong", "Beijing Yikatong"] {
+for family in ["Shenzhen Tong", "Wuhan Tong", "Beijing Yikatong", "Lingnan Pass"] {
     let raw = "0123000000000000FA0901020304050620260715083041"
     let tx = TransactionDecoderRegistry.decode(raw: raw, family: family, technology: "ISO7816", context: [raw], at: 0)!
     precondition(tx.amount == Decimal(string: "-2.50") && tx.amountKnown && tx.currencyCode == "CNY")

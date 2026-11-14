@@ -988,6 +988,8 @@
 "Network" = "交通網";
 "Octopus" = "オクトパス";
 "Octopus + %@" = "オクトパス + %@";
+"Lingnan Pass" = "嶺南通";
+"Guangzhou" = "広州";
 "SFI 4 bytes 10–13" = "SFI 4 のバイト 10–13";
 "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes." = "SFI 4 取引と、存在する場合は元の SFI 3 補助記録。事業者 ID は駅コードではありません。";
 "Snapper+ stored-value units are cents" = "Snapper+ の残高単位はセントです";

@@ -55,7 +55,7 @@ class ChinaLocalOrderTests(unittest.TestCase):
         core = (IOS / "CoreNFCCardTransport.swift").read_text()
         self.assertNotIn("selectsUnlistedApplications", core)
         decoder = (IOS / "Decoders/ChineseLocalDecoder.swift").read_text()
-        self.assertIn("iso.selectsUnlistedApplications ? ChineseLocalProtocol.Kind.allCases : [.shenzhen, .wuhan]", decoder)
+        self.assertIn("iso.selectsUnlistedApplications ? ChineseLocalProtocol.Kind.allCases : [.shenzhen, .wuhan, .lingnan]", decoder)
         self.assertIn("ChineseLocalProtocol.read(kinds: kinds,", decoder)
         protocol = (IOS / "Profiles/ChineseLocalProtocol.swift").read_text()
         self.assertIn("static func read(kinds: [Kind] = Kind.allCases,", protocol)
@@ -66,8 +66,25 @@ class ChinaLocalOrderTests(unittest.TestCase):
         identifiers = identifiers[:identifiers.index("</array>")]
         self.assertIn("<string>5041592E535A54</string>", identifiers)
         self.assertIn("<string>4150312E5748435443</string>", identifiers)
+        # Lingnan Pass (PAY.APPY, PAY.TICL), after every earlier name so no card's initial AID changes.
+        self.assertTrue(identifiers.rstrip().endswith("<string>5041592E41505059</string>\n\t\t<string>5041592E5449434C</string>"))
         self.assertNotIn("<string>4F43</string>", identifiers)
         self.assertNotIn("<string>50424F43</string>", identifiers)
+
+    def test_lingnan_pairs_with_octopus_after_city_union_and_t_union(self):
+        reader = (IOS / "NFCTransitReader.swift").read_text()
+        # The mainland side of an Octopus card still tries City Union / T-Union first.
+        self.assertIn("? [ChineseTransitDecoder.self, ChineseLocalDecoder.self]", reader)
+        self.assertIn("iso7816SelectIdentifiers: [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID] + ChineseLocalProtocol.Kind.lingnan.aids", reader)
+        self.assertIn("$0.isTUnion || $0.isCityUnion || $0.isLingnan", reader)
+        protocol = (IOS / "Profiles/ChineseLocalProtocol.swift").read_text()
+        self.assertIn("case shenzhen, wuhan, lingnan, beijing", protocol)
+        android = (ANDROID / "CardBalNfcReader.kt").read_text()
+        self.assertIn("it.isTUnion || it.isCityUnion || it.isLingnan", android)
+        # The CN¥ side of an Octopus card is still T-Union / City Union only.
+        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text()
+        dual = applications[applications.index("struct DualCurrencyBalance"):]
+        self.assertNotIn("isLingnan", dual[:dual.index("var rateText")])
 
     def test_android_reads_iso7816_before_local(self):
         reader = (ANDROID / "CardBalNfcReader.kt").read_text()

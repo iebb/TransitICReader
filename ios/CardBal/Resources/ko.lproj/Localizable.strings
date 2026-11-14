@@ -989,6 +989,8 @@
 "Network" = "교통망";
 "Octopus" = "옥토퍼스";
 "Octopus + %@" = "옥토퍼스 + %@";
+"Lingnan Pass" = "링난통";
+"Guangzhou" = "광저우";
 "SFI 4 bytes 10–13" = "SFI 4 바이트 10–13";
 "SFI 4 transaction with its original optional SFI 3 companion; operator IDs are not station codes." = "SFI 4 거래 및 선택적 원본 SFI 3 보조 기록입니다. 운영사 ID는 역 코드가 아닙니다.";
 "Snapper+ stored-value units are cents" = "Snapper+ 선불금 단위는 센트입니다";

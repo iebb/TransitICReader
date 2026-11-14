@@ -98,6 +98,7 @@ final class NFCISO7816Tag {
     var info: [String: Data] = [:]
     var binaryFiles: [String: [Int: Data]] = [:]
     var balances: [String: Data] = [:]
+    var selectReplies: [String: Data] = [:]
     var commands: [NFCISO7816APDU] = []
     var failBalances = false
     var wrongLengthOnce = false
@@ -116,7 +117,7 @@ final class NFCISO7816Tag {
             selectedAIDs.append(aid)
             guard available.contains(aid) else { return (Data(), 0x6A, 0x82) }
             selected = aid
-            return (Data(), 0x90, 0)
+            return (selectReplies[aid] ?? Data(), 0x90, 0)
         }
         if apdu.instructionCode == 0x5C, !failBalances {
             if let balance = balances[selected] { return (balance, 0x90, 0) }

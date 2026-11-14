@@ -9,11 +9,21 @@ struct ChineseLocalDecoder: TransitCardDecoder {
         guard case .iso7816(let iso) = tag else { throw NFCTestError.unsupportedCard }
         ScanProgress.report(.balance)
         // Beijing's OC/PBOC names are not in Info.plist; Core NFC cannot select them.
-        let kinds: [ChineseLocalProtocol.Kind] = iso.selectsUnlistedApplications ? ChineseLocalProtocol.Kind.allCases : [.shenzhen, .wuhan]
-        guard let result = await ChineseLocalProtocol.read(kinds: kinds, exchange: { command in
+        let kinds: [ChineseLocalProtocol.Kind] = iso.selectsUnlistedApplications ? ChineseLocalProtocol.Kind.allCases : [.shenzhen, .wuhan, .lingnan]
+        // Which applications answered, with their status words, for Settings › Troubleshooting.
+        DebugLog.shared.log("China local", "Trying " + kinds.flatMap(\.aids).map(ChineseLocalProtocol.name).joined(separator: ", ")
+                            + "; initial AID " + (iso.initialSelectedAID.isEmpty ? "none" : iso.initialSelectedAID))
+        guard let result = await ChineseLocalProtocol.read(kinds: kinds, log: { DebugLog.shared.log("China local", $0) }, exchange: { command in
             guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
             return try await iso.sendCommand(apdu: apdu)
-        }), !iso.identifier.isEmpty || result.serial != nil else { throw NFCTestError.unsupportedCard }
+        }) else {
+            DebugLog.shared.log("China local", "No local purse found")
+            throw NFCTestError.unsupportedCard
+        }
+        guard !iso.identifier.isEmpty || result.serial != nil else {
+            DebugLog.shared.log("China local", "\(result.kind.family) read without a UID or card number; not kept")
+            throw NFCTestError.unsupportedCard
+        }
         var fields = [ResultField(title: "Brand", value: result.kind.family),
                       ResultField(title: "Issuing City", value: result.kind.city), ResultField(title: "Currency", value: "CNY")]
         if let serial = result.serial { fields.append(ResultField(title: "Card Number", value: serial)) }
@@ -28,7 +38,9 @@ struct ChineseLocalDecoder: TransitCardDecoder {
             rawSections: [RawDataSection(title: "Application", fields: [
                 RawDataField(title: "AID", value: result.aid), RawDataField(title: "SELECT", value: result.selection.hexString),
                 RawDataField(title: "Balance", value: result.balance.hexString)
-            ])] + result.files.map { RawDataSection(title: String(format: "SFI %02X", $0.sfi), fields: [RawDataField(title: "Payload", value: $0.data.hexString)]) },
+            ] + (result.infoAID.map { aid in [RawDataField(title: "AID", value: aid),
+                                              RawDataField(title: "SELECT", value: result.infoSelection?.hexString ?? "")] } ?? [])
+            )] + result.files.map { RawDataSection(title: String(format: "SFI %02X", $0.sfi), fields: [RawDataField(title: "Payload", value: $0.data.hexString)]) },
             rawTransactions: records.map(\.hex), rawTransitHistory: [], scannedAt: scannedAt
         )
         snapshot.applications = [TransitApplication(snapshot: snapshot, records: records)]

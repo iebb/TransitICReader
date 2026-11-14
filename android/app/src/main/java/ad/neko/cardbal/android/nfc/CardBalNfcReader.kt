@@ -87,7 +87,8 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
             val results=mutableListOf<TransitCardSnapshot>()
             for(decoder in decoders) {
                 if(results.isNotEmpty()) {
-                    val mainland=results.any { s -> s.applications.orEmpty().any { it.isTUnion || it.isCityUnion } }
+                    // Lingnan Pass pairs like T-Union: older 岭南通·八达通 cards carry it beside Octopus.
+                    val mainland=results.any { s -> s.applications.orEmpty().any { it.isTUnion || it.isCityUnion || it.isLingnan } }
                     val macau=results.any { s -> s.applications.orEmpty().any { it.isMacauPass } }
                     if(!mainland || macau || (decoder !is JapaneseICDecoder && decoder !is ChineseLocalDecoder)) continue
                 }

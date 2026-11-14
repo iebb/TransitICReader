@@ -197,7 +197,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private func dualConfiguration() -> NFCTagReaderSession.Configuration {
         NFCTagReaderSession.Configuration(
             pollingOption: phase == .mainland ? [.iso14443] : [.iso18092],
-            iso7816SelectIdentifiers: [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID],
+            iso7816SelectIdentifiers: [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID] + ChineseLocalProtocol.Kind.lingnan.aids,
             feliCaSystemCodes: ["8008"]
         )
     }
@@ -297,7 +297,8 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private func accept(_ snapshot: TransitCardSnapshot, session: NFCTagReaderSession) {
         guard self.session === session else { return }
         let hasOctopus = snapshot.applicationSnapshots.contains(where: \.isOctopus)
-        let hasMainland = snapshot.applicationSnapshots.contains(where: { $0.isTUnion || $0.isCityUnion })
+        // Lingnan Pass pairs like T-Union: older 岭南通·八达通 cards carry it beside Octopus.
+        let hasMainland = snapshot.applicationSnapshots.contains(where: { $0.isTUnion || $0.isCityUnion || $0.isLingnan })
         switch phase {
         case .regular:
             guard readsCompanionProtocol, hasOctopus != hasMainland,
@@ -410,8 +411,9 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 let progress = self.beginProgress(for: session)
                 // The second-side line stays until that side's first step.
                 if self.phase == .regular { progress.report(.found) }
+                // The mainland side tries City Union / T-Union first, as before; Lingnan Pass only when they are absent.
                 var decoders: [TransitCardDecoder.Type] = phase == .mainland
-                    ? [ChineseTransitDecoder.self]
+                    ? [ChineseTransitDecoder.self, ChineseLocalDecoder.self]
                     : phase == .octopus ? [OctopusFeliCaDecoder.self] : [
                         CEPASDecoder.self, MacauPassDecoder.self, ClipperDecoder.self, ClipperUltralightDecoder.self,
                         StoredValueDecoder.self, TianfuTongDecoder.self, ChineseTransitDecoder.self, CalypsoDecoder.self, KSX6924Decoder.self,

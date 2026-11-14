@@ -75,6 +75,7 @@
     let invalidStatus = await ChineseLocalProtocol.read { _ in (Data(), 0x90, 1) }
     check(invalidStatus == nil, "Non-9000 success accepted")
     try await testChineseLocalBesideCityUnion(fixture: fixture, histories: histories)
+    try await testLingnanPass(fixture: fixture, histories: histories)
     print("PASS: China local balances, histories, identities, persistence and APDU procedures")
 }
 
@@ -117,7 +118,8 @@
     let kept = await ChineseLocalDecoder.addingLocalApplication(to: primary, tag: .iso7816(cityUnion))
     check(kept.applications == primary.applications && kept.balanceText == primary.balanceText
           && kept.selectedAID == cu && kept.resultFields.map(\.title) == primary.resultFields.map(\.title), "Local reader changed a City Union result")
-    check(Array(cityUnion.selectedAIDs.dropFirst(readCount)) == ["5041592E535A54", "4150312E5748435443"], "Unexpected local SELECTs on Core NFC")
+    check(Array(cityUnion.selectedAIDs.dropFirst(readCount)) == ["5041592E535A54", "4150312E5748435443", "5041592E41505059", "5041592E5449434C"],
+          "Unexpected local SELECTs on Core NFC")
 
     // (b) Shenzhen Tong beside City Union and T-Union: all three views, T-Union stays primary.
     let shenzhen = cards[0], szt = shenzhen["aid"] as! String
@@ -141,4 +143,89 @@
     let stored = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(apps))
     check(stored == apps, "Combined local application lost in storage")
     print("PASS: City Union read first; local application added beside City Union / T-Union")
+}
+
+/// Lingnan Pass: details in PAY.APPY, purse and history in PAY.TICL; pairs with Octopus like T-Union.
+@MainActor func testLingnanPass(fixture: [String: Any], histories: [[String: Any]]) async throws {
+    let ticl = "5041592E5449434C", appy = "5041592E41505059", tu = TUnionDecoder.applicationAID
+    // A real PAY.TICL SELECT reply (flutter_nfc_kit issue #32). Its 9F0C is not the card details file.
+    let ticlFCI = Data(hexString: "6f3484085041592e5449434ca5289f0801029f0c21ffffffffffffffff000000000000000000000000000000002019082400000186a0")
+    let lingnan = (fixture["cards"] as! [[String: Any]])[3]
+    let info = Data(hexString: lingnan["info"] as! String)
+    let appyFCI = Data([0x6F, 0x2D, 0x84, 0x08]) + Data(hexString: appy) + Data([0xA5, 0x21, 0x9F, 0x0C, 0x1E]) + info
+    let records = histories.prefix(3).map { Data(hexString: $0["hex"] as! String) }
+
+    // (a) A Lingnan-only card on Core NFC: details from PAY.APPY's FCI, purse and history from PAY.TICL.
+    let card = NFCISO7816Tag(); card.selectsUnlistedApplications = false; card.initialSelectedAID = appy
+    card.available = [appy, ticl]; card.selectReplies = [appy: appyFCI, ticl: ticlFCI]
+    card.balances = [ticl: Data(hexString: "00000BB8")]
+    card.files = [ticl: [24: records]]
+    let read = try await ChineseLocalDecoder.decode(tag: .iso7816(card), scannedAt: Date())
+    check(read.cardFamily == "Lingnan Pass" && read.selectedAID == ticl && read.region == "Guangzhou", "Lingnan identity")
+    check(read.balanceText == "CNY 30", "Lingnan balance \(read.balanceText ?? "nil")")
+    check(read.realSerialNumber == "5123456789", "Lingnan card number")
+    check(read.resultFields.contains { $0.title == "Issue Date" && $0.value == "2020-01-01" }
+          && read.resultFields.contains { $0.title == "Expiry Date" && $0.value == "2030-12-31" }, "Lingnan dates")
+    check(read.rawTransactions.count == 3 && read.applications?.count == 1 && read.applications![0].isLingnan
+          && read.applications![0].records.allSatisfy { $0.sfi == 0x18 && $0.kind == .transaction }, "Lingnan history")
+    check(Array(card.selectedAIDs.prefix(4)) == ["5041592E535A54", "4150312E5748435443", appy, ticl], "Lingnan SELECT order \(card.selectedAIDs)")
+    check(!card.selectedAIDs.contains("4F43") && !card.selectedAIDs.contains("50424F43"), "Core NFC selected an unlisted Beijing name")
+    check(read.rawSections.first?.fields.contains { $0.value == appy } == true
+          && read.rawSections.first?.fields.contains { $0.value == appyFCI.hexString } == true, "PAY.APPY selection not kept for diagnostics")
+    check(!card.commands.contains { $0.instructionCode == 0xA4 && $0.p1Parameter == 0 }, "Lingnan read selected the master file")
+    check(card.commands.allSatisfy { [UInt8(0xA4), 0xB0, 0xB2, 0x5C].contains($0.instructionCode) }, "Unexpected APDU")
+    let stored = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(read.applications!))
+    check(stored == read.applications, "Lingnan backup lost source records")
+
+    // (b) The real PAY.TICL reply alone: balance read, its FCI bytes are not taken as card number or dates.
+    let ticlOnly = NFCISO7816Tag(); ticlOnly.selectsUnlistedApplications = false; ticlOnly.initialSelectedAID = ticl
+    ticlOnly.available = [ticl]; ticlOnly.selectReplies = [ticl: ticlFCI]
+    ticlOnly.balances = [ticl: Data(hexString: "000186A0")]
+    let plain = try await ChineseLocalDecoder.decode(tag: .iso7816(ticlOnly), scannedAt: Date())
+    check(plain.cardFamily == "Lingnan Pass" && plain.selectedAID == ticl && plain.balanceText == "CNY 1000", "PAY.TICL-only card")
+    check(plain.realSerialNumber == nil && !plain.resultFields.contains { $0.title == "Issue Date" || $0.title == "Expiry Date" },
+          "PAY.TICL FCI misread as card details")
+    ticlOnly.failBalances = true
+    do { _ = try await ChineseLocalDecoder.decode(tag: .iso7816(ticlOnly), scannedAt: Date()); preconditionFailure("Lingnan read without a balance") }
+    catch NFCTestError.unsupportedCard { }
+
+    // (c) T-Union with Lingnan Pass on one card: T-Union is read first and stays primary.
+    var infoTU = Data(repeating: 0, count: 30); infoTU.replaceSubrange(2..<4, with: Data(hexString: "2900")); infoTU[19] = 1
+    infoTU.replaceSubrange(10..<20, with: Data(hexString: "03100000000000000001"))
+    let both = NFCISO7816Tag(); both.selectsUnlistedApplications = false; both.initialSelectedAID = tu
+    both.available = [tu, appy, ticl]; both.info = [tu: infoTU]; both.selectReplies = [appy: appyFCI, ticl: ticlFCI]
+    both.balances = [ticl: Data(hexString: "00000BB8")]; both.files = [ticl: [24: records]]
+    let mainland = try await ChineseTransitDecoder.decode(tag: .iso7816(both), scannedAt: Date())
+    check(!both.selectedAIDs.prefix(both.selectedAIDs.firstIndex(of: "5041592E535A54") ?? both.selectedAIDs.count).contains(appy),
+          "Lingnan SELECT before the T-Union read")
+    let withLocal = await ChineseLocalDecoder.addingLocalApplication(to: mainland, tag: .iso7816(both))
+    check(withLocal.applications?.count == 2 && withLocal.applications!.contains(where: \.isTUnion)
+          && withLocal.applications!.contains(where: \.isLingnan), "T-Union + Lingnan views")
+    check(withLocal.selectedAID == tu && withLocal.balanceText == mainland.balanceText && withLocal.cardFamily == mainland.cardFamily,
+          "Lingnan replaced the T-Union primary")
+
+    // (d) 岭南通·八达通: Lingnan Pass beside Octopus becomes one card with two views, in either order.
+    let octopus = snapshot(nil, serial: nil, balance: "HKD 50", records: [record(Data(repeating: 1, count: 16), sfi: 0)])
+    var rated = octopus
+    rated.exchangeRate = OctopusExchangeRate(rate: "0.839", validUntil: nil)
+    rated.applications = [TransitApplication(snapshot: rated, records: octopus.applications![0].records)]
+    for pair in [[read, octopus], [rated, read]] {
+        let reader = NFCTransitReader(); reader.startScanning()
+        let session = reader.session!
+        reader.accept(pair[0], session: session)
+        check(reader.isScanning && reader.latestSnapshot == nil, "Lingnan / Octopus did not check the other interface")
+        check(session.pollingOption == (pair[0].technology == "FeliCa" ? [.iso14443] : [.iso18092]), "Wrong companion protocol polled")
+        reader.accept(pair[1], session: session)
+        let combined = reader.latestSnapshot
+        check(!reader.isScanning && combined?.applications?.count == 2, "Octopus + Lingnan not combined")
+        check(combined?.cardFamily == "Octopus + Lingnan Pass" && combined?.balanceText == "HKD 50", "Octopus + Lingnan family or HKD balance")
+        check(combined?.balanceDetail?.contains("Lingnan Pass: CNY 30") == true, "Lingnan balance missing from the combined card")
+        // The separate Lingnan purse is never shown as the CN¥ side of an Octopus – T-Union card.
+        check(DualCurrencyBalance(applications: combined?.applications)?.yuanBalance == nil, "Lingnan purse shown as a CN¥ balance")
+        let wallet = Wallet(); wallet.upsert(snapshot: combined!); wallet.upsert(snapshot: read)
+        check(wallet.cards.count == 1 && wallet.cards[0].applications?.count == 2, "Lingnan rescan split the Octopus card")
+    }
+    // A Shenzhen Tong read does not pair with Octopus (unchanged).
+    check(!TransitApplication(snapshot: snapshot("5041592E535A54", serial: "1")).isLingnan, "Shenzhen counted as Lingnan")
+    print("PASS: Lingnan Pass only, PAY.TICL reply, beside T-Union and beside Octopus")
 }

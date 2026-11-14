@@ -348,6 +348,7 @@
     <string name="text_0e33d576fe774823" formatted="false">"상품 구매"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"그래파이트"</string>
     <string name="text_d486dfbd5fb57834" formatted="false">"초록"</string>
+    <string name="text_494d7879fc98ed73" formatted="false">"광저우"</string>
     <string name="text_11f836ed4dac947e" formatted="false">"홍콩달러 잔액"</string>
     <string name="text_3ac37944948bbc7a" formatted="false">"HSL V1/V2 또는 Waltti DESFire 공개 잔액, 기록 및 승차권"</string>
     <string name="text_a2eb11fb19c6ba94" formatted="false">"한국 카드 읽기 개선에 참여"</string>
@@ -440,6 +441,7 @@
     <string name="text_624527a26b97667c" formatted="false">"Creative Commons Attribution 4.0 International 라이선스로 제공됩니다."</string>
     <string name="text_fed696954300d76e" formatted="false">"노선 %02X / 역 %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"노선"</string>
+    <string name="text_ba2401b930b8387f" formatted="false">"링난통"</string>
     <string name="text_bade54e8e36c75d6" formatted="false">"교통 기록을 도시에 연결하는 중…"</string>
     <string name="text_297957acec34b19e" formatted="false">"충전된 승차권"</string>
     <string name="text_10d9142b3c2d8682" formatted="false">"도시를 불러오는 중…"</string>

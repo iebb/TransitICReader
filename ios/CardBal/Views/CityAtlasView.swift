@@ -2472,7 +2472,7 @@ private struct CityAtlasVisitResolver {
 
             // Local purse terminals do not encode T-Union city IDs.
             // Owning the card enables China, but its issuer alone is not a visit.
-            let isLocalChinaPurse = [.tianfuTong, .shenzhenTong, .wuhanTong, .beijingYikatong].contains(brand)
+            let isLocalChinaPurse = [.tianfuTong, .shenzhenTong, .wuhanTong, .beijingYikatong, .lingnanPass].contains(brand)
             if hasChinaTransitApplication && !isLocalChinaPurse {
                 addChineseEvidence(
                     from: card,

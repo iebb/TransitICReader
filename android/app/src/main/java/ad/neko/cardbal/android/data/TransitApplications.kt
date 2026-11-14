@@ -39,6 +39,8 @@ data class TransitApplication(
     val isTUnion get() = selectedAID == "A000000632010105"
     val isOctopus get() = technology == "FeliCa" && systemCode == "8008"
     val isMacauPass get() = selectedAID == "B0C4C3C5CDA8C7AEB0FC"
+    /** Lingnan Pass purse (PAY.TICL), or PAY.APPY when a card has no separate purse application. */
+    val isLingnan get() = selectedAID in setOf("5041592E5449434C", "5041592E41505059")
     companion object {
         fun from(snapshot: TransitCardSnapshot, records: List<TransitApplicationRecord>? = null, city: String? = null) = TransitApplication(
             technology=snapshot.technology,cardFamily=snapshot.cardFamily,identifier=snapshot.rawIdentifierValue,
@@ -84,7 +86,10 @@ data class TransitApplication(
                 exchangeRate=apps.firstOrNull { it.isOctopus }?.exchangeRate)
         }
         fun primary(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus } ?: apps.firstOrNull { it.isMacauPass } ?: apps.firstOrNull { it.isTUnion } ?: apps.firstOrNull()
-        fun family(apps: List<TransitApplication>) = if(apps.any{it.isOctopus} && apps.any{it.isTUnion || it.isCityUnion}) "Octopus + ${apps.first{it.isTUnion || it.isCityUnion}.cardFamily}" else primary(apps)?.cardFamily.orEmpty()
+        fun family(apps: List<TransitApplication>): String {
+            val mainland = apps.firstOrNull { it.isTUnion || it.isCityUnion } ?: apps.firstOrNull { it.isLingnan }
+            return if(apps.any{it.isOctopus} && mainland != null) "Octopus + ${mainland.cardFamily}" else primary(apps)?.cardFamily.orEmpty()
+        }
         fun balanceSource(apps: List<TransitApplication>) = apps.firstOrNull { it.isOctopus }
             ?: apps.firstOrNull { it.isMacauPass }
             ?: apps.filter { it.balanceText != null }.maxWithOrNull(

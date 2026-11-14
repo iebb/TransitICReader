@@ -348,6 +348,7 @@
     <string name="text_0e33d576fe774823" formatted="false">"Goods Purchase"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"Graphite"</string>
     <string name="text_d486dfbd5fb57834" formatted="false">"Green"</string>
+    <string name="text_494d7879fc98ed73" formatted="false">"Guangzhou"</string>
     <string name="text_11f836ed4dac947e" formatted="false">"HKD Balance"</string>
     <string name="text_3ac37944948bbc7a" formatted="false">"HSL V1/V2 or Waltti DESFire public purse, logs and ticket products"</string>
     <string name="text_a2eb11fb19c6ba94" formatted="false">"Help Improve Korean Cards"</string>
@@ -440,6 +441,7 @@
     <string name="text_624527a26b97667c" formatted="false">"Licensed under Creative Commons Attribution 4.0 International."</string>
     <string name="text_fed696954300d76e" formatted="false">"Line %02X / Station %02X"</string>
     <string name="text_d6676a9ff4df4c80" formatted="false">"Line or Lines"</string>
+    <string name="text_ba2401b930b8387f" formatted="false">"Lingnan Pass"</string>
     <string name="text_bade54e8e36c75d6" formatted="false">"Linking transit records to cities…"</string>
     <string name="text_297957acec34b19e" formatted="false">"Loaded Tickets"</string>
     <string name="text_10d9142b3c2d8682" formatted="false">"Loading cities…"</string>
