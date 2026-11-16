@@ -29,6 +29,21 @@ Only the app ZIP and checksum are attached to the public release. API keys,
 private signing keys, provisioning profiles and the encrypted signing backup
 are excluded. iOS and Android store uploads remain separate workflows.
 
+## Android download
+
+The [Android release](../../.github/workflows/android-release.yml) workflow also
+runs on `master` automatically, with the same plan step: if the repository
+version already has an `android-v<version>` release it stops, otherwise it
+tests, builds a release APK signed with the upload key, checks the signature
+with `apksigner` and publishes `android-v<version>` with the APK and a SHA-256
+checksum. Releasing is therefore: bump the app version and push. Notes come from
+`docs/release-notes/android-<version>.md`, otherwise from the store notes in
+`docs/release-notes/<version>.json`, otherwise from GitHub's generated notes.
+The version code is assigned like a Play upload (minutes since 2020).
+
+Google Play re-signs its installs with the Play app-signing key, so a GitHub
+APK cannot update a Play install, or the reverse, without uninstalling first.
+
 ## iOS and Android stores
 
 Three manually triggered store workflows run from **Actions** on `master`.
@@ -137,7 +152,7 @@ are removed after use.
 ## Validation
 
 ```sh
-actionlint .github/workflows/testflight.yml .github/workflows/play-internal.yml .github/workflows/submit-review.yml
+actionlint .github/workflows/testflight.yml .github/workflows/play-internal.yml .github/workflows/submit-review.yml .github/workflows/android-release.yml
 python3 -m unittest discover -s tests -t .
 python3 -m unittest discover -s android/tools/tests -v
 ```
