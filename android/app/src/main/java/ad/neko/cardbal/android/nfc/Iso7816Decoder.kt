@@ -7,7 +7,8 @@ import ad.neko.cardbal.android.util.hexString
 import ad.neko.cardbal.android.util.hexToBytes
 import kotlinx.datetime.Instant
 
-class Iso7816Decoder : TransitCardDecoder {
+/** [developerMode] adds every readable KS X 6924 record and short-EF binary block to Raw Data, as on iPhone. */
+class Iso7816Decoder(private val developerMode: Boolean = false) : TransitCardDecoder {
     override fun canDecode(tag: Tag): Boolean = IsoDep.get(tag) != null
     override fun decode(tag: Tag, scannedAt: Instant): TransitCardSnapshot? {
         val isoDep = IsoDep.get(tag) ?: return null
@@ -100,13 +101,15 @@ class Iso7816Decoder : TransitCardDecoder {
             val sfis=if(family=="NAMANE") listOf(14) else listOf(3,4)
             for(sfi in sfis) records+=IsoRecordReader.koreanRecords(sfi,exchange)
         }
+        val developerBlocks=if(developerMode && currency=="KRW" && snapper==null) IsoRecordReader.developerBlocks(exchange) else null
         if(balance==null && records.none{it.kind!="auxiliary"} && purse?.isClimate!=true) return null
         serial?.let{fields.add(ResultField("Card Number",it))}
         if(purse?.isClimate==true) fields.add(ResultField("Ticket Status","Unlimited pass; no stored-value balance"))
         val snapshot=TransitCardSnapshot(technology="ISO7816",cardFamily=resolvedFamily,identifierLabel="UID",identifierValue=uid.chunked(4).joinToString(" "),rawIdentifierValue=uid,
             selectedAID=aid,balanceText=balance,balanceDetail=if(purse?.isClimate==true) "Climate Card (Unlimited Pass)" else if(snapper!=null) "Snapper+ on-card purse (NZD cents)" else "$resolvedFamily on-card balance",
             realSerialNumber=serial,region=if(family=="City Union") city?.let(ChineseCityCodes::cityUnionName) else null,resultFields=fields,
-            rawSections=listOf(RawDataSection("Application",listOf(RawDataField("AID",aid),RawDataField("Select Response",select.hexString())))),
+            rawSections=listOf(RawDataSection("Application",listOf(RawDataField("AID",aid),RawDataField("Select Response",select.hexString())))) +
+                listOfNotNull(developerBlocks?.let { RawDataSection("Developer Readable Blocks",listOf(RawDataField("Readable Block Count",it.size.toString()))+it) }),
             rawTransactions=records.filter{it.kind=="transaction"}.map{it.hex},rawTransitHistory=records.filter{it.kind=="transit"}.map{it.hex},scannedAt=scannedAt)
         return if(currency=="CNY") snapshot.copy(applications=listOf(TransitApplication.from(snapshot,records,city))) else snapshot
     }
@@ -135,6 +138,33 @@ internal object IsoRecordReader {
         return recordsWithP2(sfi,20,if(sfi==3) 18 else 14,kind,exchange,0)
     }
     fun records(sfi: Int,max: Int,minimum: Int,kind: String,exchange:(ByteArray)->ByteArray):List<TransitApplicationRecord> = recordsWithP2(sfi,max,minimum,kind,exchange,null)
+
+    /** Read-only probe of SFIs 1-30: records until the first unreadable one, then the first short-EF binary block. */
+    fun developerBlocks(exchange: (ByteArray)->ByteArray): List<RawDataField> {
+        val blocks=mutableListOf<RawDataField>()
+        for(sfi in 1..30) {
+            for(number in 1..255) {
+                val data=readable(byteArrayOf(0,0xb2.toByte(),number.toByte(),((sfi shl 3) or 4).toByte(),0),exchange) ?: break
+                blocks.add(RawDataField("SFI %02d Record %03d".format(sfi,number),data.hexString().uppercase()))
+            }
+            readable(byteArrayOf(0,0xb0.toByte(),(sfi or 0x80).toByte(),0,0),exchange)?.let {
+                blocks.add(RawDataField("SFI %02d Binary 0000".format(sfi),it.hexString().uppercase()))
+            }
+        }
+        DebugLog.log("KS X 6924","Developer mode: captured ${blocks.size} readable blocks across SFIs 1-30")
+        return blocks
+    }
+
+    /** 9000, or a 6282 warning that still returned data. */
+    private fun readable(apdu: ByteArray, exchange: (ByteArray)->ByteArray): ByteArray? {
+        var response=runCatching { exchange(apdu) }.getOrNull() ?: return null
+        if(response.size==2 && response[0]==0x6c.toByte()) {
+            response=runCatching { exchange(apdu.copyOf().apply{this[lastIndex]=response.last()}) }.getOrNull() ?: return null
+        }
+        val data=response.dropLast(2).toByteArray()
+        val warning=response.size>=2 && response[response.size-2]==0x62.toByte() && response.last()==0x82.toByte() && data.isNotEmpty()
+        return if(response.isSuccess || warning) data else null
+    }
     private fun recordsWithP2(sfi: Int, max: Int, minimum: Int, kind: String, exchange: (ByteArray)->ByteArray, p2: Int?): List<TransitApplicationRecord> {
         val rows=mutableListOf<TransitApplicationRecord>()
         for(index in 1..max) {

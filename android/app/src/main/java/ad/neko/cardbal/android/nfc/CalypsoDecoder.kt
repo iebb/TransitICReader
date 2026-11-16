@@ -2,6 +2,7 @@ package ad.neko.cardbal.android.nfc
 
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
+import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.RawDataField
 import ad.neko.cardbal.android.data.RawDataSection
 import ad.neko.cardbal.android.data.ResultField
@@ -18,6 +19,8 @@ class CalypsoDecoder : TransitCardDecoder {
             iso.connect()
             iso.timeout = 2500
             val result = CalypsoProtocol.read { iso.transceive(it) } ?: return null
+            DebugLog.log("Calypso", "Public records: network ${result.network}, ${result.records.size} records, " +
+                if (result.hasDecodedData) "decoded" else "nothing decoded")
             if (!result.hasDecodedData) return null
             val uid = tag.id.hexString()
             val uidSerial = if (tag.id.size <= 8) {

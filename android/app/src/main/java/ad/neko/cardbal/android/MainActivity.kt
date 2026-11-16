@@ -1,5 +1,7 @@
 package ad.neko.cardbal.android
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,10 +35,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Nfc
@@ -86,6 +91,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import ad.neko.cardbal.android.data.ImportErrors
 import ad.neko.cardbal.android.data.CardWalletRepository
+import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.DualCurrencyBalance
 import ad.neko.cardbal.android.data.identityAliases
 import ad.neko.cardbal.android.data.KoreanTripCrowdsourcingPreferences
@@ -95,12 +101,16 @@ import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.TransactionDecoder
 import ad.neko.cardbal.android.data.TripReaderBackup
 import ad.neko.cardbal.android.nfc.CardBalNfcReader
+import ad.neko.cardbal.android.nfc.OctopusMetadataStore
+import ad.neko.cardbal.android.nfc.OctopusOnlineDecoder
 import ad.neko.cardbal.android.ui.tr
 import ad.neko.cardbal.android.ui.cardTitle
 import ad.neko.cardbal.android.ui.CardBalTheme
 import ad.neko.cardbal.android.ui.CardDetailScreen
+import ad.neko.cardbal.android.ui.CardFaceLibraryScreen
 import ad.neko.cardbal.android.ui.DisplaySettings
 import ad.neko.cardbal.android.ui.DualBalanceRows
+import ad.neko.cardbal.android.ui.GeneralSettings
 import ad.neko.cardbal.android.ui.MapViewportBounds
 import ad.neko.cardbal.android.ui.RideMapSurface
 import ad.neko.cardbal.android.ui.WalletCard
@@ -117,7 +127,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DebugLog.install(noBackupFilesDir)
         DisplaySettings.load(this)
+        GeneralSettings.load(this)
         val sampleWallet = BuildConfig.DEBUG && Build.HARDWARE in setOf("goldfish", "ranchu") &&
             intent.getBooleanExtra("cardbal.developmentSamples", false)
         setContent {
@@ -137,7 +149,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        reader.start(this)
+        // With Scan on Launch off, NFC stays idle until the person taps Scan.
+        if (GeneralSettings.scanOnLaunch || reader.hasStarted) reader.start(this)
     }
 
     override fun onPause() {
@@ -483,6 +496,11 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
 @Composable
 private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletRepository) {
     val context = LocalContext.current
+    var showsFaceLibrary by rememberSaveable { mutableStateOf(false) }
+    if (showsFaceLibrary) {
+        CardFaceLibraryScreen(cards = cards, onBack = { showsFaceLibrary = false })
+        return
+    }
     val octopusPreferences = remember(context) { context.getSharedPreferences("octopus", 0) }
     var octopusOnlineEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusOnlineEnabled", true)) }
     var octopusCardUpdatesEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusCardUpdatesEnabled", false)) }
@@ -493,6 +511,9 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         mutableStateOf(koreanTripPreferences.getBoolean(KoreanTripCrowdsourcingPreferences.ENABLED_KEY, true))
     }
     var showsKoreanTripDetails by rememberSaveable { mutableStateOf(false) }
+    // Scans may have added lines since Settings was last shown.
+    var debugLogIsEmpty by remember { mutableStateOf(DebugLog.shared.isEmpty) }
+    var debugLogMessage by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -565,6 +586,11 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             Text(tr("Settings"), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         }
         item {
+            SettingsSection(title = "Scan") {
+                SettingsSwitchRow("Scan on Launch", GeneralSettings.scanOnLaunch, GeneralSettings::updateScanOnLaunch)
+            }
+        }
+        item {
             SettingsSection(title = "Display") {
                 SettingsChoiceRow(
                     label = "Date Format",
@@ -583,6 +609,7 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                SettingsActionRow(label = "Card Faces", icon = Icons.Filled.PhotoLibrary, enabled = true, onClick = { showsFaceLibrary = true })
             }
         }
         item {
@@ -702,6 +729,53 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             }
         }
         item {
+            SettingsSection(title = "Advanced") {
+                SettingsSwitchRow("Developer Mode", GeneralSettings.developerModeEnabled, GeneralSettings::updateDeveloperMode)
+                Text(
+                    tr("When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
+            // Always shown: the log stays on this device and is copied only when the person taps Copy.
+            SettingsSection(title = "Troubleshooting") {
+                SettingsActionRow(
+                    label = "Copy Debug Log",
+                    icon = Icons.Filled.ContentCopy,
+                    enabled = !debugLogIsEmpty,
+                    onClick = {
+                        val octopus = OctopusMetadataStore(context.getSharedPreferences(OctopusMetadataStore.PREFERENCES, 0))
+                        val text = DebugLog.shared.exportText(debugEnvironment(), listOf(OctopusOnlineDecoder.debugSummary(octopus)))
+                        context.getSystemService(ClipboardManager::class.java)
+                            ?.setPrimaryClip(ClipData.newPlainText(DebugLog.TITLE, text))
+                        debugLogMessage = "Debug log copied."
+                    },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    label = "Clear Debug Log",
+                    icon = Icons.Filled.Delete,
+                    enabled = !debugLogIsEmpty,
+                    destructive = true,
+                    onClick = {
+                        DebugLog.shared.clear()
+                        debugLogIsEmpty = true
+                        debugLogMessage = "Debug log cleared."
+                    },
+                )
+                (debugLogMessage ?: "No scans recorded yet.".takeIf { debugLogIsEmpty })?.let {
+                    Text(tr(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(
+                    tr("Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
             SettingsSection(title = "Community") {
                 SettingsLinkRow("Support", "cardb.al/support", "https://cardb.al/support/")
                 SettingsLinkRow("GitHub", "iebb/TransitICReader", "https://github.com/iebb/TransitICReader")
@@ -754,8 +828,12 @@ private fun SettingsSection(
 }
 
 @Composable
-private fun SettingsActionRow(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
-    val color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+private fun SettingsActionRow(label: String, icon: ImageVector, enabled: Boolean, destructive: Boolean = false, onClick: () -> Unit) {
+    val color = when {
+        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        destructive -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.primary
+    }
     Row(
         Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).heightIn(min = 48.dp).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -765,6 +843,26 @@ private fun SettingsActionRow(label: String, icon: ImageVector, enabled: Boolean
         Text(tr(label), color = color, style = MaterialTheme.typography.bodyLarge)
     }
 }
+
+@Composable
+private fun SettingsSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(tr(label), modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.semantics { contentDescription = context.tr(label) },
+        )
+    }
+}
+
+/** The copied log's App, System and Device lines: the device model only, no identifiers. */
+private fun debugEnvironment(): List<String> = listOf(
+    "App: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+    "System: Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+    "Device: ${Build.MANUFACTURER} ${Build.MODEL}",
+)
 
 @Composable
 private fun <T> SettingsChoiceRow(label: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {

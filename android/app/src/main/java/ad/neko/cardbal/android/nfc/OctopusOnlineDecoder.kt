@@ -2,6 +2,7 @@ package ad.neko.cardbal.android.nfc
 
 import android.content.SharedPreferences
 import ad.neko.cardbal.android.BuildConfig
+import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.RawDataField
 import ad.neko.cardbal.android.data.RawDataSection
 import ad.neko.cardbal.android.data.ResultField
@@ -54,6 +55,11 @@ internal object OctopusOnlineDecoder {
     /** Builds without an enquiry endpoint do not offer Octopus Online at all. */
     val isAvailable get() = BuildConfig.OCTOPUS_ENQUIRY_BASE_URL.isNotBlank()
 
+    /** The settings line in a copied debug log. */
+    fun debugSummary(store: OctopusMetadataStore): String =
+        "Octopus Online: ${if (store.onlineEnabled) "on" else "off"}; card updates: ${if (store.cardUpdatesAllowed) "on" else "off"}; " +
+            "endpoint configured: ${if (isAvailable) "yes" else "no"}"
+
     fun decode(felica: FeliCaTransceiver, block: ByteArray, scannedAt: Instant, store: OctopusMetadataStore?): TransitCardSnapshot =
         decode(felica.protocol, block, scannedAt, store, if (isAvailable) OctopusEnquiryClient(BuildConfig.OCTOPUS_ENQUIRY_BASE_URL) else null)
 
@@ -66,6 +72,7 @@ internal object OctopusOnlineDecoder {
         val systems = felica.requestSystemCodes().ifEmpty { listOf("8008") }
         var currentBlock = block
         val saved = store?.metadata(identity)
+        DebugLog.log("Octopus", "Octopus card IDm ${DebugLog.shortened(identity)}, purse raw ${runCatching { rawValue(block) }.getOrNull()}")
         var metadata = saved
         var usedOnline = false
         var failed = false
@@ -74,6 +81,9 @@ internal object OctopusOnlineDecoder {
         // asks again on every scan and keeps its saved details when that fails. Details saved
         // before the app read rates are checked once more to find out whether the card has one.
         val refreshesRate = saved != null && (saved.exchangeRate != null || !saved.rateChecked)
+        if (saved != null && !refreshesRate) {
+            DebugLog.log("Octopus", "Online enquiry not needed: metadata already saved (offset ${saved.offset}, card number ${DebugLog.shortened(saved.cardNumber)})")
+        }
         if ((saved == null || refreshesRate) && store?.onlineEnabled == true && client != null) {
             runCatching {
                 val (result, opcodes) = client.enquire(store.cardUpdatesAllowed, felica::exchangeOnline)
@@ -87,11 +97,22 @@ internal object OctopusOnlineDecoder {
                     store.save(identity, calibrated)
                     metadata = calibrated
                     usedOnline = true
+                    DebugLog.log("Octopus", "Outcome: calibrated (offset ${calibrated.offset}, card number ${DebugLog.shortened(calibrated.cardNumber)}, status \"${calibrated.serviceStatus}\")")
                 } else {
                     failed = true
+                    DebugLog.log("Octopus", "Outcome: enquiry did not calibrate the balance")
                 }
-            }.onFailure { failed = true }
+            }.onFailure {
+                failed = true
+                DebugLog.log("Octopus", "Outcome: failed: " + DebugLog.describe(it))
+            }
             skippedCardUpdates = client.skippedCardUpdates
+        } else if (saved == null) {
+            DebugLog.log("Octopus", "Online enquiry not attempted: " + when {
+                client == null -> "endpoint not configured"
+                store?.onlineEnabled != true -> "Octopus Online is off"
+                else -> "unavailable"
+            })
         }
         val raw = rawValue(currentBlock)
         val confirmed = metadata

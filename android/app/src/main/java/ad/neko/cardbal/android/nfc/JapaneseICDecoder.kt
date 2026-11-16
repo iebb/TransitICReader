@@ -2,6 +2,7 @@ package ad.neko.cardbal.android.nfc
 
 import android.nfc.Tag
 import android.nfc.tech.NfcF
+import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.RawDataField
 import ad.neko.cardbal.android.data.RawDataSection
 import ad.neko.cardbal.android.data.ResultField
@@ -30,6 +31,7 @@ class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMe
                 // recognised even when that balance stays unconfirmed.
                 if (profile == FeliCaProfile.Hanica) return hanicaSnapshot(felica, scannedAt)
                 val block = felica.readWithoutEncryption(profile.balanceService, 0) ?: continue
+                DebugLog.log("FeliCa", "System ${profile.systemCode} (${profile.name}) answered polling; balance read")
                 if (profile == FeliCaProfile.Octopus) return OctopusOnlineDecoder.decode(felica, block, scannedAt, octopusStore)
                 val parsed = profile.parseBalance(block, scannedAt) ?: continue
                 val systemCodes = felica.requestSystemCodes().ifEmpty { listOf(profile.systemCode) }

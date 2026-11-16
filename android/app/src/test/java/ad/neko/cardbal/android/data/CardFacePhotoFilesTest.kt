@@ -42,6 +42,19 @@ class CardFacePhotoFilesTest {
         assertTrue(File(cacheDir, "card-face-import").listFiles().orEmpty().isEmpty())
     }
 
+    @Test fun faceLibraryListsImagesAndDeletesOnlyNamedFiles() {
+        val faces = File(filesDir, "CardFaces").apply { mkdirs() }
+        listOf("b.PNG", "a.jpg", "c.jpeg", "notes.txt", ".hidden.jpg").forEach { File(faces, it).writeBytes(byteArrayOf(1)) }
+        assertEquals(listOf("a.jpg", "b.PNG", "c.jpeg"), photos.libraryNames())
+        assertTrue(photos.deleteSaved("a.jpg"))
+        assertEquals(listOf("b.PNG", "c.jpeg"), photos.libraryNames())
+        listOf("../files", "CardFaces/b.PNG", "", ".hidden.jpg").forEach { name ->
+            assertThrows(IllegalArgumentException::class.java) { photos.deleteSaved(name) }
+        }
+        assertTrue(CardFacePhotoFiles.isInUse("b.PNG", listOf(null, "/var/mobile/CardFaces/b.PNG")))
+        assertFalse(CardFacePhotoFiles.isInUse("c.jpeg", listOf(null, "b.PNG")))
+    }
+
     @Test fun failedEncodingDiscardsPartialFilesWithoutReplacingSavedPhotos() {
         val name = photos.importPhoto(byteArrayOf(1).inputStream()) { _, output -> output.write(7) }
         assertThrows(IOException::class.java) {

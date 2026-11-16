@@ -31,6 +31,15 @@ class CardFacePhotoFiles(private val filesDir: File, private val cacheDir: File)
         faces.listFiles().orEmpty().filter { it.isFile && !it.name.startsWith(".") }
             .map { it.name }.sorted()
 
+    /** The photos the Face Library lists, as on iPhone. */
+    fun libraryNames(): List<String> =
+        savedNames().filter { name -> LIBRARY_EXTENSIONS.any { name.lowercase().endsWith(it) } }
+
+    fun deleteSaved(name: String): Boolean {
+        require(name.isNotBlank() && '/' !in name && '\\' !in name && !name.startsWith(".")) { "Invalid photo name" }
+        return File(faces, name).delete()
+    }
+
     /**
      * Stage a bounded source, normalize it, then atomically publish it. An interrupted
      * import leaves neither a selectable partial photo nor a changed card selection.
@@ -76,5 +85,10 @@ class CardFacePhotoFiles(private val filesDir: File, private val cacheDir: File)
 
     companion object {
         const val MAX_SOURCE_BYTES = 32L * 1024 * 1024
+        private val LIBRARY_EXTENSIONS = listOf(".jpg", ".jpeg", ".png")
+
+        /** Whether a saved card shows this photo. Saved names may carry a path. */
+        fun isInUse(name: String, faceImageFileNames: List<String?>): Boolean =
+            faceImageFileNames.any { it?.substringAfterLast('/')?.substringAfterLast('\\') == name }
     }
 }
