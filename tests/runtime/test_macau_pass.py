@@ -45,7 +45,7 @@ struct UnrelatedDecoder: TransitCardDecoder {
                                   kind: RawHistoryKind, relatedContext: [Data]) -> TransitTransaction? { nil }
     static func decodeTransitRecord(data: Data, index: Int) -> TransitTransaction? { nil }
     static func decodeRecord(data: Data, index: Int) -> TransitTransaction? { nil }
-    static func decodeRecord(data: Data) -> TransitTransaction? { nil }
+    static func decodeRecord(data: Data, family: String) -> TransitTransaction? { nil }
     static func decodeTransitRecord(data: Data, index: Int,
                                     auxiliary: [TransitApplicationRecord]) -> TransitTransaction? { nil }
     static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? { nil }

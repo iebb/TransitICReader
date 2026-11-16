@@ -27,6 +27,24 @@ enum ChineseLocalProtocol {
         }
         static func from(family: String) -> Kind? { allCases.first { $0.family.lowercased() == family.lowercased() } }
     }
+    /// Lingnan Pass member cards by issuer code (byte 49 of the PAY.APPY details), with their issuing city.
+    /// Codes and names as Trip Reader shows them; see docs/decoding/china-local.md.
+    static let lingnanIssuers: [Int: (card: String, city: String)] = [
+        1: ("羊城通", "广州市"), 17: ("广佛通", "佛山市"), 48: ("红海通", "汕尾市"), 53: ("五邑通", "江门市"),
+        64: ("肇庆通", "肇庆市"), 72: ("惠州通", "惠州市"), 80: ("湛江通", "湛江市"), 82: ("韶州通", "韶关市"),
+        83: ("河源通", "河源市"), 84: ("漠江通", "阳江市"), 85: ("广达通", "清远市"), 86: ("茂名通", "茂名市"),
+        87: ("嘉应通", "梅州市"), 89: ("榕江通", "揭阳市"), 96: ("云浮通", "云浮市"), 97: ("潮州通", "潮州市"),
+    ]
+    /// The city of a Lingnan Pass ledger record, from the leading terminal bytes 10-12.
+    static func lingnanRecordCity(_ bytes: Data) -> String? {
+        guard bytes.count == 23 else { return nil }
+        let bytes = Array(bytes)
+        switch bytes[10] {
+        case 0x01: return bytes[12] == 0 ? "广州市" : "广东省"
+        case 0x88: return lingnanIssuers[Int(bytes[11])]?.city
+        default: return nil
+        }
+    }
     struct File { let sfi: Int; let data: Data }
     struct Record { let number: Int; let data: Data }
     struct Result {
@@ -35,6 +53,8 @@ enum ChineseLocalProtocol {
         let files: [File]; let records: [Record]
         /// Another application of the card that supplied its details (Lingnan Pass: PAY.APPY).
         var infoAID: String? = nil; var infoSelection: Data? = nil
+        /// Lingnan Pass issuer code; `lingnanIssuers` names the known ones.
+        var issuer: Int? = nil
     }
     struct History {
         let date: Date; let amountMinor: Int64?; let type: UInt8; let terminal: String; let counter: Int
@@ -85,12 +105,13 @@ enum ChineseLocalProtocol {
             return await command(Data([0, 0xA4, 4, 0, UInt8(name.count)]) + name + Data([0]))
         }
         for kind in kinds {
-            // Lingnan Pass keeps its details in PAY.APPY: FCI tag 9F0C, else SFI 15 (as NFSee reads them).
+            // Lingnan Pass keeps its details in PAY.APPY: SFI 15 (Trip Reader reads all 70 bytes), else the
+            // shorter FCI tag 9F0C copy that NFSee reads.
             var lingnanInfo: (selection: Data, info: Data?)?
             if kind == .lingnan {
                 if let fci = await select(Kind.lingnanInfoAID) {
-                    var info = tlv(0x9F0C, in: fci)
-                    if info == nil { info = await command(Data([0, 0xB0, 0x95, 0, 0])) }
+                    var info = await command(Data([0, 0xB0, 0x95, 0, 0]))
+                    if info == nil { info = tlv(0x9F0C, in: fci) }
                     log?("\(kind.family): SELECT \(name(Kind.lingnanInfoAID)) \(status); details " + (info == nil ? "not readable" : "read (\(info!.count) bytes)"))
                     lingnanInfo = (fci, info)
                 } else {
@@ -136,7 +157,9 @@ enum ChineseLocalProtocol {
                 if let info { files.append(File(sfi: infoSFI, data: info)) }
                 let serialFile = kind == .wuhan ? await file(10) : nil
                 if let serialFile { files.append(File(sfi: 10, data: serialFile)) }
-                let metadata = metadata(kind: kind, info: info, serialFile: serialFile, selection: selection)
+                let validityFile = kind == .shenzhen ? await file(0x1A) : nil
+                if let validityFile { files.append(File(sfi: 0x1A, data: validityFile)) }
+                let metadata = metadata(kind: kind, info: info, serialFile: serialFile, validityFile: validityFile, selection: selection)
                 // A generic short PBOC name alone is not evidence of a Beijing card.
                 if kind == .beijing && (metadata.serial == nil || metadata.issue == nil || metadata.expiry == nil) { continue }
                 _ = await select(aid)
@@ -167,16 +190,18 @@ enum ChineseLocalProtocol {
                 if kind == .lingnan, aid != Kind.lingnanInfoAID, let lingnanInfo {
                     result.infoAID = Kind.lingnanInfoAID; result.infoSelection = lingnanInfo.selection
                 }
+                if kind == .lingnan, let info, info.count > 49 { result.issuer = Int(info[info.startIndex + 49]) }
                 return result
             }
         }
         return nil
     }
-    private static func metadata(kind: Kind, info: Data?, serialFile: Data?, selection: Data) -> (serial: String?, issue: String?, expiry: String?) {
+    private static func metadata(kind: Kind, info: Data?, serialFile: Data?, validityFile: Data?,
+                                 selection: Data) -> (serial: String?, issue: String?, expiry: String?) {
         let info = info ?? (kind == .shenzhen ? tlv(0x8C, in: selection) : nil)
-        func date(_ offset: Int) -> String? {
-            guard let info, info.count >= offset + 4 else { return nil }
-            let bytes = info.subdata(in: offset..<offset + 4)
+        func date(_ offset: Int, in file: Data?) -> String? {
+            guard let file, file.count >= offset + 4 else { return nil }
+            let bytes = Data(file.dropFirst(offset).prefix(4))
             guard bcdDate(bytes + Data([0, 0, 0])) != nil else { return nil }
             let text = hex(bytes)
             return "\(text.prefix(4))-\(text.dropFirst(4).prefix(2))-\(text.suffix(2))"
@@ -194,16 +219,17 @@ enum ChineseLocalProtocol {
         case .wuhan: if let serialFile, serialFile.count >= 5, validSerial(Data(serialFile.prefix(5))) { serial = hex(Data(serialFile.prefix(5))) }
         case .beijing: if let info, info.count >= 32, validSerial(Data(info.prefix(8))) { serial = hex(Data(info.prefix(8))) }
         case .lingnan:
-            // Card number: bytes 11-15 of the details (NFSee); dates at the standard bytes 20-23 / 24-27.
+            // Card number: bytes 11-15 of the details (NFSee, Trip Reader).
             if let info, info.count >= 16 {
                 let bytes = info.subdata(in: 11..<16)
                 if validSerial(bytes) { serial = hex(bytes) }
             }
         }
-        let issue = date(kind == .beijing ? 24 : 20)
-        let expiry = date(kind == .beijing ? 28 : kind == .wuhan ? 16 : 24)
-        // Lingnan dates are unconfirmed on real cards: show them only as a consistent pair.
-        if kind == .lingnan, issue == nil || expiry == nil { return (serial, nil, nil) }
+        // Trip Reader reads only an expiry date for Lingnan Pass, at bytes 27-30.
+        if kind == .lingnan { return (serial, nil, date(27, in: info)) }
+        let issue = date(kind == .beijing ? 24 : 20, in: info)
+        // Trip Reader takes the Shenzhen Tong expiry from SFI 1A bytes 4-7 when the card has that file.
+        let expiry = (kind == .shenzhen ? date(4, in: validityFile) : nil) ?? date(kind == .beijing ? 28 : kind == .wuhan ? 16 : 24, in: info)
         guard issue == nil || expiry == nil || issue! <= expiry! else { return (serial, nil, nil) }
         return (serial, issue, expiry)
     }

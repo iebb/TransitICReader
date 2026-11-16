@@ -174,7 +174,8 @@ class TransactionDecoder(context: Context) {
             family == "macau pass" && card.technology == "ISO7816" ->
                 if (kind == RawHistoryKind.Transactions) MacauPassDecoder.decodeTransaction(data) else null
             ChineseLocalProtocol.Kind.from(family) != null ->
-                if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) ChineseLocalDecoder.decodeRecord(data) else null
+                if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions)
+                    ChineseLocalDecoder.decodeRecord(data, ChineseLocalProtocol.Kind.from(family)) { stationDb.cityUnionTerminal(it, null) } else null
             AdditionalCardHistory.handles(family) -> if(kind==RawHistoryKind.Transactions) AdditionalCardHistory.decode(raw,family,context) else null
             family == "snapper+" || family == "snapper plus" ->
                 if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions) decodeSnapperHistory(data, raw) else null

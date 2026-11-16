@@ -37,7 +37,8 @@ does not supersede CardBal's card-specific calibration work.
   value unusable as a current balance. See the
   [FareBot assessment](farebot-public-card-survey.md) for primary evidence.
 - **Legacy FeliCa Shenzhen Tong:** fixed-offset balance conversion still needs
-  generation/calibration evidence. The new `PAY.SZT` reader does not implement it.
+  generation/calibration evidence. The new `PAY.SZT` reader does not implement it,
+  and Trip Reader 1.7.17 (ISO-DEP only) has no reader for it either.
 - **Classic balances** such as EasyCard Classic, Bip!, Oyster and Touch 'n Go:
   appropriate keys and compatible Android or external-reader hardware are
   separate requirements. Built-in iPhone NFC does not expose Classic sectors.

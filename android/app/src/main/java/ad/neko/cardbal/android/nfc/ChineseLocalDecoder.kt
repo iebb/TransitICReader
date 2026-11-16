@@ -23,12 +23,30 @@ internal object ChineseLocalProtocol {
     }
     const val LINGNAN_PURSE_AID = "5041592E5449434C" // PAY.TICL
     const val LINGNAN_INFO_AID = "5041592E41505059" // PAY.APPY
+    /** Lingnan Pass member cards by issuer code (byte 49 of the PAY.APPY details) to card name and issuing city, as Trip Reader names them. */
+    val lingnanIssuers = mapOf(
+        1 to ("羊城通" to "广州市"), 17 to ("广佛通" to "佛山市"), 48 to ("红海通" to "汕尾市"), 53 to ("五邑通" to "江门市"),
+        64 to ("肇庆通" to "肇庆市"), 72 to ("惠州通" to "惠州市"), 80 to ("湛江通" to "湛江市"), 82 to ("韶州通" to "韶关市"),
+        83 to ("河源通" to "河源市"), 84 to ("漠江通" to "阳江市"), 85 to ("广达通" to "清远市"), 86 to ("茂名通" to "茂名市"),
+        87 to ("嘉应通" to "梅州市"), 89 to ("榕江通" to "揭阳市"), 96 to ("云浮通" to "云浮市"), 97 to ("潮州通" to "潮州市"),
+    )
+    /** The city of a Lingnan Pass ledger record, from the leading terminal bytes 10-12. */
+    fun lingnanRecordCity(bytes: ByteArray): String? {
+        if (bytes.size != 23) return null
+        return when (bytes[10].toInt() and 255) {
+            0x01 -> if (bytes[12] == 0.toByte()) "广州市" else "广东省"
+            0x88 -> lingnanIssuers[bytes[11].toInt() and 255]?.second
+            else -> null
+        }
+    }
     data class File(val sfi: Int, val data: ByteArray)
     data class Record(val number: Int, val data: ByteArray)
     data class Result(val kind: Kind, val aid: String, val selection: ByteArray, val balance: ByteArray, val balanceMinor: Long,
         val serial: String?, val issueDate: String?, val expiryDate: String?, val files: List<File>, val records: List<Record>,
         /** Another application of the card that supplied its details (Lingnan Pass: PAY.APPY). */
-        val infoAid: String? = null, val infoSelection: ByteArray? = null)
+        val infoAid: String? = null, val infoSelection: ByteArray? = null,
+        /** Lingnan Pass issuer code; [lingnanIssuers] names the known ones. */
+        val issuer: Int? = null)
     data class History(val date: Instant, val amountMinor: Long?, val type: Int, val terminal: String, val counter: Int)
 
     fun balanceMinor(bytes: ByteArray): Long? {
@@ -67,10 +85,11 @@ internal object ChineseLocalProtocol {
         }
         fun select(aid: String) = command(Iso7816Protocol.selectCommand(aid))
         for (kind in Kind.entries) {
-            // Lingnan Pass keeps its details in PAY.APPY: FCI tag 9F0C, else SFI 15 (as NFSee reads them).
+            // Lingnan Pass keeps its details in PAY.APPY: SFI 15 (Trip Reader reads all 70 bytes), else the
+            // shorter FCI tag 9F0C copy that NFSee reads.
             var lingnanInfo: Pair<ByteArray, ByteArray?>? = null
             if (kind == Kind.Lingnan) select(LINGNAN_INFO_AID)?.let { fci ->
-                lingnanInfo = fci to (tlv(0x9F0C, fci) ?: command("00B0950000".hexToBytes()))
+                lingnanInfo = fci to (command("00B0950000".hexToBytes()) ?: tlv(0x9F0C, fci))
             }
             for (aid in kind.aids) {
                 if (kind == Kind.Lingnan && aid == LINGNAN_INFO_AID && lingnanInfo == null) continue // Already tried above.
@@ -99,7 +118,8 @@ internal object ChineseLocalProtocol {
                 val files = mutableListOf<File>()
                 val info = ((if (kind == Kind.Lingnan) lingnanInfo?.second else null) ?: file(infoSfi))?.also { files.add(File(infoSfi, it)) }
                 val serialFile = if (kind == Kind.Wuhan) file(10)?.also { files.add(File(10, it)) } else null
-                val metadata = metadata(kind, info, serialFile, selection)
+                val validityFile = if (kind == Kind.Shenzhen) file(0x1A)?.also { files.add(File(0x1A, it)) } else null
+                val metadata = metadata(kind, info, serialFile, validityFile, selection)
                 // Short generic PBOC names require corroborating Beijing metadata.
                 if (kind == Kind.Beijing && (metadata.first == null || metadata.second == null || metadata.third == null)) continue
                 select(aid)
@@ -124,15 +144,16 @@ internal object ChineseLocalProtocol {
                 }
                 val details = lingnanInfo?.takeIf { kind == Kind.Lingnan && aid != LINGNAN_INFO_AID }
                 return Result(kind, aid, selection, balance, minor, metadata.first, metadata.second, metadata.third, files, records,
-                    details?.let { LINGNAN_INFO_AID }, details?.first)
+                    details?.let { LINGNAN_INFO_AID }, details?.first,
+                    info?.takeIf { kind == Kind.Lingnan && it.size > 49 }?.let { it[49].toInt() and 255 })
             }
         }
         return null
     }
-    private fun metadata(kind: Kind, data: ByteArray?, serialFile: ByteArray?, selection: ByteArray): Triple<String?, String?, String?> {
+    private fun metadata(kind: Kind, data: ByteArray?, serialFile: ByteArray?, validityFile: ByteArray?, selection: ByteArray): Triple<String?, String?, String?> {
         val info = data ?: if (kind == Kind.Shenzhen) tlv(0x8C, selection) else null
-        fun date(offset: Int): String? {
-            val bytes = info?.takeIf { it.size >= offset + 4 }?.copyOfRange(offset, offset + 4) ?: return null
+        fun date(offset: Int, file: ByteArray? = info): String? {
+            val bytes = file?.takeIf { it.size >= offset + 4 }?.copyOfRange(offset, offset + 4) ?: return null
             if (bcdDate(bytes + byteArrayOf(0, 0, 0)) == null) return null
             val text = bytes.hexString()
             return "${text.substring(0, 4)}-${text.substring(4, 6)}-${text.substring(6)}"
@@ -144,13 +165,14 @@ internal object ChineseLocalProtocol {
             }
             Kind.Wuhan -> serialFile?.takeIf { it.size >= 5 }?.copyOfRange(0, 5)?.takeIf(::validSerial)?.hexString()
             Kind.Beijing -> info?.takeIf { it.size >= 32 }?.copyOfRange(0, 8)?.takeIf(::validSerial)?.hexString()
-            // Card number: bytes 11-15 of the details (NFSee); dates at the standard bytes 20-23 / 24-27.
+            // Card number: bytes 11-15 of the details (NFSee, Trip Reader).
             Kind.Lingnan -> info?.takeIf { it.size >= 16 }?.copyOfRange(11, 16)?.takeIf(::validSerial)?.hexString()
         }
+        // Trip Reader reads only an expiry date for Lingnan Pass, at bytes 27-30.
+        if (kind == Kind.Lingnan) return Triple(serial, null, date(27))
         val issue = date(if (kind == Kind.Beijing) 24 else 20)
-        val expiry = date(when (kind) { Kind.Beijing -> 28; Kind.Wuhan -> 16; else -> 24 })
-        // Lingnan dates are unconfirmed on real cards: show them only as a consistent pair.
-        if (kind == Kind.Lingnan && (issue == null || expiry == null)) return Triple(serial, null, null)
+        // Trip Reader takes the Shenzhen Tong expiry from SFI 1A bytes 4-7 when the card has that file.
+        val expiry = (if (kind == Kind.Shenzhen) date(4, validityFile) else null) ?: date(when (kind) { Kind.Beijing -> 28; Kind.Wuhan -> 16; else -> 24 })
         return if (issue != null && expiry != null && issue > expiry) Triple(serial, null, null) else Triple(serial, issue, expiry)
     }
     private fun validSerial(bytes: ByteArray) = bytes.any { it != 0.toByte() } && bytes.any { it != 0xFF.toByte() }
@@ -206,7 +228,10 @@ class ChineseLocalDecoder : TransitCardDecoder {
         internal fun read(uid: String, scannedAt: Instant, exchange: (ByteArray) -> ByteArray): TransitCardSnapshot? {
             val result = ChineseLocalProtocol.read(exchange) ?: return null
             if (uid.isBlank() && result.serial == null) return null
-            val fields = mutableListOf(ResultField("Brand", result.kind.family), ResultField("Issuing City", result.kind.city), ResultField("Currency", "CNY"))
+            // A Lingnan Pass member card (羊城通, 广佛通, …) is named like a T-Union city card.
+            val issuer = result.issuer?.let { ChineseLocalProtocol.lingnanIssuers[it] }
+            val fields = mutableListOf(ResultField("Brand", issuer?.first ?: result.kind.family),
+                ResultField("Issuing City", issuer?.second ?: result.kind.city), ResultField("Currency", "CNY"))
             result.serial?.let { fields.add(ResultField("Card Number", it)) }
             result.issueDate?.let { fields.add(ResultField("Issue Date", it)) }
             result.expiryDate?.let { fields.add(ResultField("Expiry Date", it)) }
@@ -214,7 +239,7 @@ class ChineseLocalDecoder : TransitCardDecoder {
             val snapshot = TransitCardSnapshot(
                 technology = "ISO7816", cardFamily = result.kind.family, identifierLabel = "UID", identifierValue = uid, rawIdentifierValue = uid,
                 selectedAID = result.aid, balanceText = formatCardMoney(result.balanceMinor, "CNY", 2),
-                realSerialNumber = result.serial, region = result.kind.city, resultFields = fields,
+                realSerialNumber = result.serial, region = issuer?.first ?: result.kind.city, resultFields = fields,
                 rawSections = listOf(RawDataSection("Application", listOf(RawDataField("AID", result.aid),
                     RawDataField("SELECT", result.selection.hexString()), RawDataField("Balance", result.balance.hexString())) +
                     (result.infoAid?.let { listOf(RawDataField("AID", it), RawDataField("SELECT", result.infoSelection?.hexString().orEmpty())) } ?: emptyList()))) +
@@ -223,13 +248,24 @@ class ChineseLocalDecoder : TransitCardDecoder {
             )
             return snapshot.copy(applications = listOf(TransitApplication.from(snapshot, records)))
         }
-        fun decodeRecord(bytes: ByteArray): TransitTransaction? {
+        /** [cityUnionStation] resolves a City Union terminal ("5180…") to its station. */
+        internal fun decodeRecord(bytes: ByteArray, kind: ChineseLocalProtocol.Kind? = null,
+                         cityUnionStation: (String) -> StationDatabase.ChineseLocation? = { null }): TransitTransaction? {
             val h = ChineseLocalProtocol.history(bytes) ?: return null
             val local = java.time.Instant.ofEpochSecond(h.date.epochSeconds).atZone(ZoneId.of("Asia/Shanghai"))
+            val (city, station) = when (kind) {
+                // As Trip Reader does, a Shenzhen Tong terminal resolves like a Shenzhen City Union one: 5180 + its last four bytes.
+                ChineseLocalProtocol.Kind.Shenzhen -> "深圳市" to (if (h.type == 6 || h.type == 9) cityUnionStation("5180" + h.terminal.takeLast(8)) else null)
+                ChineseLocalProtocol.Kind.Lingnan -> ChineseLocalProtocol.lingnanRecordCity(bytes) to null
+                else -> null to null
+            }
+            val bus = station?.type in setOf("BRT", "公交", "bus")
             return TransitTransaction(date = h.date, time = local.toLocalTime().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")),
                 amount = h.amountMinor ?: 0, terminalID = h.terminal, recordNumber = h.counter,
                 type = if (h.type == 2) "Top-up" else if (h.amountMinor != null) "Payment" else "Transaction 0x%02X".format(h.type),
-                category = if (h.type == 2) TransactionCategory.topUp else if (h.amountMinor != null) TransactionCategory.payment else TransactionCategory.unknown,
+                category = if (station != null) { if (bus) TransactionCategory.bus else TransactionCategory.train }
+                    else if (h.type == 2) TransactionCategory.topUp else if (h.amountMinor != null) TransactionCategory.payment else TransactionCategory.unknown,
+                location = city?.let { "$it • ${station?.name ?: "Terminal ${h.terminal}"}" },
                 rawData = bytes.hexString(), currencyCode = "CNY", fractionDigits = 2, issuerTimeZone = "Asia/Shanghai",
                 amountKnown = h.amountMinor != null, amountIsSigned = true)
         }

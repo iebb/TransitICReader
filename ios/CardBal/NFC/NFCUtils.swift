@@ -286,7 +286,8 @@ struct TransactionDecoderRegistry {
                 ? MacauPassDecoder.decodeTransaction(data) : nil
         }
         if [.shenzhenTong, .wuhanTong, .beijingYikatong, .lingnanPass].contains(brand) {
-            return technology == "ISO7816" && kind == .transactions ? ChineseLocalDecoder.decodeRecord(data: data) : nil
+            return technology == "ISO7816" && kind == .transactions
+                ? ChineseLocalDecoder.decodeRecord(data: data, family: family) : nil
         }
         if brand == .tianfuTong {
             return technology == "ISO7816" && kind == .transactions

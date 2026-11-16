@@ -24,8 +24,10 @@ struct ChineseLocalDecoder: TransitCardDecoder {
             DebugLog.shared.log("China local", "\(result.kind.family) read without a UID or card number; not kept")
             throw NFCTestError.unsupportedCard
         }
-        var fields = [ResultField(title: "Brand", value: result.kind.family),
-                      ResultField(title: "Issuing City", value: result.kind.city), ResultField(title: "Currency", value: "CNY")]
+        // A Lingnan Pass member card (羊城通, 广佛通, …) is named like a T-Union city card.
+        let issuer = result.issuer.flatMap { ChineseLocalProtocol.lingnanIssuers[$0] }
+        var fields = [ResultField(title: "Brand", value: issuer?.card ?? result.kind.family),
+                      ResultField(title: "Issuing City", value: issuer?.city ?? result.kind.city), ResultField(title: "Currency", value: "CNY")]
         if let serial = result.serial { fields.append(ResultField(title: "Card Number", value: serial)) }
         if let date = result.issueDate { fields.append(ResultField(title: "Issue Date", value: date)) }
         if let date = result.expiryDate { fields.append(ResultField(title: "Expiry Date", value: date)) }
@@ -34,7 +36,7 @@ struct ChineseLocalDecoder: TransitCardDecoder {
             technology: "ISO7816", cardFamily: result.kind.family, identifierLabel: "UID", identifierValue: iso.identifier.hexString,
             rawIdentifierValue: iso.identifier.hexString, pmm: nil, systemCode: nil, selectedAID: result.aid,
             balanceText: formatCurrency(amount: Decimal(result.balanceMinor) / 100, code: "CNY", fractionDigits: 2),
-            balanceDetail: nil, realSerialNumber: result.serial, region: result.kind.city, resultFields: fields,
+            balanceDetail: nil, realSerialNumber: result.serial, region: issuer?.card ?? result.kind.city, resultFields: fields,
             rawSections: [RawDataSection(title: "Application", fields: [
                 RawDataField(title: "AID", value: result.aid), RawDataField(title: "SELECT", value: result.selection.hexString),
                 RawDataField(title: "Balance", value: result.balance.hexString)
@@ -68,13 +70,27 @@ struct ChineseLocalDecoder: TransitCardDecoder {
         result.exchangeRate = combined.exchangeRate
         return result
     }
-    static func decodeRecord(data: Data) -> TransitTransaction? {
+    static func decodeRecord(data: Data, family: String? = nil) -> TransitTransaction? {
         guard let history = ChineseLocalProtocol.history(data) else { return nil }
         let formatter = DateFormatter(); formatter.timeZone = TimeZone(identifier: "Asia/Shanghai"); formatter.dateFormat = "HH:mm:ss"
+        var city: String?; var station: CityUnionStationDatabase.Station?
+        switch family.flatMap(ChineseLocalProtocol.Kind.from(family:)) {
+        case .shenzhen?:
+            city = "深圳市"
+            // As Trip Reader does, a Shenzhen Tong terminal resolves like a Shenzhen City Union one: 5180 + its last four bytes.
+            if [UInt8(6), 9].contains(history.type) {
+                station = CityUnionStationDatabase.lookup(terminalID: "5180" + history.terminal.suffix(8), date: history.date)
+            }
+        case .lingnan?: city = ChineseLocalProtocol.lingnanRecordCity(data)
+        default: break
+        }
+        let isBus = station?.type == "BRT" || station?.type == "公交"
+        let category: TransactionCategory = station != nil ? (isBus ? .bus : .train)
+            : history.type == 2 ? .topUp : history.amountMinor != nil ? .payment : .unknown
         var transaction = TransitTransaction(date: history.date, time: formatter.string(from: history.date),
             amount: Decimal(history.amountMinor ?? 0) / 100, terminalID: history.terminal,
             type: history.type == 2 ? "Top-up" : history.amountMinor != nil ? "Payment" : String(format: "Transaction 0x%02X", history.type),
-            category: history.type == 2 ? .topUp : history.amountMinor != nil ? .payment : .unknown,
+            category: category, location: city.map { "\($0) • \(station?.name ?? "Terminal \(history.terminal)")" },
             rawData: data.hexString, recordNumber: history.counter)
         transaction.currencyCode = "CNY"; transaction.issuerTimeZone = "Asia/Shanghai"
         transaction.amountKnown = history.amountMinor != nil; transaction.amountIsSigned = true

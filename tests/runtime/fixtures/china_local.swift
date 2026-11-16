@@ -76,7 +76,32 @@
     check(invalidStatus == nil, "Non-9000 success accepted")
     try await testChineseLocalBesideCityUnion(fixture: fixture, histories: histories)
     try await testLingnanPass(fixture: fixture, histories: histories)
+    try await testChineseLocalDetailsAsTripReader(fixture: fixture)
     print("PASS: China local balances, histories, identities, persistence and APDU procedures")
+}
+/// Trip Reader 1.7.17 layouts: Shenzhen Tong SFI 1A expiry and stations, Lingnan Pass record cities.
+@MainActor func testChineseLocalDetailsAsTripReader(fixture: [String: Any]) async throws {
+    let shenzhen = (fixture["cards"] as! [[String: Any]])[0], szt = shenzhen["aid"] as! String
+    let card = NFCISO7816Tag(); card.available = [szt]; card.balances = [szt: Data(hexString: "000004D2")]
+    card.binaryFiles = [szt: [shenzhen["sfi"] as! Int: Data(hexString: shenzhen["info"] as! String),
+                              0x1A: Data(hexString: "0000000020351231")]]
+    let read = try await ChineseLocalDecoder.decode(tag: .iso7816(card), scannedAt: Date())
+    check(read.resultFields.contains { $0.title == "Issue Date" && $0.value == "2025-01-01" }
+          && read.resultFields.contains { $0.title == "Expiry Date" && $0.value == "2035-12-31" }, "Shenzhen SFI 1A expiry")
+
+    func record(type: String, terminal: String) -> Data { Data(hexString: "0123000000000000FA" + type + terminal + "20260715083041") }
+    let metro = ChineseLocalDecoder.decodeRecord(data: record(type: "09", terminal: "000040011000"), family: "Shenzhen Tong")
+    check(metro?.location == "深圳市 • 福田口岸" && metro?.category == .train, "Shenzhen station \(metro?.location ?? "nil")")
+    let topUp = ChineseLocalDecoder.decodeRecord(data: record(type: "02", terminal: "000040011000"), family: "Shenzhen Tong")
+    check(topUp?.location == "深圳市 • Terminal 000040011000" && topUp?.category == .topUp, "Shenzhen top-up became a station")
+    let lingnan: [(String, String?)] = [("881101020304", "佛山市 • Terminal 881101020304"), ("010200000000", "广州市 • Terminal 010200000000"),
+                                        ("010203000000", "广东省 • Terminal 010203000000"), ("990000000000", nil)]
+    for (terminal, location) in lingnan {
+        let tx = ChineseLocalDecoder.decodeRecord(data: record(type: "06", terminal: terminal), family: "Lingnan Pass")
+        check(tx != nil && tx?.location == location && tx?.category == .payment, "Lingnan record city \(terminal)")
+    }
+    check(ChineseLocalDecoder.decodeRecord(data: record(type: "06", terminal: "010200000000"))?.location == nil, "Record city without a card kind")
+    print("PASS: China local Trip Reader details")
 }
 
 /// City Union / T-Union are read first (as in 2.5.2); a local application is added afterwards.
@@ -152,7 +177,8 @@
     let ticlFCI = Data(hexString: "6f3484085041592e5449434ca5289f0801029f0c21ffffffffffffffff000000000000000000000000000000002019082400000186a0")
     let lingnan = (fixture["cards"] as! [[String: Any]])[3]
     let info = Data(hexString: lingnan["info"] as! String)
-    let appyFCI = Data([0x6F, 0x2D, 0x84, 0x08]) + Data(hexString: appy) + Data([0xA5, 0x21, 0x9F, 0x0C, 0x1E]) + info
+    let proprietary = Data([0xA5, UInt8(info.count + 3), 0x9F, 0x0C, UInt8(info.count)]) + info
+    let appyFCI = Data([0x6F, UInt8(10 + proprietary.count), 0x84, 0x08]) + Data(hexString: appy) + proprietary
     let records = histories.prefix(3).map { Data(hexString: $0["hex"] as! String) }
 
     // (a) A Lingnan-only card on Core NFC: details from PAY.APPY's FCI, purse and history from PAY.TICL.
@@ -161,11 +187,14 @@
     card.balances = [ticl: Data(hexString: "00000BB8")]
     card.files = [ticl: [24: records]]
     let read = try await ChineseLocalDecoder.decode(tag: .iso7816(card), scannedAt: Date())
-    check(read.cardFamily == "Lingnan Pass" && read.selectedAID == ticl && read.region == "Guangzhou", "Lingnan identity")
+    check(read.cardFamily == "Lingnan Pass" && read.selectedAID == ticl && read.region == lingnan["issuer"] as? String, "Lingnan identity")
+    check(read.resultFields.contains { $0.title == "Brand" && $0.value == lingnan["issuer"] as? String }
+          && read.resultFields.contains { $0.title == "Issuing City" && $0.value == lingnan["city"] as? String }, "Lingnan member card")
     check(read.balanceText == "CNY 30", "Lingnan balance \(read.balanceText ?? "nil")")
     check(read.realSerialNumber == "5123456789", "Lingnan card number")
-    check(read.resultFields.contains { $0.title == "Issue Date" && $0.value == "2020-01-01" }
-          && read.resultFields.contains { $0.title == "Expiry Date" && $0.value == "2030-12-31" }, "Lingnan dates")
+    // Bytes 20-23 hold a date-like decoy: Trip Reader reads only the expiry, at bytes 27-30.
+    check(!read.resultFields.contains { $0.title == "Issue Date" }
+          && read.resultFields.contains { $0.title == "Expiry Date" && $0.value == lingnan["expiry"] as? String }, "Lingnan dates")
     check(read.rawTransactions.count == 3 && read.applications?.count == 1 && read.applications![0].isLingnan
           && read.applications![0].records.allSatisfy { $0.sfi == 0x18 && $0.kind == .transaction }, "Lingnan history")
     check(Array(card.selectedAIDs.prefix(4)) == ["5041592E535A54", "4150312E5748435443", appy, ticl], "Lingnan SELECT order \(card.selectedAIDs)")
@@ -176,6 +205,15 @@
     check(card.commands.allSatisfy { [UInt8(0xA4), 0xB0, 0xB2, 0x5C].contains($0.instructionCode) }, "Unexpected APDU")
     let stored = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(read.applications!))
     check(stored == read.applications, "Lingnan backup lost source records")
+
+    // (a2) The full SFI 15 details are preferred over the FCI copy.
+    var guangzhou = info; guangzhou[49] = 0x01; guangzhou.replaceSubrange(11..<16, with: Data(hexString: "5100000001"))
+    let full = NFCISO7816Tag(); full.selectsUnlistedApplications = false; full.initialSelectedAID = appy
+    full.available = [appy, ticl]; full.selectReplies = [appy: appyFCI, ticl: ticlFCI]
+    full.binaryFiles = [appy: [0x15: guangzhou]]; full.balances = [ticl: Data(hexString: "00000BB8")]
+    let preferred = try await ChineseLocalDecoder.decode(tag: .iso7816(full), scannedAt: Date())
+    check(preferred.realSerialNumber == "5100000001" && preferred.region == "羊城通"
+          && preferred.resultFields.contains { $0.title == "Issuing City" && $0.value == "广州市" }, "PAY.APPY SFI 15 not preferred")
 
     // (b) The real PAY.TICL reply alone: balance read, its FCI bytes are not taken as card number or dates.
     let ticlOnly = NFCISO7816Tag(); ticlOnly.selectsUnlistedApplications = false; ticlOnly.initialSelectedAID = ticl
