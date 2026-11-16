@@ -4,10 +4,14 @@ import ad.neko.cardbal.android.nfc.SnapperPlusProtocol
 import ad.neko.cardbal.android.nfc.ClipperDecoder
 import kotlinx.datetime.Instant
 
-/** Upgrade only a positively identified Snapper on the same UID/shared AID. */
+/** The saved entry of the scanned card: by id, then by any shared identity (the T-Union side of a
+ *  Macau Pass or Octopus card saved alone), then a positively identified Snapper on the same UID/shared AID. */
 internal fun cardIndexForSnapshot(cards: List<SavedCardRecord>, snapshot: TransitCardSnapshot): Int {
     val exact = cards.indexOfFirst { it.id == snapshot.storageIdentifier }
     if (exact >= 0) return exact
+    val aliases = snapshot.identityAliases
+    val linked = cards.indexOfFirst { card -> card.identityAliases.any(aliases::contains) }
+    if (linked >= 0) return linked
     val matching=cards.indices.filter { index ->
         val old=cards[index]
         val sameFamily=old.cardFamily.equals(snapshot.cardFamily,true) || snapshot.cardFamily.equals("Snapper+",true) && old.cardFamily.equals("T-money",true)
@@ -16,6 +20,50 @@ internal fun cardIndexForSnapshot(cards: List<SavedCardRecord>, snapshot: Transi
             (old.realSerialNumber.isNullOrBlank() || snapshot.realSerialNumber.isNullOrBlank() || old.realSerialNumber==snapshot.realSerialNumber)
     }
     return matching.singleOrNull() ?: -1
+}
+
+/** The wallet after saving [snapshot]: it updates its saved entry, and earlier separate entries of the card become one. */
+internal fun upsertingSnapshot(cards: List<SavedCardRecord>, snapshot: TransitCardSnapshot): List<SavedCardRecord> {
+    val current = cards.toMutableList()
+    val index = cardIndexForSnapshot(current, snapshot)
+    val incomingFields = snapshot.resultFields.map { SavedCardField(it.title, it.value) }
+    val updated = if (index >= 0) {
+        val existing = current[index]
+        val applications = if(snapshot.applications.isNullOrEmpty()) existing.applications else TransitApplication.merge(existing.applications ?: listOf(TransitApplication.fromSaved(existing)), snapshot.applications)
+        val rescanned = existing.copy(
+            id = snapshot.copy(applications = applications ?: snapshot.applications).storageIdentifier,
+            cardFamily = snapshot.cardFamily,
+            applications = applications,
+            balanceText = snapshot.balanceText,
+            balanceDetail = snapshot.balanceDetail,
+            resultFields = incomingFields,
+            scannedAt = snapshot.scannedAt,
+            pmm = snapshot.pmm,
+            systemCode = snapshot.systemCode,
+            selectedAID = snapshot.selectedAID,
+            realSerialNumber = snapshot.realSerialNumber?.takeIf { it.isNotBlank() } ?: existing.realSerialNumber,
+            rawTransactions = mergeCardHistory(snapshot.cardFamily, existing.rawTransactions, snapshot.rawTransactions),
+            rawTransitHistory = mergeCardHistory(snapshot.cardFamily, existing.rawTransitHistory, snapshot.rawTransitHistory),
+            region = snapshot.region
+                ?: snapshot.resultFields.firstOrNull { it.title == "Brand" }?.value
+                ?: snapshot.resultFields.firstOrNull { it.title == "Region" }?.value
+                ?: existing.region,
+        )
+        // A card with several applications keeps its family, primary and balance from all of them:
+        // reading only the T-Union side of a Macau Pass card does not turn it into a T-Union card.
+        if (applications != null && applications.size > 1) {
+            val combined = rescanned.withApplications(applications)
+            val primary = TransitApplication.primary(applications)
+            if (primary == null || primary.selectedAID == snapshot.selectedAID) combined
+            else combined.copy(resultFields = primary.fields, region = primary.region ?: combined.region)
+        } else rescanned
+    } else {
+        SavedCardRecord.from(snapshot)
+    }
+
+    if (index >= 0) current[index] = updated else current.add(0, updated)
+    // Earlier separate entries of this card (or any other) become one.
+    return consolidateMatchingCards(current, updated.id)
 }
 
 internal fun mergeCardHistory(family: String, existing: List<String>, incoming: List<String>): List<String> {

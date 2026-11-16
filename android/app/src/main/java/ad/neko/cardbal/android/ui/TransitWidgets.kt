@@ -41,8 +41,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.DirectionsBoat
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Payments
@@ -50,9 +52,11 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Train
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,6 +64,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -147,15 +152,22 @@ fun CardDetailScreen(
     routes: List<StationRoute>,
     rawExplanationFor: (TransitTransaction) -> RawRecordExplanation?,
     onBack: () -> Unit,
-    onSelectFace: (String?) -> Unit,
+    onCustomize: ((SavedCardRecord) -> SavedCardRecord) -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedRecord by remember { mutableStateOf<TransitTransaction?>(null) }
-    BackHandler(onBack = onBack)
     val dualBalance = remember(card.applications) { DualCurrencyBalance.from(card.applications) }
     val listState = rememberLazyListState()
     var showStationReport by rememberSaveable { mutableStateOf(false) }
     var reportStationCode by rememberSaveable { mutableStateOf<String?>(null) }
+    var showCustomize by rememberSaveable { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    if (showCustomize) {
+        CardCustomizeScreen(card = card, onBack = { showCustomize = false }, onCustomize = onCustomize, modifier = modifier)
+        return
+    }
+    BackHandler(onBack = onBack)
     if (showStationReport) {
         // The record sheet stays selected, so closing the report returns to it like iOS navigation.
         StationReportScreen(card = card, stationCode = reportStationCode, onClose = { showStationReport = false }, modifier = modifier)
@@ -169,6 +181,11 @@ fun CardDetailScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("Back"))
                 }
             },
+            actions = {
+                IconButton(onClick = { confirmDelete = true }) {
+                    Icon(Icons.Filled.Delete, contentDescription = tr("Delete Card"))
+                }
+            },
         )
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
@@ -177,7 +194,13 @@ fun CardDetailScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
         ) {
             item { WalletCard(card) }
-            item { CardFacePicker(card = card, onSelectFace = onSelectFace) }
+            item {
+                FilledTonalButton(onClick = { showCustomize = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.Palette, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(tr("Customize Card"))
+                }
+            }
             // An Octopus – China T-Union card with a reported rate shows both balances and the rate.
             if (dualBalance != null && card.visibleBalance.isNotEmpty()) {
                 item {
@@ -239,6 +262,22 @@ fun CardDetailScreen(
             onReportStation = {
                 reportStationCode = StationReports.prefilledStationCode(tx)
                 showStationReport = true
+            },
+        )
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(tr("Delete Card?")) },
+            text = { Text(tr("This removes the saved card from your wallet.")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    onDelete()
+                }) { Text(tr("Delete"), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -841,10 +880,8 @@ private fun categoryColor(category: TransactionCategory): Color = when (category
     else -> Color(0xFF5F6368)
 }
 
-private fun formatDate(instant: kotlinx.datetime.Instant, issuerTimeZone: String? = null): String {
-    val local = instant.toLocalDateTime(issuerTimeZone?.let(TimeZone::of) ?: TimeZone.currentSystemDefault())
-    return "%04d-%02d-%02d %02d:%02d".format(local.year, local.monthNumber, local.dayOfMonth, local.hour, local.minute)
-}
+private fun formatDate(instant: kotlinx.datetime.Instant, issuerTimeZone: String? = null): String =
+    DisplaySettings.formatDateTime(instant, issuerTimeZone)
 
 private fun rawPalette(index: Int): Color = when (index % 8) {
     0 -> Color(0xFF00897B)

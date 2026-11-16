@@ -43,6 +43,8 @@ import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -62,6 +64,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -84,6 +87,7 @@ import androidx.compose.ui.zIndex
 import ad.neko.cardbal.android.data.ImportErrors
 import ad.neko.cardbal.android.data.CardWalletRepository
 import ad.neko.cardbal.android.data.DualCurrencyBalance
+import ad.neko.cardbal.android.data.identityAliases
 import ad.neko.cardbal.android.data.KoreanTripCrowdsourcingPreferences
 import ad.neko.cardbal.android.data.KoreanTripCrowdsourcingUploader
 import ad.neko.cardbal.android.data.RemoteCardFaces
@@ -95,6 +99,7 @@ import ad.neko.cardbal.android.ui.tr
 import ad.neko.cardbal.android.ui.cardTitle
 import ad.neko.cardbal.android.ui.CardBalTheme
 import ad.neko.cardbal.android.ui.CardDetailScreen
+import ad.neko.cardbal.android.ui.DisplaySettings
 import ad.neko.cardbal.android.ui.DualBalanceRows
 import ad.neko.cardbal.android.ui.MapViewportBounds
 import ad.neko.cardbal.android.ui.RideMapSurface
@@ -112,6 +117,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DisplaySettings.load(this)
         val sampleWallet = BuildConfig.DEBUG && Build.HARDWARE in setOf("goldfish", "ranchu") &&
             intent.getBooleanExtra("cardbal.developmentSamples", false)
         setContent {
@@ -186,7 +192,11 @@ private fun CardBalApp(
                 routes = routes,
                 rawExplanationFor = { tx -> transactionDecoder.rawExplanationFor(selectedCard, tx) },
                 onBack = { selectedCardId = null },
-                onSelectFace = { fileName -> repository.setFace(selectedCard.id, fileName) },
+                onCustomize = { change -> repository.customize(selectedCard.id, change) },
+                onDelete = {
+                    selectedCardId = null
+                    repository.delete(selectedCard.id)
+                },
             )
         }
         return
@@ -224,7 +234,7 @@ private fun CardBalApp(
         Surface(contentModifier, color = MaterialTheme.colorScheme.background) {
             when (Tab.entries[selectedTab]) {
                 Tab.Scan -> ScanScreen(
-                    latestCard = latestSnapshot?.storageIdentifier?.let { id -> cards.firstOrNull { it.id == id } } ?: cards.firstOrNull(),
+                    latestCard = latestSnapshot?.storageIdentifier?.let { id -> cards.firstOrNull { it.id == id } ?: cards.firstOrNull { id in it.identityAliases } } ?: cards.firstOrNull(),
                     status = status,
                     isScanning = isScanning,
                     onScan = { reader.start(activity) },
@@ -282,12 +292,12 @@ private fun CardsScreen(cards: List<SavedCardRecord>, onOpenCard: (SavedCardReco
     val tripCount = remember(cards) { cards.sumOf { it.rawTransitHistory.size } }
     var previewCardId by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedCard = previewCardId?.let { id -> cards.firstOrNull { it.id == id } }
+    val scrollState = rememberScrollState()
     BackHandler(enabled = selectedCard != null) {
         previewCardId = null
     }
     val stackedCards = remember(cards, previewCardId) {
-        val selected = previewCardId?.let { id -> cards.firstOrNull { it.id == id } }
-        if (selected == null) cards else listOf(selected) + cards.filterNot { it.id == selected.id }
+        cards.filterNot { it.id == previewCardId }
     }
 
     LaunchedEffect(cards) {
@@ -295,55 +305,51 @@ private fun CardsScreen(cards: List<SavedCardRecord>, onOpenCard: (SavedCardReco
             previewCardId = null
         }
     }
+    LaunchedEffect(previewCardId) {
+        if (previewCardId != null) scrollState.animateScrollTo(0)
+    }
 
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ScreenHeader(title = "Cards", subtitle = "${cards.size} saved cards")
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val cardHeight = maxWidth * 17f / 27f
-            val stackedSpacing = 58.dp
-            val expandedStackGap = 12.dp
-            val stackHeight = if (selectedCard == null) {
-                cardHeight + stackedSpacing * (stackedCards.size - 1).coerceAtLeast(0)
-            } else {
-                cardHeight + expandedStackGap + stackedSpacing * (stackedCards.size - 1).coerceAtLeast(0)
-            }
-
-            Box(Modifier.fillMaxWidth().height(stackHeight)) {
-                stackedCards.forEachIndexed { index, card ->
-                    val offsetY = if (selectedCard == null) {
-                        stackedSpacing * index
-                    } else if (index == 0) {
-                        0.dp
-                    } else {
-                        cardHeight + expandedStackGap + stackedSpacing * (index - 1)
-                    }
-                    WalletCard(
-                        card = card,
-                        mode = WalletCardMode.Hero,
-                        modifier = Modifier
-                            .offset(y = offsetY)
-                            .zIndex(index.toFloat())
-                            .clickable {
-                                previewCardId = if (previewCardId == card.id) null else card.id
-                            },
-                    )
-                }
-            }
-        }
         if (selectedCard != null) {
+            // The actions sit between the selected card and the stack so nothing overlaps them.
+            WalletCard(
+                card = selectedCard,
+                mode = WalletCardMode.Hero,
+                modifier = Modifier.clickable { previewCardId = null },
+            )
             SelectedCardActions(
                 card = selectedCard,
                 transactionCount = selectedCard.rawTransactions.size,
                 tripCount = selectedCard.rawTransitHistory.size,
                 onOpenCard = { onOpenCard(selectedCard) },
             )
-        } else {
+        }
+        if (stackedCards.isNotEmpty()) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val cardHeight = maxWidth * 17f / 27f
+                val stackedSpacing = 58.dp
+                Box(Modifier.fillMaxWidth().height(cardHeight + stackedSpacing * (stackedCards.size - 1))) {
+                    stackedCards.forEachIndexed { index, card ->
+                        WalletCard(
+                            card = card,
+                            mode = WalletCardMode.Hero,
+                            modifier = Modifier
+                                .offset(y = stackedSpacing * index)
+                                .zIndex(index.toFloat())
+                                .clickable { previewCardId = card.id },
+                        )
+                    }
+                }
+            }
+        }
+        if (selectedCard == null) {
             SummaryStrip(
                 firstLabel = "Cards",
                 firstValue = cards.size.toString(),
@@ -409,8 +415,16 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
     val scopedCards = remember(cards, selectedMapCardId) {
         selectedMapCardId?.let { id -> cards.filter { it.id == id } } ?: cards
     }
-    val cardStationPoints = remember(cards) {
-        cards.associate { card -> card.id to decoder.stationPinsFor(card) }
+    val cachedMapData = remember(cards) {
+        cards.mapNotNull { card -> decoder.cachedMapDataFor(card)?.let { card.id to it } }.toMap()
+    }
+    val mapData by produceState(initialValue = cachedMapData, cards) {
+        value = withContext(Dispatchers.Default) {
+            cards.associate { card -> card.id to decoder.mapDataFor(card) }
+        }
+    }
+    val cardStationPoints = remember(cards, mapData) {
+        cards.associate { card -> card.id to mapData[card.id]?.pins.orEmpty() }
     }
     val viewportCards = remember(cards, cardStationPoints, mapViewport, selectedMapCardId) {
         val cardsWithMappedTransactions = cards.filter { card ->
@@ -428,18 +442,20 @@ private fun MapScreen(cards: List<SavedCardRecord>, decoder: TransactionDecoder,
             inViewport
         }
     }
-    val stationRoutes = remember(scopedCards) { scopedCards.flatMap { decoder.routesFor(it) } }
-    val allPoints = remember(scopedCards) { scopedCards.flatMap { decoder.stationPinsFor(it) }.distinctBy { it.code } }
-    val markerCardsByPointCode = remember(scopedCards) {
+    val stationRoutes = remember(scopedCards, mapData) { scopedCards.flatMap { mapData[it.id]?.routes.orEmpty() } }
+    val allPoints = remember(scopedCards, mapData) { scopedCards.flatMap { mapData[it.id]?.pins.orEmpty() }.distinctBy { it.code } }
+    val markerCardsByPointCode = remember(scopedCards, mapData) {
         buildMap {
             scopedCards.forEach { card ->
-                decoder.stationPinsFor(card).forEach { point ->
+                mapData[card.id]?.pins.orEmpty().forEach { point ->
                     putIfAbsent(point.code, card)
                 }
             }
         }
     }
-    val transactions = remember(scopedCards) { scopedCards.flatMap { card -> decoder.transactionsFor(card).map { card to it } } }
+    val transactions = remember(scopedCards, mapData) {
+        scopedCards.flatMap { card -> mapData[card.id]?.transactions.orEmpty().map { card to it } }
+    }
     val recordRows = remember(transactions) {
         transactions.map { (card, tx) ->
             "${context.cardTitle(card)}: ${context.tr(tx.type)}${tx.location?.let { " · ${context.tr(it)}" } ?: ""}"
@@ -549,6 +565,27 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
             Text(tr("Settings"), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         }
         item {
+            SettingsSection(title = "Display") {
+                SettingsChoiceRow(
+                    label = "Date Format",
+                    options = DisplaySettings.dateFormats,
+                    selected = DisplaySettings.dateFormat,
+                    onSelect = DisplaySettings::updateDateFormat,
+                )
+                SettingsChoiceRow(
+                    label = "Card Time Zone",
+                    options = listOf(true to "Card Issuer's Time Zone", false to "Current Time Zone"),
+                    selected = DisplaySettings.usesIssuerTimeZone,
+                    onSelect = DisplaySettings::updateUsesIssuerTimeZone,
+                )
+                Text(
+                    tr("China T-Union uses China Standard Time, Korean cards use Korea Standard Time, and U-Money uses Ulaanbaatar time when issuer time is selected."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
             SettingsSection(title = "Backup") {
                 SettingsActionRow(
                     label = "Export Backup",
@@ -617,6 +654,12 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                     tr("Scans are stored on this device."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
+                )
+                SettingsChoiceRow(
+                    label = "Serial Number Display",
+                    options = listOf(0 to "Full", 1 to "Masked (Last Digits)", 2 to "Hidden"),
+                    selected = DisplaySettings.serialNumberMode,
+                    onSelect = DisplaySettings::updateSerialNumberMode,
                 )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(tr("Help Improve Korean Cards"), modifier = Modifier.weight(1f))
@@ -720,6 +763,47 @@ private fun SettingsActionRow(label: String, icon: ImageVector, enabled: Boolean
     ) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         Text(tr(label), color = color, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun <T> SettingsChoiceRow(label: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { it.first == selected }?.second.orEmpty()
+    Box(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .heightIn(min = 48.dp)
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(tr(label), style = MaterialTheme.typography.bodyLarge)
+            Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    tr(selectedLabel),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.align(Alignment.TopEnd)) {
+            options.forEach { (value, optionLabel) ->
+                DropdownMenuItem(
+                    text = { Text(tr(optionLabel)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(value)
+                    },
+                )
+            }
+        }
     }
 }
 

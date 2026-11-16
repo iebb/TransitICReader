@@ -168,7 +168,7 @@ data class TransitCardSnapshot(
             return "DESFire|$rawIdentifierValue"
         }
         val primary=applications?.let { TransitApplication.primary(it) }
-        if(primary!=null) return "${primary.technology}|${primary.serialNumber?.takeIf{it.isNotBlank()} ?: primary.identifier}"
+        if(primary!=null) return primary.identityAlias
         val serial=realSerialNumber?.trim()?.takeIf{it.isNotEmpty() && it.any{c->c!='0' && c!=' ' && c!='F' && c!='f'}}
         if(technology=="ISO7816" && serial!=null) {
             val normalized=if(cardFamily.equals("Snapper+",true) || cardFamily.equals("Snapper Plus",true)) SnapperPlusProtocol.normalizedSerial(serial) else serial
@@ -191,6 +191,7 @@ data class SavedCardRecord(
     val isUsingImage: Boolean? = null,
     val hideTitleOnImage: Boolean? = null,
     val hideSerialNumber: Boolean? = null,
+    val frostedHeader: Boolean? = null,
     val imageFaceEnhancer: ImageFaceEnhancer = ImageFaceEnhancer.mask,
     val autoImageTextColors: Boolean = true,
     val autoTitleTextColor: SavedCardColor? = null,
@@ -253,6 +254,7 @@ data class SavedCardRecord(
     val finalIsUsingImage: Boolean get() = isUsingImage ?: (faceImageFileName != null)
     val finalHideTitle: Boolean get() = hideTitleOnImage ?: false
     val finalHideSerialNumber: Boolean get() = hideSerialNumber ?: false
+    val finalFrostedHeader: Boolean get() = frostedHeader ?: true
     val markerText: String?
         get() = markerSymbolName?.takeIf { it.startsWith("txt:") }?.drop(4)
     val markerSystemName: String?
@@ -269,6 +271,22 @@ data class SavedCardRecord(
             }
             return raw
         }
+
+    /** Mode 0 shows the full number, 1 only its last digits and 2 nothing, as on iOS. */
+    fun privacyFormattedSerialNumber(mode: Int): String {
+        if (mode == 2) return ""
+        val full = displayedSerialNumber
+        if (mode == 0) return full
+        val digits = full.filter(Char::isDigit)
+        val alphanumerics = full.filter(Char::isLetterOrDigit)
+        val tail = when {
+            cardFamily == "Octopus" && digits.length >= 8 -> digits.substring(4, 8)
+            cardFamily == "Octopus" -> digits.takeLast(4)
+            cardFamily == "Lignes d'Azur card" -> alphanumerics.takeLast(3)
+            else -> alphanumerics.takeLast(4)
+        }
+        return if (tail.isEmpty()) "" else "•••• $tail"
+    }
 
     companion object {
         fun from(snapshot: TransitCardSnapshot) = SavedCardRecord(

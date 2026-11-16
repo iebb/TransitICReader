@@ -56,45 +56,8 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
     }
 
     fun upsert(snapshot: TransitCardSnapshot) {
-        val current = _cards.value.toMutableList()
-        val index = cardIndexForSnapshot(current, snapshot)
-        val incomingFields = snapshot.resultFields.map { SavedCardField(it.title, it.value) }
-        val updated = if (index >= 0) {
-            val existing = current[index]
-            existing.copy(
-                id = snapshot.storageIdentifier,
-                cardFamily = snapshot.cardFamily,
-                applications = if(snapshot.applications.isNullOrEmpty()) existing.applications else TransitApplication.merge(existing.applications ?: listOf(TransitApplication.fromSaved(existing)), snapshot.applications),
-                balanceText = snapshot.balanceText,
-                balanceDetail = snapshot.balanceDetail,
-                resultFields = incomingFields,
-                scannedAt = snapshot.scannedAt,
-                pmm = snapshot.pmm,
-                systemCode = snapshot.systemCode,
-                selectedAID = snapshot.selectedAID,
-                realSerialNumber = snapshot.realSerialNumber?.takeIf { it.isNotBlank() } ?: existing.realSerialNumber,
-                rawTransactions = mergeCardHistory(snapshot.cardFamily, existing.rawTransactions, snapshot.rawTransactions),
-                rawTransitHistory = mergeCardHistory(snapshot.cardFamily, existing.rawTransitHistory, snapshot.rawTransitHistory),
-                region = snapshot.region
-                    ?: snapshot.resultFields.firstOrNull { it.title == "Brand" }?.value
-                    ?: snapshot.resultFields.firstOrNull { it.title == "Region" }?.value
-                    ?: existing.region,
-            )
-        } else {
-            SavedCardRecord.from(snapshot)
-        }
-
-        val previousId = current.getOrNull(index)?.id
-        db.beginTransaction()
-        try {
-            persist(updated)
-            if (previousId != null && previousId != updated.id) db.delete("cards", "id = ?", arrayOf(previousId))
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
-        }
-        if (index >= 0) current[index] = updated else current.add(0, updated)
-        _cards.value = current.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
+        val before = _cards.value
+        _cards.value = store(before, upsertingSnapshot(before, snapshot))
     }
 
     fun delete(id: String) {
@@ -105,6 +68,9 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
     fun rename(id: String, title: String) = update(id) { it.copy(customTitle = title.trim().ifEmpty { null }) }
 
     fun setFace(id: String, fileName: String?) = update(id) { it.withFaceChoice(fileName) }
+
+    /** Applies an appearance edit from the Customize Card screen. */
+    fun customize(id: String, change: (SavedCardRecord) -> SavedCardRecord) = update(id, change)
 
     fun setRealSerialNumber(id: String, serialNumber: String) = update(id) {
         val clean = serialNumber.uppercase().trim()
@@ -136,15 +102,14 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
                 File(faceDirectory, cleanName).writeBytes(Base64.decode(encoded, Base64.DEFAULT))
             }
         }
-        val current = _cards.value.associateBy { it.id }.toMutableMap()
+        val before = _cards.value
+        val current = before.associateBy { it.id }.toMutableMap()
         var replaced = 0
         for (card in backup.cards) {
             if (current.containsKey(card.id)) replaced += 1
             current[card.id] = card
-            persist(card)
         }
-        val merged = current.values.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
-        _cards.value = merged
+        _cards.value = store(before, consolidateMatchingCards(current.values.sortedWith(walletOrder)))
         return CardImportResult(imported = backup.cards.size, replaced = replaced)
     }
 
@@ -154,29 +119,20 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
      * older backup adds history without rolling back a balance.
      */
     fun importSnapshots(snapshots: List<TransitCardSnapshot>): CardImportResult {
-        val current = _cards.value.toMutableList()
+        val before = _cards.value
+        val current = before.toMutableList()
         var replaced = 0
-        db.beginTransaction()
-        try {
-            for (snapshot in snapshots) {
-                val incoming = SavedCardRecord.from(snapshot)
-                val index = current.indexOfFirst { it.id == incoming.id || it.sharesApplication(incoming) }
-                if (index < 0) {
-                    current.add(0, incoming)
-                    persist(incoming)
-                    continue
-                }
-                val existing = current[index]
-                val merged = existing.mergingImported(incoming)
-                current[index] = merged
-                persist(merged)
-                replaced += 1
+        for (snapshot in snapshots) {
+            val incoming = SavedCardRecord.from(snapshot)
+            val index = current.indexOfFirst { it.id == incoming.id || it.sharesApplication(incoming) }
+            if (index < 0) {
+                current.add(0, incoming)
+                continue
             }
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
+            current[index] = current[index].mergingImported(incoming)
+            replaced += 1
         }
-        _cards.value = current.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
+        _cards.value = store(before, consolidateMatchingCards(current))
         return CardImportResult(imported = snapshots.size, replaced = replaced)
     }
 
@@ -197,6 +153,20 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
         stmt.close()
     }
 
+    /** Write the entries that changed from [before] and delete those merged away. */
+    private fun store(before: List<SavedCardRecord>, after: List<SavedCardRecord>): List<SavedCardRecord> {
+        val kept = after.map { it.id }.toSet()
+        db.beginTransaction()
+        try {
+            after.filter { it !in before }.forEach(::persist)
+            before.map { it.id }.filter { it !in kept }.forEach { db.delete("cards", "id = ?", arrayOf(it)) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return after.sortedWith(walletOrder)
+    }
+
     private fun loadCards(): List<SavedCardRecord> {
         val cards = mutableListOf<SavedCardRecord>()
         db.rawQuery("SELECT json_data FROM cards", emptyArray()).use { cursor ->
@@ -206,9 +176,14 @@ class CardWalletRepository(context: Context, private val sampleWallet: Boolean =
                 }.getOrNull()?.let(cards::add)
             }
         }
-        return cards.sortedWith(compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt })
+        val sorted = cards.sortedWith(walletOrder)
+        // Entries of one card saved apart by earlier versions (Macau Pass beside its T-Union side) become one.
+        val consolidated = consolidateMatchingCards(sorted)
+        return if (consolidated.size == sorted.size) sorted else store(sorted, consolidated)
     }
 }
+
+private val walletOrder = compareBy<SavedCardRecord> { it.order }.thenByDescending { it.scannedAt }
 
 /** The same application of the same card, identified by its serial. */
 internal fun SavedCardRecord.sharesApplication(other: SavedCardRecord): Boolean {

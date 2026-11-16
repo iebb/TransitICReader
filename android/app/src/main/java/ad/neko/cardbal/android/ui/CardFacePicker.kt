@@ -89,7 +89,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CardFacePicker(card: SavedCardRecord, onSelectFace: (String?) -> Unit, modifier: Modifier = Modifier) {
+fun CardFacePicker(card: SavedCardRecord, onSelectFace: (String?) -> Unit, modifier: Modifier = Modifier, showsHeader: Boolean = true) {
     val context = LocalContext.current
     val faces = RemoteCardFaces.get(context)
     val importer = remember(context) { CardFacePhotoImporter(context) }
@@ -165,7 +165,9 @@ fun CardFacePicker(card: SavedCardRecord, onSelectFace: (String?) -> Unit, modif
     }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(tr("Appearance"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        if (showsHeader) {
+            Text(tr("Appearance"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
         OutlinedButton(
             onClick = { showSheet = true; message = null },
             modifier = Modifier.fillMaxWidth(),

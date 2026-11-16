@@ -41,26 +41,47 @@ class StationDatabase private constructor(private val context: Context) {
         }
     }
 
-    private val japaneseGraph by lazy {
+    private val japaneseGraph by lazy { stationGraph("JP") }
+    private val tUnionGraph by lazy { stationGraph("CN") }
+
+    private fun stationGraph(country: String): Map<String,List<TransitGeometry.Edge>> {
         val graph=mutableMapOf<String,MutableList<TransitGeometry.Edge>>()
-        unifiedDb.rawQuery("SELECT e.from_station_code,e.to_station_code,e.distance_km,p.geohash_path FROM station_graph_edges e LEFT JOIN station_edge_paths p USING(country_code,line_code,from_station_code,to_station_code) WHERE e.country_code='JP'",emptyArray()).use { c ->
+        unifiedDb.rawQuery("SELECT e.from_station_code,e.to_station_code,e.distance_km,p.geohash_path FROM station_graph_edges e LEFT JOIN station_edge_paths p USING(country_code,line_code,from_station_code,to_station_code) WHERE e.country_code=?",arrayOf(country)).use { c ->
             while(c.moveToNext()) {
                 val from=c.getString(0);val to=c.getString(1);val distance=c.getDouble(2);val packed=c.getString(3)
                 graph.getOrPut(from){mutableListOf()}.add(TransitGeometry.Edge(to,distance,packed))
                 graph.getOrPut(to){mutableListOf()}.add(TransitGeometry.Edge(from,distance,packed,true))
             }
         }
-        graph
+        // Parallel line records share a physical route: prefer a detailed alignment among near-equal alternatives, as on iOS.
+        return graph.mapValues { (_,edges) ->
+            edges.groupBy { it.to }.toSortedMap().values.map { choices ->
+                val shortest=choices.minBy { it.km }
+                choices.filter { it.packed!=null && it.km<=shortest.km*1.05 }.minByOrNull { it.km } ?: shortest
+            }
+        }
     }
 
-    fun shortestJapanesePath(from: StationPoint, to: StationPoint): List<StationPoint> {
+    fun shortestJapanesePath(from: StationPoint, to: StationPoint): List<StationPoint> =
+        shortestPath(from, to, japaneseGraph, ::findJapaneseStationByStationCode)
+
+    /** Stations a T-Union or City Union ride passed through, over the same mainland graph as iOS. */
+    fun shortestTUnionPath(from: StationPoint, to: StationPoint): List<StationPoint> =
+        shortestPath(from, to, tUnionGraph, ::findTUnionStation)
+
+    private fun shortestPath(
+        from: StationPoint,
+        to: StationPoint,
+        graph: Map<String,List<TransitGeometry.Edge>>,
+        station: (String) -> StationPoint?,
+    ): List<StationPoint> {
         if(from.stationCode==to.stationCode) return listOf(from)
-        val steps=TransitGeometry.shortest(from.stationCode,to.stationCode,japaneseGraph) ?: return listOf(from,to)
+        val steps=TransitGeometry.shortest(from.stationCode,to.stationCode,graph) ?: return listOf(from,to)
         val result=mutableListOf(from)
         for((_,edge) in steps) {
             val points=edge.packed?.let(TransitGeometry::decodePath)?.let{if(edge.reversed) it.reversed() else it}
             if(points!=null) result+=points.mapIndexed { i,p -> StationPoint("geometry:${edge.to}:$i","", "",p.latitude,p.longitude) }
-            else findJapaneseStationByStationCode(edge.to)?.let(result::add)
+            else station(edge.to)?.let(result::add)
         }
         result.add(to)
         return result
@@ -206,12 +227,27 @@ class StationDatabase private constructor(private val context: Context) {
 
     private fun openAssetDatabase(assetName: String): SQLiteDatabase {
         val file = File(context.filesDir, "assets-db/$assetName")
-        file.parentFile?.mkdirs()
-        context.assets.open(assetName).use { input ->
-            file.outputStream().use { output -> input.copyTo(output) }
+        val marker = File(context.filesDir, "assets-db/$assetName.version")
+        val version = assetVersion()
+        if (!file.exists() || runCatching { marker.readText() }.getOrNull() != version) {
+            file.parentFile?.mkdirs()
+            val temporary = File(context.filesDir, "assets-db/$assetName.tmp")
+            context.assets.open(assetName).use { input ->
+                temporary.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (!temporary.renameTo(file)) {
+                temporary.copyTo(file, overwrite = true)
+                temporary.delete()
+            }
+            marker.writeText(version)
         }
         return SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
     }
+
+    private fun assetVersion(): String = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime.toString()
+    }.getOrDefault("unknown")
 
     companion object {
         @Volatile private var instance: StationDatabase? = null

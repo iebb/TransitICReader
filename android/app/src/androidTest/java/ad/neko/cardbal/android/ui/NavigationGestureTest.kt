@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -22,7 +24,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ActivityScenario
@@ -38,6 +42,7 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -45,14 +50,14 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-private fun testCard() = SavedCardRecord(
-    id = "sample:ui:card",
+private fun testCard(index: Int? = null) = SavedCardRecord(
+    id = "sample:ui:card${index?.let { ":$it" }.orEmpty()}",
     cardFamily = "UI test card",
-    customTitle = "UI test card",
+    customTitle = "UI test card${index?.let { " $it" }.orEmpty()}",
     technology = "FeliCa",
     identifierLabel = "IDm",
-    rawIdentifierValue = "0102030405060708",
-    identifierValue = "0102030405060708",
+    rawIdentifierValue = "01020304050607%02X".format(index ?: 8),
+    identifierValue = "01020304050607%02X".format(index ?: 8),
     scannedAt = Instant.parse("2026-01-01T00:00:00Z"),
     color = SavedCardColor.Black,
 )
@@ -62,6 +67,8 @@ class CardDetailGestureTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun text(key: String) = compose.activity.tr(key)
+    private var renamedTo: String? = null
+    private var deleted = false
 
     private fun showDetails() {
         val transactions = List(60) { index ->
@@ -83,7 +90,8 @@ class CardDetailGestureTest {
                         routes = emptyList(),
                         rawExplanationFor = { null },
                         onBack = { showingDetails = false },
-                        onSelectFace = {},
+                        onCustomize = { change -> renamedTo = change(testCard()).customTitle },
+                        onDelete = { deleted = true },
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
@@ -160,16 +168,44 @@ class CardDetailGestureTest {
     }
 
     @Test
+    fun customizeCardSavesTheEnteredName() {
+        showDetails()
+        compose.onNodeWithText(text("Customize Card")).performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("UI test card") and hasSetTextAction())
+        compose.onNode(hasText("UI test card") and hasSetTextAction()).performTextReplacement("Commuter")
+
+        compose.waitUntil(timeoutMillis = 3_000) { renamedTo == "Commuter" }
+        assertEquals("Commuter", renamedTo)
+    }
+
+    @Test
+    fun deleteAsksForConfirmationFirst() {
+        showDetails()
+        compose.onNodeWithContentDescription(text("Delete Card")).performClick()
+        compose.onNodeWithText(text("Cancel")).performClick()
+        assertFalse(deleted)
+
+        compose.onNodeWithContentDescription(text("Delete Card")).performClick()
+        compose.onNodeWithText(text("Delete")).performClick()
+        assertTrue(deleted)
+    }
+
+    @Test
     fun backFromCardFacePickerStaysInCardDetails() {
         showDetails()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text("Card Face")))
-        compose.onNodeWithText(text("Card Face")).performClick()
+        compose.onNodeWithText(text("Customize Card")).performClick()
+        compose.onNode(hasText(text("Card Face")) and hasClickAction()).performClick()
         compose.onNodeWithText(text("Presets")).assertIsDisplayed()
 
         pressBack()
 
         compose.onNodeWithText(text("Presets")).assertDoesNotExist()
+        compose.onNodeWithText(text("Customize Card")).assertIsDisplayed()
+
+        pressBack()
+
         compose.onNodeWithContentDescription(text("Back")).assertIsDisplayed()
+        compose.onNodeWithText(text("Customize Card")).assertIsDisplayed()
         compose.onNodeWithText("Parent page").assertDoesNotExist()
     }
 
@@ -276,5 +312,50 @@ class AppBackNavigationTest {
         tab("Map").assertIsSelected()
         pressBack()
         tab("Scan").assertIsSelected()
+    }
+}
+
+class WalletStackLayoutTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val sampleFile = File(context.filesDir, "development/sample-wallet.json")
+    private var previousSamples: ByteArray? = null
+    private var scenario: ActivityScenario<MainActivity>? = null
+
+    private fun text(key: String) = context.tr(key)
+
+    @Before
+    fun launchLargeSampleWallet() {
+        assumeTrue("Sample-wallet layout tests require an emulator", Build.HARDWARE in setOf("goldfish", "ranchu"))
+        previousSamples = sampleFile.takeIf { it.isFile }?.readBytes()
+        sampleFile.parentFile!!.mkdirs()
+        sampleFile.writeText(Json.encodeToString(CardBackupData(cards = (1..8).map(::testCard))))
+        scenario = ActivityScenario.launch(
+            Intent(context, MainActivity::class.java)
+                .putExtra("cardbal.developmentSamples", true),
+        )
+    }
+
+    @After
+    fun closeSampleWallet() {
+        scenario?.close()
+        if (scenario != null) {
+            previousSamples?.let(sampleFile::writeBytes) ?: sampleFile.delete()
+        }
+    }
+
+    @Test
+    fun detailsSitBetweenSelectedCardAndStackWithoutScrolling() {
+        compose.onNode(hasText(text("Cards")) and isSelectable()).performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("UI test card 8"))
+        compose.onNodeWithText("UI test card 8").performClick()
+
+        val details = compose.onNodeWithText(text("Details"))
+        details.assertIsDisplayed()
+        val detailsBottom = details.getUnclippedBoundsInRoot().bottom
+        val nextCardTop = compose.onNodeWithText("UI test card 1").getUnclippedBoundsInRoot().top
+        assertTrue("The stack must start below the Details action", nextCardTop > detailsBottom)
     }
 }

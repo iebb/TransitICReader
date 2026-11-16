@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,9 +20,39 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DirectionsBoat
+import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FlashlightOn
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PedalBike
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.PhoneIphone
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.SettingsInputAntenna
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Train
+import androidx.compose.material.icons.filled.Tram
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -32,9 +64,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -47,6 +88,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ad.neko.cardbal.android.data.DualCurrencyBalance
+import ad.neko.cardbal.android.data.ImageFaceEnhancer
 import ad.neko.cardbal.android.data.SavedCardRecord
 
 enum class WalletCardMode { Hero, Compact }
@@ -60,6 +102,13 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
     val image = offlineDrawableFor(card)
     val remoteImage = rememberRemoteFace(card)
     val bitmap = importedImage ?: remoteImage
+    val isPhotoFace = bitmap != null || image != null
+    // Matches the iOS Shadow text contrast: a soft dark shadow under each line of text.
+    val textShadow = if (isPhotoFace && card.imageFaceEnhancer == ImageFaceEnhancer.border) {
+        Shadow(Color.Black.copy(alpha = 0.8f), Offset(0f, 4f), 10f)
+    } else {
+        null
+    }
     val color = Color(
         red = card.color.red.toFloat(),
         green = card.color.green.toFloat(),
@@ -83,30 +132,31 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
         elevation = CardDefaults.cardElevation(defaultElevation = if (mode == WalletCardMode.Hero) 2.dp else 0.dp),
     ) {
         Box(Modifier.fillMaxSize()) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap,
-                    contentDescription = null,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop,
-                )
-                Box(
-                    Modifier.matchParentSize().background(
-                        Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.28f), Color.Transparent, Color.Black.copy(alpha = 0.32f))),
-                    ),
-                )
-            } else if (image != null) {
-                Image(
-                    painter = painterResource(image),
-                    contentDescription = null,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop,
-                )
-                Box(
-                    Modifier.matchParentSize().background(
-                        Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.28f), Color.Transparent, Color.Black.copy(alpha = 0.32f))),
-                    ),
-                )
+            if (isPhotoFace) {
+                val face: @Composable (Modifier) -> Unit = { faceModifier ->
+                    if (bitmap != null) {
+                        Image(bitmap = bitmap, contentDescription = null, modifier = faceModifier, contentScale = ContentScale.Crop)
+                    } else if (image != null) {
+                        Image(painter = painterResource(image), contentDescription = null, modifier = faceModifier, contentScale = ContentScale.Crop)
+                    }
+                }
+                face(Modifier.matchParentSize())
+                if (card.finalFrostedHeader) {
+                    FrostedHeader(face)
+                } else if (card.imageFaceEnhancer == ImageFaceEnhancer.mask) {
+                    Box(
+                        Modifier.matchParentSize().background(
+                            Brush.verticalGradient(
+                                0f to Color.Black.copy(alpha = 0.58f),
+                                0.2f to Color.Black.copy(alpha = 0.34f),
+                                0.38f to Color.Black.copy(alpha = 0.1f),
+                                0.56f to Color.Transparent,
+                                0.72f to Color.Transparent,
+                                1f to Color.Black.copy(alpha = 0.22f),
+                            ),
+                        ),
+                    )
+                }
             } else {
                 Box(
                     Modifier.matchParentSize().background(
@@ -117,7 +167,7 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
 
             if (mode == WalletCardMode.Compact) {
                 Box(Modifier.matchParentSize().padding(12.dp), contentAlignment = Alignment.TopStart) {
-                    MarkerBadge(card)
+                    MarkerBadge(card, showsDefault = true)
                 }
             } else {
                 Column(
@@ -134,23 +184,24 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                MarkerBadge(card)
-                                if (!card.finalHideTitle && importedImage == null) {
+                                MarkerBadge(card, showsDefault = false)
+                                if (!(isPhotoFace && card.finalHideTitle)) {
                                     Text(
                                         cardTitle(card),
                                         color = titleColor,
-                                        style = MaterialTheme.typography.titleLarge,
+                                        style = MaterialTheme.typography.titleLarge.copy(shadow = textShadow),
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                             }
-                            if (!card.finalHideSerialNumber) {
+                            val serialNumber = card.privacyFormattedSerialNumber(DisplaySettings.serialNumberMode)
+                            if (!card.finalHideSerialNumber && serialNumber.isNotEmpty()) {
                                 Text(
-                                    card.displayedSerialNumber,
+                                    serialNumber,
                                     color = titleColor.copy(alpha = 0.82f),
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodyMedium.copy(shadow = textShadow),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -163,7 +214,7 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                                 Text(
                                     tr(card.visibleBalance),
                                     color = balanceColor,
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    style = MaterialTheme.typography.headlineSmall.copy(shadow = textShadow),
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -171,7 +222,7 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                                 Text(
                                     yuanBalance,
                                     color = titleColor.copy(alpha = 0.9f),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, shadow = textShadow),
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -182,7 +233,7 @@ fun WalletCard(card: SavedCardRecord, modifier: Modifier = Modifier, mode: Walle
                             Text(
                                 tr(card.visibleBalance),
                                 color = balanceColor,
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.headlineSmall.copy(shadow = textShadow),
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -332,17 +383,94 @@ private fun CountPill(label: String) {
 }
 
 @Composable
-private fun MarkerBadge(card: SavedCardRecord) {
+private fun BoxScope.FrostedHeader(face: @Composable (Modifier) -> Unit) {
+    // Blurs and darkens the top strip of a card design so its own logos never sit under the
+    // name, number and balance; the strip matches the part of a stacked card that stays visible.
+    BoxWithConstraints(Modifier.matchParentSize()) {
+        val height = maxHeight.value.coerceAtLeast(1f)
+        fun at(points: Float) = (points / height).coerceIn(0f, 1f)
+        face(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(
+                        Brush.verticalGradient(0f to Color.Black, at(50f) to Color.Black, at(80f) to Color.Transparent),
+                        blendMode = BlendMode.DstIn,
+                    )
+                }
+                .blur(14.dp, BlurredEdgeTreatment.Rectangle),
+        )
+        Box(
+            Modifier.matchParentSize().background(
+                Brush.verticalGradient(
+                    0f to Color.Black.copy(alpha = 0.46f),
+                    at(52f) to Color.Black.copy(alpha = 0.34f),
+                    at(82f) to Color.Transparent,
+                    maxOf(at(82f), at(height - 60f)) to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.22f),
+                ),
+            ),
+        )
+    }
+}
+
+/** The iOS card-icon symbols, drawn with the closest Material icon. */
+val markerSymbols: List<Pair<String, ImageVector>> = listOf(
+    "sf:bus.fill" to Icons.Filled.DirectionsBus,
+    "sf:tram.fill" to Icons.Filled.Tram,
+    "sf:train.side.front.car" to Icons.Filled.Train,
+    "sf:ferry.fill" to Icons.Filled.DirectionsBoat,
+    "sf:bicycle" to Icons.Filled.PedalBike,
+    "sf:creditcard.fill" to Icons.Filled.CreditCard,
+    "sf:star.fill" to Icons.Filled.Star,
+    "sf:heart.fill" to Icons.Filled.Favorite,
+    "sf:tag.fill" to Icons.Filled.LocalOffer,
+    "sf:briefcase.fill" to Icons.Filled.Work,
+    "sf:map.fill" to Icons.Filled.Map,
+    "sf:mappin" to Icons.Filled.Place,
+    "sf:house.fill" to Icons.Filled.Home,
+    "sf:lock.fill" to Icons.Filled.Lock,
+    "sf:iphone" to Icons.Filled.PhoneIphone,
+    "sf:bolt.fill" to Icons.Filled.Bolt,
+    "sf:leaf.fill" to Icons.Filled.Eco,
+    "sf:ticket.fill" to Icons.Filled.ConfirmationNumber,
+    "sf:bag.fill" to Icons.Filled.ShoppingBag,
+    "sf:cart.fill" to Icons.Filled.ShoppingCart,
+    "sf:airplane" to Icons.Filled.Flight,
+    "sf:antenna.radiowaves.left.and.right" to Icons.Filled.SettingsInputAntenna,
+    "sf:camera.fill" to Icons.Filled.PhotoCamera,
+    "sf:flashlight.on.fill" to Icons.Filled.FlashlightOn,
+    "sf:music.note" to Icons.Filled.MusicNote,
+    "sf:video.fill" to Icons.Filled.Videocam,
+    "sf:gamecontroller.fill" to Icons.Filled.SportsEsports,
+    "sf:building.fill" to Icons.Filled.Business,
+    "sf:fuelpump.fill" to Icons.Filled.LocalGasStation,
+    "sf:cup.and.saucer.fill" to Icons.Filled.LocalCafe,
+    "sf:pawprint.fill" to Icons.Filled.Pets,
+    "sf:graduationcap.fill" to Icons.Filled.School,
+)
+
+private val markerSymbolIcons = markerSymbols.toMap()
+
+fun markerIcon(symbolName: String?): ImageVector =
+    symbolName?.let(markerSymbolIcons::get) ?: Icons.Filled.CreditCard
+
+@Composable
+fun MarkerBadge(card: SavedCardRecord, showsDefault: Boolean, size: androidx.compose.ui.unit.Dp = 28.dp) {
     val markerText = card.markerText
     val markerIcon = card.markerSystemName
     if (markerText == null && markerIcon == null) {
-        Icon(Icons.Filled.Train, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+        if (showsDefault) {
+            Icon(Icons.Filled.Train, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+        }
         return
     }
-    val markerShape = if (card.markerShape.name == "square") RoundedCornerShape(7.dp) else CircleShape
+    val markerShape = if (card.markerShape.name == "square") RoundedCornerShape(size / 4) else CircleShape
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(size)
             .background(card.markerColor.toColor(), markerShape),
         contentAlignment = Alignment.Center,
     ) {
@@ -354,20 +482,20 @@ private fun MarkerBadge(card: SavedCardRecord) {
                 fontWeight = FontWeight.Bold,
             )
         } else {
-            Icon(Icons.Filled.CreditCard, contentDescription = null, tint = card.markerOuterColor.toColor(), modifier = Modifier.size(16.dp))
+            Icon(markerIcon(card.markerSymbolName), contentDescription = null, tint = card.markerOuterColor.toColor(), modifier = Modifier.size(size * 4 / 7))
         }
     }
 }
 
-private fun cardBrush(card: SavedCardRecord, color: Color): Brush {
-    return if (card.design.name == "sunrise") {
+fun cardBrush(card: SavedCardRecord, color: Color, design: ad.neko.cardbal.android.data.SavedCardDesign = card.design): Brush {
+    return if (design.name == "sunrise") {
         Brush.linearGradient(listOf(color, color.copy(alpha = 0.9f), Color(0xFFE9893A), color.copy(alpha = 0.62f)))
     } else {
         Brush.linearGradient(listOf(color, color.copy(alpha = 0.74f), Color(0xFF242936)))
     }
 }
 
-private fun ad.neko.cardbal.android.data.SavedCardColor.toColor(): Color {
+fun ad.neko.cardbal.android.data.SavedCardColor.toColor(): Color {
     return Color(red = red.toFloat(), green = green.toFloat(), blue = blue.toFloat())
 }
 

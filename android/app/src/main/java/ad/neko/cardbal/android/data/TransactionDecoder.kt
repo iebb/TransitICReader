@@ -17,10 +17,21 @@ import kotlinx.datetime.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 
+private const val KOREAN_RECORD_LENGTH = 52
+
+data class CardMapData(
+    val transactions: List<TransitTransaction>,
+    val pins: List<StationPoint>,
+    val routes: List<StationRoute>,
+)
+
 class TransactionDecoder(context: Context) {
     private val stationDb = StationDatabase.get(context)
     private val busResolver = BusResolver.get(context)
     private val clipperCatalog = ClipperTransitCatalog.get(context)
+    private val mapDataCache = object : LinkedHashMap<SavedCardRecord, CardMapData>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<SavedCardRecord, CardMapData>?): Boolean = size > 64
+    }
     private val modeClasses by lazy {
         val json=JSONObject(context.assets.open("KOTRISTransportModes.json").bufferedReader().use{it.readText()})
         val result=mutableMapOf<Int,String>()
@@ -57,31 +68,56 @@ class TransactionDecoder(context: Context) {
     }
 
     fun stationPinsFor(card: SavedCardRecord): List<StationPoint> {
+        return stationPins(card, transactionsFor(card))
+    }
+
+    fun routesFor(card: SavedCardRecord): List<StationRoute> {
+        return stationRoutes(card, transactionsFor(card))
+    }
+
+    fun cachedMapDataFor(card: SavedCardRecord): CardMapData? = synchronized(mapDataCache) { mapDataCache[card] }
+
+    fun mapDataFor(card: SavedCardRecord): CardMapData {
+        cachedMapDataFor(card)?.let { return it }
+        val transactions = transactionsFor(card)
+        val data = CardMapData(transactions, stationPins(card, transactions), stationRoutes(card, transactions))
+        synchronized(mapDataCache) { mapDataCache[card] = data }
+        return data
+    }
+
+    private fun stationPins(card: SavedCardRecord, transactions: List<TransitTransaction>): List<StationPoint> {
         val pins = mutableListOf<StationPoint>()
-        for (tx in transactionsFor(card)) {
-            if (!shouldMapStationCodes(card, tx)) continue
-            val entry = resolvePoint(card, tx.entryStationCode)
-            val exit = resolvePoint(card, tx.exitStationCode)
+        for (tx in transactions) {
+            val family = familyFor(card, tx)
+            if (!shouldMapStationCodes(family, tx)) continue
+            val entry = resolvePoint(family, tx.entryStationCode, event = 0)
+            val exit = resolvePoint(family, tx.exitStationCode, event = 1)
             if (entry != null) pins.add(entry)
             if (exit != null && exit.code != entry?.code) pins.add(exit)
         }
         return pins.distinctBy { it.code }
     }
 
-    fun routesFor(card: SavedCardRecord): List<StationRoute> {
-        return transactionsFor(card).mapNotNull { tx ->
-            if (!shouldMapStationCodes(card, tx)) return@mapNotNull null
-            val entryCode = tx.entryStationCode ?: return@mapNotNull null
-            val exitCode = tx.exitStationCode ?: return@mapNotNull null
-            if (tx.category == TransactionCategory.bus || tx.category == TransactionCategory.busOn || tx.category == TransactionCategory.busOff) return@mapNotNull null
-            val entry = resolvePoint(card, entryCode) ?: return@mapNotNull null
-            val exit = resolvePoint(card, exitCode) ?: return@mapNotNull null
+    private data class RouteCandidate(
+        val transaction: TransitTransaction,
+        val family: String,
+        val startCode: String,
+        val endCode: String,
+        val startEvent: Int? = null,
+        val endEvent: Int? = null,
+    )
+
+    private fun stationRoutes(card: SavedCardRecord, transactions: List<TransitTransaction>): List<StationRoute> {
+        return routeCandidates(card, transactions).mapNotNull { candidate ->
+            val tx = candidate.transaction
+            val entry = resolvePoint(candidate.family, candidate.startCode, candidate.startEvent) ?: return@mapNotNull null
+            val exit = resolvePoint(candidate.family, candidate.endCode, candidate.endEvent) ?: return@mapNotNull null
             if (entry.code == exit.code) return@mapNotNull null
 
-            val path = routePath(card, entry, exit)
+            val path = routePath(candidate.family, entry, exit)
             if (path.size < 2) return@mapNotNull null
             StationRoute(
-                id = tx.rawData ?: "$entryCode-$exitCode-${tx.recordNumber ?: ""}",
+                id = "${tx.rawData ?: tx.recordNumber ?: ""}|${candidate.startCode}|${candidate.endCode}",
                 title = "${entry.name} → ${exit.name}",
                 points = path,
                 rawData = tx.rawData,
@@ -89,9 +125,89 @@ class TransactionDecoder(context: Context) {
         }
     }
 
-    private fun shouldMapStationCodes(card: SavedCardRecord, tx: TransitTransaction): Boolean {
-        val family = card.cardFamily.lowercase()
-        val isTUnion = "union" in family || "china" in family
+    /** The iOS ride-map candidates: mainland and Korean cards record boarding and alighting as separate taps. */
+    private fun routeCandidates(card: SavedCardRecord, transactions: List<TransitTransaction>): List<RouteCandidate> = when {
+        card.applications?.any { it.isTUnion || it.isCityUnion } == true || isTUnionFamily(card.cardFamily) ->
+            tUnionRouteCandidates(card, transactions)
+        isKoreanFamily(card.cardFamily) -> koreanRouteCandidates(card, transactions)
+        else -> transactions.mapNotNull { tx ->
+            val family = familyFor(card, tx)
+            if (!shouldMapStationCodes(family, tx) || tx.category in busCategories) return@mapNotNull null
+            RouteCandidate(tx, family, tx.entryStationCode ?: return@mapNotNull null, tx.exitStationCode ?: return@mapNotNull null)
+        }
+    }
+
+    private fun tUnionRouteCandidates(card: SavedCardRecord, transactions: List<TransitTransaction>): List<RouteCandidate> {
+        val chronological = transactions.sortedWith(
+            compareBy<TransitTransaction> { it.date?.toEpochMilliseconds() ?: Long.MIN_VALUE }
+                .thenBy { it.recordCounter ?: it.recordNumber?.toLong() ?: 0L },
+        )
+        var openEntry: TransitTransaction? = null
+        val candidates = mutableListOf<RouteCandidate>()
+        for (tx in chronological) {
+            when (tx.category) {
+                TransactionCategory.trainOn, TransactionCategory.busOn -> openEntry = tx
+                TransactionCategory.trainOff, TransactionCategory.busOff -> {
+                    val entry = openEntry ?: continue
+                    val startCode = entry.entryStationCode ?: continue
+                    val endCode = tx.exitStationCode ?: continue
+                    if (entry.sourceApplicationID != tx.sourceApplicationID) continue
+                    candidates += RouteCandidate(tx, familyFor(card, tx), startCode, endCode)
+                    openEntry = null
+                }
+                else -> Unit
+            }
+        }
+        return candidates.reversed()
+    }
+
+    private fun koreanRouteCandidates(card: SavedCardRecord, transactions: List<TransitTransaction>): List<RouteCandidate> {
+        class Event(val transaction: TransitTransaction, val raw: String, val event: Int, val trip: Int, val location: String, val at: Long)
+        val seen = mutableSetOf<String>()
+        val events = transactions.mapNotNull { tx ->
+            val raw = tx.rawData?.uppercase()?.filter { it in "0123456789ABCDEF" } ?: return@mapNotNull null
+            if (!seen.add(raw)) return@mapNotNull null
+            val record = raw.hexToBytes().takeIf { it.size >= KOREAN_RECORD_LENGTH } ?: return@mapNotNull null
+            val event = record[2].toInt() and 0xFF
+            if (event != 0 && event != 1) return@mapNotNull null
+            val at = tx.date?.toEpochMilliseconds() ?: return@mapNotNull null
+            val location = record.copyOfRange(5, 11).joinToString("") { "%02X".format(it) }
+            Event(tx, raw.take(KOREAN_RECORD_LENGTH * 2), event, record[4].toInt() and 0xFF, location, at)
+        }.sortedWith(compareBy<Event> { it.at }.thenBy { it.raw })
+        val usedAlightings = mutableSetOf<Int>()
+        val candidates = mutableListOf<RouteCandidate>()
+        for ((index, boarding) in events.withIndex()) {
+            if (boarding.event != 0) continue
+            for (candidateIndex in index + 1 until events.size) {
+                if (candidateIndex in usedAlightings) continue
+                val alighting = events[candidateIndex]
+                if (alighting.event != 1) continue
+                val interval = alighting.at - boarding.at
+                if (interval < 0) continue
+                if (interval > 8 * 60 * 60 * 1000L) break
+                if (alighting.trip != boarding.trip) continue
+                usedAlightings += candidateIndex
+                candidates += RouteCandidate(alighting.transaction, card.cardFamily, boarding.location, alighting.location, startEvent = 0, endEvent = 1)
+                break
+            }
+        }
+        return candidates.reversed()
+    }
+
+    /** A combined card's records resolve with their own application, so an Octopus – China T-Union ride maps on the mainland graph. */
+    private fun familyFor(card: SavedCardRecord, tx: TransitTransaction): String =
+        card.applications?.firstOrNull { it.id == tx.sourceApplicationID }?.cardFamily ?: card.cardFamily
+
+    private fun isTUnionFamily(family: String) = family.lowercase().let { "union" in it || "china" in it }
+
+    private fun isKoreanFamily(family: String) = family.lowercase().let {
+        it.contains("t-money") || it.contains("ezl") || it.contains("cashbee") || it == "namane"
+    }
+
+    private val busCategories = setOf(TransactionCategory.bus, TransactionCategory.busOn, TransactionCategory.busOff)
+
+    private fun shouldMapStationCodes(cardFamily: String, tx: TransitTransaction): Boolean {
+        val isTUnion = isTUnionFamily(cardFamily)
         return when (tx.category) {
             TransactionCategory.train, TransactionCategory.trainOn, TransactionCategory.trainOff,
             TransactionCategory.tapOn, TransactionCategory.tapOff, TransactionCategory.ferry -> true
@@ -128,27 +244,27 @@ class TransactionDecoder(context: Context) {
         }
     }
 
-    private fun resolvePoint(card: SavedCardRecord, code: String?): StationPoint? {
-        val family = card.cardFamily.lowercase()
+    private fun resolvePoint(cardFamily: String, code: String?, event: Int? = null): StationPoint? {
+        val family = cardFamily.lowercase()
         return if (family == "clipper" || family == "clipper ticket") {
             clipperCatalog.point(code)
         } else if (family == "u-money") {
             stationDb.findCatalogStation("mn.ubsmartbus.station_id",code)
-        } else if (family.contains("t-money") || family.contains("ezl") || family.contains("cashbee") || family=="namane") {
-            stationDb.findCatalogStation("kr.ksx.location",code)
-        } else if ("union" in family || "china" in family) {
+        } else if (isKoreanFamily(family)) {
+            stationDb.findCatalogStation("kr.ksx.location",code,event)
+        } else if (isTUnionFamily(family)) {
             stationDb.findTUnionStation(code)
         } else {
             stationDb.findJapaneseStation(code)
         }
     }
 
-    private fun routePath(card: SavedCardRecord, entry: StationPoint, exit: StationPoint): List<StationPoint> {
-        val family = card.cardFamily.lowercase()
-        return if ("union" in family || "china" in family || family == "clipper" || family == "clipper ticket") {
-            listOf(entry, exit)
-        } else {
-            stationDb.shortestJapanesePath(entry, exit)
+    private fun routePath(cardFamily: String, entry: StationPoint, exit: StationPoint): List<StationPoint> {
+        val family = cardFamily.lowercase()
+        return when {
+            isTUnionFamily(family) -> stationDb.shortestTUnionPath(entry, exit)
+            family == "clipper" || family == "clipper ticket" || family == "u-money" || isKoreanFamily(family) -> listOf(entry, exit)
+            else -> stationDb.shortestJapanesePath(entry, exit)
         }
     }
 

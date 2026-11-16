@@ -339,6 +339,17 @@ func testDualCurrency(octopus: TransitCardSnapshot, plain: TransitCardSnapshot) 
         split.upsert(snapshot: octopus)
         split.upsert(snapshot: national)
         check(split.cards.count == 1 && split.cards[0].applications?.count == 2, "Partial rescan split a dual card")
+        // 交联澳门通: a T-Union side saved alone joins the combined Macau Pass read and later T-Union-only reads.
+        let macauAID = "B0C4C3C5CDA8C7AEB0FC", tuNumber = "3100000000000000001"
+        let macauCombined = TransitCardSnapshot.combining([snapshot(macauAID, serial: "12ABCDEF", date: 500, balance: "MOP 50"),
+                                                           snapshot(tu, serial: tuNumber, date: 500, balance: "CNY 10")])!
+        let macauWallet = Wallet()
+        macauWallet.upsert(snapshot: snapshot(tu, serial: tuNumber, date: 400, balance: "CNY 12"))
+        macauWallet.upsert(snapshot: macauCombined)
+        macauWallet.upsert(snapshot: snapshot(tu, serial: tuNumber, date: 600, balance: "CNY 8"))
+        check(macauWallet.cards.count == 1 && macauWallet.cards[0].applications?.count == 2
+              && macauWallet.cards[0].selectedAID == macauAID && macauWallet.cards[0].balanceText == "MOP 50",
+              "Macau Pass + T-Union split into two cards")
         let cloud = Wallet()
         cloud.cards = [savedMainland, SavedCardRecord(snapshot: octopus)]
         check(cloud.mergeIncomingCard(SavedCardRecord(snapshot: mixed)), "Combined backup did not merge")

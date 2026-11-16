@@ -41,6 +41,16 @@ data class TransitApplication(
     val isMacauPass get() = selectedAID == "B0C4C3C5CDA8C7AEB0FC"
     /** Lingnan Pass purse (PAY.TICL), or PAY.APPY when a card has no separate purse application. */
     val isLingnan get() = selectedAID in setOf("5041592E5449434C", "5041592E41505059")
+    /** The wallet identity this application gives its card: its serial, else its UID. */
+    val identityAlias get() = "$technology|${serialNumber?.takeIf { it.isNotBlank() } ?: identifier}"
+    /** Identities that link separately saved entries of one physical card, as on iPhone. */
+    val identityAliases: Set<String> get() = buildSet {
+        if (!identityAlias.endsWith("|")) add(identityAlias)
+        if (isOctopus && identifier.isNotEmpty()) add("FeliCa|${identifier.uppercase()}")
+        // A stable UID can match a partial read that could not recover the serial.
+        // Do not extend this fallback to other ISO card families.
+        if ((isCityUnion || isTUnion || isMacauPass) && identifier.any { it != '0' && it != 'F' }) add("ISO7816UID|${identifier.uppercase()}")
+    }
     companion object {
         fun from(snapshot: TransitCardSnapshot, records: List<TransitApplicationRecord>? = null, city: String? = null) = TransitApplication(
             technology=snapshot.technology,cardFamily=snapshot.cardFamily,identifier=snapshot.rawIdentifierValue,
@@ -166,4 +176,58 @@ fun SavedCardRecord.withApplications(apps: List<TransitApplication>): SavedCardR
         balanceText=TransitApplication.balanceSource(apps)?.balanceText ?: balanceText,balanceDetail=TransitApplication.balanceDetail(apps).ifEmpty { balanceDetail },
         rawTransactions=apps.flatMap { it.records.filter { r -> r.kind=="transaction" }.map { r -> r.hex } },
         rawTransitHistory=apps.flatMap { it.records.filter { r -> r.kind=="transit" }.map { r -> r.hex } })
+}
+
+/** Every identity of a saved card: its id and those of all its applications. */
+val SavedCardRecord.identityAliases: Set<String>
+    get() = (applications ?: listOf(TransitApplication.fromSaved(this))).flatMapTo(mutableSetOf(id)) { it.identityAliases }
+
+/** Every identity a scan can match: a Macau Pass + T-Union read also matches a card saved from its T-Union side alone. */
+val TransitCardSnapshot.identityAliases: Set<String>
+    get() = (applications ?: listOf(TransitApplication.from(this))).flatMapTo(mutableSetOf(storageIdentifier)) { it.identityAliases }
+
+/** One physical card saved twice: keep this entry's id, appearance and place, take the
+ *  details of the merged primary application, and keep both entries' applications and history. */
+internal fun SavedCardRecord.mergingDuplicate(other: SavedCardRecord): SavedCardRecord {
+    val merged = withApplications(TransitApplication.merge(
+        applications ?: listOf(TransitApplication.fromSaved(this)), other.applications ?: listOf(TransitApplication.fromSaved(other))))
+    val details = if (selectedAID != merged.selectedAID && other.selectedAID == merged.selectedAID) other else this
+    return merged.copy(
+        identifierLabel = details.identifierLabel, identifierValue = details.identifierValue, rawIdentifierValue = details.rawIdentifierValue,
+        pmm = details.pmm, systemCode = details.systemCode, region = details.region, resultFields = details.resultFields,
+        issuingCity = details.issuingCity, cardTypeStr = details.cardTypeStr, issueDateStr = details.issueDateStr, expiryDateStr = details.expiryDateStr,
+        scannedAt = maxOf(scannedAt, other.scannedAt),
+        customTitle = customTitle ?: other.customTitle,
+        customDisplaySerialNumber = customDisplaySerialNumber ?: other.customDisplaySerialNumber,
+        faceImageFileName = faceImageFileName ?: other.faceImageFileName,
+        isUsingImage = if (faceImageFileName == null) other.isUsingImage else isUsingImage,
+        isPinned = isPinned ?: other.isPinned,
+    )
+}
+
+/** Coalesce saved entries that share an identity, including through a third entry. The
+ *  [preferredId] entry, else the earlier one, keeps its id, appearance and place. */
+internal fun consolidateMatchingCards(cards: List<SavedCardRecord>, preferredId: String? = null): List<SavedCardRecord> {
+    val result = cards.toMutableList()
+    val aliases = result.mapTo(mutableListOf()) { it.identityAliases }
+    var index = 0
+    while (index < result.size) {
+        var candidate = index + 1
+        while (candidate < result.size) {
+            if (aliases[index].any(aliases[candidate]::contains)) {
+                val first = result[index]; val second = result[candidate]
+                result[index] = if (second.id == preferredId && first.id != preferredId) second.mergingDuplicate(first) else first.mergingDuplicate(second)
+                // Keep the removed entry's id as an alias, so its identities still link later entries.
+                aliases[index] = aliases[index] + aliases[candidate] + result[index].identityAliases
+                result.removeAt(candidate)
+                aliases.removeAt(candidate)
+                // A newly merged application can link an entry already passed over.
+                candidate = index + 1
+            } else {
+                candidate += 1
+            }
+        }
+        index += 1
+    }
+    return result
 }
