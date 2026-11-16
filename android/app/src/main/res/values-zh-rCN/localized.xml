@@ -925,7 +925,7 @@
     <string name="text_1277d7e3b357f07e" formatted="false">"不支持的 DESFire 文件类型"</string>
     <string name="text_2afcb119e5dabf1e" formatted="false">"不支持此卡片类型。"</string>
     <string name="text_1ed03d0fe1de1a90" formatted="false">"不支持的城市边界数据版本：%lld。"</string>
-    <string name="text_2d3b508928a3c7a5" formatted="false">"最多 %lld 张图片。应用版本和设备型号会一并发送。"</string>
+    <string name="text_d24517fcfba2e080" formatted="false">"最多 %lld 张图片。应用版本、设备型号、系统版本和语言会一并发送。"</string>
     <string name="text_14392755e2b8f597" formatted="false">"上传 T-money、EZL/Cashbee 等符合条件的韩国卡片的技术乘车记录，帮助分析韩国乘车记录格式。上传内容包括去重哈希、卡片 ID 的哈希值、卡片 ID 的最后 4 个字符、字节 0x05–0x08、字节 0x09–0x0A 及完整原始记录字节。数据通过 HTTPS 传输，可随时在设置中开启或关闭。"</string>
     <string name="text_5178b8e0315b4f04" formatted="false">"消费金额"</string>
     <string name="text_4e00aa111d197638" formatted="false">"使用当前位置"</string>

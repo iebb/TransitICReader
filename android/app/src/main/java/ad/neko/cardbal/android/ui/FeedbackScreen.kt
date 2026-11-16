@@ -203,7 +203,7 @@ fun FeedbackScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Text(tr("Add Screenshots"), modifier = Modifier.padding(start = 8.dp))
             }
             Text(
-                tr("Up to ${AirFeedbackConfig.MAXIMUM_IMAGES} images. The app version and device model are sent along."),
+                tr("Up to ${AirFeedbackConfig.MAXIMUM_IMAGES} images. The app version, device model, system version and language are sent along."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

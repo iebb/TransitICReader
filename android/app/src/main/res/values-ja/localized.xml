@@ -925,7 +925,7 @@
     <string name="text_1277d7e3b357f07e" formatted="false">"未対応の DESFire ファイル形式"</string>
     <string name="text_2afcb119e5dabf1e" formatted="false">"このカードの種類には対応していません。"</string>
     <string name="text_1ed03d0fe1de1a90" formatted="false">"未対応の都市境界データバージョンです：%lld。"</string>
-    <string name="text_2d3b508928a3c7a5" formatted="false">"画像は%lld枚まで添付できます。アプリのバージョンとデバイスの機種も一緒に送信されます。"</string>
+    <string name="text_d24517fcfba2e080" formatted="false">"画像は%lld枚まで添付できます。アプリのバージョン、デバイスの機種、OSのバージョン、言語も一緒に送信されます。"</string>
     <string name="text_14392755e2b8f597" formatted="false">"T-money、EZL/Cashbee などの対象韓国カードの技術的な乗車記録をアップロードし、形式の解析に協力します。送信データは重複排除用ハッシュ、カード ID のハッシュ、カード ID の末尾 4 文字、バイト 0x05–0x08、0x09–0x0A、記録全体の生バイトです。HTTPS を使用し、設定でいつでもオン・オフを切り替えられます。"</string>
     <string name="text_5178b8e0315b4f04" formatted="false">"利用額"</string>
     <string name="text_4e00aa111d197638" formatted="false">"現在地を使う"</string>

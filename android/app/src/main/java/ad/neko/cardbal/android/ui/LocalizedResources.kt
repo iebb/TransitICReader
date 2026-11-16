@@ -950,7 +950,7 @@ internal val localizedResources = mapOf(
     "Unsupported DESFire file type" to R.string.text_1277d7e3b357f07e,
     "Unsupported card type." to R.string.text_2afcb119e5dabf1e,
     "Unsupported city boundary data version %lld." to R.string.text_1ed03d0fe1de1a90,
-    "Up to %lld images. The app version and device model are sent along." to R.string.text_2d3b508928a3c7a5,
+    "Up to %lld images. The app version, device model, system version and language are sent along." to R.string.text_d24517fcfba2e080,
     "Upload technical trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings." to R.string.text_14392755e2b8f597,
     "Usage Amount" to R.string.text_5178b8e0315b4f04,
     "Use Current Location" to R.string.text_4e00aa111d197638,

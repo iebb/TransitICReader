@@ -167,7 +167,7 @@ struct FeedbackView: View {
                     }
                     .disabled(images.count >= FeedbackConfig.maximumImages)
                 } footer: {
-                    Text("Up to \(FeedbackConfig.maximumImages) images. The app version and device model are sent along.")
+                    Text("Up to \(FeedbackConfig.maximumImages) images. The app version, device model, system version and language are sent along.")
                 }
                 if let failure {
                     Section {

@@ -1086,7 +1086,7 @@
 "What happened, or what would you like to see?" = "遇到了什么问题，或者希望增加什么功能？";
 "Add Screenshots" = "添加截图";
 "Remove Screenshot" = "移除截图";
-"Up to %lld images. The app version and device model are sent along." = "最多 %lld 张图片。应用版本和设备型号会一并发送。";
+"Up to %lld images. The app version, device model, system version and language are sent along." = "最多 %lld 张图片。应用版本、设备型号、系统版本和语言会一并发送。";
 "Send" = "发送";
 "Thank you" = "谢谢";
 "Your feedback was sent." = "你的反馈已发送。";

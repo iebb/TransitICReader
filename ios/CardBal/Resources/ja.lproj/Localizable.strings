@@ -1086,7 +1086,7 @@
 "What happened, or what would you like to see?" = "何が起きましたか？ どんな機能があるとよいですか？";
 "Add Screenshots" = "スクリーンショットを追加";
 "Remove Screenshot" = "スクリーンショットを削除";
-"Up to %lld images. The app version and device model are sent along." = "画像は%lld枚まで添付できます。アプリのバージョンとデバイスの機種も一緒に送信されます。";
+"Up to %lld images. The app version, device model, system version and language are sent along." = "画像は%lld枚まで添付できます。アプリのバージョン、デバイスの機種、OSのバージョン、言語も一緒に送信されます。";
 "Send" = "送信";
 "Thank you" = "ありがとうございます";
 "Your feedback was sent." = "フィードバックを送信しました。";

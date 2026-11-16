@@ -1087,7 +1087,7 @@
 "What happened, or what would you like to see?" = "어떤 문제가 있었나요? 어떤 기능이 있으면 좋을까요?";
 "Add Screenshots" = "스크린샷 추가";
 "Remove Screenshot" = "스크린샷 삭제";
-"Up to %lld images. The app version and device model are sent along." = "이미지는 최대 %lld장까지 첨부할 수 있습니다. 앱 버전과 기기 모델도 함께 전송됩니다.";
+"Up to %lld images. The app version, device model, system version and language are sent along." = "이미지는 최대 %lld장까지 첨부할 수 있습니다. 앱 버전, 기기 모델, OS 버전, 언어도 함께 전송됩니다.";
 "Send" = "보내기";
 "Thank you" = "감사합니다";
 "Your feedback was sent." = "피드백을 보냈습니다.";

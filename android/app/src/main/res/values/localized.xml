@@ -925,7 +925,7 @@
     <string name="text_1277d7e3b357f07e" formatted="false">"Unsupported DESFire file type"</string>
     <string name="text_2afcb119e5dabf1e" formatted="false">"Unsupported card type."</string>
     <string name="text_1ed03d0fe1de1a90" formatted="false">"Unsupported city boundary data version %lld."</string>
-    <string name="text_2d3b508928a3c7a5" formatted="false">"Up to %lld images. The app version and device model are sent along."</string>
+    <string name="text_d24517fcfba2e080" formatted="false">"Up to %lld images. The app version, device model, system version and language are sent along."</string>
     <string name="text_14392755e2b8f597" formatted="false">"Upload technical trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings."</string>
     <string name="text_5178b8e0315b4f04" formatted="false">"Usage Amount"</string>
     <string name="text_4e00aa111d197638" formatted="false">"Use Current Location"</string>
