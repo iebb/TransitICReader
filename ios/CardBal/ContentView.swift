@@ -1280,6 +1280,7 @@ struct SettingsView: View {
     @State private var backupMessage: String?
     @State private var debugLogIsEmpty = DebugLog.shared.isEmpty
     @State private var debugLogMessage: String?
+    @State private var isShowingFeedback = false
 
     var body: some View {
         NavigationStack {
@@ -1316,6 +1317,7 @@ struct SettingsView: View {
                     }
                 }
                 troubleshootingSection
+                feedbackSection
                 Section("Community") {
                     Link(destination: URL(string: "https://cardb.al/support/")!) {
                         Label("Support", systemImage: "questionmark.circle")
@@ -1369,6 +1371,9 @@ struct SettingsView: View {
                 backupMessage = "Import failed: \(error.localizedDescription)"
             }
         }
+        .sheet(isPresented: $isShowingFeedback) {
+            FeedbackView()
+        }
     }
 
     /// Always shown: the log stays on this device and is copied only when the person taps Copy.
@@ -1408,6 +1413,21 @@ struct SettingsView: View {
             } else {
                 Text("Records recent scan steps on this iPhone to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened.")
             }
+        }
+    }
+
+    /// AirFeedback: the message and any screenshots go to the developer with the app
+    /// version and device model; crash reports are sent by AirCrashReports.
+    private var feedbackSection: some View {
+        Section {
+            Button {
+                isShowingFeedback = true
+            } label: {
+                Label("Send Feedback", systemImage: "envelope")
+            }
+            .accessibilityIdentifier("send-feedback")
+        } footer: {
+            Text("Report a problem or share an idea, with screenshots if you like. CardBal also sends crash reports automatically.")
         }
     }
 

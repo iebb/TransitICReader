@@ -49,6 +49,7 @@
     <string name="text_7c135099e83ae441" formatted="false">"省略形式"</string>
     <string name="text_4efca0d10c5feb8e" formatted="false">"このアプリについて"</string>
     <string name="text_38da1505ca837328" formatted="false">"動作"</string>
+    <string name="text_de3d80ff815b483a" formatted="false">"スクリーンショットを追加"</string>
     <string name="text_c416069b7f61a4a6" formatted="false">"精算"</string>
     <string name="text_9f088dbebd6c3c70" formatted="false">"詳細設定"</string>
     <string name="text_86f357cfb8c2c100" formatted="false">"事業者"</string>
@@ -229,6 +230,7 @@
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"現在地を取得できませんでした。地図上で手動でピンを置けます。"</string>
     <string name="text_2a7ebd82f1352b5e" formatted="false">"対応する交通系カードのデータを読み取れませんでした。"</string>
     <string name="text_755efaaddf296aa8" formatted="false">"報告を送信できませんでした。もう一度お試しください。"</string>
+    <string name="text_abc0e9339ef7a3fd" formatted="false">"送信できませんでした。接続を確認してから、もう一度お試しください。"</string>
     <string name="text_45ea0670c314d9f8" formatted="false">"窓口端末"</string>
     <string name="text_8faf7ec7ab20ca1c" formatted="false">"国・地域"</string>
     <string name="text_0ab6e887eafcf2f2" formatted="false">"国・地域"</string>
@@ -321,6 +323,7 @@
     <string name="text_3b4977332ccb8a76" formatted="false">"運賃不明"</string>
     <string name="text_f5768f1bdeb1266d" formatted="false">"運賃不明"</string>
     <string name="text_2e80c60e87af7f9d" formatted="false">"FareBot のソースとライセンス"</string>
+    <string name="text_aac77df347205252" formatted="false">"フィードバック"</string>
     <string name="text_386bc3a49284e3fb" formatted="false">"FeliCa"</string>
     <string name="text_96376179bf25706e" formatted="false">"FeliCa詳細スキャン"</string>
     <string name="text_3194003bd2b01f52" formatted="false">"FeliCa 改札履歴の形式。サービス `108F`（カード通信時はリトルエンディアン `8F10`）。バイト `0–1`：動作・サブタイプ、`2–3`：駅コード、`4–5`：端末番号、`6–7`：圧縮日付、`8–9`：BCD 時刻、`10–11`：金額、`12–13`：定期券区間境界の運賃、`14–15`：境界駅。"</string>
@@ -514,6 +517,7 @@
     <string name="text_63d4aa174f01b637" formatted="false">"このカードには読み取り可能な取引・乗車履歴がありません。"</string>
     <string name="text_6e2ea637b30eadce" formatted="false">"記録がありません"</string>
     <string name="text_7bb03c0d47ec2b34" formatted="false">"現在の範囲に記録はありません。"</string>
+    <string name="text_b4c89d4a2f255ba9" formatted="false">"サーバーから応答がありません。"</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"保存済みカードはありません"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"この地域には保存済みの交通履歴がまだありません。"</string>
     <string name="text_d0e495e9ddaa2b9d" formatted="false">"まだスキャンの記録はありません。"</string>
@@ -675,10 +679,12 @@
     <string name="text_168460c046aa8d9a" formatted="false">"残り回数"</string>
     <string name="text_a04d485b0a785f3b" formatted="false">"現在の写真を削除"</string>
     <string name="text_7900f5d0b5e6d32d" formatted="false">"位置情報を削除"</string>
+    <string name="text_86c0f68e1ece91e2" formatted="false">"スクリーンショットを削除"</string>
     <string name="text_321919109abe5297" formatted="false">"カードを並べ替え"</string>
     <string name="text_d7a5e29858e2acea" formatted="false">"報告を受け付けました"</string>
     <string name="text_c7c4ffaabb4ffbd8" formatted="false">"駅を報告"</string>
     <string name="text_6add2e3919640d28" formatted="false">"報告の種類"</string>
+    <string name="text_d1f9e80b94fcb4dc" formatted="false">"問題の報告やアイデアを、スクリーンショットを添えて送れます。CardBalはクラッシュレポートも自動的に送信します。"</string>
     <string name="text_3b3a9b391721e85f" formatted="false">"駅を報告・修正"</string>
     <string name="text_3385ffe6747065e4" formatted="false">"予約領域"</string>
     <string name="text_daee7606b339f3c3" formatted="false">"リセット"</string>
@@ -738,6 +744,8 @@
     <string name="text_0e9489650b188cfe" formatted="false">"選択時の応答"</string>
     <string name="text_c37be0f905a37335" formatted="false">"選択時の状態 SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"選択中の AID"</string>
+    <string name="text_f6f4688ff23d50c6" formatted="false">"送信"</string>
+    <string name="text_84195de9375af87c" formatted="false">"フィードバックを送信"</string>
     <string name="text_e68f0c26e71bf8c3" formatted="false">"ソウル市ビッグデータキャンパス · 서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv（2017–2026）"</string>
     <string name="text_b142a807aaebe559" formatted="false">"ソウル交通公社 · 서울교통공사_역명다국어표기_20260326（2026）· KOGL第1類型"</string>
     <string name="text_611fd636f79968db" formatted="false">"ソウル特別市 · 서울시 역사마스터 정보（2026）· KOGL第1類型"</string>
@@ -832,10 +840,12 @@
     <string name="text_81c4aa9170a5f3e5" formatted="false">"文字の縁取り・影"</string>
     <string name="text_b152527a13d8e26c" formatted="false">"文字の見やすさ"</string>
     <string name="text_1d101fd9d7ecfda6" formatted="false">"カードの表示"</string>
+    <string name="text_268bc1833e83306f" formatted="false">"ありがとうございます"</string>
     <string name="text_61efa9d2223cfd26" formatted="false">"同梱の東アジア都市境界データがありません。"</string>
     <string name="text_95f1d90a021c813f" formatted="false">"同梱の東アジア都市境界データを読み込めませんでした。"</string>
     <string name="text_5dc672d1209d955f" formatted="false">"同梱の駅データベースを読み込めませんでした。"</string>
     <string name="text_77385ac4880380d6" formatted="false">"リーダーから不完全または無効な応答が返されました。"</string>
+    <string name="text_eaa56ff08a5eff2d" formatted="false">"サーバーエラー（%lld）が発生しました。"</string>
     <string name="text_7cf07d09cab8a266" formatted="false">"バックアップが大きすぎるため iCloud に同期できません。バックアップファイルをエクスポートしてください。"</string>
     <string name="text_82db89760ff5ab07" formatted="false">"このカードには、まだ経路を描画するのに十分な駅データがありません。"</string>
     <string name="text_6e4fca06cde37767" formatted="false">"このファイルは Trip Reader のバックアップではありません。"</string>
@@ -915,6 +925,7 @@
     <string name="text_1277d7e3b357f07e" formatted="false">"未対応の DESFire ファイル形式"</string>
     <string name="text_2afcb119e5dabf1e" formatted="false">"このカードの種類には対応していません。"</string>
     <string name="text_1ed03d0fe1de1a90" formatted="false">"未対応の都市境界データバージョンです：%lld。"</string>
+    <string name="text_2d3b508928a3c7a5" formatted="false">"画像は%lld枚まで添付できます。アプリのバージョンとデバイスの機種も一緒に送信されます。"</string>
     <string name="text_14392755e2b8f597" formatted="false">"T-money、EZL/Cashbee などの対象韓国カードの技術的な乗車記録をアップロードし、形式の解析に協力します。送信データは重複排除用ハッシュ、カード ID のハッシュ、カード ID の末尾 4 文字、バイト 0x05–0x08、0x09–0x0A、記録全体の生バイトです。HTTPS を使用し、設定でいつでもオン・オフを切り替えられます。"</string>
     <string name="text_5178b8e0315b4f04" formatted="false">"利用額"</string>
     <string name="text_4e00aa111d197638" formatted="false">"現在地を使う"</string>
@@ -943,6 +954,7 @@
     <string name="text_c2aff412729ed929" formatted="false">"WAON 履歴はサービス 680B から読み取ります。1 件は 16 バイトブロック 2 個で、バイト 18–28 は MSB 順の圧縮フィールドです。"</string>
     <string name="text_4e639786fed4f2e3" formatted="false">"WAON 履歴の形式。サービス `680B`（カード通信時はリトルエンディアン `0B68`）。バイト `0–12`：端末番号、`13–14`：履歴番号、`17`：取引種別、`18–28`：MSB 順の圧縮日付・残高・利用額・チャージ額。"</string>
     <string name="text_f14334788e02b975" formatted="false">"ウォレットの順序"</string>
+    <string name="text_37d8db490c1ebf33" formatted="false">"何が起きましたか？ どんな機能があるとよいですか？"</string>
     <string name="text_eaf88324289db8ab" formatted="false">"共有されるデータ"</string>
     <string name="text_582785219fc2383e" formatted="false">"有効にすると、KS X 6924 のスキャンは読み取り専用 APDU ですべての SFI を調べ、読み取り可能な全レコードと short-EF バイナリブロックを Raw Data に保存します。スキャンには時間がかかります。"</string>
     <string name="text_41c3b1fb208c5473" formatted="false">"有効にすると、対象の T-money・EZL/Cashbee の読み取り時に形式解析用の技術的な乗車記録を送信します。送信項目はカード ID と生バイトの重複排除用ハッシュ、カード ID のハッシュ、カード ID の末尾 4 文字、バイト 0x05–0x08、0x09–0x0A、生バイト全体です。HTTPS で送信し、いつでも無効にできます。"</string>
@@ -951,6 +963,7 @@
     <string name="text_2c1ffec46f51a7a0" formatted="false">"XX123 A456..."</string>
     <string name="text_6c48580bf8e9c9fd" formatted="false">"YYYY-MM-DD"</string>
     <string name="text_03be090ed822ff63" formatted="false">"訪れた都市がここで輝きます"</string>
+    <string name="text_c6319f09953fe71b" formatted="false">"フィードバックを送信しました。"</string>
     <string name="text_97ba7ec4cc110e0b" formatted="false">"位置情報は自動取得されません。選択したピンだけが報告とともに送信されます。"</string>
     <string name="text_2c81c25a819d0715" formatted="false">"訪れた都道府県がここで輝きます"</string>
     <string name="text_c0c919005a3207dc" formatted="false">"保存したカードの写真がここに表示されます。"</string>

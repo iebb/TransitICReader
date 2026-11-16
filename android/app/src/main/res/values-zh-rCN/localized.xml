@@ -49,6 +49,7 @@
     <string name="text_7c135099e83ae441" formatted="false">"缩写格式"</string>
     <string name="text_4efca0d10c5feb8e" formatted="false">"关于"</string>
     <string name="text_38da1505ca837328" formatted="false">"活动"</string>
+    <string name="text_de3d80ff815b483a" formatted="false">"添加截图"</string>
     <string name="text_c416069b7f61a4a6" formatted="false">"调整"</string>
     <string name="text_9f088dbebd6c3c70" formatted="false">"高级设置"</string>
     <string name="text_86f357cfb8c2c100" formatted="false">"运营商"</string>
@@ -229,6 +230,7 @@
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"无法获取当前位置。您可以在地图上手动放置图钉。"</string>
     <string name="text_2a7ebd82f1352b5e" formatted="false">"未能读取到支持的交通卡数据。"</string>
     <string name="text_755efaaddf296aa8" formatted="false">"报告发送失败，请重试。"</string>
+    <string name="text_abc0e9339ef7a3fd" formatted="false">"无法发送。请检查网络连接后重试。"</string>
     <string name="text_45ea0670c314d9f8" formatted="false">"柜台终端"</string>
     <string name="text_8faf7ec7ab20ca1c" formatted="false">"国家和地区"</string>
     <string name="text_0ab6e887eafcf2f2" formatted="false">"国家或地区"</string>
@@ -321,6 +323,7 @@
     <string name="text_3b4977332ccb8a76" formatted="false">"票价未知"</string>
     <string name="text_f5768f1bdeb1266d" formatted="false">"票价未知"</string>
     <string name="text_2e80c60e87af7f9d" formatted="false">"FareBot 源代码与许可证"</string>
+    <string name="text_aac77df347205252" formatted="false">"反馈"</string>
     <string name="text_386bc3a49284e3fb" formatted="false">"FeliCa"</string>
     <string name="text_96376179bf25706e" formatted="false">"FeliCa 深度扫描"</string>
     <string name="text_3194003bd2b01f52" formatted="false">"FeliCa 闸机记录格式，服务 `108F`（卡片通信中使用小端序 `8F10`）。字节 `0–1` 为活动／子类型，`2–3` 为车站代码，`4–5` 为设备编号，`6–7` 为打包日期，`8–9` 为 BCD 时间，`10–11` 为金额，`12–13` 为定期区间边界票价，`14–15` 为边界车站。"</string>
@@ -514,6 +517,7 @@
     <string name="text_63d4aa174f01b637" formatted="false">"此卡尚无可读取的交易或乘车记录。"</string>
     <string name="text_6e2ea637b30eadce" formatted="false">"未找到记录"</string>
     <string name="text_7bb03c0d47ec2b34" formatted="false">"当前范围内没有记录。"</string>
+    <string name="text_b4c89d4a2f255ba9" formatted="false">"服务器没有响应。"</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"暂无已保存卡片"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"此处尚无已保存的交通记录。"</string>
     <string name="text_d0e495e9ddaa2b9d" formatted="false">"尚无扫描记录。"</string>
@@ -675,10 +679,12 @@
     <string name="text_168460c046aa8d9a" formatted="false">"剩余次数"</string>
     <string name="text_a04d485b0a785f3b" formatted="false">"移除当前图片"</string>
     <string name="text_7900f5d0b5e6d32d" formatted="false">"移除位置"</string>
+    <string name="text_86c0f68e1ece91e2" formatted="false">"移除截图"</string>
     <string name="text_321919109abe5297" formatted="false">"调整卡片顺序"</string>
     <string name="text_d7a5e29858e2acea" formatted="false">"已收到报告"</string>
     <string name="text_c7c4ffaabb4ffbd8" formatted="false">"报告车站"</string>
     <string name="text_6add2e3919640d28" formatted="false">"报告类型"</string>
+    <string name="text_d1f9e80b94fcb4dc" formatted="false">"报告问题或分享想法，可以附上截图。CardBal 也会自动发送崩溃报告。"</string>
     <string name="text_3b3a9b391721e85f" formatted="false">"报告或修正车站"</string>
     <string name="text_3385ffe6747065e4" formatted="false">"保留"</string>
     <string name="text_daee7606b339f3c3" formatted="false">"重置"</string>
@@ -738,6 +744,8 @@
     <string name="text_0e9489650b188cfe" formatted="false">"选择响应"</string>
     <string name="text_c37be0f905a37335" formatted="false">"选择状态字 SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"选中的 AID"</string>
+    <string name="text_f6f4688ff23d50c6" formatted="false">"发送"</string>
+    <string name="text_84195de9375af87c" formatted="false">"发送反馈"</string>
     <string name="text_e68f0c26e71bf8c3" formatted="false">"首尔大数据园区 · 서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv（2017–2026）"</string>
     <string name="text_b142a807aaebe559" formatted="false">"首尔交通公社 · 서울교통공사_역명다국어표기_20260326（2026）· KOGL 第1类型"</string>
     <string name="text_611fd636f79968db" formatted="false">"首尔特别市 · 서울시 역사마스터 정보（2026）· KOGL 第1类型"</string>
@@ -832,10 +840,12 @@
     <string name="text_81c4aa9170a5f3e5" formatted="false">"文字描边／阴影"</string>
     <string name="text_b152527a13d8e26c" formatted="false">"文字对比度"</string>
     <string name="text_1d101fd9d7ecfda6" formatted="false">"卡面文字"</string>
+    <string name="text_268bc1833e83306f" formatted="false">"谢谢"</string>
     <string name="text_61efa9d2223cfd26" formatted="false">"缺少内置的东亚城市边界数据。"</string>
     <string name="text_95f1d90a021c813f" formatted="false">"无法读取内置的东亚城市边界数据。"</string>
     <string name="text_5dc672d1209d955f" formatted="false">"无法加载内置车站数据库。"</string>
     <string name="text_77385ac4880380d6" formatted="false">"读卡器返回了不完整或无效的响应。"</string>
+    <string name="text_eaa56ff08a5eff2d" formatted="false">"服务器返回了错误 %lld。"</string>
     <string name="text_7cf07d09cab8a266" formatted="false">"备份过大，无法同步到 iCloud。请导出备份文件。"</string>
     <string name="text_82db89760ff5ab07" formatted="false">"这张卡片还没有足够的车站数据来绘制路线。"</string>
     <string name="text_6e4fca06cde37767" formatted="false">"此文件不是读卡识途备份。"</string>
@@ -915,6 +925,7 @@
     <string name="text_1277d7e3b357f07e" formatted="false">"不支持的 DESFire 文件类型"</string>
     <string name="text_2afcb119e5dabf1e" formatted="false">"不支持此卡片类型。"</string>
     <string name="text_1ed03d0fe1de1a90" formatted="false">"不支持的城市边界数据版本：%lld。"</string>
+    <string name="text_2d3b508928a3c7a5" formatted="false">"最多 %lld 张图片。应用版本和设备型号会一并发送。"</string>
     <string name="text_14392755e2b8f597" formatted="false">"上传 T-money、EZL/Cashbee 等符合条件的韩国卡片的技术乘车记录，帮助分析韩国乘车记录格式。上传内容包括去重哈希、卡片 ID 的哈希值、卡片 ID 的最后 4 个字符、字节 0x05–0x08、字节 0x09–0x0A 及完整原始记录字节。数据通过 HTTPS 传输，可随时在设置中开启或关闭。"</string>
     <string name="text_5178b8e0315b4f04" formatted="false">"消费金额"</string>
     <string name="text_4e00aa111d197638" formatted="false">"使用当前位置"</string>
@@ -943,6 +954,7 @@
     <string name="text_c2aff412729ed929" formatted="false">"WAON 历史记录来自服务 680B。每条记录含两个 16 字节数据块；字节 18–28 为最高有效位优先的打包字段。"</string>
     <string name="text_4e639786fed4f2e3" formatted="false">"WAON 历史记录格式，服务 `680B`（卡片通信中使用小端序 `0B68`）。字节 `0–12` 为终端编号，`13–14` 为记录编号，字节 `17` 为交易类型，字节 `18–28` 按最高有效位优先保存打包日期、余额、消费金额及充值金额。"</string>
     <string name="text_f14334788e02b975" formatted="false">"卡包顺序"</string>
+    <string name="text_37d8db490c1ebf33" formatted="false">"遇到了什么问题，或者希望增加什么功能？"</string>
     <string name="text_eaf88324289db8ab" formatted="false">"会共享哪些数据？"</string>
     <string name="text_582785219fc2383e" formatted="false">"启用后，KS X 6924 扫描会使用只读 APDU 探测所有 SFI，并在 Raw Data 中保留每条可读记录和 short-EF 二进制块。扫描耗时会更长。"</string>
     <string name="text_41c3b1fb208c5473" formatted="false">"启用后，读取符合条件的 T-money 和 EZL/Cashbee 卡片时将上传技术乘车记录以分析格式。上传字段包括由卡片 ID 和原始字节生成的去重哈希、卡片 ID 的哈希值、卡片 ID 的最后 4 个字符、字节 0x05–0x08、字节 0x09–0x0A 及完整原始字节。上传使用 HTTPS，可随时关闭。"</string>
@@ -951,6 +963,7 @@
     <string name="text_2c1ffec46f51a7a0" formatted="false">"XX123 A456..."</string>
     <string name="text_6c48580bf8e9c9fd" formatted="false">"YYYY-MM-DD"</string>
     <string name="text_03be090ed822ff63" formatted="false">"你去过的城市将在这里点亮"</string>
+    <string name="text_c6319f09953fe71b" formatted="false">"你的反馈已发送。"</string>
     <string name="text_97ba7ec4cc110e0b" formatted="false">"不会自动读取您的位置。只有您选择的图钉会随报告发送。"</string>
     <string name="text_2c81c25a819d0715" formatted="false">"你去过的省级区域将在这里点亮"</string>
     <string name="text_c0c919005a3207dc" formatted="false">"保存的卡片照片会显示在此处。"</string>

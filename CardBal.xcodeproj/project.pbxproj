@@ -52,6 +52,9 @@
 		8C46922A2F6F2ACB0071B6C4 /* CalypsoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692242F6F2ACB0071B6C4 /* CalypsoDecoder.swift */; };
 		8C46922B2F6F2ACB0071B6C4 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692252F6F2ACB0071B6C4 /* DateFormatting.swift */; };
 		DEB060000000000000000002 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB060000000000000000001 /* DebugLog.swift */; };
+		AFEED0000000000000000002 /* AppFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFEED0000000000000000001 /* AppFeedback.swift */; };
+		AFEED0000000000000000004 /* AirDeviceProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFEED0000000000000000003 /* AirDeviceProof.swift */; };
+		AFEED0000000000000000006 /* AirCrashReports.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFEED0000000000000000005 /* AirCrashReports.swift */; };
 		8C4692332F6F2ACB0071B6C4 /* EdyDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692302F6F2ACB0071B6C4 /* EdyDecoder.swift */; };
 		8C4692342F6F2ACB0071B6C4 /* WAONDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692312F6F2ACB0071B6C4 /* WAONDecoder.swift */; };
 		8C4692352F6F2ACB0071B6C4 /* NanacoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4692322F6F2ACB0071B6C4 /* NanacoDecoder.swift */; };
@@ -137,6 +140,9 @@
 		8C4692242F6F2ACB0071B6C4 /* CalypsoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalypsoDecoder.swift; sourceTree = "<group>"; };
 		8C4692252F6F2ACB0071B6C4 /* DateFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatting.swift; sourceTree = "<group>"; };
 		DEB060000000000000000001 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
+		AFEED0000000000000000001 /* AppFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeedback.swift; sourceTree = "<group>"; };
+		AFEED0000000000000000003 /* AirDeviceProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirDeviceProof.swift; sourceTree = "<group>"; };
+		AFEED0000000000000000005 /* AirCrashReports.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirCrashReports.swift; sourceTree = "<group>"; };
 		8C4692302F6F2ACB0071B6C4 /* EdyDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdyDecoder.swift; sourceTree = "<group>"; };
 		8C4692312F6F2ACB0071B6C4 /* WAONDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAONDecoder.swift; sourceTree = "<group>"; };
 		8C4692322F6F2ACB0071B6C4 /* NanacoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanacoDecoder.swift; sourceTree = "<group>"; };
@@ -300,6 +306,9 @@
 			children = (
 				8C4692252F6F2ACB0071B6C4 /* DateFormatting.swift */,
 				DEB060000000000000000001 /* DebugLog.swift */,
+				AFEED0000000000000000001 /* AppFeedback.swift */,
+				AFEED0000000000000000003 /* AirDeviceProof.swift */,
+				AFEED0000000000000000005 /* AirCrashReports.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -556,6 +565,9 @@
 				8C46922A2F6F2ACB0071B6C4 /* CalypsoDecoder.swift in Sources */,
 				8C46922B2F6F2ACB0071B6C4 /* DateFormatting.swift in Sources */,
 				DEB060000000000000000002 /* DebugLog.swift in Sources */,
+				AFEED0000000000000000002 /* AppFeedback.swift in Sources */,
+				AFEED0000000000000000004 /* AirDeviceProof.swift in Sources */,
+				AFEED0000000000000000006 /* AirCrashReports.swift in Sources */,
 				A00000000000000000000012 /* ContentView.swift in Sources */,
 				A0000CB5D9D53022E4B40B45 /* CalypsoProfiles.swift in Sources */,
 				1B6A2C8BF37E5CB823EB883C /* Localizer.swift in Sources */,

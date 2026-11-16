@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Map
@@ -90,6 +91,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import ad.neko.cardbal.android.data.ImportErrors
+import ad.neko.cardbal.android.data.AirCrashReports
 import ad.neko.cardbal.android.data.CardWalletRepository
 import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.DualCurrencyBalance
@@ -110,6 +112,7 @@ import ad.neko.cardbal.android.ui.CardDetailScreen
 import ad.neko.cardbal.android.ui.CardFaceLibraryScreen
 import ad.neko.cardbal.android.ui.DisplaySettings
 import ad.neko.cardbal.android.ui.DualBalanceRows
+import ad.neko.cardbal.android.ui.FeedbackScreen
 import ad.neko.cardbal.android.ui.GeneralSettings
 import ad.neko.cardbal.android.ui.MapViewportBounds
 import ad.neko.cardbal.android.ui.RideMapSurface
@@ -128,6 +131,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DebugLog.install(noBackupFilesDir)
+        // AirFeedback crash reports: a crash is saved and sent on the next launch.
+        AirCrashReports.start(this)
         DisplaySettings.load(this)
         GeneralSettings.load(this)
         val sampleWallet = BuildConfig.DEBUG && Build.HARDWARE in setOf("goldfish", "ranchu") &&
@@ -501,6 +506,11 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
         CardFaceLibraryScreen(cards = cards, onBack = { showsFaceLibrary = false })
         return
     }
+    var showsFeedback by rememberSaveable { mutableStateOf(false) }
+    if (showsFeedback) {
+        FeedbackScreen(onBack = { showsFeedback = false })
+        return
+    }
     val octopusPreferences = remember(context) { context.getSharedPreferences("octopus", 0) }
     var octopusOnlineEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusOnlineEnabled", true)) }
     var octopusCardUpdatesEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusCardUpdatesEnabled", false)) }
@@ -770,6 +780,17 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                 }
                 Text(
                     tr("Records recent scan steps on this device to help fix reading problems. It's copied only when you tap Copy, and card numbers are shortened."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
+            // AirFeedback: the message and screenshots go to the developer; crashes are sent by AirCrashReports.
+            SettingsSection(title = "Feedback") {
+                SettingsActionRow(label = "Send Feedback", icon = Icons.Filled.Feedback, enabled = true, onClick = { showsFeedback = true })
+                Text(
+                    tr("Report a problem or share an idea, with screenshots if you like. CardBal also sends crash reports automatically."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

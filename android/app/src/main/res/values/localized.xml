@@ -49,6 +49,7 @@
     <string name="text_7c135099e83ae441" formatted="false">"Abbreviated"</string>
     <string name="text_4efca0d10c5feb8e" formatted="false">"About"</string>
     <string name="text_38da1505ca837328" formatted="false">"Activity"</string>
+    <string name="text_de3d80ff815b483a" formatted="false">"Add Screenshots"</string>
     <string name="text_c416069b7f61a4a6" formatted="false">"Adjustment"</string>
     <string name="text_9f088dbebd6c3c70" formatted="false">"Advanced"</string>
     <string name="text_86f357cfb8c2c100" formatted="false">"Agency"</string>
@@ -229,6 +230,7 @@
     <string name="text_5cfd9cbdaa92a6e6" formatted="false">"Could not find your location. You can place a pin manually."</string>
     <string name="text_2a7ebd82f1352b5e" formatted="false">"Could not read any supported transit card data."</string>
     <string name="text_755efaaddf296aa8" formatted="false">"Could not send the report. Please try again."</string>
+    <string name="text_abc0e9339ef7a3fd" formatted="false">"Could not send. Check your connection and try again."</string>
     <string name="text_45ea0670c314d9f8" formatted="false">"Counter Terminal"</string>
     <string name="text_8faf7ec7ab20ca1c" formatted="false">"Countries"</string>
     <string name="text_0ab6e887eafcf2f2" formatted="false">"Country or Region"</string>
@@ -321,6 +323,7 @@
     <string name="text_3b4977332ccb8a76" formatted="false">"Fare unavailable"</string>
     <string name="text_f5768f1bdeb1266d" formatted="false">"Fare unknown"</string>
     <string name="text_2e80c60e87af7f9d" formatted="false">"FareBot source and licence"</string>
+    <string name="text_aac77df347205252" formatted="false">"Feedback"</string>
     <string name="text_386bc3a49284e3fb" formatted="false">"FeliCa"</string>
     <string name="text_96376179bf25706e" formatted="false">"FeliCa Probing"</string>
     <string name="text_3194003bd2b01f52" formatted="false">"FeliCa gate activity record layout for service `108F` (`8F10` little-endian on card I/O). Bytes `0-1` are activity/subtype, `2-3` station code, `4-5` device number, `6-7` packed date, `8-9` BCD time, `10-11` amount, `12-13` pass-boundary fare, and `14-15` pass-boundary station."</string>
@@ -514,6 +517,7 @@
     <string name="text_63d4aa174f01b637" formatted="false">"No readable transaction or transit records are stored for this card yet."</string>
     <string name="text_6e2ea637b30eadce" formatted="false">"No records found"</string>
     <string name="text_7bb03c0d47ec2b34" formatted="false">"No records in the current boundary."</string>
+    <string name="text_b4c89d4a2f255ba9" formatted="false">"No response from the server."</string>
     <string name="text_e46796d6013cdb0a" formatted="false">"No saved cards"</string>
     <string name="text_bbbe86f35431cf0c" formatted="false">"No saved transit records appear here yet."</string>
     <string name="text_d0e495e9ddaa2b9d" formatted="false">"No scans recorded yet."</string>
@@ -675,10 +679,12 @@
     <string name="text_168460c046aa8d9a" formatted="false">"Remaining Trips"</string>
     <string name="text_a04d485b0a785f3b" formatted="false">"Remove Current Photo"</string>
     <string name="text_7900f5d0b5e6d32d" formatted="false">"Remove Location"</string>
+    <string name="text_86c0f68e1ece91e2" formatted="false">"Remove Screenshot"</string>
     <string name="text_321919109abe5297" formatted="false">"Reorder Cards"</string>
     <string name="text_d7a5e29858e2acea" formatted="false">"Report Received"</string>
     <string name="text_c7c4ffaabb4ffbd8" formatted="false">"Report Station"</string>
     <string name="text_6add2e3919640d28" formatted="false">"Report Type"</string>
+    <string name="text_d1f9e80b94fcb4dc" formatted="false">"Report a problem or share an idea, with screenshots if you like. CardBal also sends crash reports automatically."</string>
     <string name="text_3b3a9b391721e85f" formatted="false">"Report or Correct a Station"</string>
     <string name="text_3385ffe6747065e4" formatted="false">"Reserved"</string>
     <string name="text_daee7606b339f3c3" formatted="false">"Reset"</string>
@@ -738,6 +744,8 @@
     <string name="text_0e9489650b188cfe" formatted="false">"Select Response"</string>
     <string name="text_c37be0f905a37335" formatted="false">"Select SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"Selected AID"</string>
+    <string name="text_f6f4688ff23d50c6" formatted="false">"Send"</string>
+    <string name="text_84195de9375af87c" formatted="false">"Send Feedback"</string>
     <string name="text_e68f0c26e71bf8c3" formatted="false">"Seoul Big Data Campus · 서울시 대중교통 및 지하철 1회권 승하차 데이터 - 지하철정보.csv (2017–2026)"</string>
     <string name="text_b142a807aaebe559" formatted="false">"Seoul Metro · 서울교통공사_역명다국어표기_20260326 (2026) · KOGL Type 1"</string>
     <string name="text_611fd636f79968db" formatted="false">"Seoul Metropolitan Government · 서울시 역사마스터 정보 (2026) · KOGL Type 1"</string>
@@ -832,10 +840,12 @@
     <string name="text_81c4aa9170a5f3e5" formatted="false">"Text Border/Shadow"</string>
     <string name="text_b152527a13d8e26c" formatted="false">"Text Contrast"</string>
     <string name="text_1d101fd9d7ecfda6" formatted="false">"Text on Card"</string>
+    <string name="text_268bc1833e83306f" formatted="false">"Thank you"</string>
     <string name="text_61efa9d2223cfd26" formatted="false">"The bundled East Asia city boundaries are missing."</string>
     <string name="text_95f1d90a021c813f" formatted="false">"The bundled East Asia city boundaries could not be read."</string>
     <string name="text_5dc672d1209d955f" formatted="false">"The bundled station database could not be loaded."</string>
     <string name="text_77385ac4880380d6" formatted="false">"The reader returned an incomplete or invalid response."</string>
+    <string name="text_eaa56ff08a5eff2d" formatted="false">"The server answered %lld."</string>
     <string name="text_7cf07d09cab8a266" formatted="false">"This backup is too large for iCloud sync. Please export a backup file."</string>
     <string name="text_82db89760ff5ab07" formatted="false">"This card does not have enough station data to draw routes yet."</string>
     <string name="text_6e4fca06cde37767" formatted="false">"This file is not a Trip Reader backup."</string>
@@ -915,6 +925,7 @@
     <string name="text_1277d7e3b357f07e" formatted="false">"Unsupported DESFire file type"</string>
     <string name="text_2afcb119e5dabf1e" formatted="false">"Unsupported card type."</string>
     <string name="text_1ed03d0fe1de1a90" formatted="false">"Unsupported city boundary data version %lld."</string>
+    <string name="text_2d3b508928a3c7a5" formatted="false">"Up to %lld images. The app version and device model are sent along."</string>
     <string name="text_14392755e2b8f597" formatted="false">"Upload technical trip records from eligible Korean cards such as T-money and EZL/Cashbee to help analyze South Korea trip record formats. Uploaded data includes a deduplication hash, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw record bytes. This uses HTTPS and can be turned off or on at any time in Settings."</string>
     <string name="text_5178b8e0315b4f04" formatted="false">"Usage Amount"</string>
     <string name="text_4e00aa111d197638" formatted="false">"Use Current Location"</string>
@@ -943,6 +954,7 @@
     <string name="text_c2aff412729ed929" formatted="false">"WAON history comes from service 680B. Each record is two 16-byte blocks; bytes 18-28 are MSB-first packed fields."</string>
     <string name="text_4e639786fed4f2e3" formatted="false">"WAON history record layout for service `680B` (`0B68` little-endian on card I/O). Bytes `0-12` are the terminal number, `13-14` are the record number, byte `17` is the transaction type, and bytes `18-28` contain MSB-first packed date, balance, usage amount, and charge amount fields."</string>
     <string name="text_f14334788e02b975" formatted="false">"Wallet stack"</string>
+    <string name="text_37d8db490c1ebf33" formatted="false">"What happened, or what would you like to see?"</string>
     <string name="text_eaf88324289db8ab" formatted="false">"What is shared?"</string>
     <string name="text_582785219fc2383e" formatted="false">"When enabled, KS X 6924 scans probe all SFIs with read-only APDUs and preserve every readable record and short-EF binary block in Raw Data. Scans take longer."</string>
     <string name="text_41c3b1fb208c5473" formatted="false">"When enabled, eligible T-money and EZL/Cashbee scans upload technical trip records for format analysis. Uploaded fields are a dedup hash of card ID plus raw bytes, a hashed card ID, the last 4 characters of the card ID, bytes 0x05-0x08, bytes 0x09-0x0A, and the full raw bytes. Uploads use HTTPS and you can disable this at any time."</string>
@@ -951,6 +963,7 @@
     <string name="text_2c1ffec46f51a7a0" formatted="false">"XX123 A456..."</string>
     <string name="text_6c48580bf8e9c9fd" formatted="false">"YYYY-MM-DD"</string>
     <string name="text_03be090ed822ff63" formatted="false">"Your cities will glow here"</string>
+    <string name="text_c6319f09953fe71b" formatted="false">"Your feedback was sent."</string>
     <string name="text_97ba7ec4cc110e0b" formatted="false">"Your location is never read automatically. Only a pin you choose is sent with this report."</string>
     <string name="text_2c81c25a819d0715" formatted="false">"Your provinces will glow here"</string>
     <string name="text_c0c919005a3207dc" formatted="false">"Your saved card photos will appear here."</string>
