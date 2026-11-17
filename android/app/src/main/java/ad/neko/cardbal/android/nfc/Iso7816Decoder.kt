@@ -91,8 +91,11 @@ class Iso7816Decoder(private val developerMode: Boolean = false) : TransitCardDe
                 records+=IsoRecordReader.records(6,30,23,"transaction",exchange)
                 records+=IsoRecordReader.records(0x10,30,23,"transaction",exchange)
                 records+=IsoRecordReader.records(7,30,16,"auxiliary",exchange)
-                records+=IsoRecordReader.records(0x11,2,16,"auxiliary",exchange)
-                records+=IsoRecordReader.records(0x14,5,16,"auxiliary",exchange).filter{it.index==4 || it.index==5}
+                // As on iPhone and in Trip Reader, read the last entry/exit records by number:
+                // an unreadable SFI 14 record 1–3 must not hide the BRT records 4 and 5.
+                records+=IsoRecordReader.records(0x11,listOf(1,2),16,"auxiliary",exchange)
+                records+=IsoRecordReader.records(0x14,listOf(4,5),16,"auxiliary",exchange)
+                records+=IsoRecordReader.records(0x10,listOf(2),16,"auxiliary",exchange)
             }
             if(family=="China T-Union") records+=IsoRecordReader.records(0x1e,30,48,"transit",exchange)
         } else if(snapper!=null) {
@@ -135,9 +138,12 @@ internal object IsoRecordReader {
             }
             if(rows.isNotEmpty()) return rows
         }
-        return recordsWithP2(sfi,20,if(sfi==3) 18 else 14,kind,exchange,0)
+        return recordsWithP2(sfi,1..20,if(sfi==3) 18 else 14,kind,exchange,0)
     }
-    fun records(sfi: Int,max: Int,minimum: Int,kind: String,exchange:(ByteArray)->ByteArray):List<TransitApplicationRecord> = recordsWithP2(sfi,max,minimum,kind,exchange,null)
+    fun records(sfi: Int,max: Int,minimum: Int,kind: String,exchange:(ByteArray)->ByteArray):List<TransitApplicationRecord> = recordsWithP2(sfi,1..max,minimum,kind,exchange,null)
+
+    /** Only the given record numbers, in order, stopping at the first unreadable one. */
+    fun records(sfi: Int,indices: List<Int>,minimum: Int,kind: String,exchange:(ByteArray)->ByteArray):List<TransitApplicationRecord> = recordsWithP2(sfi,indices,minimum,kind,exchange,null)
 
     /** Read-only probe of SFIs 1-30: records until the first unreadable one, then the first short-EF binary block. */
     fun developerBlocks(exchange: (ByteArray)->ByteArray): List<RawDataField> {
@@ -165,9 +171,9 @@ internal object IsoRecordReader {
         val warning=response.size>=2 && response[response.size-2]==0x62.toByte() && response.last()==0x82.toByte() && data.isNotEmpty()
         return if(response.isSuccess || warning) data else null
     }
-    private fun recordsWithP2(sfi: Int, max: Int, minimum: Int, kind: String, exchange: (ByteArray)->ByteArray, p2: Int?): List<TransitApplicationRecord> {
+    private fun recordsWithP2(sfi: Int, indices: Iterable<Int>, minimum: Int, kind: String, exchange: (ByteArray)->ByteArray, p2: Int?): List<TransitApplicationRecord> {
         val rows=mutableListOf<TransitApplicationRecord>()
-        for(index in 1..max) {
+        for(index in indices) {
             val data=command(byteArrayOf(0,0xb2.toByte(),index.toByte(),(p2 ?: ((sfi shl 3) or 4)).toByte(),0),exchange) ?: break
             if(data.size<minimum) continue
             if(data.all{it==0.toByte()} || data.all{it==0xff.toByte()}) continue

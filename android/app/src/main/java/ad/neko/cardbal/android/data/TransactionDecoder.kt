@@ -151,7 +151,7 @@ class TransactionDecoder(context: Context) {
                     val entry = openEntry ?: continue
                     val startCode = entry.entryStationCode ?: continue
                     val endCode = tx.exitStationCode ?: continue
-                    if (entry.sourceApplicationID != tx.sourceApplicationID) continue
+                    if (routeNetwork(card, entry) != routeNetwork(card, tx)) continue
                     candidates += RouteCandidate(tx, familyFor(card, tx), startCode, endCode)
                     openEntry = null
                 }
@@ -197,6 +197,13 @@ class TransactionDecoder(context: Context) {
     /** A combined card's records resolve with their own application, so an Octopus – China T-Union ride maps on the mainland graph. */
     private fun familyFor(card: SavedCardRecord, tx: TransitTransaction): String =
         card.applications?.firstOrNull { it.id == tx.sourceApplicationID }?.cardFamily ?: card.cardFamily
+
+    /** City Union and T-Union stations share the mainland station keys, so as on iPhone a Shanghai ride
+     *  can start in one application and end in the other. Other applications pair only with themselves. */
+    private fun routeNetwork(card: SavedCardRecord, tx: TransitTransaction): String? {
+        val application = card.applications?.firstOrNull { it.id == tx.sourceApplicationID } ?: return tx.sourceApplicationID
+        return if (application.isTUnion || application.isCityUnion) "mainland" else application.id
+    }
 
     private fun isTUnionFamily(family: String) = family.lowercase().let { "union" in it || "china" in it }
 

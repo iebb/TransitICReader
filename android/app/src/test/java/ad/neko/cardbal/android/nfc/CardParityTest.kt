@@ -68,6 +68,13 @@ class CardParityTest {
         }
         assertEquals(listOf(1,3),result.map{it.index})
     }
+    @Test fun numberedRecordsSkipUnreadableEarlierSlots() {
+        val result=IsoRecordReader.records(0x14,listOf(4,5),16,"auxiliary") { command ->
+            if(command[2]>3) ByteArray(16){command[2]}+byteArrayOf(0x90.toByte(),0) else byteArrayOf(0x6a,0x83.toByte())
+        }
+        assertEquals(listOf(4,5),result.map{it.index})
+        assertTrue(result.all{it.sfi==0x14 && it.kind=="auxiliary"})
+    }
     @Test fun geohashDecoderMatchesSharedFixtureAndDijkstraUsesDistance() {
         val fixture=Json.parseToJsonElement(javaClass.classLoader!!.getResourceAsStream("geohash_paths.json")!!.bufferedReader().readText()).jsonObject
         val points=TransitGeometry.decodePath(fixture.getValue("encoded").jsonPrimitive.content)!!
