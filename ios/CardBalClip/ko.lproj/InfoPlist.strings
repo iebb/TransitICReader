@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "CardBal";
+"CFBundleSpokenName" = "카드 잔액";
+"NFCReaderUsageDescription" = "지원하는 교통카드를 스캔하여 카드 식별자와 저장된 잔액을 표시합니다.";

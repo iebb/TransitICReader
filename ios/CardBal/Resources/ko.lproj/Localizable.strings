@@ -1133,3 +1133,45 @@
 "Last Ticket Event" = "마지막 이용";
 "Route" = "노선";
 "Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again." = "Android가 이 파일에 대한 CardBal의 접근을 허용하지 않았습니다. 파일 선택기에서 다운로드나 최근 항목 대신 내장 메모리 › Download에서 열거나, 내 파일에서 파일을 옮긴 뒤 다시 시도하세요.";
+
+"CardBal" = "CardBal";
+
+"Check your transit card" = "교통카드 확인";
+
+"Scan a supported card to see the balance and recent transactions it can share." = "지원 카드를 스캔해 읽을 수 있는 잔액과 최근 거래를 확인하세요.";
+
+"Supported Cards" = "지원 카드";
+
+"Reading card…" = "카드를 읽는 중…";
+
+"Card Details" = "카드 정보";
+
+"On-card Balance" = "카드 내 잔액";
+
+"Scan Another Card" = "다른 카드 스캔";
+
+"Get CardBal" = "CardBal 받기";
+
+"Save your cards in the full app." = "전체 앱에서 카드를 저장할 수 있습니다.";
+
+"Couldn't Read Card" = "카드를 읽지 못했습니다";
+
+"Hold the card near the top of your iPhone and try again." = "카드를 iPhone 상단에 가까이 대고 다시 시도하세요.";
+
+"Card Not Supported" = "지원하지 않는 카드";
+
+"This App Clip can't read this card." = "이 앱 클립에서는 이 카드를 읽을 수 없습니다.";
+
+"Scan Interrupted" = "스캔이 중단되었습니다";
+
+"Keep the card near the top of your iPhone until the scan finishes." = "스캔이 끝날 때까지 카드를 iPhone 상단에 가까이 대고 있으세요.";
+
+"Scanning Unavailable" = "스캔할 수 없습니다";
+
+"Card scanning isn't available right now. Try again later." = "지금은 카드를 스캔할 수 없습니다. 나중에 다시 시도하세요.";
+
+"Try Again" = "다시 시도";
+
+"Demo — no card was scanned" = "데모 — 카드를 스캔하지 않았습니다";
+
+"Suica · PASMO · ICOCA · T-money · EZL · China T-Union · CEPAS · Macau Pass" = "Suica · PASMO · ICOCA · T-money · EZL · 중국 교통연합 · CEPAS · 마카오패스";

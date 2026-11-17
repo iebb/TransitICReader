@@ -796,10 +796,8 @@ class MacauPassTests(unittest.TestCase):
             utils.index("func formatCurrency("):utils.index("func formatUTF8OrHex")
         ]
         saved = (ROOT / "ios/CardBal/Models/SavedCardRecord.swift").read_text()
-        models += saved[
-            saved.index("struct SavedCardField:"):saved.index("struct SavedCardColor:")
-        ]
-        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text()
+        models += (ROOT / "ios/CardBal/Models/ScanResultField.swift").read_text().replace("import Foundation", "")
+        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text().replace("#if !APPCLIP\n", "").replace("#endif\n", "")
         # Keep real application records, composition, persistence, and history
         # decoding, excluding the extension that depends on the full UI wallet.
         models += applications[:applications.index("extension SavedCardRecord {")]

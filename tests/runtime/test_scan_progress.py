@@ -59,7 +59,7 @@ class ScanProgressTests(unittest.TestCase):
     def test_reader_binds_progress_and_ends_with_card_read(self):
         reader = (ROOT / "ios/CardBal/NFC/NFCTransitReader.swift").read_text()
         self.assertIn("ScanProgress.$current.withValue(progress) {\n"
-                      "                            try await decoder.decode(tag: cardTag, scannedAt: Date())", reader)
+                      "                                try await decoder.decode(tag: cardTag, scannedAt: Date())", reader)
         self.assertIn("ScanProgress.$current.withValue(progress) {\n"
                       "                        try await self.externalReader.scan(", reader)
         self.assertIn("progress.report(.finishing)\n                    self.accept(snapshot, session: session)", reader)

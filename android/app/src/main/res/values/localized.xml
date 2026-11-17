@@ -139,6 +139,7 @@
     <string name="text_47da48edbccd893b" formatted="false">"Card Activation"</string>
     <string name="text_02203cd02fe512e7" formatted="false">"Card Applications"</string>
     <string name="text_1e391240c3556325" formatted="false">"Card Color"</string>
+    <string name="text_e846f49c1022b4eb" formatted="false">"Card Details"</string>
     <string name="text_df20cc445f6b44e3" formatted="false">"Card Face"</string>
     <string name="text_dd2959d28ce3c1bb" formatted="false">"Card Face Source"</string>
     <string name="text_e78492f0f93cb24d" formatted="false">"Card Faces"</string>
@@ -148,6 +149,7 @@
     <string name="text_632fed0b47d3a4aa" formatted="false">"Card Info SFI 0x15"</string>
     <string name="text_3cdc15f8764594f4" formatted="false">"Card Information"</string>
     <string name="text_9a26554939ffb80f" formatted="false">"Card Issuer's Time Zone"</string>
+    <string name="text_0b1d4131ac549a2a" formatted="false">"Card Not Supported"</string>
     <string name="text_4566e068a215629e" formatted="false">"Card Number"</string>
     <string name="text_7dd1dc97294609cc" formatted="false">"Card Preview"</string>
     <string name="text_22e7d513254443c5" formatted="false">"Card Re-issuance"</string>
@@ -163,6 +165,8 @@
     <string name="text_20bfc99b5bf1f74f" formatted="false">"Card found. Reading…"</string>
     <string name="text_00e31d238f2eceed" formatted="false">"Card ordering"</string>
     <string name="text_d2de6f1c666f157e" formatted="false">"Card read."</string>
+    <string name="text_91ae480766efe689" formatted="false">"Card scanning isn't available right now. Try again later."</string>
+    <string name="text_ce2b2cac87103850" formatted="false">"CardBal"</string>
     <string name="text_0ecd2e5adad08ae0" formatted="false">"CardBal backup exported"</string>
     <string name="text_5cef14dba2374bc6" formatted="false">"CardBal corpus geometry inference"</string>
     <string name="text_b409eea03cff96fc" formatted="false">"CardBal is an unofficial reader for transit cards. It does not use official APIs for ticketing."</string>
@@ -174,6 +178,7 @@
     <string name="text_f733012fdfc79e1c" formatted="false">"Charge Amount"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"Check Online"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private."</string>
+    <string name="text_f007f43b2b65ac1e" formatted="false">"Check your transit card"</string>
     <string name="text_2b1c4b424ab89ed3" formatted="false">"Checking Octopus online… Keep the card in place."</string>
     <string name="text_2e5f79bb94a8c40b" formatted="false">"Checking..."</string>
     <string name="text_10436829032f361a" formatted="false">"China"</string>
@@ -232,6 +237,7 @@
     <string name="text_2a7ebd82f1352b5e" formatted="false">"Could not read any supported transit card data."</string>
     <string name="text_755efaaddf296aa8" formatted="false">"Could not send the report. Please try again."</string>
     <string name="text_abc0e9339ef7a3fd" formatted="false">"Could not send. Check your connection and try again."</string>
+    <string name="text_0b310a5342e6847a" formatted="false">"Couldn't Read Card"</string>
     <string name="text_45ea0670c314d9f8" formatted="false">"Counter Terminal"</string>
     <string name="text_8faf7ec7ab20ca1c" formatted="false">"Countries"</string>
     <string name="text_0ab6e887eafcf2f2" formatted="false">"Country or Region"</string>
@@ -258,6 +264,7 @@
     <string name="text_e2d0a54968ead24e" formatted="false">"Delete"</string>
     <string name="text_48f85536038b050d" formatted="false">"Delete Card"</string>
     <string name="text_9f14587451c13abc" formatted="false">"Delete Card?"</string>
+    <string name="text_7fbc8646450aba3a" formatted="false">"Demo — no card was scanned"</string>
     <string name="text_2fbb5864e74f8775" formatted="false">"Deposit Machine"</string>
     <string name="text_9a6c688942fe0d79" formatted="false">"Design Type"</string>
     <string name="text_45989de49fb7f66d" formatted="false">"Details"</string>
@@ -347,6 +354,7 @@
     <string name="text_51a7a953fdbf4618" formatted="false">"Gate Terminal"</string>
     <string name="text_4f764d9d407d71b0" formatted="false">"Gate Time"</string>
     <string name="text_9fb48e1290ddf499" formatted="false">"Gate activity services 108F/10CB store station, device, date, BCD time, fare/pass fields, and pass station hints."</string>
+    <string name="text_3585f9c3e52d24d4" formatted="false">"Get CardBal"</string>
     <string name="text_f911e414cf6bdfc5" formatted="false">"GitHub"</string>
     <string name="text_0e33d576fe774823" formatted="false">"Goods Purchase"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"Graphite"</string>
@@ -363,6 +371,7 @@
     <string name="text_6ddca9828b64c02f" formatted="false">"Hold a supported card to the top of your iPhone to read its balance, history and details."</string>
     <string name="text_184674f86dc96674" formatted="false">"Hold card at the back top of the phone"</string>
     <string name="text_e0940e59d0b5694d" formatted="false">"Hold the card flat against the top of your iPhone"</string>
+    <string name="text_ac19016881ca8d0f" formatted="false">"Hold the card near the top of your iPhone and try again."</string>
     <string name="text_873f8128a4c07ad5" formatted="false">"Hold the card near the top of your iPhone."</string>
     <string name="text_ac7e6b7c827b3cc0" formatted="false">"Hold your iPhone near a transit card."</string>
     <string name="text_0abba441f16eff90" formatted="false">"Horizontal"</string>
@@ -419,6 +428,7 @@
     <string name="text_025b1d6221639f21" formatted="false">"KOTRIS taxi transport class"</string>
     <string name="text_fc59bc9738378134" formatted="false">"Keep card steady until scan finishes"</string>
     <string name="text_77e806fa5cbb0ea6" formatted="false">"Keep it still until the scan finishes"</string>
+    <string name="text_b6849cab60f9cb2b" formatted="false">"Keep the card near the top of your iPhone until the scan finishes."</string>
     <string name="text_720a628db9cc7d68" formatted="false">"Keep the same card near your iPhone while reading finishes."</string>
     <string name="text_bf04cb80717dd293" formatted="false">"Key Version"</string>
     <string name="text_17a2bfe78e03b1c1" formatted="false">"Korea"</string>
@@ -540,6 +550,7 @@
     <string name="text_58ddaeaeb2498986" formatted="false">"Older DESFire generation; newer Clipper generations are not decoded"</string>
     <string name="text_130011756125313c" formatted="false">"On"</string>
     <string name="text_04f88689ae558b3c" formatted="false">"On-board Terminal"</string>
+    <string name="text_7eb3197c836659b8" formatted="false">"On-card Balance"</string>
     <string name="text_062f4509ebcfdeec" formatted="false">"On-card records read"</string>
     <string name="text_492fc2920e59d721" formatted="false">"On-card stored-value purse only. SimplyGo account balances are not read."</string>
     <string name="text_37d365f00b8fda8b" formatted="false">"Online Enquiry"</string>
@@ -651,6 +662,7 @@
     <string name="text_43ab56f7b701df24" formatted="false">"Reading card details…"</string>
     <string name="text_c03e917604df7a78" formatted="false">"Reading card on external reader…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"Reading card..."</string>
+    <string name="text_36beca142c62d908" formatted="false">"Reading card…"</string>
     <string name="text_668570fc07fbd43b" formatted="false">"Reading transactions (%lld of %lld)…"</string>
     <string name="text_c7b7c8add23db536" formatted="false">"Reading transactions…"</string>
     <string name="text_e3a4d62b241ef756" formatted="false">"Reading transit activity…"</string>
@@ -718,18 +730,22 @@
     <string name="text_1d423832b8a3cfef" formatted="false">"Sales Terminal"</string>
     <string name="text_1509f561f2416598" formatted="false">"Save"</string>
     <string name="text_315acc9aa091b988" formatted="false">"Save as Card Face"</string>
+    <string name="text_405449aea48cf283" formatted="false">"Save your cards in the full app."</string>
     <string name="text_ba74fb2cebc400a5" formatted="false">"Saved Designs"</string>
     <string name="text_7c3f52bbe988e237" formatted="false">"Saved Photos"</string>
     <string name="text_ea1c510d1ddb7264" formatted="false">"Scan"</string>
+    <string name="text_9b27fd44c583c5c1" formatted="false">"Scan Another Card"</string>
     <string name="text_b60b5bc57d6ec318" formatted="false">"Scan Card"</string>
     <string name="text_a48b9cef583f1c89" formatted="false">"Scan Card Number"</string>
     <string name="text_1db3703abdee3f5f" formatted="false">"Scan Card S/N"</string>
+    <string name="text_46e2873f71a31f3e" formatted="false">"Scan Interrupted"</string>
     <string name="text_f618493ef44d0cae" formatted="false">"Scan Your Transit Card"</string>
     <string name="text_4eb1ff33564e1485" formatted="false">"Scan a Card"</string>
     <string name="text_0ec114c2192ee91f" formatted="false">"Scan a card to add it to your wallet."</string>
     <string name="text_13037be9c3b6864a" formatted="false">"Scan a physical card once and it will appear here."</string>
     <string name="text_858276500040a039" formatted="false">"Scan a supported Chinese, Japanese, or Korean transit card."</string>
     <string name="text_76253f6f76871e6e" formatted="false">"Scan a supported Chinese, Japanese, or Korean transit card. Cities are added only when a saved record has a reliable location match."</string>
+    <string name="text_3105936379fc7e31" formatted="false">"Scan a supported card to see the balance and recent transactions it can share."</string>
     <string name="text_8af22052bec2ad20" formatted="false">"Scan a supported transit card."</string>
     <string name="text_09db9f86568d2269" formatted="false">"Scan action"</string>
     <string name="text_cc6b212aedc7d034" formatted="false">"Scan cancelled."</string>
@@ -739,6 +755,7 @@
     <string name="text_e9b3b6cd499aaf35" formatted="false">"Scanned"</string>
     <string name="text_96e1ed9fb5d455d2" formatted="false">"Scanned %@"</string>
     <string name="text_da7cd572110f37d0" formatted="false">"Scanning Card..."</string>
+    <string name="text_2614973765bebff6" formatted="false">"Scanning Unavailable"</string>
     <string name="text_60a5547e248dea0b" formatted="false">"Scans are stored on this device."</string>
     <string name="text_c4b407ae351ef63b" formatted="false">"Season pass"</string>
     <string name="text_0e9489650b188cfe" formatted="false">"Select Response"</string>
@@ -805,8 +822,10 @@
     <string name="text_14773817bcf0cbbf" formatted="false">"Sub Type"</string>
     <string name="text_e7e72948c5d52dc6" formatted="false">"Submit Report"</string>
     <string name="text_a26e25c373b284ff" formatted="false">"Subtype"</string>
+    <string name="text_e3f63f7122765f73" formatted="false">"Suica · PASMO · ICOCA · T-money · EZL · China T-Union · CEPAS · Macau Pass"</string>
     <string name="text_9c7c53e80a4e74d5" formatted="false">"Sunrise"</string>
     <string name="text_be91940b79f46910" formatted="false">"Support"</string>
+    <string name="text_74d37d0f103c98db" formatted="false">"Supported Cards"</string>
     <string name="text_6e76482a798809e2" formatted="false">"Symbol Color"</string>
     <string name="text_6725e7bbcd28f3a8" formatted="false">"System"</string>
     <string name="text_28aea8ec6a8da60a" formatted="false">"System Code"</string>
@@ -846,6 +865,7 @@
     <string name="text_5dc672d1209d955f" formatted="false">"The bundled station database could not be loaded."</string>
     <string name="text_77385ac4880380d6" formatted="false">"The reader returned an incomplete or invalid response."</string>
     <string name="text_eaa56ff08a5eff2d" formatted="false">"The server answered %lld."</string>
+    <string name="text_1c46130b5c82e0cb" formatted="false">"This App Clip can't read this card."</string>
     <string name="text_7cf07d09cab8a266" formatted="false">"This backup is too large for iCloud sync. Please export a backup file."</string>
     <string name="text_82db89760ff5ab07" formatted="false">"This card does not have enough station data to draw routes yet."</string>
     <string name="text_6e4fca06cde37767" formatted="false">"This file is not a Trip Reader backup."</string>
@@ -901,6 +921,7 @@
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"Trips"</string>
     <string name="text_36ad6bc8245efca9" formatted="false">"Trips Remaining"</string>
     <string name="text_c3af076f92c5ed8d" formatted="false">"Troubleshooting"</string>
+    <string name="text_df0fe9e00d354b01" formatted="false">"Try Again"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"Type"</string>
     <string name="text_b7af865b39a1bfb3" formatted="false">"Unable to Use Photo"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"Unable to load development samples"</string>

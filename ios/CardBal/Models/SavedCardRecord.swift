@@ -1,22 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct SavedCardField: Codable, Hashable, Identifiable {
-    let id: String
-    let title: String
-    let value: String
-
-    init(title: String, value: String) {
-        self.id = "\(title)|\(value)"
-        self.title = title
-        self.value = value
-    }
-
-    init(_ field: ResultField) {
-        self.init(title: field.title, value: field.value)
-    }
-}
-
 struct SavedCardColor: Codable, Hashable {
     var red: Double
     var green: Double

@@ -7,7 +7,9 @@ struct KSX6924Decoder: TransitCardDecoder {
         let aid = iso.initialSelectedAID.uppercased()
         let can = aid.hasPrefix("A0000000014B4F52") || aid == "A0000004520001" || aid.hasPrefix("D4100000") || aid.hasPrefix("D41065")
         let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
+        #if !APPCLIP
         logger.error("[KSX6924] canDecode evaluation: AID=\(aid, privacy: .public), Result=\(can ? 1 : 0)")
+        #endif
         return can
     }
 
@@ -16,12 +18,18 @@ struct KSX6924Decoder: TransitCardDecoder {
         let selectedAID = iso.initialSelectedAID.uppercased()
         
         let logger = os.Logger(subsystem: "ad.neko.cardbal", category: "KSX6924")
+        #if !APPCLIP
         logger.error("[KSX6924] Starting decode for AID: \(selectedAID, privacy: .public)")
+        #endif
         
         let selectApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: selectedAID), expectedResponseLength: 256)
+        #if !APPCLIP
         logger.error("[KSX6924_APDU] TX Select AID: \(selectedAID, privacy: .public)")
+        #endif
         let initialResponse = try await iso.sendCommand(apdu: selectApdu)
+        #if !APPCLIP
         logger.error("[KSX6924_APDU] RX Select AID: SW=\(String(format: "%02X%02X", initialResponse.1, initialResponse.2)), Data=\(initialResponse.0.hexString)")
+        #endif
         
         let initialSelectResponse = CardResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
         guard initialResponse.1 == 0x90, initialResponse.2 == 0 else { throw NFCTestError.unsupportedCard }
@@ -32,18 +40,26 @@ struct KSX6924Decoder: TransitCardDecoder {
         
         if applicationAID != selectedAID {
             let selectApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xA4, p1Parameter: 0x04, p2Parameter: 0x00, data: Data(hexString: applicationAID), expectedResponseLength: 256)
+        #if !APPCLIP
             logger.error("[KSX6924_APDU] TX Select App AID: \(applicationAID, privacy: .public)")
+        #endif
             let res = try await iso.sendCommand(apdu: selectApdu)
+        #if !APPCLIP
             logger.error("[KSX6924_APDU] RX Select App AID: SW=\(String(format: "%02X%02X", res.1, res.2)), Data=\(res.0.hexString)")
+        #endif
             guard res.1 == 0x90, res.2 == 0 else { throw NFCTestError.unsupportedCard }
             applicationFCI = res.0
         }
         
         ScanProgress.report(.balance)
         let balanceApdu = CardAPDU(instructionClass: 0x90, instructionCode: 0x4C, p1Parameter: 0x00, p2Parameter: 0x00, data: Data(), expectedResponseLength: 4)
+        #if !APPCLIP
         logger.error("[KSX6924_APDU] TX Get Balance")
+        #endif
         let balanceResponse = try await iso.sendCommand(apdu: balanceApdu)
+        #if !APPCLIP
         logger.error("[KSX6924_APDU] RX Get Balance: SW=\(String(format: "%02X%02X", balanceResponse.1, balanceResponse.2)), Data=\(balanceResponse.0.hexString)")
+        #endif
         guard balanceResponse.1 == 0x90, balanceResponse.2 == 0, balanceResponse.0.count == 4 else {
             throw NFCTestError.unsupportedCard
         }
@@ -54,10 +70,14 @@ struct KSX6924Decoder: TransitCardDecoder {
         
         ScanProgress.report(.details)
         let infoApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: 0x01, p2Parameter: 0x0C, data: Data(), expectedResponseLength: 256)
+        #if !APPCLIP
         logger.error("[KSX6924_APDU] TX Get Info (P1:01, P2:0C)")
+        #endif
         let infoResponse = try? await iso.sendCommand(apdu: infoApdu)
         if let infoRes = infoResponse {
+        #if !APPCLIP
             logger.error("[KSX6924_APDU] RX Get Info: SW=\(String(format: "%02X%02X", infoRes.1, infoRes.2)), Data=\(infoRes.0.hexString)")
+        #endif
         }
 
         let purseRecordResponse = await readRecord(
@@ -78,7 +98,11 @@ struct KSX6924Decoder: TransitCardDecoder {
             cardNumber: parsedCardInfo.cardNumber,
             issuerID: purseInfo?.issuerID
         )
-        let developerModeEnabled = UserDefaults.standard.bool(forKey: DeveloperModePreferences.enabledKey)
+        #if APPCLIP
+        let developerModeEnabled = false
+        #else
+        let developerModeEnabled = !CardReadPolicy.localOnly && UserDefaults.standard.bool(forKey: DeveloperModePreferences.enabledKey)
+        #endif
         let parsedBalance = isUMoney
             ? ksx6924BalanceParser(data: balanceResponse.0, currencyCode: "MNT")
             : profile.parseBalance(balanceResponse.0)
@@ -88,7 +112,9 @@ struct KSX6924Decoder: TransitCardDecoder {
         let isNAMANE = profile.displayName == "NAMANE"
         
         for sfi in profile.targetSFIs {
+        #if !APPCLIP
             logger.error("[KSX6924] Target SFI for \(profile.displayName): \(sfi)")
+        #endif
             // SFIs 1-3 hold transit activity; the others hold transactions.
             ScanProgress.report((1...3).contains(sfi) ? .activity : .transactions)
             
@@ -100,9 +126,13 @@ struct KSX6924Decoder: TransitCardDecoder {
                 for i in 1...20 {
                     let le = 256
                     let recApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB2, p1Parameter: UInt8(i), p2Parameter: p2, data: Data(), expectedResponseLength: le)
+        #if !APPCLIP
                     logger.error("[KSX6924_APDU] TX Read Record SFI:\(sfi) P2:\(String(format: "%02X", p2)) Rec:\(i)")
+        #endif
                     guard var res = try? await iso.sendCommand(apdu: recApdu) else { break }
+        #if !APPCLIP
                     logger.error("[KSX6924_APDU] RX Read Record: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
+        #endif
                     
                     if res.1 == 0x6C {
                         let newLe = Int(res.2)
@@ -121,9 +151,13 @@ struct KSX6924Decoder: TransitCardDecoder {
                 
                 if !foundViaRecord && p2 != 0x00 {
                     let binApdu = CardAPDU(instructionClass: 0x00, instructionCode: 0xB0, p1Parameter: sfi | 0x80, p2Parameter: 0x00, data: Data(), expectedResponseLength: 256)
+        #if !APPCLIP
                     logger.error("[KSX6924_APDU] TX Read Binary SFI:\(sfi)")
+        #endif
                     if let res = try? await iso.sendCommand(apdu: binApdu) {
+        #if !APPCLIP
                         logger.error("[KSX6924_APDU] RX Read Binary: SW=\(String(format: "%02X%02X", res.1, res.2)), DataLen=\(res.0.count)")
+        #endif
                         if res.1 == 0x90, res.2 == 0x00, res.0.count >= 32 {
                             let strideLen = (sfi == 3) ? 52 : (isNAMANE ? 14 : 40)
                             for i in 0..<(res.0.count / strideLen) {
@@ -143,7 +177,9 @@ struct KSX6924Decoder: TransitCardDecoder {
                     } else {
                         transactions.append(contentsOf: tempRaw)
                     }
+        #if !APPCLIP
                     logger.error("[KSX6924] SUCCESS: Found \(tempRaw.count) raw blocks in SFI \(sfi)")
+        #endif
                     break
                 }
             }
@@ -298,7 +334,9 @@ struct KSX6924Decoder: TransitCardDecoder {
             }
         }
 
+        #if !APPCLIP
         logger.error("[KSX6924_DEV] Captured \(blocks.count) readable blocks across SFIs 1-30")
+        #endif
         return blocks
     }
 
@@ -457,7 +495,9 @@ struct KSX6924Decoder: TransitCardDecoder {
     }
 
     static func parseTransitHistory(_ block: Data, sfi: UInt8, recordIndex: Int, brand: ICCardBrand, logger: os.Logger) -> TransitTransaction? {
+        #if !APPCLIP
         logger.error("[KSX6924_TH] Parsing Record \(recordIndex) from SFI \(sfi): \(block.hexString)")
+        #endif
         if block.allSatisfy({ $0 == 0x00 }) || block.allSatisfy({ $0 == 0xFF }) { 
             return nil 
         }

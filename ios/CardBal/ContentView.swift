@@ -198,6 +198,9 @@ struct ContentView: View {
                 }
                 .tag(4)
         }
+        .onReceive(QuickScanRoute.shared.$isPresented) { presented in
+            if presented { reader.cancelScanning() }
+        }
         .modifier(AdaptiveTabPlacement())
         .tint(Color.accentColor)
         .onChange(of: reader.latestSnapshot?.id) { _ in
@@ -321,9 +324,11 @@ struct ScanHomeView: View {
                 guard !didAutoStartScan else { return }
                 didAutoStartScan = true
                 guard scanOnLaunch else { return }
+                guard !QuickScanRoute.shared.isPresented else { return }
                 guard reader.isNFCAvailable else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     guard scanOnLaunch else { return }
+                    guard !QuickScanRoute.shared.isPresented else { return }
                     guard reader.isNFCAvailable else { return }
                     reader.startScanning()
                 } 

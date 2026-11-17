@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "CardBal";
+"CFBundleSpokenName" = "カード残高";
+"NFCReaderUsageDescription" = "対応する交通系ICカードをスキャンして、カード識別子と保存された残高を表示します。";

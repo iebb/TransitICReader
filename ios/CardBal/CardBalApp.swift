@@ -5,6 +5,7 @@ import FirebaseAnalytics
 
 @main
 struct CardBalApp: App {
+    @StateObject private var quickScan = QuickScanRoute.shared
     init() {
         // AirFeedback crash reports: MetricKit hands a crash to a later launch,
         // which sends it (queued on disk when offline).
@@ -37,6 +38,22 @@ struct CardBalApp: App {
         WindowGroup {
             ContentView()
                 .tint(.primary)
+                .sheet(isPresented: $quickScan.isPresented) {
+                    QuickScanView()
+                        .toolbar { ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { quickScan.isPresented = false }
+                        } }
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    quickScan.receive(activity.webpageURL)
+                }
+                .onAppear {
+                    #if DEBUG
+                    if let value = ProcessInfo.processInfo.environment["_XCAppClipURL"] {
+                        quickScan.receive(URL(string: value))
+                    }
+                    #endif
+                }
         }
     }
 }

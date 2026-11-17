@@ -518,6 +518,7 @@ enum NFCISO7816AccessPolicy {
 
 // Helpers moved to end of file
 
+#if !APPCLIP
 struct TransitTransactionRow: View {
     let tx: TransitTransaction
     let cardFamily: String?
@@ -1545,6 +1546,8 @@ private struct TUnionTravelRecordDetails {
 
 // formatFeliCaIDm moved to end of file
 
+#endif
+
 extension Data {
     var hexString: String { map { String(format: "%02X", $0) }.joined() }
     
@@ -1716,6 +1719,7 @@ func formatFeliCaIDi(_ data: Data) -> String {
     return "\(issuer)\(remainder)\(datePart)\(tail)"
 }
 
+#if !APPCLIP
 struct CardRawDataHighlightView: View {
     let raw: String
     var tx: TransitTransaction? = nil
@@ -1892,3 +1896,5 @@ struct CardRawDataHighlightView: View {
         return []
     }
 }
+
+#endif

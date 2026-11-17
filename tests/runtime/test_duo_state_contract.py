@@ -25,12 +25,14 @@ class DuoStateContractTests(unittest.TestCase):
 
     def test_minimum_os_and_phone_scope_are_not_raised(self):
         project = (ROOT / "CardBal.xcodeproj/project.pbxproj").read_text()
-        targets = re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", project)
+        full_app_settings = "\n".join(settings for settings in re.findall(r"buildSettings = \{(.*?)\};", project, re.S)
+                                      if "PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;" in settings)
+        targets = re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", full_app_settings)
         self.assertTrue(targets)
         self.assertEqual(set(targets), {"16.0"})
         # 2.5.0 itself added iPad (and its multitasking orientations); the Duo
         # work leaves the device family exactly as the release defines it.
-        self.assertEqual(set(re.findall(r"TARGETED_DEVICE_FAMILY = ([^;]+);", project)), {'"1,2"'})
+        self.assertEqual(set(re.findall(r"TARGETED_DEVICE_FAMILY = ([^;]+);", full_app_settings)), {'"1,2"'})
 
     def test_no_global_device_geometry_added(self):
         forbidden = re.compile(r"UIScreen\s*\.\s*main|UIDevice\s*\.\s*current\s*\.\s*userInterfaceIdiom|UIApplication\s*\.\s*shared\s*\.\s*(?:windows|connectedScenes)")

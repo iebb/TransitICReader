@@ -139,6 +139,7 @@
     <string name="text_47da48edbccd893b" formatted="false">"卡片激活"</string>
     <string name="text_02203cd02fe512e7" formatted="false">"卡片应用"</string>
     <string name="text_1e391240c3556325" formatted="false">"卡片颜色"</string>
+    <string name="text_e846f49c1022b4eb" formatted="false">"卡片详情"</string>
     <string name="text_df20cc445f6b44e3" formatted="false">"卡面"</string>
     <string name="text_dd2959d28ce3c1bb" formatted="false">"卡面来源"</string>
     <string name="text_e78492f0f93cb24d" formatted="false">"卡面"</string>
@@ -148,6 +149,7 @@
     <string name="text_632fed0b47d3a4aa" formatted="false">"卡片信息 SFI 0x15"</string>
     <string name="text_3cdc15f8764594f4" formatted="false">"卡片信息"</string>
     <string name="text_9a26554939ffb80f" formatted="false">"发卡方时区"</string>
+    <string name="text_0b1d4131ac549a2a" formatted="false">"不支持此卡片"</string>
     <string name="text_4566e068a215629e" formatted="false">"卡号"</string>
     <string name="text_7dd1dc97294609cc" formatted="false">"卡片预览"</string>
     <string name="text_22e7d513254443c5" formatted="false">"补发卡片"</string>
@@ -163,6 +165,8 @@
     <string name="text_20bfc99b5bf1f74f" formatted="false">"已找到卡片，正在读取…"</string>
     <string name="text_00e31d238f2eceed" formatted="false">"卡片排序"</string>
     <string name="text_d2de6f1c666f157e" formatted="false">"读取完成。"</string>
+    <string name="text_91ae480766efe689" formatted="false">"当前无法扫描卡片，请稍后重试。"</string>
+    <string name="text_ce2b2cac87103850" formatted="false">"CardBal"</string>
     <string name="text_0ecd2e5adad08ae0" formatted="false">"CardBal 备份已导出"</string>
     <string name="text_5cef14dba2374bc6" formatted="false">"CardBal 样本几何推断"</string>
     <string name="text_b409eea03cff96fc" formatted="false">"CardBal 是一个非官方交通卡读取器，不使用官方票务 API。"</string>
@@ -174,6 +178,7 @@
     <string name="text_f733012fdfc79e1c" formatted="false">"充值金额"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"在线查询"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"提交前请核对自动填入的代码。车站信息会显示在公开列表中；卡 ID 和设备 ID 不会公开。"</string>
+    <string name="text_f007f43b2b65ac1e" formatted="false">"查看交通卡"</string>
     <string name="text_2b1c4b424ab89ed3" formatted="false">"正在在线查询八达通…请勿移动卡片。"</string>
     <string name="text_2e5f79bb94a8c40b" formatted="false">"正在查询…"</string>
     <string name="text_10436829032f361a" formatted="false">"中国"</string>
@@ -232,6 +237,7 @@
     <string name="text_2a7ebd82f1352b5e" formatted="false">"未能读取到支持的交通卡数据。"</string>
     <string name="text_755efaaddf296aa8" formatted="false">"报告发送失败，请重试。"</string>
     <string name="text_abc0e9339ef7a3fd" formatted="false">"无法发送。请检查网络连接后重试。"</string>
+    <string name="text_0b310a5342e6847a" formatted="false">"未能读取卡片"</string>
     <string name="text_45ea0670c314d9f8" formatted="false">"柜台终端"</string>
     <string name="text_8faf7ec7ab20ca1c" formatted="false">"国家和地区"</string>
     <string name="text_0ab6e887eafcf2f2" formatted="false">"国家或地区"</string>
@@ -258,6 +264,7 @@
     <string name="text_e2d0a54968ead24e" formatted="false">"删除"</string>
     <string name="text_48f85536038b050d" formatted="false">"删除卡片"</string>
     <string name="text_9f14587451c13abc" formatted="false">"要删除卡片吗？"</string>
+    <string name="text_7fbc8646450aba3a" formatted="false">"演示 — 未扫描卡片"</string>
     <string name="text_2fbb5864e74f8775" formatted="false">"充值机"</string>
     <string name="text_9a6c688942fe0d79" formatted="false">"设计类型"</string>
     <string name="text_45989de49fb7f66d" formatted="false">"详情"</string>
@@ -347,6 +354,7 @@
     <string name="text_51a7a953fdbf4618" formatted="false">"闸机终端"</string>
     <string name="text_4f764d9d407d71b0" formatted="false">"闸机时间"</string>
     <string name="text_9fb48e1290ddf499" formatted="false">"闸机活动服务 108F/10CB 保存车站、设备、日期、BCD 时间、票价／定期券字段及定期区间车站提示。"</string>
+    <string name="text_3585f9c3e52d24d4" formatted="false">"获取 CardBal"</string>
     <string name="text_f911e414cf6bdfc5" formatted="false">"GitHub"</string>
     <string name="text_0e33d576fe774823" formatted="false">"购物"</string>
     <string name="text_1d261a8554d2da69" formatted="false">"石墨色"</string>
@@ -363,6 +371,7 @@
     <string name="text_6ddca9828b64c02f" formatted="false">"将支持的卡片靠近 iPhone 顶部，即可读取余额、记录与卡片详情。"</string>
     <string name="text_184674f86dc96674" formatted="false">"将卡片贴近手机背面上方"</string>
     <string name="text_e0940e59d0b5694d" formatted="false">"将卡片平贴在 iPhone 顶部"</string>
+    <string name="text_ac19016881ca8d0f" formatted="false">"请将卡片靠近 iPhone 顶部，然后重试。"</string>
     <string name="text_873f8128a4c07ad5" formatted="false">"请将卡片靠近 iPhone 顶部。"</string>
     <string name="text_ac7e6b7c827b3cc0" formatted="false">"请将 iPhone 靠近交通卡。"</string>
     <string name="text_0abba441f16eff90" formatted="false">"水平"</string>
@@ -419,6 +428,7 @@
     <string name="text_025b1d6221639f21" formatted="false">"KOTRIS 出租车类别"</string>
     <string name="text_fc59bc9738378134" formatted="false">"扫描完成前请保持卡片稳定"</string>
     <string name="text_77e806fa5cbb0ea6" formatted="false">"保持不动，直到读取完成"</string>
+    <string name="text_b6849cab60f9cb2b" formatted="false">"请将卡片保持在 iPhone 顶部附近，直到扫描完成。"</string>
     <string name="text_720a628db9cc7d68" formatted="false">"读取完成前，请将同一张卡片保持靠近 iPhone。"</string>
     <string name="text_bf04cb80717dd293" formatted="false">"密钥版本"</string>
     <string name="text_17a2bfe78e03b1c1" formatted="false">"韩国"</string>
@@ -540,6 +550,7 @@
     <string name="text_58ddaeaeb2498986" formatted="false">"适用于旧版 DESFire；不解析新版 Clipper"</string>
     <string name="text_130011756125313c" formatted="false">"已开启"</string>
     <string name="text_04f88689ae558b3c" formatted="false">"车载终端"</string>
+    <string name="text_7eb3197c836659b8" formatted="false">"卡内余额"</string>
     <string name="text_062f4509ebcfdeec" formatted="false">"已读取卡内记录"</string>
     <string name="text_492fc2920e59d721" formatted="false">"仅限卡内储值钱包。无法读取 SimplyGo 账户余额。"</string>
     <string name="text_37d365f00b8fda8b" formatted="false">"在线查询"</string>
@@ -651,6 +662,7 @@
     <string name="text_43ab56f7b701df24" formatted="false">"正在读取卡片信息…"</string>
     <string name="text_c03e917604df7a78" formatted="false">"正在通过外接读卡器读卡…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"正在读卡…"</string>
+    <string name="text_36beca142c62d908" formatted="false">"正在读取卡片…"</string>
     <string name="text_668570fc07fbd43b" formatted="false">"正在读取交易记录（%1$lld/%2$lld）…"</string>
     <string name="text_c7b7c8add23db536" formatted="false">"正在读取交易记录…"</string>
     <string name="text_e3a4d62b241ef756" formatted="false">"正在读取乘车记录…"</string>
@@ -718,18 +730,22 @@
     <string name="text_1d423832b8a3cfef" formatted="false">"销售终端"</string>
     <string name="text_1509f561f2416598" formatted="false">"保存"</string>
     <string name="text_315acc9aa091b988" formatted="false">"保存为卡面"</string>
+    <string name="text_405449aea48cf283" formatted="false">"在完整 App 中保存卡片。"</string>
     <string name="text_ba74fb2cebc400a5" formatted="false">"已保存设计"</string>
     <string name="text_7c3f52bbe988e237" formatted="false">"已保存的照片"</string>
     <string name="text_ea1c510d1ddb7264" formatted="false">"扫描"</string>
+    <string name="text_9b27fd44c583c5c1" formatted="false">"扫描其他卡片"</string>
     <string name="text_b60b5bc57d6ec318" formatted="false">"扫描卡片"</string>
     <string name="text_a48b9cef583f1c89" formatted="false">"扫描卡号"</string>
     <string name="text_1db3703abdee3f5f" formatted="false">"扫描卡片 S/N"</string>
+    <string name="text_46e2873f71a31f3e" formatted="false">"扫描已中断"</string>
     <string name="text_f618493ef44d0cae" formatted="false">"扫描你的交通卡"</string>
     <string name="text_4eb1ff33564e1485" formatted="false">"读取卡片"</string>
     <string name="text_0ec114c2192ee91f" formatted="false">"读取卡片即可添加到卡包。"</string>
     <string name="text_13037be9c3b6864a" formatted="false">"扫描一次实体卡片后，它会显示在这里。"</string>
     <string name="text_858276500040a039" formatted="false">"扫描支持的中国、日本或韩国交通卡。"</string>
     <string name="text_76253f6f76871e6e" formatted="false">"扫描支持的中国、日本或韩国交通卡。仅当已保存记录具有可靠的位置匹配时，才会添加城市。"</string>
+    <string name="text_3105936379fc7e31" formatted="false">"扫描支持的卡片，查看可读取的余额和最近交易。"</string>
     <string name="text_8af22052bec2ad20" formatted="false">"扫描支持的交通卡。"</string>
     <string name="text_09db9f86568d2269" formatted="false">"读卡操作"</string>
     <string name="text_cc6b212aedc7d034" formatted="false">"扫描已取消。"</string>
@@ -739,6 +755,7 @@
     <string name="text_e9b3b6cd499aaf35" formatted="false">"扫描时间"</string>
     <string name="text_96e1ed9fb5d455d2" formatted="false">"%@ 读取"</string>
     <string name="text_da7cd572110f37d0" formatted="false">"正在扫描卡片..."</string>
+    <string name="text_2614973765bebff6" formatted="false">"无法扫描"</string>
     <string name="text_60a5547e248dea0b" formatted="false">"读卡数据保存在此设备上。"</string>
     <string name="text_c4b407ae351ef63b" formatted="false">"定期票"</string>
     <string name="text_0e9489650b188cfe" formatted="false">"选择响应"</string>
@@ -805,8 +822,10 @@
     <string name="text_14773817bcf0cbbf" formatted="false">"子类型"</string>
     <string name="text_e7e72948c5d52dc6" formatted="false">"提交报告"</string>
     <string name="text_a26e25c373b284ff" formatted="false">"子类型"</string>
+    <string name="text_e3f63f7122765f73" formatted="false">"Suica · PASMO · ICOCA · T-money · EZL · 交通联合 · CEPAS · 澳门通"</string>
     <string name="text_9c7c53e80a4e74d5" formatted="false">"日出"</string>
     <string name="text_be91940b79f46910" formatted="false">"支持"</string>
+    <string name="text_74d37d0f103c98db" formatted="false">"支持的卡片"</string>
     <string name="text_6e76482a798809e2" formatted="false">"符号颜色"</string>
     <string name="text_6725e7bbcd28f3a8" formatted="false">"系统"</string>
     <string name="text_28aea8ec6a8da60a" formatted="false">"系统代码"</string>
@@ -846,6 +865,7 @@
     <string name="text_5dc672d1209d955f" formatted="false">"无法加载内置车站数据库。"</string>
     <string name="text_77385ac4880380d6" formatted="false">"读卡器返回了不完整或无效的响应。"</string>
     <string name="text_eaa56ff08a5eff2d" formatted="false">"服务器返回了错误 %lld。"</string>
+    <string name="text_1c46130b5c82e0cb" formatted="false">"此轻 App 无法读取这张卡片。"</string>
     <string name="text_7cf07d09cab8a266" formatted="false">"备份过大，无法同步到 iCloud。请导出备份文件。"</string>
     <string name="text_82db89760ff5ab07" formatted="false">"这张卡片还没有足够的车站数据来绘制路线。"</string>
     <string name="text_6e4fca06cde37767" formatted="false">"此文件不是读卡识途备份。"</string>
@@ -901,6 +921,7 @@
     <string name="text_86bbcd7d2fc1deb8" formatted="false">"行程"</string>
     <string name="text_36ad6bc8245efca9" formatted="false">"剩余次数"</string>
     <string name="text_c3af076f92c5ed8d" formatted="false">"故障排除"</string>
+    <string name="text_df0fe9e00d354b01" formatted="false">"重试"</string>
     <string name="text_baaddf70fb5d432b" formatted="false">"类型"</string>
     <string name="text_b7af865b39a1bfb3" formatted="false">"无法使用照片"</string>
     <string name="text_47aae988f275d2f5" formatted="false">"无法加载开发示例"</string>

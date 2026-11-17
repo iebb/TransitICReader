@@ -1132,3 +1132,45 @@
 "Last Ticket Event" = "最近一次使用";
 "Route" = "线路";
 "Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again." = "Android 未允许 CardBal 访问此文件。请在文件选择器中从“内部存储 › Download”打开，而不是“下载”或“最近”，或用“我的文件”移动该文件后重试。";
+
+"CardBal" = "CardBal";
+
+"Check your transit card" = "查看交通卡";
+
+"Scan a supported card to see the balance and recent transactions it can share." = "扫描支持的卡片，查看可读取的余额和最近交易。";
+
+"Supported Cards" = "支持的卡片";
+
+"Reading card…" = "正在读取卡片…";
+
+"Card Details" = "卡片详情";
+
+"On-card Balance" = "卡内余额";
+
+"Scan Another Card" = "扫描其他卡片";
+
+"Get CardBal" = "获取 CardBal";
+
+"Save your cards in the full app." = "在完整 App 中保存卡片。";
+
+"Couldn't Read Card" = "未能读取卡片";
+
+"Hold the card near the top of your iPhone and try again." = "请将卡片靠近 iPhone 顶部，然后重试。";
+
+"Card Not Supported" = "不支持此卡片";
+
+"This App Clip can't read this card." = "此轻 App 无法读取这张卡片。";
+
+"Scan Interrupted" = "扫描已中断";
+
+"Keep the card near the top of your iPhone until the scan finishes." = "请将卡片保持在 iPhone 顶部附近，直到扫描完成。";
+
+"Scanning Unavailable" = "无法扫描";
+
+"Card scanning isn't available right now. Try again later." = "当前无法扫描卡片，请稍后重试。";
+
+"Try Again" = "重试";
+
+"Demo — no card was scanned" = "演示 — 未扫描卡片";
+
+"Suica · PASMO · ICOCA · T-money · EZL · China T-Union · CEPAS · Macau Pass" = "Suica · PASMO · ICOCA · T-money · EZL · 交通联合 · CEPAS · 澳门通";

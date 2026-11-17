@@ -1130,3 +1130,45 @@
 "Last Ticket Event" = "Last Ticket Event";
 "Route" = "Route";
 "Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again." = "Android didn't give CardBal access to this file. In the file picker, open it from Internal storage › Download instead of Downloads or Recent, or move it with My Files, then try again.";
+
+"CardBal" = "CardBal";
+
+"Check your transit card" = "Check your transit card";
+
+"Scan a supported card to see the balance and recent transactions it can share." = "Scan a supported card to see the balance and recent transactions it can share.";
+
+"Supported Cards" = "Supported Cards";
+
+"Reading card…" = "Reading card…";
+
+"Card Details" = "Card Details";
+
+"On-card Balance" = "On-card Balance";
+
+"Scan Another Card" = "Scan Another Card";
+
+"Get CardBal" = "Get CardBal";
+
+"Save your cards in the full app." = "Save your cards in the full app.";
+
+"Couldn't Read Card" = "Couldn't Read Card";
+
+"Hold the card near the top of your iPhone and try again." = "Hold the card near the top of your iPhone and try again.";
+
+"Card Not Supported" = "Card Not Supported";
+
+"This App Clip can't read this card." = "This App Clip can't read this card.";
+
+"Scan Interrupted" = "Scan Interrupted";
+
+"Keep the card near the top of your iPhone until the scan finishes." = "Keep the card near the top of your iPhone until the scan finishes.";
+
+"Scanning Unavailable" = "Scanning Unavailable";
+
+"Card scanning isn't available right now. Try again later." = "Card scanning isn't available right now. Try again later.";
+
+"Try Again" = "Try Again";
+
+"Demo — no card was scanned" = "Demo — no card was scanned";
+
+"Suica · PASMO · ICOCA · T-money · EZL · China T-Union · CEPAS · Macau Pass" = "Suica · PASMO · ICOCA · T-money · EZL · China T-Union · CEPAS · Macau Pass";

@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "CardBal";
+"CFBundleSpokenName" = "卡片余额";
+"NFCReaderUsageDescription" = "扫描支持的交通 IC 卡，以显示卡片标识符和已存储余额。";

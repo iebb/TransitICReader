@@ -474,7 +474,9 @@ struct TUnionDecoder: TransitCardDecoder {
         let applicationAID = selectedAID
         let initialSelectResponse = CardResponseAPDU(statusWord1: initialResponse.1, statusWord2: initialResponse.2, payload: initialResponse.0)
         
+        #if !APPCLIP
         print("[TUnion] Decoding. AID=\(applicationAID), Selected=\(selectedAID)")
+        #endif
         
         // T-Union Balance: Probe multiple indices (0x01, 0x02) and handle composite results
         var balancePayloads: [UInt8: Data] = [:]
@@ -484,18 +486,26 @@ struct TUnionDecoder: TransitCardDecoder {
         // P1=0x01, P2=0x02 -> Negative Balance / Debt (8.00)
         
         ScanProgress.report(.balance)
+        #if !APPCLIP
         print("[TUnion] Reading Primary Purse (P1=00, P2=02)...")
+        #endif
         let apdu00 = CardAPDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x00, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
         if let resp = try? await iso.sendCommand(apdu: apdu00), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
             balancePayloads[0x02] = resp.0
+        #if !APPCLIP
             print("[TUnion]   Success: \(resp.0.hexString)")
+        #endif
         }
 
+        #if !APPCLIP
         print("[TUnion] Reading Negative Balance (P1=01, P2=02)...")
+        #endif
         let apdu01 = CardAPDU(instructionClass: 0x80, instructionCode: 0x5C, p1Parameter: 0x01, p2Parameter: 0x02, data: Data(), expectedResponseLength: 4)
         if let resp = try? await iso.sendCommand(apdu: apdu01), resp.1 == 0x90, resp.2 == 0, resp.0.count == 4 {
             balancePayloads[0x82] = resp.0
+        #if !APPCLIP
             print("[TUnion]   Success: \(resp.0.hexString)")
+        #endif
         }
         
         var resultFields: [ResultField] = []
@@ -530,11 +540,15 @@ struct TUnionDecoder: TransitCardDecoder {
         
         // Octopus T-Union (嶺南通·八达通) and some others store the CAN in the FCI Tag 9F0C!
         if let fci = initialSelectResponse.payload {
+        #if !APPCLIP
             print("[TUnion] Checking FCI for metadata...")
+        #endif
             
             // Try to find 9F0C tag (Application Meta) - Primary metadata source
             if let meta = findTUnionTag([0x9F, 0x0C], in: fci) {
+        #if !APPCLIP
                 print("[TUnion] Meta tag 9F0C found, size: \(meta.count)")
+        #endif
                 
                 // Offset 0 (len 1): Card Type BCD
                 if meta.count >= 1 {
@@ -548,7 +562,9 @@ struct TUnionDecoder: TransitCardDecoder {
                     metadataCityCode = cityId
                     let cityName = TUnionCityDatabase.lookupCityName(for: cityId)
                     issuingCity = cityName ?? "City \(cityId)"
+        #if !APPCLIP
                     print("[TUnion] City ID found: \(cityId) (\(issuingCity ?? "Unknown"))")
+        #endif
                 }
                 
                 // Add App Metadata to raw sections

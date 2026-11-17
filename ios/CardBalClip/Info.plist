@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>CardBal</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleSpokenName</key>
+	<string>Card Balance</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>NSAppClip</key>
+	<dict>
+		<key>NSAppClipRequestEphemeralUserNotification</key>
+		<false/>
+		<key>NSAppClipRequestLocationConfirmation</key>
+		<false/>
+	</dict>
+	<key>NFCReaderUsageDescription</key>
+	<string>Scan supported transit IC cards to show the card identifier and stored balance.</string>
+	<key>com.apple.developer.nfc.readersession.felica.systemcodes</key>
+	<array>
+		<string>0003</string>
+		<string>FE00</string>
+		<string>90B7</string>
+		<string>86A7</string>
+		<string>927A</string>
+		<string>80DE</string>
+		<string>865E</string>
+		<string>8592</string>
+		<string>8FC1</string>
+		<string>8B5D</string>
+		<string>84A1</string>
+	</array>
+	<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
+	<array>
+		<string>B0C4C3C5CDA8C7AEB0FC</string>
+		<string>5041592E535A54</string>
+		<string>4150312E5748435443</string>
+		<string>315449432E494341</string>
+		<string>334D54522E494341</string>
+		<string>A0000004040125090101</string>
+		<string>A000000291</string>
+		<string>A000000404</string>
+		<string>A0000004520001</string>
+		<string>D4100000030001</string>
+		<string>D4100000140001</string>
+		<string>D410000029000001</string>
+		<string>D4100000300001</string>
+		<string>D4106509900020</string>
+		<string>A00000000386980701</string>
+		<string>A000000632010105</string>
+		<string>D156000015B9ABB9B2D3A6D3C3</string>
+		<string>A000000341000101</string>
+		<string>00000000000000</string>
+		<string>5041592E41505059</string>
+		<string>5041592E5449434C</string>
+	</array>
+</dict>
+</plist>

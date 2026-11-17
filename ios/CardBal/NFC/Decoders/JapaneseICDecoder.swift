@@ -16,6 +16,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
 
         var primarySnapshot: TransitCardSnapshot?
         for profile in FeliCaProfile.all where onlySystemCodes?.contains(profile.systemCode) ?? true {
+            #if APPCLIP
+            if profile.systemCode == "8008" { continue }
+            #else
+            if CardReadPolicy.localOnly && profile.systemCode == "8008" { continue }
+            #endif
             let scBytes = Data(hexString: profile.systemCode)
             let selected: (Data, Data)
             do {
@@ -49,7 +54,11 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 ) == nil { continue }
                 if profile.systemCode == "8008" {
                     guard readResult.2.count == 1, block.count == 16 else { continue }
+                    #if !APPCLIP
                     return await OctopusOnlineDecoder.decode(card: feliCa, block: block, pmm: selected.0, scannedAt: scannedAt)
+                    #else
+                    continue
+                    #endif
                 }
                 if let parsed = profile.parseBalance(block, scannedAt) {
                     primarySnapshot = await createSnapshot(feliCa: feliCa, profile: profile, parsedBalance: parsed, scannedAt: scannedAt)

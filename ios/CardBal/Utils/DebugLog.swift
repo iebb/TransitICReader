@@ -1,3 +1,14 @@
+#if APPCLIP
+import Foundation
+final class DebugLog {
+    static let shared = DebugLog()
+    func log(_ category: String, _ message: @autoclosure () -> String) {}
+    static func describe(_ error: Error) -> String { "" }
+    static func shortened(_ identifier: String) -> String { "" }
+    static func shortened(_ identifier: Data) -> String { "" }
+    static func hex(_ byte: UInt8) -> String { "" }
+}
+#else
 import Foundation
 
 /// A short, rolling record of recent scan steps, kept on this device to help fix
@@ -196,3 +207,5 @@ final class DebugLog: @unchecked Sendable {
         try? file.setResourceValues(values)
     }
 }
+
+#endif

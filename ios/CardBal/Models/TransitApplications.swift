@@ -243,6 +243,7 @@ extension TransitCardSnapshot {
     }
 }
 
+#if !APPCLIP
 extension SavedCardRecord {
     var applicationSnapshots: [TransitApplication] {
         if let applications { return applications }
@@ -321,6 +322,8 @@ extension SavedCardRecord {
         }.map(\.hex) }
     }
 }
+
+#endif
 
 enum TransitApplicationHistory {
     private struct Item {

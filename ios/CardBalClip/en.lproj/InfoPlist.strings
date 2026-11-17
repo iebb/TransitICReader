@@ -1,0 +1,2 @@
+"CFBundleDisplayName" = "CardBal";
+"NFCReaderUsageDescription" = "Scan supported transit IC cards to show the card identifier and stored balance.";

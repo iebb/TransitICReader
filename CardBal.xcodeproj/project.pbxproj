@@ -88,6 +88,75 @@
 		B16000000000000000000008 /* ClipperTransitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16000000000000000000007 /* ClipperTransitCatalog.swift */; };
 		B1600000000000000000000A /* ClipperTransit.json in Resources */ = {isa = PBXBuildFile; fileRef = B16000000000000000000009 /* ClipperTransit.json */; };
 		B15100000000000000000002 /* MacauPassDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15100000000000000000001 /* MacauPassDecoder.swift */; };
+		C4817D514968DA5ECF7949E1 = {isa = PBXBuildFile; fileRef = B14000000000000000000001; };
+		C82FE69FA918CA8858D60178 = {isa = PBXBuildFile; fileRef = B13000000000000000000003; };
+		F8B8AED62052EDF36904DA8C = {isa = PBXBuildFile; fileRef = B13000000000000000000001; };
+		761294A1FD41E53761B9AFE8 = {isa = PBXBuildFile; fileRef = B18000000000000000000001; };
+		F6DD4A95A64194DE56711D7F = {isa = PBXBuildFile; fileRef = B3ADDB76BA1698A7987E371C; };
+		6165E07C7484C9FDAFD0D8A1 = {isa = PBXBuildFile; fileRef = BD2568A2DA0304FC48A47FD8; };
+		CE88A19CDC665BB94D3F2714 = {isa = PBXBuildFile; fileRef = 24BE600F5C493DF43BD86505; };
+		52FA7F4F0D212E7B4C89A3FE = {isa = PBXBuildFile; fileRef = B15000000000000000000001; };
+		DD5B84FCE622DBC3688001B3 = {isa = PBXBuildFile; fileRef = 8D29014F4D0B4EA08742D5E3; };
+		0428852C05208A625DDBE60D = {isa = PBXBuildFile; fileRef = DECDDDA6837941559146B087; };
+		DA363140835A8493B9E39DBE = {isa = PBXBuildFile; fileRef = B15100000000000000000001; };
+		90B9C04D7BFF224E3E2CD67C = {isa = PBXBuildFile; fileRef = B16000000000000000000007; };
+		B22337D39A289BE129FF2D3E = {isa = PBXBuildFile; fileRef = B16000000000000000000005; };
+		2D1458EDD5D75D0741CD30C3 = {isa = PBXBuildFile; fileRef = B16000000000000000000003; };
+		4DBA71AE0724B81E953F34B3 = {isa = PBXBuildFile; fileRef = B16000000000000000000001; };
+		20EC721154658754071F8925 = {isa = PBXBuildFile; fileRef = 9BCF7E4C2068403798A4A14D; };
+		B6B35D8CDED78B9115D4CB93 = {isa = PBXBuildFile; fileRef = C20290B553C701A8BD665B22; };
+		0DC744713ABA1BE6EF09E386 = {isa = PBXBuildFile; fileRef = 1CDE4F7D2DC975F09118D5D3; };
+		5246DDAD37784DCBF44E1C14 = {isa = PBXBuildFile; fileRef = 28EF6BB41DA21BF325CCD29C; };
+		872306BF30F0AAA8F65EC144 = {isa = PBXBuildFile; fileRef = 228DB146941972BDD5D49908; };
+		16993B33FC46F351FF64D1BC = {isa = PBXBuildFile; fileRef = 7A1C0E5D84A1000000000002; };
+		4C421895B2240E3904CA90E0 = {isa = PBXBuildFile; fileRef = E5A100032F6F2ACB0071B6C4; };
+		0862C5D7524428A58A9F50A5 = {isa = PBXBuildFile; fileRef = 8C4691FE2F6F2ACB0071B6C4; };
+		94C8E8C5728C9214D01564A0 = {isa = PBXBuildFile; fileRef = 7A21867ED31B404BB36291A2; };
+		30EFDB4E736E4FB287361BC3 = {isa = PBXBuildFile; fileRef = 8C46920D2F6F2ACB0071B6C4; };
+		5051372C282CDF231B09D6C2 = {isa = PBXBuildFile; fileRef = 8C46920F2F6F2ACB0071B6C4; };
+		58ACEEF2A30CCA8AD45EC4EE = {isa = PBXBuildFile; fileRef = D3A110002F6F2ACB0071B6C4; };
+		AE324A915F74FA146E39035E = {isa = PBXBuildFile; fileRef = 8C4692202F6F2ACB0071B6C4; };
+		2BB08B19E0FCC67B50839193 = {isa = PBXBuildFile; fileRef = 8C4692212F6F2ACB0071B6C4; };
+		184713657B6A26F9D90B4814 = {isa = PBXBuildFile; fileRef = 8C4692222F6F2ACB0071B6C4; };
+		709E16074C65884C7432B06D = {isa = PBXBuildFile; fileRef = 8C4692302F6F2ACB0071B6C4; };
+		EEA288E46446ADD1A80D760D = {isa = PBXBuildFile; fileRef = 8C4692312F6F2ACB0071B6C4; };
+		E0435E3F0844CF98E727D4DA = {isa = PBXBuildFile; fileRef = 8C4692322F6F2ACB0071B6C4; };
+		E15FCCBA9088767A2CF767AA = {isa = PBXBuildFile; fileRef = 8C4692242F6F2ACB0071B6C4; };
+		D1F09EFCE48934CDA5FA22CB = {isa = PBXBuildFile; fileRef = 8C4692252F6F2ACB0071B6C4; };
+		1AEB6D65B14E226B6C4B3209 = {isa = PBXBuildFile; fileRef = DEB060000000000000000001; };
+		7F2DA09932F9C584D683C4AD = {isa = PBXBuildFile; fileRef = A0000CFB90D477F6D4D87A24; };
+		EEB656DFC80A696822AE7EFB = {isa = PBXBuildFile; fileRef = 118B2F4C7E32F920855B0DF5; };
+		5ABED4B2A34F9B486462A349 = {isa = PBXBuildFile; fileRef = 454A3A745671012F6C832F91; };
+		B3BF799735A4A2BFE7D24B98 = {isa = PBXBuildFile; fileRef = 280A750331F0F722A143051F; };
+		502D99FEFBA69C8A4E7F2977 = {isa = PBXBuildFile; fileRef = D6427D57C19C8455241DEEE3; };
+		5C833375614AD15BCA531F98 = {isa = PBXBuildFile; fileRef = B11B0256184978348338611A; };
+		53299B2108F97C2A1CD41A17 = {isa = PBXBuildFile; fileRef = 5E445C1A4B0547D1B24A1A01; };
+		890A3BAA7B8ABEDA69E58DF1 = {isa = PBXBuildFile; fileRef = 5E445C1A4B0547D1B24A1A03; };
+		311B6213442FA5C7FB28488D = {isa = PBXBuildFile; fileRef = 3D318B06B68F1DA1F85D4424; };
+		97833B8E37AF98BD548676E1 = {isa = PBXBuildFile; fileRef = 0697F9CE57F37CF2EA379911; };
+		AE7311BE3D728165180E14BA = {isa = PBXBuildFile; fileRef = 0697F9CE57F37CF2EA379911; };
+		D40E7599DC2CBDABC5D48126 = {isa = PBXBuildFile; fileRef = BA3775DBB73266437A5F224A; };
+		B98DFFB2798DC34607F3F2B0 = {isa = PBXBuildFile; fileRef = BA3775DBB73266437A5F224A; };
+		57D350F71A7601B45BD6B154 = {isa = PBXBuildFile; fileRef = FA9ABA5DDC8770CC8216960C; };
+		32B706D16CFEF6353BA18784 = {isa = PBXBuildFile; fileRef = FA9ABA5DDC8770CC8216960C; };
+		B76AC3D33D6745DF67BB4B4A = {isa = PBXBuildFile; fileRef = 58842E45008BDAC1AC349CC3; };
+		B014938197669CA90DE74568 = {isa = PBXBuildFile; fileRef = 58842E45008BDAC1AC349CC3; };
+		FDF87FE3BCAD623202C7CC26 = {isa = PBXBuildFile; fileRef = F8B262E3453B74A79EA4F4B5; };
+		EE8432C181D99AEE911C70C8 = {isa = PBXBuildFile; fileRef = B14000000000000000000003; };
+		673BD7BFF125A00BBDA01F67 = {isa = PBXBuildFile; fileRef = B16000000000000000000009; };
+		4EDA15895BB4E65A8394994E = {isa = PBXBuildFile; fileRef = A00000000000000000000008; };
+		D2EC39260F3CFB513EADAE2B = {isa = PBXBuildFile; fileRef = A00000000000000000000004; };
+		43D12026EFDD23FD01283676 = {isa = PBXBuildFile; fileRef = 8C4692112F6F2ACB0071B6C4; };
+		3542E50D98A94440AD783140 = {isa = PBXBuildFile; fileRef = 80112233445566778899AA01; };
+		F0ED42ABA7949B27DAF616C9 = {isa = PBXBuildFile; fileRef = 8C4692162F6F2ACB0071B6C4; };
+		37C507F853216A834875D197 = {isa = PBXBuildFile; fileRef = D3A110022F6F2ACB0071B6C4; };
+		13BB15AAE9399214BDE31829 = {isa = PBXBuildFile; fileRef = E5A100002F6F2ACB0071B6C4; };
+		0E680622C66F5C73A9966F25 = {isa = PBXBuildFile; fileRef = EC38266AABB2DF946A942826; };
+		72675F6186EA8802FD0DB1CD = {isa = PBXBuildFile; fileRef = C5FA5F66F7A76B1DBE3164F6; };
+		5204F270CA9F4C452AEA3DCE = {isa = PBXBuildFile; fileRef = B92C7A81DE3948B73C63013F; };
+		B01B52A905A275299B47932E = {isa = PBXBuildFile; fileRef = 032F5ADE92B8C04EF6E08213; };
+        E9B6FB9D778260C12C2FBBE5 = {isa = PBXBuildFile; fileRef = 5174F1EE9FFF74DFF5210C4D; platformFilters = (ios); settings = {ATTRIBUTES = (RemoveHeadersOnCopy); }; };
+        6E0319097D3C5AD2594A7801 = {isa = PBXBuildFile; fileRef = 523555682546B09E217AE641; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -178,6 +247,19 @@
 		B16000000000000000000007 /* ClipperTransitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers/ClipperTransitCatalog.swift; sourceTree = "<group>"; };
 		B16000000000000000000009 /* ClipperTransit.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = data/stations/ClipperTransit.json; sourceTree = "SOURCE_ROOT"; };
 		B15100000000000000000001 /* MacauPassDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacauPassDecoder.swift; sourceTree = "<group>"; };
+		0697F9CE57F37CF2EA379911 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ios/CardBal/Models/ScanResultField.swift; sourceTree = SOURCE_ROOT; };
+		BA3775DBB73266437A5F224A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ios/CardBal/NFC/CardReadPolicy.swift; sourceTree = SOURCE_ROOT; };
+		FA9ABA5DDC8770CC8216960C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ios/CardBal/Helpers/ClipInvocation.swift; sourceTree = SOURCE_ROOT; };
+		58842E45008BDAC1AC349CC3 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ios/CardBal/Views/QuickScanView.swift; sourceTree = SOURCE_ROOT; };
+		F8B262E3453B74A79EA4F4B5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ios/CardBalClip/CardBalClipApp.swift; sourceTree = SOURCE_ROOT; };
+		62DB870FCD65F34B54DE8624 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = ios/CardBalClip/Info.plist; sourceTree = SOURCE_ROOT; };
+		8806ADD37A1F9D8BF1047274 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = ios/CardBalClip/CardBalClip.entitlements; sourceTree = SOURCE_ROOT; };
+		032F5ADE92B8C04EF6E08213 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = ios/CardBalClip/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
+		5174F1EE9FFF74DFF5210C4D = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CardBalClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+        1D1B1C9C333954B300438EC7 = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "en"; path = "ios/CardBalClip/en.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
+        EC275535A6EB3A1B4B82034F = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ja"; path = "ios/CardBalClip/ja.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
+        4AD0945E467A9FD8A9D87E30 = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ko"; path = "ios/CardBalClip/ko.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
+        D659AF366C9A7F70FBD17367 = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "ios/CardBalClip/zh-Hans.lproj/InfoPlist.strings"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -191,6 +273,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A8635CDCDC163173E1D3F68F = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -324,6 +407,15 @@
 		A00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
+				523555682546B09E217AE641,
+				032F5ADE92B8C04EF6E08213,
+				8806ADD37A1F9D8BF1047274,
+				62DB870FCD65F34B54DE8624,
+				F8B262E3453B74A79EA4F4B5,
+				58842E45008BDAC1AC349CC3,
+				FA9ABA5DDC8770CC8216960C,
+				BA3775DBB73266437A5F224A,
+				0697F9CE57F37CF2EA379911,
 				A00000000000000000000032 /* CardBal */,
 				A00000000000000000000033 /* Products */,
 				8C472D3F2F707DF40070E8BF /* Recovered References */,
@@ -363,6 +455,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000007 /* CardBal.app */,
+				5174F1EE9FFF74DFF5210C4D,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -380,6 +473,16 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+        76639B780B544836C170FF30 = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips"; dstSubfolderSpec = 16; files = (E9B6FB9D778260C12C2FBBE5); name = "Embed App Clips"; runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXCopyFilesBuildPhase section */
+/* Begin PBXContainerItemProxy section */
+        9C5E9025367E445F4E6D5459 = {isa = PBXContainerItemProxy; containerPortal = A00000000000000000000061; proxyType = 1; remoteGlobalIDString = 12CA7683428D349F7834FDD4; remoteInfo = CardBalClip; };
+/* End PBXContainerItemProxy section */
+/* Begin PBXTargetDependency section */
+        03DEA04220C645119184DB2D = {isa = PBXTargetDependency; target = 12CA7683428D349F7834FDD4; targetProxy = 9C5E9025367E445F4E6D5459; platformFilters = (ios); };
+/* End PBXTargetDependency section */
+
 /* Begin PBXNativeTarget section */
 		A00000000000000000000041 /* CardBal */ = {
 			isa = PBXNativeTarget;
@@ -391,10 +494,12 @@
 				A00000000000000000000023 /* Resources */,
 				E5A100052F6F2ACB0071B6C4 /* Optional Firebase configuration */,
 				B17000000000000000000005 /* Optional Octopus configuration */,
+				76639B780B544836C170FF30,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				03DEA04220C645119184DB2D,
 			);
 			name = CardBal;
 			packageProductDependencies = (
@@ -405,6 +510,15 @@
 			productReference = A00000000000000000000007 /* CardBal.app */;
 			productType = "com.apple.product-type.application";
 		};
+        12CA7683428D349F7834FDD4 = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = D70ABF12414657CCB480330A;
+            buildPhases = (3B0DE75BA32B8C6E214F1A9A,A8635CDCDC163173E1D3F68F,95CE6B6D42AD8FE632CDDA72);
+            buildRules = (); dependencies = (); name = CardBalClip;
+            packageProductDependencies = ();
+            productName = CardBalClip; productReference = 5174F1EE9FFF74DFF5210C4D;
+            productType = "com.apple.product-type.application.on-demand-install-capable";
+        };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -440,6 +554,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				12CA7683428D349F7834FDD4,
 				A00000000000000000000041 /* CardBal */,
 			);
 		};
@@ -507,6 +622,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		95CE6B6D42AD8FE632CDDA72 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (6E0319097D3C5AD2594A7801,EE8432C181D99AEE911C70C8,673BD7BFF125A00BBDA01F67,4EDA15895BB4E65A8394994E,D2EC39260F3CFB513EADAE2B,43D12026EFDD23FD01283676,3542E50D98A94440AD783140,F0ED42ABA7949B27DAF616C9,37C507F853216A834875D197,13BB15AAE9399214BDE31829,0E680622C66F5C73A9966F25,72675F6186EA8802FD0DB1CD,5204F270CA9F4C452AEA3DCE,B01B52A905A275299B47932E); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -514,6 +630,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B014938197669CA90DE74568,
+				32B706D16CFEF6353BA18784,
+				B98DFFB2798DC34607F3F2B0,
+				AE7311BE3D728165180E14BA,
 				B17000000000000000000002 /* OctopusOnlineProtocol.swift in Sources */,
 				B17000000000000000000004 /* OctopusOnlineDecoder.swift in Sources */,
 				B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */,
@@ -581,6 +701,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3B0DE75BA32B8C6E214F1A9A = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C4817D514968DA5ECF7949E1,C82FE69FA918CA8858D60178,F8B8AED62052EDF36904DA8C,761294A1FD41E53761B9AFE8,F6DD4A95A64194DE56711D7F,6165E07C7484C9FDAFD0D8A1,CE88A19CDC665BB94D3F2714,52FA7F4F0D212E7B4C89A3FE,DD5B84FCE622DBC3688001B3,0428852C05208A625DDBE60D,DA363140835A8493B9E39DBE,90B9C04D7BFF224E3E2CD67C,B22337D39A289BE129FF2D3E,2D1458EDD5D75D0741CD30C3,4DBA71AE0724B81E953F34B3,20EC721154658754071F8925,B6B35D8CDED78B9115D4CB93,0DC744713ABA1BE6EF09E386,5246DDAD37784DCBF44E1C14,872306BF30F0AAA8F65EC144,16993B33FC46F351FF64D1BC,4C421895B2240E3904CA90E0,0862C5D7524428A58A9F50A5,94C8E8C5728C9214D01564A0,30EFDB4E736E4FB287361BC3,5051372C282CDF231B09D6C2,58ACEEF2A30CCA8AD45EC4EE,AE324A915F74FA146E39035E,2BB08B19E0FCC67B50839193,184713657B6A26F9D90B4814,709E16074C65884C7432B06D,EEA288E46446ADD1A80D760D,E0435E3F0844CF98E727D4DA,E15FCCBA9088767A2CF767AA,D1F09EFCE48934CDA5FA22CB,1AEB6D65B14E226B6C4B3209,7F2DA09932F9C584D683C4AD,EEB656DFC80A696822AE7EFB,5ABED4B2A34F9B486462A349,B3BF799735A4A2BFE7D24B98,502D99FEFBA69C8A4E7F2977,5C833375614AD15BCA531F98,53299B2108F97C2A1CD41A17,890A3BAA7B8ABEDA69E58DF1,311B6213442FA5C7FB28488D,97833B8E37AF98BD548676E1,D40E7599DC2CBDABC5D48126,57D350F71A7601B45BD6B154,B76AC3D33D6745DF67BB4B4A,FDF87FE3BCAD623202C7CC26); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
@@ -605,6 +726,7 @@
 			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
+        523555682546B09E217AE641 = {isa = PBXVariantGroup; children = (1D1B1C9C333954B300438EC7,EC275535A6EB3A1B4B82034F,4AD0945E467A9FD8A9D87E30,D659AF366C9A7F70FBD17367); name = InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
@@ -736,6 +858,54 @@
 			};
 			name = Release;
 		};
+        726EEA72D9FEF8A0B53E20A4 = {isa = XCBuildConfiguration; name = Debug; buildSettings = {
+            ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+            ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+            CLANG_ENABLE_MODULES = YES;
+            CODE_SIGN_ENTITLEMENTS = ios/CardBalClip/CardBalClip.entitlements;
+            CODE_SIGN_STYLE = Automatic;
+            CURRENT_PROJECT_VERSION = 45;
+            DEVELOPMENT_TEAM = 7P8CLHDH5G;
+            GENERATE_INFOPLIST_FILE = NO;
+            INFOPLIST_FILE = ios/CardBalClip/Info.plist;
+            IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+            MARKETING_VERSION = 2.6.3;
+            PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal.Clip;
+            PRODUCT_NAME = "$(TARGET_NAME)";
+            SDKROOT = iphoneos;
+            SKIP_INSTALL = YES;
+            SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+            SUPPORTS_MACCATALYST = NO;
+            SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPCLIP DEBUG";
+            SWIFT_VERSION = 5.0;
+            TARGETED_DEVICE_FAMILY = 1;
+            LD_RUNPATH_SEARCH_PATHS = ("$(inherited)","@executable_path/Frameworks");
+        };};
+        56AFCE0874B387E10A5D15F9 = {isa = XCBuildConfiguration; name = Release; buildSettings = {
+            ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+            ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+            CLANG_ENABLE_MODULES = YES;
+            CODE_SIGN_ENTITLEMENTS = ios/CardBalClip/CardBalClip.entitlements;
+            CODE_SIGN_STYLE = Automatic;
+            CURRENT_PROJECT_VERSION = 45;
+            DEVELOPMENT_TEAM = 7P8CLHDH5G;
+            GENERATE_INFOPLIST_FILE = NO;
+            INFOPLIST_FILE = ios/CardBalClip/Info.plist;
+            IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+            MARKETING_VERSION = 2.6.3;
+            PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal.Clip;
+            PRODUCT_NAME = "$(TARGET_NAME)";
+            SDKROOT = iphoneos;
+            SKIP_INSTALL = YES;
+            SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+            SUPPORTS_MACCATALYST = NO;
+            SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPCLIP";
+            SWIFT_VERSION = 5.0;
+            TARGETED_DEVICE_FAMILY = 1;
+            LD_RUNPATH_SEARCH_PATHS = ("$(inherited)","@executable_path/Frameworks");
+        };};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -757,6 +927,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+        D70ABF12414657CCB480330A = {isa = XCConfigurationList; buildConfigurations = (726EEA72D9FEF8A0B53E20A4,56AFCE0874B387E10A5D15F9); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 

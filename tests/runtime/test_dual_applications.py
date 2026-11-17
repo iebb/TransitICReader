@@ -28,30 +28,32 @@ class DualApplicationTests(unittest.TestCase):
         models += utils[utils.index("struct TransitCardSnapshot:"):utils.index("enum StatusKind")]
         models += utils[utils.index("extension Data {"):utils.index("struct BERTLVNode")]
         saved = (ROOT / "ios/CardBal/Models/SavedCardRecord.swift").read_text()
-        models += saved[saved.index("struct SavedCardField:"):saved.index("struct SavedCardColor:")]
+        models += (ROOT / "ios/CardBal/Models/ScanResultField.swift").read_text().replace("import Foundation", "")
         decoder = (ROOT / "ios/CardBal/NFC/Decoders/TUnionDecoder.swift").read_text().replace("import CoreNFC", "")
         decoder = decoder.replace("Bundle.main.url(", "resourceURL(")
-        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text()
+        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text().replace("#if !APPCLIP\n", "").replace("#endif\n", "")
         store = (ROOT / "ios/CardBal/Models/CardWalletStore.swift").read_text()
         upsert = "\n".join(method(store, name) for name in ["upsert", "mergeIncomingCard", "consolidateMatchingCards", "mergedCard", "deleteCard", "mergeDeletions"])
         content = (ROOT / "ios/CardBal/ContentView.swift").read_text()
         storage_id = re.search(r"    var storageIdentifier: String \{.*?^    }", content, re.M | re.S).group()
+        models += (ROOT / "ios/CardBal/NFC/CardReadPolicy.swift").read_text().replace("import Foundation", "")
         reader = (ROOT / "ios/CardBal/NFC/NFCTransitReader.swift").read_text()
-        reader = reader[:reader.index("extension NFCTransitReader {\n    private func performEnhancedFeliCaHandshake")]
+        reader = reader[:reader.index(" #if !APPCLIP\nextension NFCTransitReader {\n    private func performEnhancedFeliCaHandshake")]
         # Exercise the built-in reader state machine independently of UIKit and
         # the external-reader service. Hardware transports have separate tests.
+        cancel = method(reader, "cancelScanning")
         start = reader.index("    @Published private(set) var externalReaderNames")
         end = reader.index("    var statusSymbol:", start)
-        reader = reader[:start] + '''
+        reader = reader[:start].replace("private let localOnly: Bool", "private let localOnly = false") + '''
     var isNFCAvailable: Bool { true }
     func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
         startInternalScanning(options: options)
     }
-''' + reader[end:]
+''' + cancel + '\n' + reader[end:]
         reader = reader.replace("CEPASDecoder.self, StoredValueDecoder.self, ", "")
         reader = "\n".join(line for line in reader.splitlines()
                            if not line.startswith("import ") and "logger" not in line
-                           and not line.strip().startswith(("#if", "#endif")))
+                           and not line.strip().startswith(("#if", "#endif", "#else")))
         reader = reader.replace(", ObservableObject", "").replace("@Published private(set) ", "").replace("private ", "")
         nfc_stubs = (ROOT / "tests/runtime/fixtures/nfc_reader_stubs.swift").read_text()
         adapters = r'''
@@ -425,6 +427,16 @@ func testDualCurrency(octopus: TransitCardSnapshot, plain: TransitCardSnapshot) 
         let felicaOnly = NFCTransitReader(); felicaOnly.startScanning(options: [.iso18092])
         felicaOnly.accept(dualOctopus, session: felicaOnly.session!)
         check(!felicaOnly.isScanning && felicaOnly.latestSnapshot?.applications?.count == 1, "Protocol filter was ignored")
+        let explicitCancel = NFCTransitReader(); explicitCancel.startScanning()
+        let explicitSession = explicitCancel.session!
+        explicitCancel.cancelScanning()
+        check(!explicitCancel.isScanning && explicitSession.invalidated && explicitCancel.latestSnapshot == nil,
+              "Explicit cancellation must invalidate without a result")
+        let dismissed = NFCTransitReader(); dismissed.startScanning()
+        dismissed.tagReaderSession(dismissed.session!, didInvalidateWithError: NSError(domain: "NFC", code: 200))
+        try await Task.sleep(for: .milliseconds(30))
+        check(!dismissed.isScanning && dismissed.latestSnapshot == nil && dismissed.statusMessage == "Ready to scan.",
+              "Native cancellation must return to Scan without an error")
         let cancelled = NFCTransitReader(); cancelled.startScanning()
         let cancelledSession = cancelled.session!
         cancelled.accept(national, session: cancelledSession)

@@ -1,0 +1,23 @@
+version: 3
+signing:
+  bundles:
+    - ad.neko.cardbal
+    - id: ad.neko.cardbal.Clip
+      app_clip_of: ad.neko.cardbal
+build:
+  script: |
+    python3 -m tools.stations.build --source csv --target all --no-sync-android
+    airbuild-xcode install -project CardBal.xcodeproj -scheme CardBal DSTROOT="$PWD/.airbuild/artifacts/install"
+  artifact:
+    path: .airbuild/artifacts/install/Applications/CardBal.app
+release:
+  script: |
+    python3 -m tools.stations.build --source csv --target all --no-sync-android
+    airbuild-xcode archive -project CardBal.xcodeproj -scheme CardBal -archivePath .airbuild/artifacts/CardBal.xcarchive
+  artifact:
+    path: .airbuild/artifacts/CardBal.xcarchive
+test:
+  appclip:
+    script: |
+      python3 -m tools.stations.build --source csv --target all --no-sync-android
+      python3 -m unittest discover -s tests/runtime -t . -v

@@ -118,9 +118,9 @@ class TripReaderBackupTests(unittest.TestCase):
         models += utils[utils.index("struct TransitCardSnapshot:"):utils.index("enum StatusKind")]
         models += utils[utils.index("extension Data {"):utils.index("struct BERTLVNode")]
         saved = (ROOT / "ios/CardBal/Models/SavedCardRecord.swift").read_text()
-        models += saved[saved.index("struct SavedCardField:"):saved.index("struct SavedCardColor:")]
+        models += (ROOT / "ios/CardBal/Models/ScanResultField.swift").read_text().replace("import Foundation", "")
         decoder = (ROOT / "ios/CardBal/NFC/Decoders/TUnionDecoder.swift").read_text().replace("Bundle.main.url(", "resourceURL(")
-        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text()
+        applications = (ROOT / "ios/CardBal/Models/TransitApplications.swift").read_text().replace("#if !APPCLIP\n", "").replace("#endif\n", "")
         importer = (ROOT / "ios/CardBal/Models/TripReaderBackup.swift").read_text()
         store = (ROOT / "ios/CardBal/Models/CardWalletStore.swift").read_text()
         merge = "\n".join(method(store, name) for name in ["importSnapshots", "consolidateMatchingCards", "mergedCard"])
