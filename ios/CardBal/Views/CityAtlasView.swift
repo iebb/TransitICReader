@@ -2441,7 +2441,7 @@ private struct CityAtlasVisitResolver {
                     provinceAccumulators: &provinceAccumulators
                 )
             }
-            if brand == .ezlink, let boundaryID = SingaporeTransitCatalog.shared.country?.id {
+            if brand == .ezlink || brand == .cepas, let boundaryID = SingaporeTransitCatalog.shared.country?.id {
                 for transaction in card.transactions {
                     let codes = [transaction.entryStationCode, transaction.exitStationCode].compactMap { $0 }
                     guard codes.contains(where: { SingaporeTransitCatalog.shared.station(code: $0) != nil }) else { continue }

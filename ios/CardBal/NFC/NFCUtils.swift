@@ -27,7 +27,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     case japaneseFeliCa
     case tmoney, umoney, ezl, namane, climateCard, moiba, kCash
     case octopus
-    case ezlink, netsFlashPay
+    case ezlink, netsFlashPay, cepas
     case clipper, macauPass
     case tUnion, tianfuTong, shenzhenTong, wuhanTong, beijingYikatong, lingnanPass
     case snapperPlus, kmt
@@ -38,7 +38,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
         case .tmoney, .ezl, .namane, .climateCard, .moiba, .kCash: return .korea
         case .umoney: return .mongolia
         case .octopus: return .hongkong
-        case .ezlink, .netsFlashPay: return .singapore
+        case .ezlink, .netsFlashPay, .cepas: return .singapore
         case .clipper: return .usa
         case .macauPass: return .macau
         case .tUnion, .tianfuTong, .shenzhenTong, .wuhanTong, .beijingYikatong, .lingnanPass: return .china
@@ -101,6 +101,8 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
             "天府通": .tianfuTong, "tianfu tong": .tianfuTong, "tianfutong": .tianfuTong
         ]
         
+        // CEPAS purses whose CAN names no brand; never shown as EZ-Link.
+        if f == "cepas" || f == "concession" { return .cepas }
         if f.hasPrefix("ez-link") || f.hasPrefix("ezlink") || f.hasPrefix("cepas") { return .ezlink }
         if f == "nets flashpay" { return .netsFlashPay }
         if f == "clipper" || f == "clipper ticket" { return .clipper }

@@ -57,8 +57,9 @@ enum CEPASProtocol {
         return Data([0x90, 0x32, purseID, 0, 1, UInt8(offset), UInt8(count * 16)])
     }
 
-    /// Accept only complete legacy-layout Singapore purses with a known BCD CAN
-    /// issuer. A successful status or plausible balance alone is insufficient.
+    /// Accept only complete legacy-layout purses with a BCD CAN. A successful
+    /// status or plausible balance alone is insufficient. The CAN names the card
+    /// only where its prefix is certain; any other valid purse is plain CEPAS.
     static func parsePurse(_ data: Data) -> Purse? {
         let b = Array(data)
         guard (63...256).contains(b.count), b[0] != 0, b[0] != 0xFF,
@@ -68,7 +69,8 @@ enum CEPASProtocol {
         let family: String
         if serial.hasPrefix("100") { family = "EZ-Link" }
         else if serial.hasPrefix("111") { family = "NETS FlashPay" }
-        else { return nil }
+        else if serial.hasPrefix("800") { family = "Concession" } // CAN 8000–8009
+        else { family = "CEPAS" }
         let created = Int64(unsigned(b, 26, 2)) * 86_400 + epoch
         let expires = Int64(unsigned(b, 24, 2)) * 86_400 + epoch
         return Purse(family: family, serial: serial,

@@ -576,6 +576,7 @@
 "CEPAS Purse 3" = "CEPAS 钱包 3";
 "CEPAS Version" = "CEPAS 版本";
 "CEPAS record 0x%02X" = "CEPAS 记录 0x%02X";
+"Concession" = "优惠卡";
 "Calypso SFI %02X Record %d" = "Calypso SFI %02X 记录 %d";
 "Cancelled event" = "已取消的事件";
 "Card Info File 0x15" = "卡片信息文件 0x15";

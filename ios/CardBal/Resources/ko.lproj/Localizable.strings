@@ -580,6 +580,7 @@
 "CEPAS Purse 3" = "CEPAS 전자화폐 3";
 "CEPAS Version" = "CEPAS 버전";
 "CEPAS record 0x%02X" = "CEPAS 기록 0x%02X";
+"Concession" = "할인 카드";
 "Calypso SFI %02X Record %d" = "Calypso SFI %02X 기록 %d";
 "Cancelled event" = "취소된 이벤트";
 "Card Info File 0x15" = "카드 정보 파일 0x15";

@@ -2,7 +2,7 @@ import Foundation
 
 /// Routes each public on-card envelope to its own codec before generic ISO/FeliCa decoding.
 enum AdditionalCardHistory {
-    static let families: Set<String> = ["ez-link", "ezlink", "ez-link (cepas)", "nets flashpay", "opal", "hsl", "waltti", "clipper", "calypso", "lignes d'azur card", "navigo", "opus", "mobib", "rav-kav", "lisboa viva"]
+    static let families: Set<String> = ["ez-link", "ezlink", "ez-link (cepas)", "nets flashpay", "concession", "cepas", "opal", "hsl", "waltti", "clipper", "calypso", "lignes d'azur card", "navigo", "opus", "mobib", "rav-kav", "lisboa viva"]
     static func handles(_ family: String) -> Bool { families.contains(family.lowercased()) }
     static func merge(_ records: [String]) -> [String] {
         var seen = Set<String>()
@@ -19,7 +19,7 @@ enum AdditionalCardHistory {
     }
     static func decode(raw: String, family: String, context: [String] = []) -> TransitTransaction? {
         let normalized = family.lowercased()
-        if ["ez-link", "ezlink", "ez-link (cepas)", "nets flashpay"].contains(normalized) {
+        if ["ez-link", "ezlink", "ez-link (cepas)", "nets flashpay", "concession", "cepas"].contains(normalized) {
             let bytes = Data(hexString: raw)
             let envelope = bytes.count == 16 ? CEPASProtocol.encodeHistory(bytes) : bytes
             guard let envelope, let history = CEPASProtocol.decodeHistory(envelope) else { return nil }

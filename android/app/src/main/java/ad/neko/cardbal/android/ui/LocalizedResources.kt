@@ -221,6 +221,7 @@ internal val localizedResources = mapOf(
     "Composite Consumption" to R.string.text_a5bae9d00963e0a1,
     "Composite Transit" to R.string.text_255a23b69ff9577e,
     "Compound Purchase" to R.string.text_b9ba349a4462aef7,
+    "Concession" to R.string.text_2cbbfe890bb5de37,
     "Confirm S/N" to R.string.text_d01a0784b5e25258,
     "Connect a compatible USB smart-card reader." to R.string.text_8c4f79b0b2e0244a,
     "Connect a compatible USB smart-card reader. iPad and macOS require an external reader." to R.string.text_54d63740d4302675,

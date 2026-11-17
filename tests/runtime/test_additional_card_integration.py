@@ -112,12 +112,16 @@ precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["Edy", "EZLink"
 precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["U-Money"]) == ["MN"])
 precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["Edy"]) == ["JP"])
 precondition(WalletCountryVisibility.countryCodes(cardFamilies: ["NETS FlashPay"]) == ["SG"])
+for family in ["Concession", "CEPAS"] {
+    precondition(ICCardBrand.from(family: family) == .cepas) // never shown as EZ-Link
+    precondition(WalletCountryVisibility.countryCodes(cardFamilies: [family]) == ["SG"])
+}
 var sgRecord = Data(repeating: 0, count: 16)
 sgRecord[0] = 0x30; sgRecord[1] = 0xFF; sgRecord[2] = 0xFF; sgRecord[3] = 0x89
 sgRecord.replaceSubrange(8..<16, with: Array("PMN-NTD ".utf8))
 let legacy = sgRecord.hexString
 let sgRaw = CEPASProtocol.encodeHistory(sgRecord)!.hexString
-for family in ["EZLink", "EZ-Link", "EZ-Link (CEPAS)"] {
+for family in ["EZLink", "EZ-Link", "EZ-Link (CEPAS)", "NETS FlashPay", "Concession", "CEPAS"] {
     let tx = TransactionDecoderRegistry.decode(raw: sgRaw, family: family, technology: "ISO7816", context: [sgRaw], at: 0)!
     precondition(tx.entryStation == "Promenade" && tx.exitStation == "Newton")
     precondition(tx.entryStationCode == "SG:PMN" && tx.exitStationCode == "SG:NTD")

@@ -1,7 +1,10 @@
 # CEPAS stored-value purse and history
 
-Both apps independently implement the public purse-3 protocol for positively
-identified stored-value EZ-Link (CAN prefix100) and NETS FlashPay (111).
+Both apps independently implement the public purse-3 protocol for every
+structurally valid purse. The CAN names the card only where it is certain:
+EZ-Link (prefix 100), NETS FlashPay (111) and Concession (8000–8009); any other
+purse is labelled CEPAS without a brand guess. These other prefixes are
+untested on real cards.
 A complete purse response, valid BCD CAN and successful status are required.
 Selecting an AID or recognizing a chip alone is insufficient. SimplyGo backend
 account balances are not queried or inferred.

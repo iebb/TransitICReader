@@ -1,5 +1,6 @@
 package ad.neko.cardbal.android.nfc
 
+import ad.neko.cardbal.android.data.AdditionalCardHistory
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -19,15 +20,41 @@ class CepasProtocolTest {
     private fun ok(bytes: ByteArray) = bytes + byteArrayOf(0x90.toByte(), 0)
     private fun ByteArray.hex() = joinToString("") { "%02X".format(it) }
 
-    @Test fun purseIdentityAndSignedWholeCentsRequireCompleteKnownCan() {
+    @Test fun purseIdentityAndSignedWholeCentsRequireCompleteBcdCan() {
         val value = CepasProtocol.parsePurse(purse())!!
         assertEquals("NETS FlashPay", value.family)
         assertEquals("1110123456789012", value.serial)
         assertEquals(-100L, value.balanceMinor)
         assertEquals("EZ-Link", CepasProtocol.parsePurse(purse(0x10))!!.family)
         for (bad in listOf(ByteArray(0), purse().copyOf(62), purse().copyOf(257),
-            purse().also { it[8] = 0x80.toByte() }, purse().also { it[10] = 0xA0.toByte() },
-            purse().also { it[41] = 1 })) assertNull(CepasProtocol.parsePurse(bad))
+            purse().also { it[10] = 0xA0.toByte() }, purse().also { it[41] = 1 })) assertNull(CepasProtocol.parsePurse(bad))
+    }
+
+    @Test fun onlyCertainCanPrefixesNameTheCard() {
+        val concession = CepasProtocol.parsePurse(purse(0x80).also { it[9] = 0x08 })!!
+        assertEquals("Concession", concession.family)
+        assertEquals("8008123456789012", concession.serial)
+        val generic = CepasProtocol.parsePurse(purse(0x50))!!
+        assertEquals("CEPAS", generic.family)
+        assertEquals("5000123456789012", generic.serial)
+        assertEquals(-100L, generic.balanceMinor)
+        assertEquals("CEPAS", CepasProtocol.parsePurse(purse(0x81))!!.family)
+    }
+
+    @Test fun unbrandedPursesKeepEveryStructuralCheck() {
+        for (bad in listOf(purse(0x5A), purse(0x50).copyOf(62), purse(0x50).copyOf(257),
+            purse(0x50).also { it[0] = 0 }, purse(0x50).also { it[0] = -1 },
+            purse(0x50).also { it[41] = 1 })) assertNull(CepasProtocol.parsePurse(bad))
+    }
+
+    @Test fun everyCepasFamilyDecodesSavedHistory() {
+        val raw = CepasProtocol.encodeHistory(record())!!.hex()
+        for (family in listOf("EZ-Link", "NETS FlashPay", "Concession", "CEPAS")) {
+            assertTrue(AdditionalCardHistory.handles(family))
+            val tx = AdditionalCardHistory.decode(raw, family)!!
+            assertEquals(-275L, tx.amount)
+            assertEquals("SGD", tx.currencyCode)
+        }
     }
 
     @Test fun realTypesEpochSigned24AndUserDataSurviveVersionedEnvelope() {

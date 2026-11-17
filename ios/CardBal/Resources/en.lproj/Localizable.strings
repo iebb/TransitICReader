@@ -534,6 +534,7 @@
 "CEPAS Purse 3" = "CEPAS Purse 3";
 "CEPAS Version" = "CEPAS Version";
 "CEPAS record 0x%02X" = "CEPAS record 0x%02X";
+"Concession" = "Concession";
 "Calypso SFI %02X Record %d" = "Calypso SFI %02X Record %d";
 "Cancelled event" = "Cancelled event";
 "Card Info File 0x15" = "Card Info File 0x15";

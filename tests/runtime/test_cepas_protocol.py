@@ -40,10 +40,25 @@ precondition(CEPASProtocol.parsePurse(purse(0x10))!.family == "EZ-Link")
 for invalid in [Data(), Data(purse().prefix(62)), purse() + Data(repeating: 0, count: 200)] {
     precondition(CEPASProtocol.parsePurse(invalid) == nil)
 }
-var unknown = purse(); unknown[8] = 0x80
-precondition(CEPASProtocol.parsePurse(unknown) == nil) // account-based CANs aren't inferred
+var concession = purse(); concession.replaceSubrange(8..<10, with: [0x80, 0x08])
+precondition(CEPASProtocol.parsePurse(concession)!.family == "Concession")
+precondition(CEPASProtocol.parsePurse(concession)!.serial == "8008123456789012")
+var unknown = purse(); unknown[8] = 0x50
+let generic = CEPASProtocol.parsePurse(unknown)! // no brand is guessed from other CANs
+precondition(generic.family == "CEPAS" && generic.serial == "5010123456789012" && generic.balanceMinor == -100)
+unknown[8] = 0x81
+precondition(CEPASProtocol.parsePurse(unknown)!.family == "CEPAS") // 81xx is outside 8000–8009
 var malformed = purse(); malformed[10] = 0xA0
 precondition(CEPASProtocol.parsePurse(malformed) == nil)
+malformed = purse(); malformed[8] = 0x5A
+precondition(CEPASProtocol.parsePurse(malformed) == nil) // invalid BCD in an unbranded CAN
+for version: UInt8 in [0, 0xFF] {
+    var bad = unknown; bad[0] = version
+    precondition(CEPASProtocol.parsePurse(bad) == nil)
+}
+for invalid in [Data(unknown.prefix(62)), unknown + Data(repeating: 0, count: 200)] {
+    precondition(CEPASProtocol.parsePurse(invalid) == nil)
+}
 malformed = purse(); malformed[41] = 1
 precondition(CEPASProtocol.parsePurse(malformed) == nil) // issuer data/options truncated
 let raw = CEPASProtocol.encodeHistory(record())!

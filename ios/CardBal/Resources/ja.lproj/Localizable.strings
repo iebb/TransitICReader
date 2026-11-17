@@ -576,6 +576,7 @@
 "CEPAS Purse 3" = "CEPAS 電子マネー 3";
 "CEPAS Version" = "CEPAS バージョン";
 "CEPAS record 0x%02X" = "CEPAS 履歴 0x%02X";
+"Concession" = "割引カード";
 "Calypso SFI %02X Record %d" = "Calypso SFI %02X 履歴 %d";
 "Cancelled event" = "取り消されたイベント";
 "Card Info File 0x15" = "カード情報ファイル 0x15";

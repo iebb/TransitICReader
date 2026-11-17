@@ -34,6 +34,8 @@ internal object CepasProtocol {
     fun historyCommand(offset: Int, count: Int): ByteArray? = if (offset in 0..254 && count in 1..15)
         byteArrayOf(0x90.toByte(), 0x32, PURSE_ID.toByte(), 0, 1, offset.toByte(), (count * 16).toByte()) else null
 
+    /** Complete legacy-layout purses with a BCD CAN only. The CAN names the card
+     * only where its prefix is certain; any other valid purse is plain CEPAS. */
     fun parsePurse(data: ByteArray): Purse? {
         if (data.size !in 63..256 || data[0] == 0.toByte() || data[0] == 0xFF.toByte() ||
             63 + (data[41].toInt() and 255) > data.size) return null
@@ -43,7 +45,8 @@ internal object CepasProtocol {
         val family = when {
             serial.startsWith("100") -> "EZ-Link"
             serial.startsWith("111") -> "NETS FlashPay"
-            else -> return null
+            serial.startsWith("800") -> "Concession" // CAN 8000–8009
+            else -> "CEPAS"
         }
         return Purse(family, serial, data.copyOfRange(16, 24).hex(), data[0].toInt() and 255,
             data[1].toInt() and 255, signed24(data, 2), data[40].toInt() and 255,

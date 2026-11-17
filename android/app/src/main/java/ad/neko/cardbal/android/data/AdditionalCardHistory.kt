@@ -8,7 +8,7 @@ import ad.neko.cardbal.android.util.hexString
 import kotlinx.datetime.Instant
 
 internal object AdditionalCardHistory {
-    private val families=setOf("ez-link","nets flashpay","opal","hsl","waltti","clipper","calypso","lignes d'azur card","navigo","opus","mobib","rav-kav", "lisboa viva")
+    private val families=setOf("ez-link","nets flashpay","concession","cepas","opal","hsl","waltti","clipper","calypso","lignes d'azur card","navigo","opus","mobib","rav-kav", "lisboa viva")
     fun handles(family:String)=family.lowercase() in families
     fun merge(records:List<String>):List<String> = CalypsoProtocol.mergeHistory(records).distinctBy { raw ->
         val b=raw.hexToBytes()
@@ -19,7 +19,7 @@ internal object AdditionalCardHistory {
     }
     fun decode(raw:String,family:String,context:List<String> = emptyList()):TransitTransaction? {
         val name=family.lowercase()
-        if(name=="ez-link" || name=="nets flashpay") {
+        if(name in setOf("ez-link","nets flashpay","concession","cepas")) {
             val h=CepasProtocol.decodeHistory(raw.hexToBytes()) ?: return null
             val category=when(h.kind) {
                 CepasProtocol.Kind.Train->TransactionCategory.train

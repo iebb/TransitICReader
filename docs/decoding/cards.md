@@ -45,7 +45,7 @@ presentation logic.
 | Named Calypso networks | ISO 7816 | ISO 7816 | Network-specific public contracts, counters and travel events. |
 | IruCa / PASPY / SAPICA / OKICA / Ryuto | FeliCa | FeliCa | Balance and their configured record services on both. |
 | Hanica (Hankyu / Hanshin Bus) | FeliCa | FeliCa | System 84A1, log 898F: dates and stop codes; JPY balance and fares only when exactly one known bus-platform layout makes the log self-consistent, otherwise recognised with the balance unconfirmed. |
-| CEPAS / NETS FlashPay / stored-value EZ-Link | ISO/MIFARE | ISO-DEP | SGD balance and records; no SimplyGo backend balance. |
+| CEPAS / NETS FlashPay / stored-value EZ-Link / concession | ISO/MIFARE | ISO-DEP | SGD balance and records; no SimplyGo backend balance. Named EZ-Link (CAN 100…), NETS FlashPay (111…) or Concession (8000–8009…); any other valid purse is shown as CEPAS. |
 | Opal / HSL / Waltti | DESFire | DESFire | Public purse, journey or ticket files according to the generation. |
 | Clipper | DESFire / Ultralight | DESFire / Ultralight | USD purse, trip/top-up history and mapped stations for the public DESFire format; disposable ticket state and validations. [Format](clipper.md). |
 | Macau Pass / 澳门通 | ISO 7816 / CCID | ISO-DEP | MOP purse, serial, validity and recent transaction records; optional T-Union companion. [Format](macau-pass.md). |
