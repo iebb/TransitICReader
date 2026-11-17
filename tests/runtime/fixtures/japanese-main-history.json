@@ -1,0 +1,15 @@
+{
+  "source": "Constructed 090F main-history rows, newest first, read the same way on a Nimoca and a Suica: a shop purchase, a bus ride and a top-up on one day, then an older top-up that sets the newer one's amount. None of them pass through the gate-history filter.",
+  "families": ["Nimoca", "Suica"],
+  "blocks": [
+    "C7460000338951E00000600400000400",
+    "050D0000338912340001F60400000300",
+    "08020000338900000000DC0500000200",
+    "08020000338800000000F40100000100"
+  ],
+  "rows": [
+    {"process": 70, "type": "suica_process_70", "label": "Goods Purchase", "category": "purchase", "amount": 150, "balance": 1120, "date": "2025-12-09", "time": "10:15:00"},
+    {"process": 13, "type": "suica_process_13", "label": "Bus", "category": "bus", "amount": 230, "balance": 1270, "date": "2025-12-09"},
+    {"process": 2, "type": "top_up", "label": "Top-up", "category": "topUp", "amount": 1000, "balance": 1500, "date": "2025-12-09"}
+  ]
+}

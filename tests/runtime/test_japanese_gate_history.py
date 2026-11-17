@@ -1,4 +1,5 @@
 """Japanese IC history shows only gate events and records with a real date, through production Swift."""
+import json
 import re
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ from pathlib import Path
 from tools.paths import ROOT
 
 FIXTURE = ROOT / "tests/runtime/fixtures/nimoca-gate-history.json"
+MAIN_HISTORY = ROOT / "tests/runtime/fixtures/japanese-main-history.json"
 
 
 @unittest.skipUnless(shutil.which("swiftc"), "Requires Swift")
@@ -22,6 +24,10 @@ class JapaneseGateHistoryTests(unittest.TestCase):
         # Every record decoder of the production type, from decodeTransaction to its end.
         members = source[source.index("    static func decodeTransaction("):source.index("\n}\n\n// MARK: - Profiles")]
         self.assertIsNotNone(re.search(r"private static func packedFeliCaDate\(", members))
+        # The keys the 090F rows decode to are the app's English labels for them.
+        strings = (ROOT / "ios/CardBal/Resources/en.lproj/Localizable.strings").read_text()
+        for row in json.loads(MAIN_HISTORY.read_text())["rows"]:
+            self.assertIn(f'"{row["type"]}" = "{row["label"]}";', strings)
         stubs = r'''
 enum ICCardBrand {
     case edy, waon, nanaco, okica, octopus, other
@@ -77,6 +83,22 @@ let uses = transactions.indices.map {
 }
 precondition(uses[0]?.date != nil && uses[1]?.date != nil && uses[2] == nil, "uninitialised 090F block shown")
 
+// The gate filter leaves 090F main history alone: a purchase, a bus ride and a top-up keep their type and amount.
+let mainHistory = json(CommandLine.arguments[4])
+let mainBlocks = (mainHistory["blocks"] as! [String]).map { Data(hexString: $0) }
+let mainRows = mainHistory["rows"] as! [[String: Any]]
+for family in mainHistory["families"] as! [String] {
+    for (index, row) in mainRows.enumerated() {
+        let tx = Decoder.decodeTransaction(block: mainBlocks[index], context: mainBlocks, index: index, family: family)
+        precondition(tx != nil, "\(family) 090F row hidden: \(row)")
+        let label = "\(family) \(row)"
+        precondition(Int(mainBlocks[index][1]) == row["process"] as! Int, label)
+        precondition(tx!.type == row["type"] as! String && tx!.category.rawValue == row["category"] as! String, "\(label): \(tx!.type)")
+        precondition(tx!.amount == Decimal(row["amount"] as! Int) && tx!.balanceAfter == Decimal(row["balance"] as! Int), label)
+        precondition(day(tx!.date!) == row["date"] as! String && tx!.time == row["time"] as? String, label)
+    }
+}
+
 // Known events stay hidden without a real day; time alone is dropped when it is not one.
 func gate(_ hex: String) -> TransitTransaction? {
     Decoder.decodeTransaction(block: Data(hexString: hex), context: [], index: 0, family: "Nimoca", kind: .transit)
@@ -118,7 +140,7 @@ for card in json(CommandLine.arguments[2])["cards"] as! [[String: Any]] {
 }
 precondition(shown == 17 && hidden.count == 6, "shown \(shown), hidden \(hidden)")
 precondition(hiddenUses == ["00000000000000002300001F0000161D"], "\(hiddenUses)")
-print("PASS Japanese gate history: 3 Nimoca rows, 17 sample gate records kept")
+print("PASS Japanese gate history: 3 Nimoca rows, 17 sample gate records and 090F purchase, bus and top-up rows kept")
 '''
         program = ("import Foundation\n" + models + data + formatting + stubs
                    + "struct Decoder {\n" + members + "\n}\n" + main)
@@ -131,7 +153,7 @@ print("PASS Japanese gate history: 3 Nimoca rows, 17 sample gate records kept")
                                    capture_output=True, text=True)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             result = subprocess.run([str(path / "test"), str(FIXTURE), str(ROOT / "data/development/owner-wallet.json"),
-                                     str(ROOT / "ios/CardBal/Resources/JPStationCodes.csv")], capture_output=True, text=True)
+                                     str(ROOT / "ios/CardBal/Resources/JPStationCodes.csv"), str(MAIN_HISTORY)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("PASS", result.stdout)
 
