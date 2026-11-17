@@ -42,6 +42,12 @@ val buildArm64Split = providers.gradleProperty("cardbal.abiSplit")
     .map { it.equals("true", ignoreCase = true) }
     .getOrElse(false)
 
+// The git-signed GitHub APK, built and signed in CI rather than by Google Play, uses its own
+// application ID so it installs beside, and never replaces, the Google Play app.
+val gitSigned = providers.gradleProperty("cardbal.gitSigned")
+    .map { it.equals("true", ignoreCase = true) }
+    .getOrElse(false)
+
 val appVersionName = providers.gradleProperty("transitic.versionName").orElse("2.6.1").get()
 require(appVersionName.isNotBlank() && appVersionName == appVersionName.trim() &&
     appVersionName.none { it.isISOControl() }) {
@@ -63,6 +69,8 @@ android {
 
     defaultConfig {
         applicationId = "ad.neko.cardbal.android"
+        if (gitSigned) applicationIdSuffix = ".gs"
+        manifestPlaceholders["appLabel"] = if (gitSigned) "CardBal (GitHub)" else "CardBal"
         minSdk = 26
         targetSdk = 36
         versionCode = appVersionCode

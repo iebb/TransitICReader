@@ -34,13 +34,24 @@ are excluded. iOS and Android store uploads remain separate workflows.
 The [Android release](../../.github/workflows/android-release.yml) workflow also
 runs on `master` automatically, and again whenever a
 [Google Play internal](../../.github/workflows/play-internal.yml) upload
-succeeds. It builds nothing: it downloads the universal APK that Google Play
-generated from the latest internal build and signed with the Play app-signing
-key, the same key Play installs carry. A GitHub APK therefore updates a Play
-install and the reverse, with the same version code. The workflow checks with
-`apksigner` that the APK's certificate is the one Play reports, and checks the
-package name and version with `aapt2`, then publishes `android-v<version>` with
-the APK and a SHA-256 checksum.
+succeeds. Each release has two APKs and one `SHA256SUMS.txt`:
+
+- `CardBal-<version>-android.apk`, Play-signed: the universal APK Google Play
+  generated from the latest internal build and signed with the Play app-signing
+  key, the same key Play installs carry. It updates a Play install and the
+  reverse, with the same version code. The workflow checks with `apksigner` that
+  its certificate is the one Play reports.
+- `CardBal-<version>-android-git-signed.apk`, git-signed: built by the workflow
+  from the release commit with `-Pcardbal.gitSigned=true` and signed with the
+  upload key. That property adds the `.gs` application ID suffix
+  (`ad.neko.cardbal.android.gs`) and the label "CardBal (GitHub)", so it installs
+  beside the Play app, with its own data, instead of replacing it. It uses Play's
+  version name and code. Firebase's configuration covers only the Play package,
+  so this build has no `google-services.json` and no analytics. The workflow
+  checks that its certificate is the upload key's.
+
+Both packages and versions are checked with `aapt2` before `android-v<version>`
+is published. The release text ends with a short note on which APK to choose.
 
 The plan step stops when `android-v<version>` already exists, or when the latest
 Play internal build is a different version. Releasing is therefore: bump the app

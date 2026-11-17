@@ -1,9 +1,13 @@
 name: Android release
 run-name: Release CardBal for Android${{ inputs.dry_run && ' (dry run)' || '' }}
 
-# The GitHub APK is the universal APK Google Play generates from the internal
-# build and signs with the Play app-signing key, so it updates, and is updated
-# by, a Google Play install. Nothing is built or signed here.
+# Each release carries two APKs of the version Play internal has:
+# - CardBal-<version>-android.apk: the universal APK Google Play generates and
+#   signs with the Play app-signing key, so it updates, and is updated by, a
+#   Google Play install.
+# - CardBal-<version>-android-git-signed.apk: built here from the tagged commit
+#   and signed with the upload key, as ad.neko.cardbal.android.gs, so it installs
+#   beside the Play app instead of replacing it.
 on:
   # A push publishes only when the repository version has no android-v<version>
   # release yet and Play internal already has that version.
@@ -17,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Download and verify the Play APK as an artifact; publish nothing'
+        description: 'Download, build and verify both APKs as an artifact; publish nothing'
         required: false
         type: boolean
         default: false
@@ -97,7 +101,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -111,8 +115,9 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
-          packages: 'build-tools;36.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
           log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - run: python3 -m pip install -r android/tools/requirements-play.txt
       - name: Test Play release helper
         run: python3 -m unittest discover -s android/tools/tests -v
@@ -149,8 +154,62 @@ jobs:
             "package: name='ad.neko.cardbal.android' "*"versionName='$RELEASE_VERSION'"*) ;;
             *) echo "Unexpected APK identity: $badging" >&2; exit 1 ;;
           esac
+      - name: Restore upload keystore
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'cardbal-upload.jks'
+          path.write_bytes(base64.b64decode(os.environ['ANDROID_UPLOAD_KEYSTORE_BASE64'], validate=True))
+          path.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'CARDBAL_UPLOAD_STORE_FILE={path}\n')
+          PY
+      # No google-services.json: its Firebase client is the Play package only, so
+      # the git-signed build runs with analytics disabled.
+      - name: Build the git-signed APK
+        working-directory: android
+        env:
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
+          CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
+          CARDBAL_UPLOAD_KEY_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_KEY_PASSWORD }}
+          OCTOPUS_ENQUIRY_BASE_URL: ${{ secrets.OCTOPUS_ENQUIRY_BASE_URL }}
+        run: |
+          code=$(python3 -c "import json; print(json.load(open('../build/android/play-apk.json'))['version_code'])")
+          ./gradlew :app:assembleRelease --no-daemon -Pcardbal.gitSigned=true \
+            -Ptransitic.versionName="$RELEASE_VERSION" -Ptransitic.versionCode="$code"
+      - name: Verify the git-signed APK and write checksums
+        env:
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
+          CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
+        run: |
+          built=android/app/build/outputs/apk/release/app-release.apk
+          apk="build/android/release/CardBal-$RELEASE_VERSION-android-git-signed.apk"
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          expected=$(keytool -exportcert -keystore "$CARDBAL_UPLOAD_STORE_FILE" -alias "$CARDBAL_UPLOAD_KEY_ALIAS" \
+            -storepass:env CARDBAL_UPLOAD_STORE_PASSWORD | sha256sum | cut -d' ' -f1)
+          signers=$("$tools/apksigner" verify --print-certs "$built" | sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' | sort -u)
+          echo "Signing certificate SHA-256: $signers"
+          if [ "$signers" != "$expected" ]; then
+            echo "The git-signed APK is not signed with the upload key." >&2
+            exit 1
+          fi
+          code=$(python3 -c "import json; print(json.load(open('build/android/play-apk.json'))['version_code'])")
+          badging=$("$tools/aapt2" dump badging "$built" | head -1)
+          case "$badging" in
+            "package: name='ad.neko.cardbal.android.gs' versionCode='$code' versionName='$RELEASE_VERSION'"*) ;;
+            *) echo "Unexpected APK identity: $badging" >&2; exit 1 ;;
+          esac
+          cp "$built" "$apk"
           cd build/android/release
           sha256sum ./*.apk > SHA256SUMS.txt
+      - name: Remove upload keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/cardbal-upload.jks"
       - name: Write release notes
         env:
           RELEASE_VERSION: ${{ needs.plan.outputs.version }}
@@ -168,6 +227,13 @@ jobs:
               text = '\n\n'.join(locales[key] for key in ('en-GB', 'zh-Hans', 'ja', 'ko') if locales.get(key))
           else:
               text = ''
+          text = text.rstrip() + f'''
+
+          ### Which APK?
+
+          - `CardBal-{version}-android.apk` is signed by Google Play. It updates, and is updated by, the Google Play app.
+          - `CardBal-{version}-android-git-signed.apk` is built from this release's source on GitHub and signed by the developer. It installs as a separate app, CardBal (GitHub), beside the Google Play app, with its own saved cards, and has no analytics.
+          '''
           Path('build/android/release-notes.md').write_text(text)
           PY
       - if: env.DRY_RUN == 'true'
@@ -194,6 +260,7 @@ jobs:
           gh release create "android-v$RELEASE_VERSION" \
             --target "$TARGET_SHA" --title "CardBal $RELEASE_VERSION for Android" "${notes[@]}" \
             "build/android/release/CardBal-$RELEASE_VERSION-android.apk" \
+            "build/android/release/CardBal-$RELEASE_VERSION-android-git-signed.apk" \
             build/android/release/SHA256SUMS.txt
       - name: Record release
         env:
@@ -201,4 +268,4 @@ jobs:
         run: |
           code=$(python3 -c "import json; print(json.load(open('build/android/play-apk.json'))['version_code'])")
           verb=Published; [ "$DRY_RUN" = true ] && verb="Verified (dry run)"
-          echo "$verb android-v$RELEASE_VERSION ($code), the Play-signed universal APK." >> "$GITHUB_STEP_SUMMARY"
+          echo "$verb android-v$RELEASE_VERSION ($code): the Play-signed universal APK and the git-signed ad.neko.cardbal.android.gs APK." >> "$GITHUB_STEP_SUMMARY"

@@ -20,8 +20,10 @@ the workflows use these files.
   download and checksum.
 - `docs/release-notes/android-<version>.md`: optional GitHub release text for
   the Android APK. Without it, all four languages of the store notes are used.
-  The APK is Google Play's own signed build, so it installs over a Play
-  install and the reverse.
+  The release has Google Play's own signed APK, which installs over a Play
+  install and the reverse, and a git-signed APK built in CI as
+  `ad.neko.cardbal.android.gs`, which installs beside it. The workflow appends
+  a note explaining the two, so don't repeat it.
 
 Write for people using the app: describe what they can now do or what was
 fixed, by card and city. Leave out internal names, commit hashes, card
