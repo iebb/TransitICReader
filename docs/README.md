@@ -30,6 +30,7 @@ reference. Release notes are publishing inputs under `release-notes/`.
 
 ## Data and artwork
 
+- [Licences and credits](licenses/README.md)
 - [Station catalog, compilation and attribution](data/station-assets.md)
 - [Trip Reader station formats and backup import](data/tripreader.md)
 - [UB Smart Bus data](data/ub-smart-bus.md)

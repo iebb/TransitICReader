@@ -9,6 +9,9 @@ attribution and repeatable guides. Update the owning reference instead of
 adding dated work logs, implementation reports or superseded surveys.
 Keep the documentation index in `docs/README.md` current when moving pages.
 Release notes are publishing inputs and follow the requirements below.
+Root READMEs introduce CardBal and its main features. Keep protocol details,
+source attribution, verification history and build procedures in `docs/`,
+with brief links from the READMEs.
 
 ## Release notes
 
