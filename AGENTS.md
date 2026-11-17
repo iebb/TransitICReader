@@ -17,9 +17,11 @@ with brief links from the READMEs.
 
 Every user-visible change needs release notes, and a version bump is not
 complete without them. Add or update the notes in the same commit, for the
-version that will ship the change (the one after the latest `android-v*` or
-`macos-v*` release tag). See [releases](docs/development/releases.md) for how
-the workflows use these files.
+version that will ship the change (the one after the latest `v*` release tag;
+versions up to 2.6.3 used `android-v*` and `macos-v*`). See
+[releases](docs/development/releases.md) for how the workflows use these files.
+Both platforms share one GitHub release, whose notes join the macOS and Android
+sections.
 
 - `docs/release-notes/<version>.json`: App Store and Google Play "What's New".
   A JSON object with `en-GB`, `ja`, `ko` and `zh-Hans`, each a nonempty string
@@ -29,8 +31,8 @@ the workflows use these files.
   macOS plan fails without it on every push to `master`. Follow `macos-2.6.0.md`: what
   changed for Mac, requirements (macOS 13, a USB NFC / CCID reader), and the
   download and checksum.
-- `docs/release-notes/android-<version>.md`: optional GitHub release text for
-  the Android APK. Without it, all four languages of the store notes are used.
+- `docs/release-notes/android-<version>.md`: optional Android section of the
+  GitHub release. Without it, all four languages of the store notes are used.
   The release has Google Play's own signed APK, which installs over a Play
   install and the reverse, and a git-signed APK built in CI as
   `ad.neko.cardbal.android.gs`, which installs beside it. The workflow appends

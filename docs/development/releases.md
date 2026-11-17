@@ -2,26 +2,34 @@
 
 ## GitHub downloads
 
-The [Release](../../.github/workflows/release.yml) workflow publishes both GitHub
-downloads, the macOS app and the Android APKs, each under its own tag. It runs
-on every push to `master`, after each successful
+The [Release](../../.github/workflows/release.yml) workflow publishes the macOS
+app and the Android APKs of a version in one GitHub release, tagged
+`v<version>`. It runs on every push to `master`, after each successful
 [Google Play internal](../../.github/workflows/play-internal.yml) upload
 (Android only), and by hand from **Actions**, where `platform` picks both, macOS
 or Android. A cheap plan job for each platform decides whether that download is
-due; ordinary pushes finish there. An existing release is never replaced: a
-platform whose release exists is skipped, or fails if a manual run named that
-platform alone.
+due; ordinary pushes finish there.
+
+The macOS app is usually ready first, on the version-bump push; the APKs follow
+once Play internal has the version. Whichever platform is ready first creates
+`v<version>` and tags its commit; the other adds its files to that release.
+`tools/release/github_release.py` then rewrites the release notes, one section
+per platform present, and a single `SHA256SUMS.txt` covering every download.
+Published downloads are never replaced: a platform already on the release is
+skipped, or fails if a manual run named that platform alone. Versions up to
+2.6.3 were published under separate `macos-v<version>` and
+`android-v<version>` tags, which also count as released.
 
 ## macOS download
 
-The macOS plan stops if the repository version already has a `macos-v<version>`
-release, otherwise it requires `docs/release-notes/macos-<version>.md` and
+The macOS plan stops if the repository version already has a macOS download,
+otherwise it requires `docs/release-notes/macos-<version>.md` and
 starts the build. Releasing a new macOS version is therefore: bump the app
 version, add the notes, and push. The build produces a universal Mac Catalyst
 app, signs it with Developer ID, submits it for Apple notarization, staples the accepted ticket and publishes
-`macos-v<version>` on GitHub with a ZIP and SHA-256 checksum. The marketing version
-comes from the existing app projects. Existing releases are never replaced, and
-a failed build is retried by the next push because no release exists yet.
+`CardBal-<version>-macOS.zip` in `v<version>`. The marketing version comes from
+the existing app projects. A failed build is retried by the next push because
+the release has no macOS download yet.
 
 Signing comes from the `MACOS_SIGNING_BUNDLE_BASE64` repository secret: an
 encrypted bundle (scrypt and AES-256-GCM) holding the Developer ID Application
@@ -41,7 +49,7 @@ are excluded. iOS and Android store uploads remain separate workflows.
 
 ## Android download
 
-Each release has two APKs and one `SHA256SUMS.txt`:
+Each release has two APKs:
 
 - `CardBal-<version>-android.apk`, Play-signed: the universal APK Google Play
   generated from the latest internal build and signed with the Play app-signing
@@ -57,10 +65,11 @@ Each release has two APKs and one `SHA256SUMS.txt`:
   so this build has no `google-services.json` and no analytics. The workflow
   checks that its certificate is the upload key's.
 
-Both packages and versions are checked with `aapt2` before `android-v<version>`
-is published. The release text ends with a short note on which APK to choose.
+Both packages and versions are checked with `aapt2` before they are added to
+`v<version>`. The Android section of the notes ends with a short note on which
+APK to choose.
 
-The Android plan stops when `android-v<version>` already exists, or when the latest
+The Android plan stops when the version already has Android downloads, or when the latest
 Play internal build is a different version. Releasing is therefore: bump the app
 version, push, and run Google Play internal; the GitHub release follows. Play
 generates the universal APK a few minutes after an upload, so the download is
@@ -68,7 +77,7 @@ retried for up to ten minutes. Run the workflow by hand for Android with **dry r
 download and verify the APK as an Actions artifact without publishing. The
 service account needs Play Console access to download generated APKs. Notes come
 from `docs/release-notes/android-<version>.md`, otherwise from the store notes
-in `docs/release-notes/<version>.json`, otherwise from GitHub's generated notes.
+in `docs/release-notes/<version>.json`.
 
 ## iOS and Android stores
 
