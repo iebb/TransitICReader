@@ -36,7 +36,7 @@ class AppClipTests(unittest.TestCase):
         harness = r'''
 import Foundation
 @main struct InvocationTests {
-    static func main() {
+    @MainActor static func main() {
         let base = "https://appclip.apple.com/id?p=ad.neko.cardbal.Clip"
         let accepted = [base, base + "&unknown=1", base + "&scan=1&scan=2&balance=999&card=abc", base + "#scan"]
         for value in accepted { precondition(ClipInvocation(URL(string: value)!) != nil, value) }
@@ -48,6 +48,14 @@ import Foundation
         precondition(ClipInvocation(URL(string: base)!) == ClipInvocation(URL(string: base)!))
         let absent: URL? = nil
         precondition(absent.flatMap(ClipInvocation.init) == nil)
+        let route = QuickScanRoute()
+        for value in accepted + rejected {
+            route.isPresented = false
+            route.receive(URL(string: value))
+            precondition(route.isPresented, "A delivered invocation must use explicit Scan: " + value)
+        }
+        route.receive(nil)
+        precondition(route.isPresented, "Missing invocation URL must stay usable")
         print("Invocation safety: default, unknown, absent, duplicate, hostile values passed")
     }
 }
@@ -55,7 +63,10 @@ import Foundation
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             (path / 'InvocationTests.swift').write_text(harness)
+            # Only the production navigation controller; no NFC/UI substitutes.
+            route_source = (ROOT / 'ios/CardBal/Views/QuickScanView.swift').read_text().split('struct QuickScanView: View')[0]
+            (path / 'QuickScanRoute.swift').write_text(route_source)
             executable = path / 'invocation-tests'
             subprocess.run(['swiftc', str(ROOT / 'ios/CardBal/Helpers/ClipInvocation.swift'),
-                            str(path / 'InvocationTests.swift'), '-o', str(executable)], check=True)
+                            str(path / 'QuickScanRoute.swift'), str(path / 'InvocationTests.swift'), '-o', str(executable)], check=True)
             subprocess.run([str(executable)], check=True)

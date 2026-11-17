@@ -15,4 +15,3 @@ struct SavedCardField: Codable, Hashable, Identifiable {
         self.init(title: field.title, value: field.value)
     }
 }
-

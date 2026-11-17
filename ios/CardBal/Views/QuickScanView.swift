@@ -7,7 +7,9 @@ final class QuickScanRoute: ObservableObject {
     @Published var isPresented = false
 
     func receive(_ url: URL?) {
-        guard let url, ClipInvocation(url) != nil else { return }
+        // A delivered invocation always opens the explicit-scan screen, even if
+        // its URL is missing or malformed. Never fall through to scan-on-launch.
+        if let url { _ = ClipInvocation(url) }
         isPresented = true
     }
 }
