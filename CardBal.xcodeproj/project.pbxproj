@@ -879,7 +879,7 @@
             SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
             SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPCLIP DEBUG";
             SWIFT_VERSION = 5.0;
-            TARGETED_DEVICE_FAMILY = 1;
+            TARGETED_DEVICE_FAMILY = "1,2";
             LD_RUNPATH_SEARCH_PATHS = ("$(inherited)","@executable_path/Frameworks");
         };};
         56AFCE0874B387E10A5D15F9 = {isa = XCBuildConfiguration; name = Release; buildSettings = {
@@ -903,7 +903,7 @@
             SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
             SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPCLIP";
             SWIFT_VERSION = 5.0;
-            TARGETED_DEVICE_FAMILY = 1;
+            TARGETED_DEVICE_FAMILY = "1,2";
             LD_RUNPATH_SEARCH_PATHS = ("$(inherited)","@executable_path/Frameworks");
         };};
 /* End XCBuildConfiguration section */
