@@ -14,8 +14,8 @@ the workflows use these files.
   A JSON object with `en-GB`, `ja`, `ko` and `zh-Hans`, each a nonempty string
   of `• ` bullet lines joined by `\n`, as in `2.6.0.json`. Google Play receives
   only `en-GB`, so keep that text within Play's 500 characters.
-- `docs/release-notes/macos-<version>.md`: required. The macOS release workflow
-  stops without it on every push to `master`. Follow `macos-2.6.0.md`: what
+- `docs/release-notes/macos-<version>.md`: required. The release workflow's
+  macOS plan fails without it on every push to `master`. Follow `macos-2.6.0.md`: what
   changed for Mac, requirements (macOS 13, a USB NFC / CCID reader), and the
   download and checksum.
 - `docs/release-notes/android-<version>.md`: optional GitHub release text for

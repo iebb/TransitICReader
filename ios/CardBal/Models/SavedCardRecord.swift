@@ -602,6 +602,11 @@ extension SavedCardRecord {
         if f.contains("hayakaken") { return SavedCardColor(red: 0.0, green: 0.68, blue: 0.94) } // Hayakaken Cyan
         if f.contains("sugoca") { return SavedCardColor(red: 0.82, green: 0.1, blue: 0.12) } // SUGOCA Red
         if f.contains("manaca") { return SavedCardColor(red: 0.96, green: 0.53, blue: 0.14) } // Manaca Orange/Yellow
+        if f.contains("kitaca") { return SavedCardColor(red: 0.67, green: 0.81, blue: 0.21) }
+        if f.contains("nimoca") { return SavedCardColor(red: 0.33, green: 0.76, blue: 0.95) }
+        if f.contains("toica") { return SavedCardColor(red: 0.50, green: 0.77, blue: 0.93) }
+        if f.contains("pitapa") { return SavedCardColor(red: 0.73, green: 0.70, blue: 0.85) }
+        if f.contains("icsca") { return SavedCardColor(red: 0.69, green: 0.80, blue: 0.15) }
         if f.contains("u-money") || f.contains("umoney") { return SavedCardColor(red: 0.64, green: 0.04, blue: 0.45) } // U-Money Magenta
         if f.contains("t-money") || f.contains("ezl") { return SavedCardColor(red: 0.94, green: 0.5, blue: 0.0) } // Transit Orange
         if f.contains("octopus") { return SavedCardColor(red: 0.92, green: 0.48, blue: 0.1) } // Octopus Amber

@@ -1,27 +1,34 @@
-name: Android release
-run-name: Release CardBal for Android${{ inputs.dry_run && ' (dry run)' || '' }}
+name: Release
+run-name: Release CardBal${{ inputs.dry_run && ' (Android dry run)' || '' }}
 
-# Each release carries two APKs of the version Play internal has:
-# - CardBal-<version>-android.apk: the universal APK Google Play generates and
+# One workflow publishes both GitHub downloads, each under its own tag:
+# - macos-v<version>: the notarized universal Mac Catalyst app, built when the
+#   repository version has no macOS release yet.
+# - android-v<version>: two APKs of the version Play internal has.
+#   CardBal-<version>-android.apk is the universal APK Google Play generates and
 #   signs with the Play app-signing key, so it updates, and is updated by, a
-#   Google Play install.
-# - CardBal-<version>-android-git-signed.apk: built here from the tagged commit
-#   and signed with the upload key, as ad.neko.cardbal.android.gs, so it installs
-#   beside the Play app instead of replacing it.
+#   Google Play install. CardBal-<version>-android-git-signed.apk is built here
+#   from the release commit and signed with the upload key, as
+#   ad.neko.cardbal.android.gs, so it installs beside the Play app.
+# Ordinary pushes finish after the plan jobs. Existing releases are never replaced.
 on:
-  # A push publishes only when the repository version has no android-v<version>
-  # release yet and Play internal already has that version.
   push:
     branches: [master]
-  # A finished Google Play internal upload releases its version straight away.
+  # A finished Google Play internal upload releases its Android version straight away.
   workflow_run:
     workflows: [Google Play internal]
     types: [completed]
     branches: [master]
   workflow_dispatch:
     inputs:
+      platform:
+        description: 'Which download to release'
+        required: false
+        type: choice
+        options: [both, macos, android]
+        default: both
       dry_run:
-        description: 'Download, build and verify both APKs as an artifact; publish nothing'
+        description: 'Android: download, build and verify both APKs as an artifact; publish nothing'
         required: false
         type: boolean
         default: false
@@ -29,19 +36,179 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: cardbal-android-release
-  cancel-in-progress: false
-
 env:
   TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
   DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+  # Set only when a manual run names one platform; an explicit request fails loudly.
+  PLATFORM: ${{ github.event_name == 'workflow_dispatch' && inputs.platform != 'both' && inputs.platform || '' }}
 
 jobs:
-  plan:
+  macos-plan:
     if: >-
-      github.ref == 'refs/heads/master' && (github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_dispatch'))
+      github.ref == 'refs/heads/master' && (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.platform != 'android' && !inputs.dry_run))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - id: version
+        name: Validate version
+        run: python3 -m tools.release.versions
+      - id: plan
+        name: Decide whether this version needs a macOS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "macos-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            if [ "$PLATFORM" = macos ]; then
+              echo "macos-v$RELEASE_VERSION already exists; refusing to replace a published release." >&2
+              exit 1
+            fi
+            echo "::notice::macos-v$RELEASE_VERSION is already published; no macOS build needed."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ ! -s "docs/release-notes/macos-$RELEASE_VERSION.md" ]; then
+            echo "Version $RELEASE_VERSION has no macOS release yet; add docs/release-notes/macos-$RELEASE_VERSION.md." >&2
+            exit 1
+          fi
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
+  macos:
+    needs: macos-plan
+    if: needs.macos-plan.outputs.release == 'true'
+    permissions:
+      contents: write
+    concurrency:
+      group: cardbal-macos-release
+      cancel-in-progress: false
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Choose private signing directory
+        run: echo "MACOS_SIGNING_DIR=$RUNNER_TEMP/cardbal-macos-signing" >> "$GITHUB_ENV"
+      - id: version
+        name: Validate version
+        run: python3 -m tools.release.versions
+      - name: Check release notes and existing tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          test -s "docs/release-notes/macos-$RELEASE_VERSION.md"
+          if gh release view "macos-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "macos-v$RELEASE_VERSION already exists; refusing to replace a published release." >&2
+            exit 1
+          fi
+      - name: Install Apple API client
+        run: python3 -m pip install -r tools/release/requirements-appstore.txt
+      - name: Prepare Apple key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          os.umask(0o077)
+          directory = Path(os.environ['MACOS_SIGNING_DIR'])
+          directory.mkdir(parents=True, mode=0o700)
+          key = directory / 'AuthKey.p8'
+          key.write_text(os.environ['ASC_PRIVATE_KEY'])
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'ASC_PRIVATE_KEY_PATH={key}\n')
+          PY
+      - name: Restore or create CardBal Developer ID signing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_BUNDLE_BASE64: ${{ secrets.MACOS_SIGNING_BUNDLE_BASE64 }}
+          MACOS_SIGNING_BUNDLE_PASSWORD: ${{ secrets.MACOS_SIGNING_BUNDLE_PASSWORD }}
+        run: python3 -m tools.release.macos_signing
+      - name: Preserve encrypted signing identity for subsequent releases
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-signing-backup
+          path: ${{ runner.temp }}/cardbal-macos-signing/signing-backup.enc
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Compile pinned station catalog and test readers
+        run: |
+          python3 -m tools.stations.build --source csv --target all --no-sync-android
+          python3 -m unittest discover -s tests -t .
+      - name: Archive and export universal Mac app
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          MACOS_BUILD_NUMBER: ${{ github.run_number }}
+          OCTOPUS_ENQUIRY_BASE_URL: ${{ secrets.OCTOPUS_ENQUIRY_BASE_URL }}
+        run: |
+          python3 tools/octopus_config.py --output ios/CardBal/Resources/OctopusEnquiryConfig.plist
+          unset OCTOPUS_ENQUIRY_BASE_URL
+          bash tools/release/macos_archive.sh
+      - name: Notarize and staple
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
+        run: |
+          auth=(--key "$ASC_PRIVATE_KEY_PATH" --key-id "$ASC_KEY_ID")
+          if [ "$ASC_KEY_TYPE" != individual ]; then auth+=(--issuer "$ASC_ISSUER_ID"); fi
+          xcrun notarytool submit build/macos/CardBal-notarization.zip "${auth[@]}" \
+            --wait --output-format json > build/macos/notarization.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('build/macos/notarization.json').read_text())
+          print('Apple notarization:', result['status'], result['id'])
+          if result['status'] != 'Accepted':
+              raise SystemExit('Apple did not accept the macOS app.')
+          PY
+          xcrun stapler staple build/macos/export/CardBal.app
+          xcrun stapler validate build/macos/export/CardBal.app
+          spctl --assess --type execute --verbose=2 build/macos/export/CardBal.app
+      - name: Package release
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p build/macos/release
+          ditto -c -k --sequesterRsrc --keepParent build/macos/export/CardBal.app \
+            "build/macos/release/CardBal-$RELEASE_VERSION-macOS.zip"
+          cd build/macos/release
+          shasum -a 256 ./*.zip > SHA256SUMS.txt
+      - name: Publish macOS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "macos-v$RELEASE_VERSION" \
+            --target "$GITHUB_SHA" --title "CardBal $RELEASE_VERSION for macOS" \
+            --notes-file "docs/release-notes/macos-$RELEASE_VERSION.md" \
+            "build/macos/release/CardBal-$RELEASE_VERSION-macOS.zip" \
+            build/macos/release/SHA256SUMS.txt
+      - name: Remove private signing files
+        if: always()
+        run: rm -rf "$MACOS_SIGNING_DIR"
+
+  android-plan:
+    if: >-
+      github.ref == 'refs/heads/master' && (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.platform != 'macos') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -64,7 +231,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           if [ "$DRY_RUN" != true ] && gh release view "android-v$RELEASE_VERSION" >/dev/null 2>&1; then
-            if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
+            if [ "$PLATFORM" != android ]; then
               echo "::notice::android-v$RELEASE_VERSION is already published; no Android release needed."
               echo "release=false" >> "$GITHUB_OUTPUT"
               exit 0
@@ -85,7 +252,7 @@ jobs:
           python3 android/tools/play_release.py inspect-latest-internal --metadata-out build/play-internal.json >/dev/null
           latest=$(python3 -c "import json; print(json.load(open('build/play-internal.json'))['version'])")
           if [ "$latest" = "$RELEASE_VERSION" ]; then exit 0; fi
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+          if [ "$PLATFORM" = android ] || [ "$DRY_RUN" = true ]; then
             echo "Play internal's latest build is $latest, not $RELEASE_VERSION; run Google Play internal first." >&2
             exit 1
           fi
@@ -95,11 +262,14 @@ jobs:
         if: always()
         run: echo "release=${{ steps.plan.outputs.release == 'true' && steps.play.outcome == 'success' && steps.play.outputs.release != 'false' }}" >> "$GITHUB_OUTPUT"
 
-  release:
-    needs: plan
-    if: needs.plan.outputs.release == 'true'
+  android:
+    needs: android-plan
+    if: needs.android-plan.outputs.release == 'true'
     permissions:
       contents: write
+    concurrency:
+      group: cardbal-android-release
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -124,7 +294,7 @@ jobs:
       - name: Download the Play-signed universal APK
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
         run: |
           # Play generates the universal APK a few minutes after an upload.
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
@@ -138,7 +308,7 @@ jobs:
           exit 1
       - name: Verify the APK is Play-signed and this version
         env:
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
         run: |
           apk="build/android/release/CardBal-$RELEASE_VERSION-android.apk"
           tools="$ANDROID_HOME/build-tools/36.0.0"
@@ -172,7 +342,7 @@ jobs:
       - name: Build the git-signed APK
         working-directory: android
         env:
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
           CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
           CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
           CARDBAL_UPLOAD_KEY_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_KEY_PASSWORD }}
@@ -183,7 +353,7 @@ jobs:
             -Ptransitic.versionName="$RELEASE_VERSION" -Ptransitic.versionCode="$code"
       - name: Verify the git-signed APK and write checksums
         env:
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
           CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
           CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
         run: |
@@ -212,7 +382,7 @@ jobs:
         run: rm -f "$RUNNER_TEMP/cardbal-upload.jks"
       - name: Write release notes
         env:
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -239,7 +409,7 @@ jobs:
       - if: env.DRY_RUN == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-release-dry-run-${{ needs.plan.outputs.version }}
+          name: android-release-dry-run-${{ needs.android-plan.outputs.version }}
           path: |
             build/android/release
             build/android/play-apk.json
@@ -249,7 +419,7 @@ jobs:
         if: env.DRY_RUN != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
         run: |
           if gh release view "android-v$RELEASE_VERSION" >/dev/null 2>&1; then
             echo "android-v$RELEASE_VERSION already exists; refusing to replace a published release." >&2
@@ -264,7 +434,7 @@ jobs:
             build/android/release/SHA256SUMS.txt
       - name: Record release
         env:
-          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_VERSION: ${{ needs.android-plan.outputs.version }}
         run: |
           code=$(python3 -c "import json; print(json.load(open('build/android/play-apk.json'))['version_code'])")
           verb=Published; [ "$DRY_RUN" = true ] && verb="Verified (dry run)"
