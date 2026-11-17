@@ -32,17 +32,25 @@ are excluded. iOS and Android store uploads remain separate workflows.
 ## Android download
 
 The [Android release](../../.github/workflows/android-release.yml) workflow also
-runs on `master` automatically, with the same plan step: if the repository
-version already has an `android-v<version>` release it stops, otherwise it
-tests, builds a release APK signed with the upload key, checks the signature
-with `apksigner` and publishes `android-v<version>` with the APK and a SHA-256
-checksum. Releasing is therefore: bump the app version and push. Notes come from
-`docs/release-notes/android-<version>.md`, otherwise from the store notes in
-`docs/release-notes/<version>.json`, otherwise from GitHub's generated notes.
-The version code is assigned like a Play upload (minutes since 2020).
+runs on `master` automatically, and again whenever a
+[Google Play internal](../../.github/workflows/play-internal.yml) upload
+succeeds. It builds nothing: it downloads the universal APK that Google Play
+generated from the latest internal build and signed with the Play app-signing
+key, the same key Play installs carry. A GitHub APK therefore updates a Play
+install and the reverse, with the same version code. The workflow checks with
+`apksigner` that the APK's certificate is the one Play reports, and checks the
+package name and version with `aapt2`, then publishes `android-v<version>` with
+the APK and a SHA-256 checksum.
 
-Google Play re-signs its installs with the Play app-signing key, so a GitHub
-APK cannot update a Play install, or the reverse, without uninstalling first.
+The plan step stops when `android-v<version>` already exists, or when the latest
+Play internal build is a different version. Releasing is therefore: bump the app
+version, push, and run Google Play internal; the GitHub release follows. Play
+generates the universal APK a few minutes after an upload, so the download is
+retried for up to ten minutes. Run the workflow by hand with **dry run** to
+download and verify the APK as an Actions artifact without publishing. The
+service account needs Play Console access to download generated APKs. Notes come
+from `docs/release-notes/android-<version>.md`, otherwise from the store notes
+in `docs/release-notes/<version>.json`, otherwise from GitHub's generated notes.
 
 ## iOS and Android stores
 
@@ -125,7 +133,7 @@ the manual store jobs. The public CI workflow does not reference them.
 | `FIREBASE_GOOGLE_SERVICES_JSON_BASE64` | Optional Android Firebase configuration (base64 of `google-services.json`) |
 | `ANDROID_UPLOAD_KEYSTORE_BASE64` | Existing Android upload keystore |
 | `CARDBAL_UPLOAD_STORE_PASSWORD`, `CARDBAL_UPLOAD_KEY_ALIAS`, `CARDBAL_UPLOAD_KEY_PASSWORD` | Android upload-key signing |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Google Play Publisher service-account JSON |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Google Play Publisher service-account JSON; also downloads the Play-signed APK for GitHub releases |
 
 The repository variable `ASC_APP_ID` identifies the existing CardBal App Store
 record. Set `ASC_KEY_TYPE` to `individual` for a user API key; its default is

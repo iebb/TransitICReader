@@ -1,3 +1,4 @@
+import base64
 import contextlib
 import hashlib
 import importlib.util
@@ -53,6 +54,30 @@ class Session:
 
     def close(self):
         self.closed = True
+
+
+class Download(Response):
+    def __init__(self, chunks, status=200):
+        super().__init__({}, status)
+        self.chunks = chunks
+        self.closed = False
+
+    def iter_content(self, size):
+        yield from self.chunks
+
+    def close(self):
+        self.closed = True
+
+
+CERTIFICATE = "ab" * 32
+
+
+def generated(*groups):
+    return {"generatedApks": list(groups)}
+
+
+def signing_key(download="universal-1", certificate=CERTIFICATE):
+    return {"certificateSha256Hash": certificate, "generatedUniversalApk": {"downloadId": download}}
 
 
 class SelectionTests(unittest.TestCase):
@@ -238,6 +263,7 @@ class ApiTests(unittest.TestCase):
         with self.assertRaisesRegex(play.ReleaseError, "HTTP 400") as error:
             play.PlayRelease(session).promote()
         self.assertNotIn("secret payload", str(error.exception))
+
         self.assertEqual(sum(":commit" in c["url"] for c in session.calls), 1)
         self.assertEqual(session.calls[-1]["method"], "DELETE")
 
@@ -302,6 +328,62 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(play.main(["promote-latest-to-production", "--release-notes-file", "/nonexistent/notes.json"]), 1)
         auth.assert_not_called()
         self.assertIn("could not read the release notes file", stderr.getvalue())
+
+
+class UniversalApkTests(unittest.TestCase):
+    def test_downloads_the_play_signed_universal_apk_without_committing(self):
+        body = Download([b"PK", b"\x03\x04"])
+        session = Session(Response({"id": "edit-1"}), Response(internal(release())), Response(),
+                          Response(generated({"certificateSha256Hash": CERTIFICATE}, signing_key())), body)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "CardBal.apk"
+            result = play.PlayRelease(session).download_universal("1.2.3", output, 1234)
+            self.assertEqual(b"PK\x03\x04", output.read_bytes())
+            self.assertEqual([], [path.name for path in Path(directory).iterdir() if path.name.endswith(".part")])
+        self.assertEqual(["POST", "GET", "DELETE", "GET", "GET"], [c["method"] for c in session.calls])
+        self.assertFalse(any(c["url"].endswith(":commit") for c in session.calls))
+        self.assertTrue(session.calls[3]["url"].endswith("/generatedApks/1234"))
+        self.assertTrue(session.calls[4]["url"].endswith("/generatedApks/1234/downloads/universal-1:download"))
+        self.assertEqual({"alt": "media"}, session.calls[4]["params"])
+        self.assertTrue(body.closed)
+        self.assertEqual(CERTIFICATE, result["certificate_sha256"])
+        self.assertEqual(hashlib.sha256(b"PK\x03\x04").hexdigest(), result["apk_sha256"])
+        self.assertEqual((4, 1234, "1.2.3", False), (result["apk_bytes"], result["version_code"], result["version"], result["committed"]))
+
+    def test_other_version_or_missing_universal_apk_downloads_nothing(self):
+        cases = [
+            ("1.2.4", [], "not version 1.2.4"),
+            ("1.2.3", [Response(generated())], "not generated a universal APK"),
+            ("1.2.3", [Response(generated(signing_key("a"), signing_key("b")))], "several signing keys"),
+            ("1.2.3", [Response(generated(signing_key("../x")))], "invalid universal APK download ID"),
+            ("1.2.3", [Response(generated(signing_key(certificate="not a hash")))], "invalid signing certificate"),
+        ]
+        for version, responses, message in cases:
+            session = Session(Response({"id": "edit-1"}), Response(internal(release())), Response(), *responses)
+            with tempfile.TemporaryDirectory() as directory, self.subTest(message=message):
+                with self.assertRaisesRegex(play.ReleaseError, message):
+                    play.PlayRelease(session).download_universal(version, Path(directory) / "CardBal.apk")
+                self.assertEqual([], list(Path(directory).iterdir()))
+
+    def test_failed_or_empty_download_leaves_no_file(self):
+        for body, message in [(Download([b"secret"], 403), "HTTP 403"), (Download([]), "empty universal APK")]:
+            session = Session(Response({"id": "edit-1"}), Response(internal(release())), Response(),
+                              Response(generated(signing_key())), body)
+            with tempfile.TemporaryDirectory() as directory, self.subTest(message=message):
+                with self.assertRaisesRegex(play.ReleaseError, message) as error:
+                    play.PlayRelease(session).download_universal("1.2.3", Path(directory) / "CardBal.apk")
+                self.assertNotIn("secret", str(error.exception))
+                self.assertEqual([], list(Path(directory).iterdir()))
+                self.assertTrue(body.closed)
+
+    def test_certificate_hash_accepts_hex_or_base64(self):
+        raw = bytes(range(32))
+        for value in [raw.hex().upper(), ":".join(f"{b:02X}" for b in raw), base64.b64encode(raw).decode(),
+                      base64.urlsafe_b64encode(raw).decode().rstrip("=")]:
+            self.assertEqual(raw.hex(), play.certificate_sha256(value))
+        for value in [None, "", "ab" * 31, base64.b64encode(raw[:31]).decode()]:
+            with self.assertRaises(play.ReleaseError):
+                play.certificate_sha256(value)
 
 
 if __name__ == "__main__":

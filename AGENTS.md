@@ -20,12 +20,13 @@ the workflows use these files.
   download and checksum.
 - `docs/release-notes/android-<version>.md`: optional GitHub release text for
   the Android APK. Without it, all four languages of the store notes are used.
-  Mention that a GitHub APK cannot update a Google Play install without
-  uninstalling first.
+  The APK is Google Play's own signed build, so it installs over a Play
+  install and the reverse.
 
 Write for people using the app: describe what they can now do or what was
 fixed, by card and city. Leave out internal names, commit hashes, card
 numbers, raw card data, endpoints and credentials.
 
-Pushing a new version to `master` publishes the GitHub Android and macOS
-releases automatically, so commit the notes before or with the version bump.
+Pushing a new version to `master` publishes the macOS release automatically,
+and the Android release once Google Play internal has that version, so commit
+the notes before or with the version bump.

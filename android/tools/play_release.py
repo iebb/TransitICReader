@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Upload to Play internal or promote its existing latest AAB, without rebuilding.
+"""Upload to Play internal or promote its existing latest AAB, without rebuilding,
+and download Play's own signed universal APK of an internal build.
 
 Uses the official Android Publisher v3 edits API. Credentials and response bodies
 are never logged. Tests inject a session and do not load credentials or use NFC.
@@ -8,6 +9,8 @@ are never logged. Tests inject a session and do not load credentials or use NFC.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import hashlib
 import json
 import os
@@ -23,6 +26,7 @@ API = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications"
 UPLOAD_API = "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications"
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"
 MAX_VERSION_CODE = 2_100_000_000
+MAX_APK_BYTES = 512 * 1024 * 1024
 # Play allows up to 500 Unicode characters of release notes per language.
 MAX_RELEASE_NOTES = 500
 # Canonical BCP 47 language[-Script][-REGION] tags, as Play uses (en-US, es-419).
@@ -130,6 +134,38 @@ def latest_internal(track: dict[str, Any]) -> dict[str, Any]:
             raise ReleaseError("the internal release has an invalid in-app update priority")
         result["inAppUpdatePriority"] = priority
     return result
+
+
+def certificate_sha256(value: Any) -> str:
+    """Play's signing-certificate hash as lowercase hex, whether sent as hex or base64."""
+    if isinstance(value, str):
+        compact = value.replace(":", "").strip()
+        if re.fullmatch(r"[0-9A-Fa-f]{64}", compact):
+            return compact.lower()
+        try:
+            padded = value.strip().replace("-", "+").replace("_", "/")
+            raw = base64.b64decode(padded + "=" * (-len(padded) % 4), validate=True)
+        except (binascii.Error, ValueError):
+            raw = b""
+        if len(raw) == 32:
+            return raw.hex()
+    raise ReleaseError("Play returned an invalid signing certificate hash")
+
+
+def universal_apk(listing: dict[str, Any]) -> tuple[str, str]:
+    """The download ID and certificate hash of the one Play-signed universal APK."""
+    groups = listing.get("generatedApks", [])
+    if not isinstance(groups, list):
+        raise ReleaseError("Play returned malformed generated APK metadata")
+    universal = [group for group in groups if isinstance(group, dict) and isinstance(group.get("generatedUniversalApk"), dict)]
+    if not universal:
+        raise ReleaseError("Play has not generated a universal APK for this build yet")
+    if len(universal) != 1:
+        raise ReleaseError("this build has universal APKs for several signing keys; choose one in Play Console")
+    download = universal[0]["generatedUniversalApk"].get("downloadId")
+    if not isinstance(download, str) or not re.fullmatch(r"[A-Za-z0-9_.=-]+", download):
+        raise ReleaseError("Play returned an invalid universal APK download ID")
+    return download, certificate_sha256(universal[0].get("certificateSha256Hash"))
 
 
 class PlayRelease:
@@ -276,6 +312,53 @@ class PlayRelease:
             if not committed:
                 self.discard(edit)
 
+    def download_universal(self, version: str, output: Path, expected_code: int | None = None) -> dict[str, Any]:
+        """Download the universal APK Play generated and signed with the app-signing key, as Play installs are."""
+        name = version_name(version)
+        edit = self.create_edit()
+        try:
+            release = self.get_internal(edit)
+        finally:
+            self.discard(edit)
+        code = int(release["versionCodes"][0])
+        if release["name"] != name:
+            raise ReleaseError(f"the latest Play internal build is not version {name}; run the Google Play internal workflow first")
+        if expected_code is not None and code != version_code(expected_code):
+            raise ReleaseError("the latest Play internal version code differs from the requested one")
+        generated = f"{API}/{PACKAGE}/generatedApks/{code}"
+        download, certificate = universal_apk(self.request("GET", generated, operation="list generated APKs"))
+        try:
+            response = self.session.request("GET", f"{generated}/downloads/{quote(download, safe='')}:download",
+                                            params={"alt": "media"}, stream=True, timeout=(15, 600))
+        except Exception:
+            raise ReleaseError("Play API transport or authentication failed during download universal APK") from None
+        digest = hashlib.sha256()
+        size = 0
+        pending = output.with_name(output.name + ".part")
+        try:
+            if not 200 <= response.status_code < 300:
+                raise ReleaseError(f"Play API download universal APK failed: HTTP {response.status_code}; check Play Console/API permissions")
+            output.parent.mkdir(parents=True, exist_ok=True)
+            with pending.open("wb") as stream:
+                for chunk in response.iter_content(1024 * 1024):
+                    size += len(chunk)
+                    if size > MAX_APK_BYTES:
+                        raise ReleaseError("the universal APK is unexpectedly large")
+                    digest.update(chunk)
+                    stream.write(chunk)
+            if size == 0:
+                raise ReleaseError("Play returned an empty universal APK")
+            pending.replace(output)
+        except ReleaseError:
+            raise
+        except Exception:
+            raise ReleaseError("could not download or save the universal APK") from None
+        finally:
+            response.close()
+            pending.unlink(missing_ok=True)
+        return {**self.metadata("download-universal", release, "internal", False),
+                "certificate_sha256": certificate, "apk_sha256": digest.hexdigest(), "apk_bytes": size}
+
 
 def authorized_session(credentials_file: str | None) -> Any:
     try:
@@ -314,6 +397,10 @@ def main(argv: list[str] | None = None) -> int:
     promote.add_argument("--expected-version-code")
     promote.add_argument("--release-notes-file", type=Path,
                          help="UTF-8 JSON mapping language tags to text; replaces the internal release notes")
+    universal = sub.add_parser("download-universal", help="download Play's signed universal APK of the latest internal build; no commit")
+    universal.add_argument("--version", required=True)
+    universal.add_argument("--expected-version-code")
+    universal.add_argument("--out", required=True, type=Path)
     for command in sub.choices.values():
         command.add_argument("--service-account-file", help="private JSON file; otherwise use GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")
         command.add_argument("--metadata-out", type=Path, help="write sanitized release metadata as JSON")
@@ -329,6 +416,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.expected_version_code is not None:
                 args.expected_version_code = version_code(args.expected_version_code)
             args.release_notes = None if args.release_notes_file is None else read_release_notes(args.release_notes_file)
+        elif args.command == "download-universal":
+            args.version = version_name(args.version)
+            if args.expected_version_code is not None:
+                args.expected_version_code = version_code(args.expected_version_code)
         session = authorized_session(args.service_account_file)
         try:
             client = PlayRelease(session)
@@ -336,6 +427,8 @@ def main(argv: list[str] | None = None) -> int:
                 result = client.upload(args.bundle, args.version, args.version_code)
             elif args.command == "inspect-latest-internal":
                 result = client.inspect()
+            elif args.command == "download-universal":
+                result = client.download_universal(args.version, args.out, args.expected_version_code)
             else:
                 result = client.promote(args.expected_version, args.expected_version_code,
                                         release_notes=args.release_notes)

@@ -1,12 +1,26 @@
 name: Android release
-run-name: Release CardBal for Android
+run-name: Release CardBal for Android${{ inputs.dry_run && ' (dry run)' || '' }}
 
+# The GitHub APK is the universal APK Google Play generates from the internal
+# build and signs with the Play app-signing key, so it updates, and is updated
+# by, a Google Play install. Nothing is built or signed here.
 on:
-  # A push publishes the APK only when the repository version has no
-  # android-v<version> release yet, so ordinary commits finish after the plan job.
+  # A push publishes only when the repository version has no android-v<version>
+  # release yet and Play internal already has that version.
   push:
     branches: [master]
+  # A finished Google Play internal upload releases its version straight away.
+  workflow_run:
+    workflows: [Google Play internal]
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Download and verify the Play APK as an artifact; publish nothing'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,15 +29,24 @@ concurrency:
   group: cardbal-android-release
   cancel-in-progress: false
 
+env:
+  TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+
 jobs:
   plan:
-    if: github.ref == 'refs/heads/master'
+    if: >-
+      github.ref == 'refs/heads/master' && (github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      release: ${{ steps.plan.outputs.release }}
+      release: ${{ steps.decision.outputs.release }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TARGET_SHA }}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
@@ -36,9 +59,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if gh release view "android-v$RELEASE_VERSION" >/dev/null 2>&1; then
-            if [ "$GITHUB_EVENT_NAME" = push ]; then
-              echo "::notice::android-v$RELEASE_VERSION is already published; no Android build needed."
+          if [ "$DRY_RUN" != true ] && gh release view "android-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
+              echo "::notice::android-v$RELEASE_VERSION is already published; no Android release needed."
               echo "release=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -46,6 +69,27 @@ jobs:
             exit 1
           fi
           echo "release=true" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.release == 'true'
+        run: python3 -m pip install -r android/tools/requirements-play.txt
+      - id: play
+        if: steps.plan.outputs.release == 'true'
+        name: Check that Play internal has this version
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 android/tools/play_release.py inspect-latest-internal --metadata-out build/play-internal.json >/dev/null
+          latest=$(python3 -c "import json; print(json.load(open('build/play-internal.json'))['version'])")
+          if [ "$latest" = "$RELEASE_VERSION" ]; then exit 0; fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            echo "Play internal's latest build is $latest, not $RELEASE_VERSION; run Google Play internal first." >&2
+            exit 1
+          fi
+          echo "::notice::Play internal has no $RELEASE_VERSION build yet; run Google Play internal to release it."
+          echo "release=false" >> "$GITHUB_OUTPUT"
+      - id: decision
+        if: always()
+        run: echo "release=${{ steps.plan.outputs.release == 'true' && steps.play.outcome == 'success' && steps.play.outputs.release != 'false' }}" >> "$GITHUB_OUTPUT"
 
   release:
     needs: plan
@@ -53,90 +97,63 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TARGET_SHA }}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
-      - id: version
-        name: Validate version and assign a new version code
-        run: python3 -m tools.release.versions
-      - name: Check existing tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          if gh release view "android-v$RELEASE_VERSION" >/dev/null 2>&1; then
-            echo "android-v$RELEASE_VERSION already exists; refusing to replace a published release." >&2
-            exit 1
-          fi
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
-          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          packages: 'build-tools;36.0.0'
           log-accepted-android-sdk-licenses: false
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-      - name: Restore upload keystore
+      - run: python3 -m pip install -r android/tools/requirements-play.txt
+      - name: Test Play release helper
+        run: python3 -m unittest discover -s android/tools/tests -v
+      - name: Download the Play-signed universal APK
         env:
-          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
         run: |
-          python3 - <<'PY'
-          import base64, os
-          from pathlib import Path
-          path = Path(os.environ['RUNNER_TEMP']) / 'cardbal-upload.jks'
-          path.write_bytes(base64.b64decode(os.environ['ANDROID_UPLOAD_KEYSTORE_BASE64'], validate=True))
-          path.chmod(0o600)
-          with open(os.environ['GITHUB_ENV'], 'a') as output:
-              output.write(f'CARDBAL_UPLOAD_STORE_FILE={path}\n')
-          PY
-      - name: Restore optional Firebase configuration
+          # Play generates the universal APK a few minutes after an upload.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if python3 android/tools/play_release.py download-universal --version "$RELEASE_VERSION" \
+                --out "build/android/release/CardBal-$RELEASE_VERSION-android.apk" \
+                --metadata-out build/android/play-apk.json; then
+              exit 0
+            fi
+            [ "$attempt" = 10 ] || sleep 60
+          done
+          exit 1
+      - name: Verify the APK is Play-signed and this version
         env:
-          FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
         run: |
-          python3 - <<'PY'
-          import base64, json, os
-          from pathlib import Path
-          os.umask(0o077)
-          encoded = ''.join(os.environ.get('FIREBASE_GOOGLE_SERVICES_JSON_BASE64', '').split())
-          if not encoded:
-              print('Firebase configuration is absent; building with analytics disabled.')
-              raise SystemExit
-          data = base64.b64decode(encoded, validate=True)
-          clients = json.loads(data).get('client', [])
-          packages = {client.get('client_info', {}).get('android_client_info', {}).get('package_name') for client in clients}
-          if 'ad.neko.cardbal.android' not in packages:
-              raise SystemExit('google-services.json has no ad.neko.cardbal.android client.')
-          path = Path('android/app/google-services.json')
-          path.write_bytes(data)
-          path.chmod(0o600)
-          PY
-      - name: Test and build signed Android APK
-        working-directory: android
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          ANDROID_VERSION_CODE: ${{ steps.version.outputs.android_version_code }}
-          CARDBAL_UPLOAD_STORE_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_STORE_PASSWORD }}
-          CARDBAL_UPLOAD_KEY_ALIAS: ${{ secrets.CARDBAL_UPLOAD_KEY_ALIAS }}
-          CARDBAL_UPLOAD_KEY_PASSWORD: ${{ secrets.CARDBAL_UPLOAD_KEY_PASSWORD }}
-          OCTOPUS_ENQUIRY_BASE_URL: ${{ secrets.OCTOPUS_ENQUIRY_BASE_URL }}
-        run: ./gradlew :app:testDebugUnitTest :app:assembleRelease --no-daemon -Ptransitic.versionName="$RELEASE_VERSION" -Ptransitic.versionCode="$ANDROID_VERSION_CODE"
-      - name: Verify signature and package release
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          apk=android/app/build/outputs/apk/release/app-release.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk"
-          mkdir -p build/android/release
-          cp "$apk" "build/android/release/CardBal-$RELEASE_VERSION-android.apk"
+          apk="build/android/release/CardBal-$RELEASE_VERSION-android.apk"
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          expected=$(python3 -c "import json; print(json.load(open('build/android/play-apk.json'))['certificate_sha256'])")
+          signers=$("$tools/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' | sort -u)
+          echo "Signing certificate SHA-256: $signers"
+          if [ "$signers" != "$expected" ]; then
+            echo "The APK is not signed with the Play app-signing certificate Play reported." >&2
+            exit 1
+          fi
+          badging=$("$tools/aapt2" dump badging "$apk" | head -1)
+          case "$badging" in
+            "package: name='ad.neko.cardbal.android' "*"versionName='$RELEASE_VERSION'"*) ;;
+            *) echo "Unexpected APK identity: $badging" >&2; exit 1 ;;
+          esac
           cd build/android/release
           sha256sum ./*.apk > SHA256SUMS.txt
       - name: Write release notes
         env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -153,22 +170,35 @@ jobs:
               text = ''
           Path('build/android/release-notes.md').write_text(text)
           PY
+      - if: env.DRY_RUN == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-release-dry-run-${{ needs.plan.outputs.version }}
+          path: |
+            build/android/release
+            build/android/play-apk.json
+            build/android/release-notes.md
+          retention-days: 7
       - name: Publish Android release
+        if: env.DRY_RUN != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
         run: |
+          if gh release view "android-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "android-v$RELEASE_VERSION already exists; refusing to replace a published release." >&2
+            exit 1
+          fi
           notes=(--generate-notes)
           if [ -s build/android/release-notes.md ]; then notes=(--notes-file build/android/release-notes.md); fi
           gh release create "android-v$RELEASE_VERSION" \
-            --target "$GITHUB_SHA" --title "CardBal $RELEASE_VERSION for Android" "${notes[@]}" \
+            --target "$TARGET_SHA" --title "CardBal $RELEASE_VERSION for Android" "${notes[@]}" \
             "build/android/release/CardBal-$RELEASE_VERSION-android.apk" \
             build/android/release/SHA256SUMS.txt
-      - name: Remove upload keystore and Firebase configuration
-        if: always()
-        run: rm -f "$RUNNER_TEMP/cardbal-upload.jks" android/app/google-services.json
       - name: Record release
         env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          ANDROID_VERSION_CODE: ${{ steps.version.outputs.android_version_code }}
-        run: echo "Published android-v$RELEASE_VERSION ($ANDROID_VERSION_CODE) on GitHub." >> "$GITHUB_STEP_SUMMARY"
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          code=$(python3 -c "import json; print(json.load(open('build/android/play-apk.json'))['version_code'])")
+          verb=Published; [ "$DRY_RUN" = true ] && verb="Verified (dry run)"
+          echo "$verb android-v$RELEASE_VERSION ($code), the Play-signed universal APK." >> "$GITHUB_STEP_SUMMARY"
