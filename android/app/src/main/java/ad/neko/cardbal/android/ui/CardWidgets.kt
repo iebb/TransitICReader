@@ -257,12 +257,6 @@ fun DualBalanceRows(balance: String, dual: DualCurrencyBalance) {
     val yuan = dual.yuanBalance
     if (yuan != null) {
         BalanceValueRow(tr("CNY Balance"), yuan)
-    } else {
-        // The yuan side was not read with this HKD balance.
-        Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(tr("CNY Balance"), color = secondary)
-            Text(tr("Unavailable"), color = secondary, modifier = Modifier.padding(start = 16.dp))
-        }
     }
     BalanceValueRow(
         tr("Exchange Rate"), dual.rateText,

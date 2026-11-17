@@ -838,20 +838,24 @@ struct KeyValueRow: View {
 struct BalanceRows: View {
     let balance: String
     let dual: DualCurrencyBalance?
+    /// A qualification that changes what the balance means, such as CEPAS on-card value only.
+    var scopeNote: String? = nil
 
     var body: some View {
+        amountRows
+        if let scopeNote {
+            Text(Localizer.localize(scopeNote))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var amountRows: some View {
         if let dual {
             KeyValueRow(title: "HKD Balance", value: balance)
             if let yuan = dual.yuanBalance {
                 KeyValueRow(title: "CNY Balance", value: yuan).monospacedDigit()
-            } else {
-                HStack {
-                    Text(Localizer.localize("CNY Balance"))
-                    Spacer()
-                    Text(Localizer.localize("Unavailable"))
-                }
-                .foregroundStyle(.secondary)
-                .accessibilityElement(children: .combine)
             }
             KeyValueRow(title: "Exchange Rate", value: dual.rateText)
                 .accessibilityElement(children: .ignore)

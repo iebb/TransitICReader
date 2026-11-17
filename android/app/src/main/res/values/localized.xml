@@ -276,7 +276,6 @@
     <string name="text_c9795190145dea5f" formatted="false">"Downloading images (%lld/%lld)..."</string>
     <string name="text_cf067f57683cccfb" formatted="false">"Dual Mode"</string>
     <string name="text_3b6c9428c32cec3f" formatted="false">"EAST ASIA"</string>
-    <string name="text_64d9ed0495217375" formatted="false">"EZ-Link (CEPAS) requires an external reader. SimplyGo account balances cannot be read from the card."</string>
     <string name="text_e1f2dc240cf41b1e" formatted="false">"East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap."</string>
     <string name="text_206d361d400fab74" formatted="false">"East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities."</string>
     <string name="text_5d0f47eec15e15a9" formatted="false">"Edit card face"</string>

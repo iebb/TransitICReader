@@ -307,6 +307,19 @@ struct SavedCardRecord: Codable, Hashable, Identifiable {
         return ""
     }
 
+    /// The part of the decoder's balance detail that changes what the balance means. Other
+    /// detail is diagnostic commentary, kept in the record for backups and raw data only.
+    static func balanceScopeNote(_ detail: String?) -> String? {
+        switch detail {
+        case "On-card stored-value purse only. SimplyGo account balances are not read.",
+             "Stored-value balance excluding the MOP 10 reserve.",
+             "Balance and last-event summary; not full history":
+            return detail
+        default:
+            return nil
+        }
+    }
+
     /// True when the card stores no stored value to show, such as an unlimited pass.
     var hasNoStoredBalance: Bool {
         guard let balanceText else { return true }

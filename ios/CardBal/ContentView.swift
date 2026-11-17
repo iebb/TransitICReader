@@ -512,7 +512,8 @@ struct ScanHomeView: View {
                 KeyValueRow(title: field.title, value: field.value)
             }
             if let balance = snapshot.balanceText {
-                BalanceRows(balance: balance, dual: DualCurrencyBalance(applications: snapshot.applications))
+                BalanceRows(balance: balance, dual: DualCurrencyBalance(applications: snapshot.applications),
+                            scopeNote: SavedCardRecord.balanceScopeNote(snapshot.balanceDetail))
             }
             KeyValueRow(title: "Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(snapshot.scannedAt))
 

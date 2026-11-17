@@ -251,6 +251,19 @@ data class SavedCardRecord(
             ?: resultFields.firstOrNull { it.title == "Remaining Trips" }?.value?.let { "$it trips" }
             ?: ""
 
+    /** Only user-relevant scope, never the decoder's free-form diagnostic commentary.
+     * Keep balanceDetail intact for saved backups and raw/debug inspection. */
+    val balanceScopeNote: String?
+        get() = when (balanceDetail) {
+            "On-card stored-value purse only. SimplyGo account balances are not read.",
+            "Stored-value balance excluding the MOP 10 reserve.",
+            "Balance and last-event summary; not full history",
+            "Climate Card (Unlimited Pass)" -> balanceDetail
+            // Nice keeps its decoded ticket name and remaining trips.
+            "Calypso card recognized." -> null
+            else -> balanceDetail.takeIf { cardFamily == "Lignes d'Azur card" }
+        }
+
     val finalIsUsingImage: Boolean get() = isUsingImage ?: (faceImageFileName != null)
     val finalHideTitle: Boolean get() = hideTitleOnImage ?: false
     val finalHideSerialNumber: Boolean get() = hideSerialNumber ?: false

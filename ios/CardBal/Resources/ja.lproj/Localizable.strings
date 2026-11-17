@@ -471,7 +471,6 @@
 "Use External Reader" = "外部リーダーを使用";
 "iPad and macOS require an external NFC card reader." = "iPadとmacOSでの読み取りには外部NFCカードリーダーが必要です。";
 "Connect a compatible USB smart-card reader." = "対応するUSBスマートカードリーダーを接続してください。";
-"EZ-Link (CEPAS) requires an external reader. SimplyGo account balances cannot be read from the card." = "EZ-Link（CEPAS）には外部リーダーが必要です。SimplyGoのアカウント残高はカードから読み取れません。";
 "Reader" = "リーダー";
 "Automatic" = "自動";
 "Place one card on the external reader, then press Scan." = "外部リーダーにカードを1枚置いてから「スキャン」を押してください。";

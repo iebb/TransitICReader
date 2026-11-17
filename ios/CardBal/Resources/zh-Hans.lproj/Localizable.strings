@@ -471,7 +471,6 @@
 "Use External Reader" = "使用外接读卡器";
 "iPad and macOS require an external NFC card reader." = "iPad 和 macOS 读卡需要外接 NFC 读卡器。";
 "Connect a compatible USB smart-card reader." = "请连接兼容的 USB 智能卡读卡器。";
-"EZ-Link (CEPAS) requires an external reader. SimplyGo account balances cannot be read from the card." = "EZ-Link（CEPAS）需要外接读卡器。无法从卡片读取 SimplyGo 账户余额。";
 "Reader" = "读卡器";
 "Automatic" = "自动";
 "Place one card on the external reader, then press Scan." = "将一张卡片放在外接读卡器上，然后点击「扫描」。";

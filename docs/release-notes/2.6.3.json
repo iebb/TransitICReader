@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Clearer card details on iPhone and Android: Hanica and other cards no longer show technical decoding notes. Balances and fares that cannot be read are omitted, while available card details and travel records remain visible.\n• EZ-Link and other CEPAS cards on iPhone now note that the balance is the on-card value only, not a SimplyGo account balance.",
+  "ja": "• iPhoneとAndroidのカード詳細を見やすくしました。hanicaなどのカードで技術的な解析メモを表示しなくなりました。読み取れない残高や運賃は表示せず、読み取れたカード情報や利用履歴は引き続き表示します。\n• iPhoneでEZ-LinkなどのCEPASカードの残高が、SimplyGoアカウントではなくカード内の残高であることを表示するようになりました。",
+  "ko": "• iPhone과 Android의 카드 상세 화면이 더 깔끔해졌습니다. Hanica 등 카드의 기술적인 분석 설명을 숨겼습니다. 읽을 수 없는 잔액과 운임은 표시하지 않고, 확인된 카드 정보와 이용 기록은 그대로 보여 줍니다.\n• iPhone에서 EZ-Link 등 CEPAS 카드의 잔액이 SimplyGo 계정 잔액이 아닌 카드 내 잔액임을 안내합니다.",
+  "zh-Hans": "• iPhone 和 Android 的卡片详情更简洁：Hanica 等卡片不再显示技术解析说明。无法读取的余额和票价将不再显示，已读取的卡片信息和乘车记录仍会保留。\n• 在 iPhone 上，EZ-Link 等 CEPAS 卡片会注明余额仅为卡内余额，不含 SimplyGo 账户余额。"
+}

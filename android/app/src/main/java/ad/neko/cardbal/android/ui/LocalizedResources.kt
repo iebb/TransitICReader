@@ -284,7 +284,6 @@ internal val localizedResources = mapOf(
     "Downloading images (%lld/%lld)..." to R.string.text_c9795190145dea5f,
     "Dual Mode" to R.string.text_cf067f57683cccfb,
     "EAST ASIA" to R.string.text_3b6c9428c32cec3f,
-    "EZ-Link (CEPAS) requires an external reader. SimplyGo account balances cannot be read from the card." to R.string.text_64d9ed0495217375,
     "East Asia city and province boundaries use geoBoundaries gbOpen data under CC BY 4.0. Japanese boundaries include OpenStreetMap-derived geometry under ODbL 1.0; supported Chinese city boundaries also use OpenStreetMap." to R.string.text_e1f2dc240cf41b1e,
     "East Asia city boundaries use geoBoundaries gbOpen data under CC BY 4.0, with OpenStreetMap administrative boundaries for supported Chinese cities." to R.string.text_206d361d400fab74,
     "Edit card face" to R.string.text_5d0f47eec15e15a9,

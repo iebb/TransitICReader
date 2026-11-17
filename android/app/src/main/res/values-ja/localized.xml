@@ -276,7 +276,6 @@
     <string name="text_c9795190145dea5f" formatted="false">"画像をダウンロード中（%lld/%lld）…"</string>
     <string name="text_cf067f57683cccfb" formatted="false">"デュアルモード"</string>
     <string name="text_3b6c9428c32cec3f" formatted="false">"東アジア"</string>
-    <string name="text_64d9ed0495217375" formatted="false">"EZ-Link（CEPAS）には外部リーダーが必要です。SimplyGoのアカウント残高はカードから読み取れません。"</string>
     <string name="text_e1f2dc240cf41b1e" formatted="false">"東アジアの都市・都道府県級境界には、CC BY 4.0 の geoBoundaries gbOpen データを使用しています。日本の境界データには ODbL 1.0 の OpenStreetMap 由来ジオメトリが含まれ、対応する中国都市の境界にも OpenStreetMap を使用しています。"</string>
     <string name="text_206d361d400fab74" formatted="false">"東アジアの都市境界は CC BY 4.0 の geoBoundaries gbOpen データを使用し、対応する中国の都市には OpenStreetMap の行政境界を使用しています。"</string>
     <string name="text_5d0f47eec15e15a9" formatted="false">"カードデザインを編集"</string>

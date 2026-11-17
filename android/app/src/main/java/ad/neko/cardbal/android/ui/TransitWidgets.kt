@@ -209,6 +209,9 @@ fun CardDetailScreen(
                     }
                 }
             }
+            card.balanceScopeNote?.let { note ->
+                item { Text(tr(note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AssistChip(onClick = {}, label = { Text(tr("${transactions.size} records")) })
@@ -354,8 +357,8 @@ fun TransactionRow(tx: TransitTransaction, modifier: Modifier = Modifier) {
                 tx.terminalID?.let { Text(tr(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, maxLines = 1) }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (!tx.amountKnown || tx.amount != 0L) {
-                    Text(tr(if (tx.amountKnown) formatTransactionAmount(tx) else "Fare unavailable"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (tx.amountKnown && tx.amount != 0L) {
+                    Text(tr(formatTransactionAmount(tx)), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 tx.balanceAfter?.let {
                     Text(tr(formatCardMoney(it, tx.currencyCode, tx.fractionDigits)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

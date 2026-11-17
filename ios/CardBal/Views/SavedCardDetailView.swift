@@ -63,7 +63,9 @@ struct SavedCardDetailView: View {
                                 if let number = application.serialNumber {
                                     KeyValueRow(title: "Card Number", value: number)
                                 }
-                                KeyValueRow(title: "Balance", value: application.balanceText ?? String(localized: "Unavailable"))
+                                if let balance = application.balanceText, !balance.isEmpty {
+                                    KeyValueRow(title: "Balance", value: balance)
+                                }
                                 if let balanceReadAt = application.balanceReadAt {
                                     KeyValueRow(title: "Balance Read", value: KSX6924DateFormatting.formatRawDateForDisplay(balanceReadAt))
                                 }
@@ -155,7 +157,8 @@ struct SavedCardDetailView: View {
     @ViewBuilder
     private func cardInfoSection(card: SavedCardRecord) -> some View {
         if !card.visibleBalance.isEmpty {
-            BalanceRows(balance: card.visibleBalance, dual: DualCurrencyBalance(applications: card.applications))
+            BalanceRows(balance: card.visibleBalance, dual: DualCurrencyBalance(applications: card.applications),
+                        scopeNote: SavedCardRecord.balanceScopeNote(card.balanceDetail))
         }
         KeyValueRow(title: "Last Scanned", value: KSX6924DateFormatting.formatRawDateForDisplay(card.scannedAt))
         KeyValueRow(title: "Technology", value: card.technology == "ISO7816" ? "ISO 7816" : card.technology)

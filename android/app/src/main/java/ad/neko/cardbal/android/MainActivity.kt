@@ -990,7 +990,9 @@ private fun CardDetails(card: SavedCardRecord, modifier: Modifier = Modifier) {
         // An Octopus – China T-Union card with a reported rate shows both balances and the rate.
         val dual = remember(card.applications) { DualCurrencyBalance.from(card.applications) }
         if (dual != null && card.visibleBalance.isNotEmpty()) DualBalanceRows(card.visibleBalance, dual)
-        card.balanceDetail?.let { DetailRow("Decoder", it) }
+        card.balanceScopeNote?.let {
+            Text(tr(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

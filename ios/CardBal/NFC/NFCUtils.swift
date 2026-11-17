@@ -584,20 +584,14 @@ struct TransitTransactionRow: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    if !tx.amountKnown {
-                        Text("Fare unavailable").font(.headline).foregroundStyle(.secondary)
-                    } else if tx.amount != 0 {
+                    if tx.amountKnown && tx.amount != 0 {
                         let isTopUp = (brand == .snapperPlus || tx.amountIsSigned) ? tx.amount > 0 : (tx.category == .topUp || tx.category == .refund)
                         
                         Text((isTopUp ? "+" : "-") + 
                              formatCurrency(amount: abs(tx.amount), code: currencyCode, fractionDigits: currencyFractionDigits))
                             .font(.headline.monospacedDigit().bold())
                             .foregroundStyle(isTopUp ? .green : .primary)
-                    } else if brand.isKorean && tx.hasUnresolvedKoreanTransitFare {
-                        Text("Fare unknown")
-                            .font(.headline.bold())
-                            .foregroundStyle(.secondary)
-                    } else {
+                    } else if tx.amountKnown && !(brand.isKorean && tx.hasUnresolvedKoreanTransitFare) {
                         Text("No Charge")
                             .font(.headline.monospacedDigit().bold())
                             .foregroundStyle(.secondary)
@@ -739,21 +733,12 @@ struct TransactionDetailView: View {
                             }
                         }
                     }
-                    if let amount = tx.amount != 0 ? tx.amount : nil {
+                    if tx.amountKnown, let amount = tx.amount != 0 ? tx.amount : nil {
                         LabeledContent {
                             let isTopUp = (brand == .snapperPlus || tx.amountIsSigned) ? tx.amount > 0 : (tx.category == .topUp || tx.category == .refund)
                             let signedAmount = (isTopUp ? "+" : "-") + 
                                                formatCurrency(amount: abs(amount), code: currencyCode, fractionDigits: currencyFractionDigits)
                             Text(signedAmount)
-                        } label: {
-                            HStack {
-                                Text("Amount")
-                            }
-                        }
-                    } else if isKorean, tx.hasUnresolvedKoreanTransitFare {
-                        LabeledContent {
-                            Text("Fare unknown")
-                                .foregroundStyle(.secondary)
                         } label: {
                             HStack {
                                 Text("Amount")

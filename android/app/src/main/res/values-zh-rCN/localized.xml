@@ -276,7 +276,6 @@
     <string name="text_c9795190145dea5f" formatted="false">"正在下载图片（%lld/%lld）…"</string>
     <string name="text_cf067f57683cccfb" formatted="false">"双协议"</string>
     <string name="text_3b6c9428c32cec3f" formatted="false">"东亚"</string>
-    <string name="text_64d9ed0495217375" formatted="false">"EZ-Link（CEPAS）需要外接读卡器。无法从卡片读取 SimplyGo 账户余额。"</string>
     <string name="text_e1f2dc240cf41b1e" formatted="false">"东亚城市及省级边界采用 CC BY 4.0 授权的 geoBoundaries gbOpen 数据。日本边界包含基于 ODbL 1.0 的 OpenStreetMap 衍生几何，受支持的中国城市边界也使用 OpenStreetMap 数据。"</string>
     <string name="text_206d361d400fab74" formatted="false">"东亚城市边界采用 CC BY 4.0 许可的 geoBoundaries gbOpen 数据；支持的中国城市采用 OpenStreetMap 行政边界。"</string>
     <string name="text_5d0f47eec15e15a9" formatted="false">"编辑卡面"</string>
