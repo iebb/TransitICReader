@@ -1,6 +1,0 @@
-{
-  "en-GB": "• Send Feedback in Settings: report a problem or share an idea, with up to four screenshots. The app version and device model are sent along.\n• CardBal now sends crash reports automatically, so crashes can be found and fixed sooner. They hold technical details: where in the app the crash happened, the app version and the device model.",
-  "ja": "• 設定の「フィードバックを送信」から、問題の報告やアイデアを、スクリーンショット4枚まで添えて送れるようになりました。アプリのバージョンとデバイスの機種も一緒に送信されます。\n• クラッシュレポートを自動的に送信するようになり、不具合をより早く見つけて修正できます。送信されるのは、アプリ内のクラッシュ箇所、アプリのバージョン、デバイスの機種などの技術的な情報です。",
-  "ko": "• 설정의 ‘피드백 보내기’에서 문제를 신고하거나 아이디어를 보낼 수 있으며, 스크린샷을 최대 4장까지 첨부할 수 있습니다. 앱 버전과 기기 모델도 함께 전송됩니다.\n• 충돌 보고서를 자동으로 전송해 문제를 더 빨리 찾아 고칠 수 있습니다. 보고서에는 앱에서 충돌이 일어난 위치, 앱 버전, 기기 모델 등 기술 정보가 담깁니다.",
-  "zh-Hans": "• 可在“设置”中的“发送反馈”报告问题或分享想法，最多附上 4 张截图。应用版本和设备型号会一并发送。\n• CardBal 现在会自动发送崩溃报告，以便更快发现并修复问题。报告包含崩溃发生在应用中的位置、应用版本和设备型号等技术信息。"
-}

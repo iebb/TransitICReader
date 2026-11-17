@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Cards that carry only City Union read again, as they did before 2.6.0.\n• Reads Hanica, the Hankyu Bus and Hanshin Bus card, with its recent trips.\n• Reads Lingnan Pass and Yang Cheng Tong cards without the China T-Union mark.\n• Send Feedback in Settings: report a problem or share an idea, with up to four screenshots.\n• Crash reports are sent automatically, so crashes get fixed sooner. Both carry only technical details and aren't linked to you or used for tracking.",
+  "ja": "• City Unionのみのカードを、2.6.0より前と同じように再び読み取れるようになりました。\n• 阪急バス・阪神バスのICカード「Hanica」と、その最近の利用履歴を読み取れるようになりました。\n• 交通聯合（China T-Union）マークのない嶺南通（Lingnan Pass）と羊城通のカードを読み取れるようになりました。\n• 設定の「フィードバックを送信」から、問題の報告やアイデアをスクリーンショット4枚まで添えて送れます。\n• クラッシュレポートを自動で送信し、不具合をより早く修正できるようになりました。どちらも技術的な情報だけで、あなたと結び付けられることもトラッキングに使われることもありません。",
+  "ko": "• City Union만 있는 카드를 2.6.0 이전처럼 다시 읽을 수 있습니다.\n• 한큐 버스·한신 버스 카드인 Hanica와 최근 이용 내역을 읽을 수 있습니다.\n• 중국 교통연합(China T-Union) 마크가 없는 링난퉁(Lingnan Pass)과 양청퉁 카드를 읽을 수 있습니다.\n• 설정의 ‘피드백 보내기’에서 스크린샷을 최대 4장까지 첨부해 문제를 신고하거나 아이디어를 보낼 수 있습니다.\n• 충돌 보고서를 자동으로 전송해 문제를 더 빨리 고칩니다. 둘 다 기술 정보만 담기며, 사용자와 연결되거나 추적에 사용되지 않습니다.",
+  "zh-Hans": "• 仅带 City Union 的卡片可以重新读取了，与 2.6.0 之前相同。\n• 支持读取阪急巴士和阪神巴士的 Hanica 卡及其最近的乘车记录。\n• 支持读取不带交通联合标志的岭南通和羊城通卡。\n• 可在“设置”中的“发送反馈”报告问题或分享想法，最多附上 4 张截图。\n• 崩溃报告会自动发送，以便更快修复问题。两者只包含技术信息，不会与你关联，也不会用于跟踪。"
+}
