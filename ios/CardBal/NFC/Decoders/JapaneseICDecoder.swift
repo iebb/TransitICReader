@@ -387,11 +387,13 @@ struct JapaneseICDecoder: TransitCardDecoder {
             let hour = (timeData >> 11) & 0x1F
             let minute = (timeData >> 5) & 0x3F
             let second = (timeData & 0x1F) * 2
-            components.hour = hour
-            components.minute = minute
-            components.second = second
-            timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
-            location = timeStr
+            if (0...23).contains(hour), (0...59).contains(minute), (0...59).contains(second) {
+                components.hour = hour
+                components.minute = minute
+                components.second = second
+                timeStr = String(format: "%02d:%02d:%02d", hour, minute, second)
+                location = timeStr
+            }
         } else {
             let entryLow = Int(block[6]) << 8 | Int(block[7])
             let exitLow = Int(block[8]) << 8 | Int(block[9])
@@ -418,7 +420,8 @@ struct JapaneseICDecoder: TransitCardDecoder {
             }
         }
 
-        let date = Calendar.current.date(from: components)
+        // A record without a real date, such as an uninitialised block, is not shown.
+        guard let date = packedFeliCaDate(components) else { return nil }
         let entryCodeHex = stationFieldMode == .rail && entryStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[6]) << 8 | Int(block[7]))) : nil
         let exitCodeHex = stationFieldMode == .rail && exitStation != nil ? String(format: "0x%05X", (area << 16) | (Int(block[8]) << 8 | Int(block[9]))) : nil
 
@@ -792,7 +795,6 @@ struct JapaneseICDecoder: TransitCardDecoder {
         guard block.count >= 16 else { return nil }
 
         let activityCode = block[0]
-        let subtypeCode = block[1]
         let stationCode = Int(block[2]) << 8 | Int(block[3])
         let deviceNumber = Int(block[4]) << 8 | Int(block[5])
         let rawDate = Int(block[6]) << 8 | Int(block[7])
@@ -806,24 +808,29 @@ struct JapaneseICDecoder: TransitCardDecoder {
         let passLineCode = Int(block[14])
         let passStationCode = Int(block[15])
 
+        // Only the documented gate events are shown: entry (A0), discount entry (A2) and
+        // exit (20), on a real calendar day. Other blocks, such as the undated 10CB record
+        // that starts with the last entry station, have no known type here.
+        guard [0xA0, 0xA2, 0x20].contains(activityCode) else { return nil }
+        let hasTime = (0...23).contains(hour) && (0...59).contains(minute)
         var components = DateComponents()
         components.year = 2000 + year
         components.month = month
         components.day = day
-        if hour >= 0 && minute >= 0 {
+        if hasTime {
             components.hour = hour
             components.minute = minute
         }
+        guard let date = packedFeliCaDate(components) else { return nil }
 
-        let inferredStation = inferTransitStation(code: stationCode, date: Calendar.current.date(from: components), relatedContext: relatedContext)
+        let inferredStation = inferTransitStation(code: stationCode, date: date, relatedContext: relatedContext)
         let resolvedStationCode = inferredStation?.fullCode ?? stationCode
         let stationName = inferredStation?.stationName ?? StationResolver.shared.resolve(stationCode) ?? "Station \(String(format: "%04X", stationCode))"
-        let timestamp = hour >= 0 && minute >= 0 ? String(format: "%02d:%02d", hour, minute) : nil
-        let subtype = transitSubtypeLabel(for: subtypeCode)
+        let timestamp = hasTime ? String(format: "%02d:%02d", hour, minute) : nil
         let terminalName = "Gate Device \(String(format: "%04d", deviceNumber))"
 
         let passStationFullCode = (passLineCode << 8) | passStationCode
-        let inferredPassStation = passStationFullCode == 0 ? nil : inferTransitStation(code: passStationFullCode, date: Calendar.current.date(from: components), relatedContext: relatedContext)
+        let inferredPassStation = passStationFullCode == 0 ? nil : inferTransitStation(code: passStationFullCode, date: date, relatedContext: relatedContext)
         let passStationName: String? = passStationFullCode == 0 ? nil : (inferredPassStation?.stationName ?? StationResolver.shared.resolve(passStationFullCode) ?? "Station \(String(format: "%04X", passStationFullCode))")
 
         var locationParts = [stationName]
@@ -838,7 +845,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         switch activityCode {
         case 0xA0, 0xA2:
             return TransitTransaction(
-                date: Calendar.current.date(from: components),
+                date: date,
                 time: timestamp,
                 amount: Decimal(amount),
                 terminalID: terminalName,
@@ -856,7 +863,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
             )
         case 0x20:
             return TransitTransaction(
-                date: Calendar.current.date(from: components),
+                date: date,
                 time: timestamp,
                 amount: Decimal(amount),
                 terminalID: terminalName,
@@ -873,23 +880,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
                 recordNumber: deviceNumber
             )
         default:
-            return TransitTransaction(
-                date: Calendar.current.date(from: components),
-                time: timestamp,
-                amount: Decimal(amount),
-                terminalID: terminalName,
-                type: subtype.isEmpty ? "Transit Activity" : "Transit Activity (\(subtype))",
-                category: .train,
-                balanceAfter: nil,
-                location: location,
-                entryStation: nil,
-                exitStation: nil,
-                entryStationCode: resolvedStationCode == 0 ? nil : String(format: "0x%05X", resolvedStationCode),
-                exitStationCode: nil,
-                regionCode: inferredStation?.regionCode,
-                rawData: block.hexString.uppercased(),
-                recordNumber: deviceNumber
-            )
+            return nil
         }
     }
 
@@ -936,9 +927,9 @@ struct JapaneseICDecoder: TransitCardDecoder {
         components.year = 2000 + year
         components.month = month
         components.day = day
-        let candidateDate = Calendar.current.date(from: components)
+        guard let candidateDate = packedFeliCaDate(components) else { return nil }
 
-        if let targetDate, let candidateDate {
+        if let targetDate {
             let delta = abs(candidateDate.timeIntervalSince(targetDate))
             if delta > 3 * 24 * 60 * 60 {
                 return nil
@@ -956,7 +947,7 @@ struct JapaneseICDecoder: TransitCardDecoder {
         let fullCode = (area << 16) | targetLowCode
         guard let stationName = StationResolver.shared.resolve(fullCode) else { return nil }
         let distance: TimeInterval
-        if let candidateDate, let targetDate {
+        if let targetDate {
             distance = abs(candidateDate.timeIntervalSince(targetDate))
         } else {
             distance = 0
@@ -971,13 +962,17 @@ struct JapaneseICDecoder: TransitCardDecoder {
         return high * 10 + low
     }
 
-    private static func transitSubtypeLabel(for code: UInt8) -> String {
-        switch code {
-        case 0x00: return "Standard"
-        case 0x04: return "Discount"
-        case 0x08: return "Transfer"
-        default: return String(format: "%02X", code)
-        }
+    /// A packed FeliCa date only when it names a real day (and time, when given).
+    /// Calendar would otherwise roll an empty field, 2000-00-00, back to 1999-11-30.
+    private static func packedFeliCaDate(_ components: DateComponents) -> Date? {
+        guard let year = components.year, let month = components.month, let day = components.day,
+              (1...12).contains(month), (1...31).contains(day),
+              (0...23).contains(components.hour ?? 0), (0...59).contains(components.minute ?? 0),
+              (0...59).contains(components.second ?? 0),
+              let date = Calendar.current.date(from: components) else { return nil }
+        let actual = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        guard actual.year == year, actual.month == month, actual.day == day else { return nil }
+        return date
     }
 
 }

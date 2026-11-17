@@ -67,7 +67,12 @@ struct CardDateFormatting {
         components.minute = minute
         components.second = second
         components.timeZone = issuerTimeZone(for: brand) ?? .current
-        return calendar(for: brand).date(from: components)
+        // A day the card cannot hold (31 February, say) is no date, not the one Calendar rolls it to.
+        let issuerCalendar = calendar(for: brand)
+        guard let date = issuerCalendar.date(from: components) else { return nil }
+        let actual = issuerCalendar.dateComponents([.year, .month, .day], from: date)
+        guard actual.year == year, actual.month == month, actual.day == day else { return nil }
+        return date
     }
 
     static func parseCompactDateTime(_ value: String, format: String, brand: ICCardBrand) -> Date? {

@@ -24,6 +24,18 @@ internal object JapaneseCardFormats {
 
     fun packedDate(value: Int): String? = runCatching { LocalDate.of(2000 + (value shr 9), (value shr 5) and 15, value and 31).toString() }.getOrNull()
 
+    /**
+     * The event of a 108F gate record: entry (A0), discount entry (A2) or exit (20), on a real
+     * calendar day. Other blocks, such as the undated 10CB record that starts with the last
+     * entry station, have no known type here and are not shown.
+     */
+    fun gateEvent(data: ByteArray): Int? {
+        if (data.size < 16) return null
+        val event = data[0].toInt() and 255
+        if (event != 0xA0 && event != 0xA2 && event != 0x20) return null
+        return event.takeIf { packedDate(uint(data, 6, 2).toInt()) != null }
+    }
+
     /** nanaco service 560B block 1 holds two big-endian 24-bit point buckets at bytes 0-2 and 5-7. */
     fun nanacoPoints(block: ByteArray?): Long? = block?.takeIf { it.size == 16 }?.let { uint(it, 0, 3) + uint(it, 5, 3) }
 

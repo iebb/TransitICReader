@@ -350,7 +350,8 @@ class TransactionDecoder(context: Context) {
         val previousBalance = context.getOrNull(index + 1)?.hexToBytes()?.takeIf { it.size >= 12 }?.leInt(10, 2)
         val diff = previousBalance?.let { balance - it } ?: 0
         val rawDate = data.beInt(4, 2)
-        val date = packedJapaneseDate(rawDate)
+        // A record without a real date, such as an uninitialised block, is not shown.
+        val date = packedJapaneseDate(rawDate) ?: return null
         val consoleType = data[0].toInt() and 0xff
         val processType = data[1].toInt() and 0xff
         val area = ((data[15].toInt() and 0xff) shr 6) and 0x03
@@ -423,29 +424,23 @@ class TransactionDecoder(context: Context) {
 
     private fun decodeJapaneseTransitActivity(data: ByteArray, raw: String, relatedContext: List<String>): TransitTransaction? {
         if (data.size < 16) return null
-        val activityCode = data[0].toInt() and 0xff
-        val subtypeCode = data[1].toInt() and 0xff
+        val activityCode = JapaneseCardFormats.gateEvent(data) ?: return null
         val stationCode = data.beInt(2, 2)
         val deviceNumber = data.beInt(4, 2)
         val rawDate = data.beInt(6, 2)
         val hour = bcd(data[8])
         val minute = bcd(data[9])
         val amount = data.leInt(10, 2).toLong()
-        val date = packedJapaneseDate(rawDate, hour, minute)
+        val date = packedJapaneseDate(rawDate, hour, minute) ?: return null
         val inferredStation = inferTransitStation(stationCode, date, relatedContext)
         val resolvedStationCode = inferredStation?.fullCode ?: stationCode
         val station = inferredStation?.station
         val type = when (activityCode) {
             0xA0 -> "Entry"
             0xA2 -> "Discount Entry"
-            0x20 -> "Exit"
-            else -> "Transit Activity (${transitSubtypeLabel(subtypeCode)})"
+            else -> "Exit"
         }
-        val category = when (activityCode) {
-            0xA0, 0xA2 -> TransactionCategory.trainOn
-            0x20 -> TransactionCategory.trainOff
-            else -> TransactionCategory.train
-        }
+        val category = if (activityCode == 0x20) TransactionCategory.trainOff else TransactionCategory.trainOn
         return TransitTransaction(
             date = date,
             time = if (hour in 0..23 && minute in 0..59) "%02d:%02d".format(hour, minute) else null,
@@ -672,13 +667,6 @@ class TransactionDecoder(context: Context) {
             category = if (subType == 0x02) TransactionCategory.bus else TransactionCategory.train,
         )
         else -> TUnionType("Travel %02X".format(type), TransactionCategory.unknown)
-    }
-
-    private fun transitSubtypeLabel(code: Int): String = when (code) {
-        0x00 -> "Standard"
-        0x04 -> "Discount"
-        0x08 -> "Transfer"
-        else -> "%02X".format(code)
     }
 
     private fun explainWaon(data: ByteArray): RawRecordExplanation? {

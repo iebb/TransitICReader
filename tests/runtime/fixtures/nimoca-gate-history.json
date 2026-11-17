@@ -1,0 +1,19 @@
+{
+  "source": "A Nimoca history as the app showed it: three gate records, then the 10CB block it read as a fourth row dated 1999/11/30. Gate and 10CB bytes follow the card's layout with its shown dates, times, fares and station codes; device numbers and unused tails are zero. The 090F rows are built to match, plus the card's uninitialised 090F block.",
+  "transit": [
+    "2000E91F000033890923040100000000",
+    "A000E915000033890909000000000000",
+    "2000D7650000319F1949A40100000000",
+    "E9150000000000000000000000000000"
+  ],
+  "transactions": [
+    "160100003389E915E91FB21E000002F0",
+    "16010000319F0000D765B61F000001F0",
+    "00000000000000002300001F0000161D"
+  ],
+  "rows": [
+    {"type": "Exit", "event": 32, "amount": 260, "date": "2025-12-09", "time": "09:23", "station": "天神南"},
+    {"type": "Entry", "event": 160, "amount": 0, "date": "2025-12-09", "time": "09:09", "station": "六本松"},
+    {"type": "Exit", "event": 32, "amount": 420, "date": "2024-12-31", "time": "19:49", "station": "西鉄福岡（天神）"}
+  ]
+}
