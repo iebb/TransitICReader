@@ -16,6 +16,7 @@ final class QuickScanRoute: ObservableObject {
 
 struct QuickScanView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @StateObject private var reader = NFCTransitReader(localOnly: true)
     @State private var showsUnavailable = false
     @State private var demoSnapshot: TransitCardSnapshot?
@@ -48,10 +49,11 @@ struct QuickScanView: View {
                             .foregroundStyle(.secondary)
                     }
                     Button(action: scan) {
-                        Label(Localizer.localize(snapshot == nil ? "Scan Card" : "Scan Another Card"),
-                              systemImage: "sensor.tag.radiowaves.forward.fill")
+                        actionLabel(Text(Localizer.localize(snapshot == nil ? "Scan Card" : "Scan Another Card")),
+                                    systemImage: "sensor.tag.radiowaves.forward.fill")
                             .font(.headline)
                             .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
                             .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
                             .background(colorScheme == .dark ? Color.white : Color.black,
@@ -63,10 +65,11 @@ struct QuickScanView: View {
                     #if APPCLIP
                     VStack(alignment: .leading, spacing: 12) {
                         Link(destination: URL(string: "https://apps.apple.com/app/id6760978958")!) {
-                            Label("Download Full CardBal App", systemImage: "arrow.down.app")
+                            actionLabel(Text("Download Full CardBal App"), systemImage: "arrow.down.app")
                                 .font(.headline)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(maxWidth: .infinity,
+                                       alignment: dynamicTypeSize.isAccessibilitySize ? .center : .leading)
                                 .padding(16)
                                 .foregroundStyle(Color.primary)
                                 .background(Color(uiColor: .secondarySystemGroupedBackground),
@@ -96,6 +99,20 @@ struct QuickScanView: View {
             }
             .onDisappear { reader.cancelScanning() }
             .onAppear(perform: loadPreview)
+        }
+    }
+
+    /// Icon beside the title normally; at accessibility sizes the icon sits
+    /// centred above a centred, wrapping title so the text keeps the full width.
+    @ViewBuilder
+    private func actionLabel(_ title: Text, systemImage: String) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: 8) {
+                Image(systemName: systemImage).accessibilityHidden(true)
+                title.multilineTextAlignment(.center)
+            }
+        } else {
+            Label { title } icon: { Image(systemName: systemImage) }
         }
     }
 
