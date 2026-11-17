@@ -1,8 +1,7 @@
 # EZLink card preset
 
 The preset uses the regular white EZ-Link card with the diagonal blue and green
-EZ-Link logo pattern, as shown in the operator's own comparison artwork. It
-replaces the generated Singapore skyline illustration.
+EZ-Link logo pattern, as shown in the operator's own comparison artwork.
 
 Source page: [SimplyGo Cards & Charms](https://www.simplygo.com.sg/ezlink/ez-link-simplygo-ez-link-cards-charms/cards-charms/).
 
@@ -12,9 +11,9 @@ right-hand blue card is the separate SimplyGo EZ-Link product.
 
 Source SHA-256: `c814645fe9f5b17aa9558961515b824507d14487b188e9d845437ee59c564db9`.
 
-The asset is now downloaded as `faces/sg/ezlink/default.png` from
-`https://faces.cardb.al/` and stored as `remote.sg.ezlink.default.png`. It was
-previously bundled as `ezlink`. The full comparison sheet is not shipped.
+The asset downloads as `faces/sg/ezlink/default.png` from
+`https://faces.cardb.al/` and is stored as `remote.sg.ezlink.default.png`.
+The full comparison sheet is not shipped.
 The printed logo, repeating pattern and layout come from the real
 card artwork; no image generation or invented illustration is used.
 

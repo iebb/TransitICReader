@@ -13,7 +13,7 @@ The read flow selects file 4000 with `00A40000024000`, then sends GET PURSE
 `9032030000`, matching CoreExtendedNFC's CEPAS reader. GET HISTORY is
 `9032030001<offset><Le>`, with at most 15 records per request and Le set to the
 requested record count times 16. Requests support one corrected-Le retry and
-bounded `61xx` response chaining; final status must be exactly9000. The SELECT
+bounded `61xx` response chaining; final status must be exactly `9000`. The SELECT
 command has no Le, so a `6Cxx` response cannot overwrite its file identifier. Partial,
 malformed or protected data does not become a successful response. Optional
 history failure preserves an already validated purse. iPhone supports the
@@ -21,14 +21,13 @@ ISO7816 and raw MIFARE discovery paths; Android uses ISO-DEP.
 
 CEPAS cards are ISO 14443 Type B and do not implement ISO 7816-4 AID
 selection properly, so Core NFC only hands one to the app after a listed AID
-SELECT is accepted. The iOS app appends `A000000341000101` and
-`00000000000000` to its select identifiers, the two values CoreExtendedNFC's
-example app lists that ours lacked when it read a traditional EZ-Link card on
-iPhone Air. Which one the card answered is not confirmed upstream; they sit
-last so every other card keeps its earlier initial AID.
+SELECT is accepted. The iOS app lists `A000000341000101` and
+`00000000000000` at the end of its select identifiers, following
+CoreExtendedNFC's example. Which identifier a particular card accepts must be
+verified on that card; neither identifier establishes the issuer.
 
-Purse and history amounts are signed24-bit SGD cents. History timestamps are
-unsigned seconds from1995-01-01 midnight Singapore, Unix788889600. The checked
+Purse and history amounts are signed 24-bit SGD cents. History timestamps are
+unsigned seconds from 1995-01-01 midnight Singapore, Unix 788889600. The checked
 FareBot revision's numeric epoch constant disagrees with its stated local
 epoch by eight hours; the implementation and tests use the local Singapore
 boundary confirmed by Metrodroid's timezone-aware epoch. Record kinds include
@@ -36,7 +35,7 @@ MRT, bus, purchase, reload, refund, service charge and card creation. Creation
 records do not imply a monetary charge. Printable user data stays an original
 label; it is not treated as a verified station or route identifier.
 
-The portable raw envelope is `43 45 50 01 03` followed by the exact16-byte log
+The portable raw envelope is `43 45 50 01 03` followed by the exact 16-byte log
 record. Ring-buffer position is excluded. Both platforms retain the same
 21-byte envelopes in backups and decode them before generic ISO histories.
 
@@ -54,5 +53,7 @@ selection-dependent purse reads, bounded history pages, retry/chaining and
 missing optional history. Swift regressions exercise ISO7816, raw MIFARE and
 the external ISO reader transport. No upstream GPL implementation,
 artwork, issuer keys or personal captures are included. Native Core NFC API
-checking and app builds are separate from physical-card validation, which is
-still outstanding.
+checking and app builds are separate from physical-card validation. An EZ-Link
+CEPAS v2 card has been read through the Mac ACR122U path; this does not establish
+all CEPAS prefixes or built-in iPhone discovery. See
+[external readers](../development/external-nfc-readers.md).

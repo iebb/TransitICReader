@@ -1,6 +1,6 @@
-# Calypso implementation evidence and limits — 2026-10-31
+# Calypso public records
 
-The new native codecs were independently written from public wire-format facts.
+The native codecs are independently written from public wire-format facts.
 No GPL implementation, card image, keys, personal captures, station tables or
 reference-project fixtures were copied into the BSD repository. The synthetic
 fixture consists of invented bits, counters, products and timestamps.
@@ -23,9 +23,10 @@ fixture consists of invented bits, counters, products and timestamps.
 | Rav-Kav | Environment network `0x37602` or `0x37603` | Contract validity, counter semantics: tariff-use2 trips, tariff-use3 ILS cents; UTC-second events and explicit monetary fields |
 | Generic French Intercode | Complete environment with MCC `0x250`; no city claim | Common contract/pass fields and raw counters. Product191 + best-contract type46 + bounded counter preserves the legacy ticket-count profile, labeled numerically. Events require a researched metropolitan event-network identifier to establish timezone. |
 
-No ID-only scan is presented as supported: native adapters require at least one
+The shared public reader requires at least one
 decoded contract or travel event. Generic raw diagnostics may remain inside the
-pure helper but are rejected by the native snapshot adapters.
+pure helper but are rejected by its native snapshot adapters. The iPhone
+La Carte compatibility path described below is a separate fallback.
 
 Unknown products remain numeric. A counter is displayed as trips/money only when
 its unit semantics are supported; other values are explicitly raw counters.
@@ -36,11 +37,11 @@ files. Holder names, birth dates and government ID fields are not decoded.
 
 ## Transport and persistence
 
-Commands are SELECT (`A4`) and READ RECORD (`B2`) only. Selecting directory2000
+Commands are SELECT (`A4`) and READ RECORD (`B2`) only. Selecting directory `2000`
 is not opening a secure session. Public SFI reads use P2 `(SFI << 3) | 4`;
 when unavailable, standard public file selectors are tried. Envelope SFIs are
 the logical Calypso file mapping for such selected-file fallbacks. Exact9000
-is required. A6Cxx response permits one corrected-Le retry; Le00 is256.
+is required. A `6Cxx` response permits one corrected-Le retry; Le `00` is 256.
 Other status words/protected records remain unreadable; no keys or authentication
 attempts are introduced. The reader is bounded and never writes a card.
 
@@ -51,47 +52,38 @@ and does not reinterpret contracts as travel. Event-ring deduplication ignores
 the moving slot while non-event slot context and unknown envelopes are retained.
 MOBIB SFI23 is preserved and treated as an event-file alias.
 
-EN1545 date fields are days from1997-01-01; local time fields are minutes, not
-seconds. Rav-Kav event timestamps are UTC seconds from1997-01-01. Invalid days,
+EN1545 date fields are days from 1997-01-01; local time fields are minutes, not
+seconds. Rav-Kav event timestamps are UTC seconds from 1997-01-01. Invalid days,
 minutes, unknown network/timezone contexts and ambiguous/nonexistent local DST
 wall times are not fabricated into dated events; their source bytes remain raw.
 
 ## Validation
 
-Shared `tests/runtime/fixtures/calypso_synthetic.json` contains five
-identification profiles, eleven contract variants and nine event cases; it is
-used by both native codec test suites. Fixture SHA256:
-`4eb55d0ed174842c1e11fe3069a62332453fefd0b4f99e9ca9ebc2bd39de04f0`.
-
-The Swift production helper test passes with direct expected amounts, timestamps,
-contract dates and counter units, plus malformed envelopes, DST cases,6C00,
-zero stored value, ring movement and ID-only gating. The native Swift adapter,
-profile and helper also typecheck against the installed iPhoneOS SDK using model
-stubs; root performs the full app build. Android compilation passed before the
-last integration changes; root owns the final serialized Android test/build.
-No physical-card/RF verification has been performed, and no universal generation
-coverage is claimed. Nice city branding remains explicitly unresolved.
+Both native codec suites use
+`tests/runtime/fixtures/calypso_synthetic.json`. Coverage includes identification,
+contract dates and counter units, malformed envelopes, DST cases, corrected-Le
+retries, zero stored value, ring movement and ID-only gating. These checks do
+not establish physical-card compatibility or universal generation coverage.
 
 Calypso adapter identity uses the decoded public serial when available; otherwise both platforms preserve the legacy unsigned UID-as-decimal serial. This protects existing Nice-card wallet identity while new scans use the generic Calypso label.
 
-## La Carte on iPhone (2.6.0)
+## La Carte compatibility on iPhone
 
-The owner reported that La Carte (Lignes d'Azur) no longer read on iPhone after the
-shared reader replaced the original Nice decoder. When Core NFC finds the card by
-`1TIC.ICA`, the iPhone now reads it before every other decoder, and first runs the
-pre-2.5.0 Nice reader on the application Core NFC already selected: SELECT the
-ticketing directory `2000` and READ RECORD SFI 07, 1E, 08, 09 and 0A with class
-`94`. That restores the "Lignes d'Azur card" label, the Nice ticket fields and
-Check Online. The shared public-record reader still runs afterwards; its result
-is used only for a positively identified non-Intercode network, or when the Nice
-records returned nothing. As before 2.5.0, a `1TIC.ICA` card is always shown, with
-the raw replies, and the debug log lists each command's status word. Event times
-are read as minutes. Android is unchanged. Not yet verified with a physical card.
+When Core NFC initially selects a supported Calypso application, the iPhone
+tries `CalypsoDecoder` before readers that select other applications.
+`CalypsoCardProfile.matches` accepts known AID prefixes, including DF names with
+trailing padding such as `3MTR.ICA`.
 
-Build 63 still failed on Natun's card: Core NFC reported the opened application as
-`334D54522E4943410000000000000000` (`3MTR.ICA` padded with zero bytes), which the
-exact AID comparison did not recognise, so Calypso was never tried. Calypso AIDs
-now match by prefix, and the Nice reader runs for any Calypso application the
-phone opened (as before 2.5.0, when only `A000000291`/`A000000404` were listed).
-If the card rejects class `94` (`6E00`), the Nice records are read again with
-class `00`. The debug log also lists the public reader's first command statuses.
+`NiceCalypsoReader` first uses the selected application without reselecting it.
+It selects ticketing directory `2000` and reads SFI `07`, `1E`, `08`, `09` and
+`0A` using class `94`. If the class is rejected and no usable records are
+returned, it retries with class `00`. Event times are minutes.
+
+The shared public reader runs afterwards. Its decoded result takes precedence
+for a positively identified non-Intercode network, or when the Nice reader has
+no records. Otherwise the compatibility snapshot keeps the
+"Lignes d'Azur card" label, ticket fields and Check Online. It can retain
+raw replies even when no ticket was decoded; that fallback is not positive
+evidence of network identity. Diagnostics include command status words.
+This compatibility path is iPhone-specific and remains unverified on a
+physical card.

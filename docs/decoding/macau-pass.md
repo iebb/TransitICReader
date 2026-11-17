@@ -1,6 +1,5 @@
 # Macau Pass
 
-Source review date: 2026-10-31.
 Reference: [HaoTian22/TU-Reader at
 `f50948a0090f0b7b07e27369c3a9a66670b092a9`][upstream].
 This document records CardBal's Macau Pass implementation behavior and its
@@ -238,17 +237,12 @@ Sources: [AIDs][profile], [Macau-before-TU detection order][detection],
 
 ## Evidence and license
 
-This review pins actual source rather than a moving default branch. It
+The reference pins actual source rather than a moving default branch. It
 does not provide issuer documentation, validate all card generations,
 establish the high-bit balance format, settle the amount-width discrepancy,
 or replace physical-card testing.
 
-The upstream Macau test contains two test methods and five captured history
-fixtures. Its fake channel does not provide a successful TU SELECT response,
-despite the dual-wallet description. These upstream fixtures are separate
-from CardBal's tests; no captured card dump is copied into this document.
-
-Eight synthetic tests compile the production decoder and exercise selection,
+Synthetic tests compile the production decoder and exercise selection,
 read commands, partial results and status handling, payload and history
 bounds, money, timestamp validity across host timezones, persisted history,
 and separate companion-wallet identity and currency. Run from the repository
@@ -259,7 +253,7 @@ python3 -m unittest tests.runtime.test_macau_pass -v
 ```
 
 The runtime suite also checks that the shared additional-card history router
-does not claim Macau aliases, for nine Swift runtime tests in total.
+does not claim Macau aliases.
 
 The Android JVM suite exercises the production reader through synthetic
 APDU exchanges, including exact commands, partial results, status handling,

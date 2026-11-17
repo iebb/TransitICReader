@@ -1,15 +1,15 @@
 # Clipper
 
-This upgrades the existing older-generation Clipper DESFire support with
-named agencies and stations, route and vehicle labels, optional expiry, and
-MIFARE Ultralight ticket decoding. The existing `StoredValueProtocol` reader
-and its saved `DFSV` history envelopes remain supported. New DESFire scans
+Clipper support includes the public older-generation DESFire layout with
+named agencies and stations, route and vehicle labels, and optional expiry,
+as well as MIFARE Ultralight tickets. The existing `StoredValueProtocol` reader
+and its saved `DFSV` history envelopes remain supported. DESFire scans
 prefer `ClipperDecoder`; the history registry dispatches the new record
 formats before falling back to the existing envelope decoder.
 
 The implementation is adapted from FareBot commit
 [`dc09f6f014ea3675b64bcd38335b4b78d77fa374`](https://github.com/codebutler/farebot/tree/dc09f6f014ea3675b64bcd38335b4b78d77fa374/transit/clipper).
-Source review date: 2026-10-31. No physical Clipper card or reader testing has
+No physical Clipper card or reader testing has
 been performed. Account balances, mobile-wallet credentials, and newer or
 otherwise different card generations are outside the supported layouts.
 
@@ -247,7 +247,7 @@ The importer verifies both checkout HEAD and MdST SHA-256 before writing
 python3 -m unittest tests.runtime.test_clipper -v
 ```
 
-The ten tests compile the production Swift Clipper readers, catalog,
+The tests compile the production Swift Clipper readers, catalog,
 transport protocols, value models, registry and byte helpers. They replay FareBot's
 public [mocked BART/refill test data](https://github.com/codebutler/farebot/blob/dc09f6f014ea3675b64bcd38335b4b78d77fa374/app/src/commonTest/kotlin/com/codebutler/farebot/test/ClipperTransitTest.kt)
 and invented transport/ticket responses. Coverage includes signed purse
@@ -255,8 +255,8 @@ values, unsigned serials, exact Decimal amounts, timestamps/DST, station
 resolution, JSON history reload and completed-trip preference, identical
 DESFire APDUs through ISO7816 and MiFare, continuation/status/size limits,
 record reads, optional failures, cancellation, Ultralight counter wrap and
-hidden events, and importer paths/metadata/truncated inputs. The pinned
-MdST conversion was also checked to reproduce the JSON byte-for-byte.
+hidden events, and importer paths/metadata/truncated inputs. The importer
+verifies the source revision and MdST checksum before conversion.
 
 The harness compiles the actual `CardWalletStore.mergeRawRecords` and
 `deleteLocalRecord` methods, `TransitApplicationRecord`,

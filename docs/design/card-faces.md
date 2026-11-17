@@ -8,8 +8,8 @@ from `master` on push.
 
 Only Suica, PASMO, ICOCA, T-money and EZL remain bundled as offline fallbacks.
 The other regional, retail and specialty faces download when used. There is no
-usage telemetry behind this selection. Duplicate iOS resource copies were also
-removed. Every retained fallback is an indexed PNG under 40,000 bytes with at
+usage telemetry behind this selection.
+Every retained fallback is an indexed PNG under 40,000 bytes with at
 most 24 colors.
 
 The apps cache the manifest for a day and download individual PNGs on demand,
@@ -17,8 +17,7 @@ checking their byte count and SHA-256. Cached art works offline. A missing face
 uses its retained bundle where available, otherwise the card's existing color
 appearance. Fallbacks are not cached under remote tokens, so a pending download
 can replace them. The project's `card-faces.pages.dev` hostname and raw GitHub
-mirror the same paths. The apps no longer use jsDelivr, whose cached branch
-manifest and a withdrawn face remained available after a purge.
+mirror the same paths.
 
 Old bundle identifiers, including the selected blue La Carte alternate, resolve
 to their published tokens. iOS migrates those selections on launch/save and

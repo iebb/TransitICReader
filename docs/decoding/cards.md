@@ -2,7 +2,7 @@
 
 This document summarizes how CardBal reads and decodes each supported card
 family. It reflects the current iOS implementation and the Android native port.
-The [platform matrix](../research/platform-parity.md) records the current
+The [platform matrix](capabilities.md) records the current
 cross-platform scope. It is an implementation reference, not an official specification for any card
 network.
 
@@ -55,8 +55,8 @@ then Macau Pass, Clipper and the remaining DESFire, Chinese, Calypso, Korean and
 
 ## Snapper+ and KMT
 
-Both implementations were added on 2026-10-30 using independently written
-parsers and synthetic protocol tests. Physical-card validation is still needed.
+Both implementations use independently written parsers and synthetic protocol
+tests. Physical-card validation is still needed.
 
 Snapper+ shares AID `D4100000030001` with Korean cards. Identification requires
 an unambiguous complete purse TLV with issuer `02` and nonempty SFI 4 records
@@ -207,7 +207,7 @@ the confirmed balance stays unavailable and Raw Data shows the two candidates.
 The reader does not treat unverified additional public blocks as transaction
 history. Existing saved history remains intact.
 
-### Octopus – China T-Union cards (iOS 2.5.2, Android 2.5.2)
+### Octopus – China T-Union cards
 
 The enquiry result of a dual-currency card carries `cardDataVO.motRate`, the
 yuan value of HK$1 (for example `"0.839"`), and `motExpiryDate`
@@ -215,11 +215,14 @@ yuan value of HK$1 (for example `"0.839"`), and `motExpiryDate`
 with the card's calibration, and shown as `HK$1 = CN¥{rate}` with its expiry.
 CardBal never converts amounts itself.
 
-- The iOS reader reads the FeliCa (Octopus) side first. Only when the card has a
-  rate does it wait up to 2 s for the card's ISO 7816 (T-Union) side; any other
-  Octopus card finishes at once. Android reads both interfaces that one tag
-  discovery exposes and does not wait for a second side.
-- A card with a rate repeats the enquiry on every scan, because a top-up can
+- The iOS all-protocol reader can start from either interface. When Octopus is
+  read first, it checks for the mainland interface only if an exchange rate is
+  available; otherwise that scan finishes immediately. The companion timeout
+  and same-card handling are described in [companion scans](shanghai.md#octopus-across-felica-and-iso-7816).
+  Android reads both interfaces that one tag discovery exposes and does not
+  wait for a second side.
+- With online enquiry enabled, a card with a rate repeats the enquiry on every
+  scan, because a top-up can
   change the rate. If that enquiry fails, the saved offset and last rate are
   used without an "unavailable" message. Calibrations saved before 2.5.2 carry
   no `rateChecked` mark and are enquired once more to learn whether the card
@@ -235,8 +238,8 @@ CardBal never converts amounts itself.
 - The debug log records the rate and its expiry, which describe the product
   rather than the cardholder.
 
-The independently written implementations follow the user-supplied
-`octopus_online.py` and its protocol notes, investigated on 2026-10-31.
+The implementations use the OCAP exchange and calibration protocol defined in
+`OctopusOnlineProtocol` on each platform.
 `tests/runtime/fixtures/octopus-online.json` contains invented bytes used by
 Swift and Android protocol/HTTP tests; no real card captures or identifiers are
 included. Native app RF verification is still needed.
@@ -405,12 +408,12 @@ See [Trip Reader data](../data/tripreader.md) for sources and refresh instructio
 Both apps read network-specific public ticket and travel files. Generic RIDs or
 `1TIC.ICA` alone do not identify a city. The codecs use versioned envelopes,
 strict network/layout identification, checked status words and corrected-Le
-retries. See [Calypso sources and supported layouts](../research/calypso-public-records.md).
+retries. See [Calypso sources, supported layouts and the iPhone compatibility fallback](calypso.md).
 
 ## CEPAS and DESFire
 
-See the [CEPAS purse/history protocol](../research/cepas.md) and
-[Opal, HSL/Waltti and Clipper layout notes](../research/desfire-stored-value.md).
+See the [CEPAS purse/history protocol](cepas.md) and
+[Opal, HSL/Waltti and Clipper layout notes](desfire-stored-value.md).
 These include exact commands, units, timestamps, source revisions and bounds.
 
 ## Generic ISO 7816 Handling
@@ -459,19 +462,20 @@ when assets change so regenerated station data is picked up after rebuilds.
 ## Shanghai applications and Octopus companion protocols
 
 Both Chinese readers probe CU and TU AIDs on the connected card and
-stores their metadata and raw records separately. Shanghai CU terminal prefixes
+store their metadata and raw records separately. Shanghai CU terminal prefixes
 use their own catalog namespace. Combined history retains source application,
 SFI and index; only unambiguous mirrored transactions are reconciled. Partial
 rescans retain the other application's saved history. Balance readings are never
 summed across applications.
 
-On iPhone, normal all-protocol scans automatically read a recognized Octopus/CU/TU card's
-companion protocol, in either order. iOS 26.4+ changes polling configuration
+On iPhone, normal all-protocol scans can read the companion protocol of a
+recognized Octopus/CU/TU/Lingnan card. Octopus-first scans require an exchange
+rate before checking for the mainland interface. iOS 26.4+ changes polling configuration
 within one session; older iOS releases open the second session only after the
 first has ended. The first result survives a missing, failed or cancelled second
 read. Linked entries are merged into one saved card on scan, reload and restore,
 including entries saved separately before a combined read. HKD and CNY histories
-remain independently decoded. See [the protocol review and validation boundaries](shanghai.md).
+remain independently decoded. See [the protocol reference and validation boundaries](shanghai.md).
 
 Android preserves the same application records and probes both interfaces when
 the Android tag exposes ISO-DEP and NFC-F together. Hardware that discovers one

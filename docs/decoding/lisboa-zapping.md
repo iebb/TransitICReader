@@ -1,6 +1,6 @@
 # Lisboa Viva / navegante Zapping
 
-Implemented 2026-11-01 in the iOS and Android public Calypso readers.
+The iOS and Android public Calypso readers implement this layout.
 The supported stored-value layout requires provider **31** and tariff
 **33592**. A contract purchase price, remaining ride count or successful
 application selection does not count as Zapping money. Current physical-card
@@ -56,8 +56,7 @@ implementation or personal captures. Metrodroid
 [contract](https://github.com/metrodroid/metrodroid/blob/b910c1806fd86aa545223baf1d21fc5afe68eee2/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/lisboaviva/LisboaVivaSubscription.kt),
 [event](https://github.com/metrodroid/metrodroid/blob/b910c1806fd86aa545223baf1d21fc5afe68eee2/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/lisboaviva/LisboaVivaTransaction.kt)
 and [counter association](https://github.com/metrodroid/metrodroid/blob/b910c1806fd86aa545223baf1d21fc5afe68eee2/src/commonMain/kotlin/au/id/micolous/metrodroid/transit/en1545/Calypso1545TransitData.kt).
-The earlier independent
-[Calypso notes](../research/calypso-public-records.md) document transport and
+The [Calypso reference](calypso.md) documents transport and
 selection.
 
 Shared invented fixtures extend `calypso_synthetic.json`: positive and zero

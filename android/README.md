@@ -68,7 +68,7 @@ retained under `third_party/`.
 The app implements the same card-format decoders as iPhone, including the
 additional Japanese FeliCa profiles, U-Money, City Union, CEPAS, named Calypso
 networks, Opal, HSL/Waltti and older Clipper. See the
-[card capability matrix](../docs/research/platform-parity.md). Recognition, readable balance and decoded
+[card capability matrix](../docs/decoding/capabilities.md). Recognition, readable balance and decoded
 history are separate capabilities; a successful application selection does not
 establish that every card version exposes all records.
 
@@ -82,8 +82,8 @@ The unit tests use synthetic NFC frames and APDUs. They cover KS X 6924 balance
 commands, guarded KROCAP configuration-DF resolution, malformed responses and
 FeliCa system changes, alongside iPhone-backup compatibility. Real NFC needs a
 physical device and card; unit tests do not establish hardware compatibility.
-The [card support research](../docs/research/card-support.md) describes the
-next candidate families and platform constraints.
+See [adding or changing a card reader](../docs/development/card-readers.md) for
+format, platform and validation requirements.
 
 ## Optional private signing
 

@@ -1,98 +1,42 @@
-# Shanghai City Union and T-Union review
+# Shanghai City Union, T-Union and companion scans
 
-Reviewed on 2026-09-27 against the official Android Trip Reader / 读卡识途
-**1.7.17-cn** APK and the current CardBal iOS reader. This is a static protocol
-and data review; no physical Shanghai card or Android/iOS UI was tested.
+CardBal reads City Union and T-Union applications on the same connected tag,
+preserves each application's metadata and raw records, and reconciles only
+unambiguous mirrored transactions.
 
-**Finding:** Trip Reader reads both applications into one card and reconciles
-their records. Before this change, CardBal stopped after a successful City Union decode,
-so a Shanghai dual-application card could lose its T-Union history. Changing
-decoder priority alone would leave the opposite application's data unread.
-
-## Sources and verification
+## Protocol sources
 
 - [Official download directory](https://support.domosekai.com/download/):
-  1.7.17 remained the newest listed APK at this review.
+  the protocol reference is Trip Reader **1.7.17-cn**.
 - APK SHA-256:
   `b8cc78e73c3775f602656b4cde46c6ec4994ca364cdf985c5a18c6f68fe111b1`.
 - [Author's Shanghai data and format notes](https://github.com/domosekai/tripreader-data/tree/c5584d6b8d9a39d7162b7b9781134be52db66186/Shanghai).
 - [Author's investigation guide](https://www.domosekai.com/reader/faq.html):
   distinguishes local terminal identifiers from T-Union travel records.
 
-The APK was inspected with JADX 1.5.6. Its reconstructed Java has duplicated
-blocks and incorrect conditions in the large reader methods. Critical balance
-and record-matching branches were checked against JADX's fallback instruction
-listing, not inferred from reconstructed Java alone. The symbol references
-below identify this exact APK; they are not stable public APIs. No decompiled
-application source is included in this repository.
+No decompiled application source is included in this repository. Protocol and
+format evidence does not establish physical-card compatibility.
 
-## What Trip Reader does
-
-### Select and read both applications
+## Applications and balances
 
 | Application | SELECT AID | Shanghai city code | Main history |
 | --- | --- | --- | --- |
 | City Union / local application | `A00000000386980701` | `2000` | SFI `18`, terminal identifiers |
 | T-Union / 交通联合 | `A000000632010105` | `2900` | SFI `18` plus SFI `1E`, travel details |
 
-`L0.d.onTagDiscovered` (JADX alias `L0.C0017d`) reads the supported local
-application first, then explicitly selects T-Union even after a successful
-local read. The same card object and transaction list are passed through both
-paths. Its card model retains separate `isCU`/`isTU`, raw CU/TU metadata, expiry
-dates, and two card numbers. T-Union metadata becomes the primary number while
-the previously decoded local number is retained separately.
+Both application paths read card-info file `15`; T-Union also reads file `17`.
+Shanghai auxiliary files are retained with their application, SFI and record
+index. A station name alone does not establish entry or exit.
 
-Both application paths read card-info file `15`; the T-Union path additionally
-reads file `17`. Shanghai receives extra handling beyond ordinary `18`/`1E`
-records: SFI `06` for additional transactions, CU SFI `10` for another record
-stream, and selected records in `11` and `14` for local state and monthly
-discount information. A Shanghai-specific path also correlates SFI `07`
-extension records with `18` records by their encoded timestamps. These fields
-help distinguish transport types and entry/exit state. A station name alone
-does not prove entry or exit.
+CardBal reads two four-byte T-Union balance registers and uses
+`P1=00 minus P1=01`. It retains the extended `80 5C 05 02 10` response for
+diagnostics. The reference APK interprets that 16-byte response's unsigned
+big-endian positive balance at bytes `[1,4)`, debt at `[9,12)` and debt limit
+at `[13,16)`. Those offsets exclude SW1/SW2. The two paths require comparison
+with actual card replies before the CardBal formula can be changed.
 
-### Use Shanghai's T-Union balance without adding it to City Union
-
-The local path issues `80 5C 00 02 04`. The T-Union path instead issues
-`80 5C 05 02 10`, requesting a 16-byte balance response. In `L0.d.g`, the latter
-path reads the positive balance from response bytes `[1,4)` and the overdraft
-amount from `[9,12)`, as unsigned big-endian values. When the positive amount
-is zero, it uses the negative overdraft amount. The overdraft limit comes from
-`[13,16)`. All offsets here exclude SW1/SW2 and use zero-based, end-exclusive
-ranges.
-
-For Shanghai (`2900`), the T-Union result replaces the earlier local balance.
-The branch that stores separate CU and TU balances and adds them is explicitly
-limited to **Nantong (`3060`)**, with a previously available local balance.
-It must not be generalized to all dual-application cards. This establishes
-Trip Reader's treatment; it is not physical-card proof that every Shanghai
-card variant has identical purse behavior.
-
-CardBal currently reads two separate 4-byte T-Union registers and always uses
-`P1=00 minus P1=01`. That differs from Trip Reader's extended-response path.
-Existing CardBal comments cite earlier Shanghai diagnostic evidence, so this
-difference needs comparison with actual responses before replacing the rule.
-
-### Reconcile records and retain their origins
-
-Trip Reader's transaction model contains CU/TU record flags, raw `18` and `1E`
-payloads, and separate record positions. It can enrich one transaction with
-evidence from multiple files rather than create a second trip.
-
-- The `18` reader (`L0.d.e`) matches existing records on bytes `[5,23)`:
-  amount, transaction type, terminal and timestamp. It deliberately excludes
-  sequence and reserved/overdraft bytes. Matching records gain the additional
-  source flag and file position.
-- The `1E` reader (`L0.d.j`) correlates eligible existing records using equal
-  timestamps or a terminal-string containment check, with a guard against a
-  terminal containing `00000000`. It attaches the travel payload and richer
-  location/type information to the matched transaction.
-- Unmatched records are inserted into the combined history in order.
-
-The second heuristic is permissive. CardBal should preserve the original
-records and use stricter, tested correlation when repeated visits, equal
-timestamps, or conflicting amounts make a match ambiguous. Copying the loose
-terminal match would not establish that two records describe the same trip.
+Shanghai uses the latest successful reading, preferring T-Union when both
+applications are read together. CU and TU balances are never added.
 
 ## Shanghai station coverage
 
@@ -100,61 +44,19 @@ The pinned public `Shanghai/cu.csv` contains **614 unique station-code rows**:
 516 metro, 18 railway, 28 BRT, 50 tram and 2 maglev. These are mappings, not
 614 new physical stations; multiple identifiers can refer to the same place.
 
-The pre-change catalog had 612 Shanghai T-Union identifiers in the unified
-database and no City Union station identifier namespace. The earlier Trip Reader import
-explicitly excluded CU formats. For example, 莘庄 on line 1 has:
+City Union and T-Union use separate identifier namespaces. For example,
+莘庄 on line 1 has:
 
 | Source | Lookup key |
 | --- | --- |
 | CU terminal prefix | `2000` + `110111` = `2000110111` |
 | TU city + line/station prefix | `2900` + `00010011` = `290000010011` |
 
-These keys are not interchangeable. The current CU decoder also consults the
-TU city registry for terminal prefixes; that registry has Shanghai `2900` but
-no `2000`, so the local transaction can fall back to an unlabeled terminal.
-The author's Shanghai notes warn that some pre-2017 bus terminal identifiers
-overlap metro identifiers. A universal prefix substitution would ignore both
-the namespace and historical ambiguity.
+These keys are not interchangeable. Some pre-2017 bus terminal identifiers
+overlap metro identifiers; the decoder keeps that date-dependent ambiguity
+instead of applying a universal prefix substitution.
 
-## Gaps identified before implementation
-
-1. **Coordinate application reads on one connected tag.** Probe both known
-   AIDs and explicitly reselect before each read. `NFCTransitReader.swift`
-   previously listed CU first and breaks on its successful snapshot;
-   `TUnionDecoder.canDecode` only accepted the initial OS-selected AID.
-   Both AIDs are already declared in `Info.plist`.
-2. **Persist application and record provenance.** `TransitCardSnapshot` and
-   `SavedCardRecord` previously had one family/AID and bare arrays of raw hex.
-   Add application snapshots or records tagged with AID, SFI and record index,
-   with backward-compatible loading of existing saved cards. A family string
-   and payload length cannot reliably distinguish both applications' 23-byte
-   records. Wallet rescans must retain both histories. The current
-   `storageIdentifier` also prefers the decoded serial number, so switching
-   between CU and TU numbers can create separate saved cards. Use a stable
-   card identity with both application numbers as aliases and migrate existing
-   entries without discarding user labels or history.
-3. **Reconcile the display, preserving raw evidence.** Show one physical card,
-   both application numbers/details, and combined trips without counting a
-   mirrored purchase twice. Keep an unmatched CU-only transaction even when
-   a TU travel log exists. A failed secondary read must not erase earlier
-   history or turn an unavailable balance into zero.
-4. **Add Shanghai CU data in its own namespace.** Import the 614 reviewed
-   prefixes with provenance and transport type; link to existing station
-   identities only when city, line/mode and station identity agree. Preserve
-   separate CU/TU city codes and do not invent coordinates or entry/exit events.
-5. **Validate balance and extra files with card captures.** Compare the extended
-   balance response and existing register reads, preserving the current rule
-   until the discrepancy is resolved. Add Shanghai auxiliary-file parsing only
-   for verified layouts.
-
-Useful regression cases are: CU-only, TU-only, a dual card with either initial
-AID; one unavailable application; mirrored and distinct `18` records; `1E`
-enrichment; repeat visits to one terminal; CU `2000` versus TU `2900`; empty
-slots; and a rescan that reads only one of the two previously saved applications.
-Live confirmation requires a physical dual-mode Shanghai card. The Android
-APK's behavior is a reference for the implementation, not iOS device validation.
-
-## Implemented in CardBal
+## Reading, history and persistence
 
 - `ChineseTransitDecoder` selects and reads both known AIDs on the same connected
   ISO 7816 tag, regardless of the initially selected application. A failed second
@@ -189,9 +91,11 @@ APK's behavior is a reference for the implementation, not iOS device validation.
 
 ## Octopus across FeliCa and ISO 7816
 
-The normal all-protocol scan automatically reads the companion interface after
-recognizing Octopus FeliCa system `8008` or a supported CU/TU application. Either
-protocol can be discovered first. There is no separate dual-card action. A tag
+The normal all-protocol scan can read the companion interface after
+recognizing Octopus FeliCa system `8008` or a supported CU/TU/Lingnan application.
+Either protocol can be discovered first. When Octopus is read first, a saved or
+fresh exchange rate is required before the mainland interface is checked;
+otherwise the scan finishes. There is no separate dual-card action. A tag
 callback containing one FeliCa and one ISO 7816 interface starts with FeliCa and
 only continues as a dual card when that interface is Octopus. Repeated interfaces
 of the same protocol remain a multiple-card discovery; the reader asks for one

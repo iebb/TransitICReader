@@ -2,6 +2,14 @@
 
 Use `master` as the branch name, never `main`.
 
+## Documentation
+
+Keep documentation focused on current behavior, protocol facts, source
+attribution and repeatable guides. Update the owning reference instead of
+adding dated work logs, implementation reports or superseded surveys.
+Keep the documentation index in `docs/README.md` current when moving pages.
+Release notes are publishing inputs and follow the requirements below.
+
 ## Release notes
 
 Every user-visible change needs release notes, and a version bump is not

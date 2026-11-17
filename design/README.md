@@ -1,5 +1,7 @@
 # Card artwork
 
-`cards/` contains source/reference artwork. Runtime artwork remains in the iOS
-asset catalogs and Android resources. The unshipped PiTaPa image is retained only
-as reference art. Brand marks remain the property of their respective owners.
+`cards/` contains source/reference artwork. Most runtime faces download from the
+shared collection; a small set of offline fallbacks remains in the iOS asset
+catalogs and Android resources. See the
+[card-face guide](../docs/design/card-faces.md) for selection, caching and
+artwork requirements. Brand marks remain the property of their respective owners.

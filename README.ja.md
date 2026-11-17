@@ -61,10 +61,12 @@ Android のビルドは共通のカタログコンパイラーを自動で呼び
 
 ## 開発
 
+- [ドキュメント一覧](docs/README.md)
 - [テストとビルドチェック](docs/development/testing.md)
 - [TestFlight、Play 内部テスト、ストア公開の手動ワークフロー](docs/development/releases.md)
 - [カードのデコード](docs/decoding/cards.md)
-- [追加カードの実現可能性とプラットフォームの制約](docs/research/card-support.md)
+- [対応カードとプラットフォームの制約](docs/decoding/capabilities.md)
+- [カードリーダーの追加・変更](docs/development/card-readers.md)
 - [駅データと出典表示](docs/data/station-assets.md)
 - [駅情報報告サービス](services/station-reports/README.md)
 

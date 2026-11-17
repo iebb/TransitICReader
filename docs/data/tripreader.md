@@ -1,23 +1,21 @@
 # Trip Reader / 读卡识途 station data
 
-CardBal's China station catalog was compared with the official
-[Trip Reader download directory](https://support.domosekai.com/download/),
-its `tripreader-1.7.17-cn.apk`, and the author's
-[public dataset](https://github.com/domosekai/tripreader-data).
-The directory's newest listed Android download was 1.7.17 when checked on
-2026-09-24. This was a static data and decoder review, not an Android UI or
-physical-card test.
+CardBal's China station catalog includes the
+[Trip Reader public dataset](https://github.com/domosekai/tripreader-data)
+and separately attributed format and mapping evidence from
+`tripreader-1.7.17-cn.apk`, available from the author's
+[download directory](https://support.domosekai.com/download/).
+The authoritative app data comes from the
+[pinned CSV catalog](station-assets.md).
 
-A follow-up [Shanghai dual-application review](../decoding/shanghai.md)
-compares City Union and T-Union selection, balances, history reconciliation,
-and the separate Shanghai CU station mappings, integrated on iOS and Android.
+See [Shanghai dual-application decoding](../decoding/shanghai.md) for
+application selection, balances and history reconciliation.
 
-## Integrated coverage
+## Station and terminal mappings
 
-The existing 5,586 station-code mappings retained their names and coordinates.
-The update adds 127 mappings, bringing the total to **5,713**:
+The maintenance source includes these short-form and supplement mappings:
 
-| City | Added mappings | Source |
+| City | Mappings | Source |
 | --- | ---: | --- |
 | Ningbo | 79 short-form station codes | Published `Zhejiang/Ningbo/metro-tu.csv` |
 | Xiamen | 45 BRT stop codes | Published `Fujian/Xiamen/brt-tu.csv`, also present in the APK |
@@ -25,9 +23,8 @@ The update adds 127 mappings, bringing the total to **5,713**:
 
 Seventy-eight Ningbo aliases inherit the existing coordinates only where city,
 station name, transport type, and mapped OSM identity agree unambiguously.
-The remaining additions have no fabricated coordinates. Existing route edges
-are preserved. The decoder's JSON registry also receives 78 station codes that
-were already in SQLite but missing from the JSON lookup.
+The remaining mappings have no fabricated coordinates. Route edges remain
+separate from aliases.
 
 The source and unified databases also contain **4,662 exact terminal mappings**:
 
@@ -56,8 +53,7 @@ view and city atlas use the same lookup.
 
 ## Source handling
 
-The importer previously traversed only top-level city folders. It now loads
-the complete recursive tree at public repository revision
+The explicit maintenance importer loads the complete recursive tree at public repository revision
 `c5584d6b8d9a39d7162b7b9781134be52db66186`. A truncated tree, failed download,
 conflicting mapping, or unexpected code format aborts the refresh. Existing
 station names and coordinates take precedence over older CSV names.
@@ -81,7 +77,7 @@ No APK, decompiled application code, or personal card history is included.
 
 ## Shanghai City Union
 
-The follow-up import adds **614 CU terminal-prefix mappings** from the same pinned
+The catalog includes **614 CU terminal-prefix mappings** from the same pinned
 public `Shanghai/cu.csv`. They remain in `cityunion_terminal_prefixes`, with city
 code `2000`; TU Shanghai stays `2900`. The generator links **577** prefixes to TU
 station identities only on a unique city/name/line/mode match, exposing those links
@@ -89,11 +85,11 @@ as `cn.cityunion.terminal_prefix`. The remaining 37 retain names and provenance
 without fabricated coordinates. These are additional identifiers, not 614 new
 physical stations. Both portable and iOS databases retain every source row.
 
-## Chinese station-report review, 2026-11-01
+## Shenzhen terminals and city aliases
 
-The report-led follow-up adds **284 Shenzhen station terminal prefixes** from
+The catalog includes **284 Shenzhen station terminal prefixes** from
 public `Guangdong/Shenzhen/cu.csv` at the same pinned revision. CU city `5180`
-is Shenzhen; TU city `5840` is Shenzhen. The City Union table now contains
+is Shenzhen; TU city `5840` is Shenzhen. The City Union table contains
 **898** rows: 614 Shanghai and 284 Shenzhen. Thirty broader line/operator
 prefixes from Shenzhen are excluded. No coordinates or TU station links are
 inferred for the new rows.
@@ -105,11 +101,10 @@ eight-byte terminal starting `00000002` resolves through the CU table using
 the city and discriminator are verified. Other cities retain their exact
 terminal rules. Both iOS and Android use this lookup.
 
-The reported station-field key `584000000000000016` was associated with both
-后瑞 and 岗厦, so its earlier 后瑞 alias is removed. Unknown Shenzhen trips
-now display and report their terminal as `TU:5840:1E:<terminal>` rather than
-presenting the seven-byte field as a station identifier. The two previously
-reviewed Chengdu aliases remain; the station-key table now has 5,715 rows.
+The station-field key `584000000000000016` is not unique to one Shenzhen
+station and must not be used as a station alias. Unknown Shenzhen trips
+display and report their terminal as `TU:5840:1E:<terminal>` instead of
+presenting the seven-byte field as a station identifier.
 
 Observed TU travel city `0344` resolves to 香港 and the existing `9101` city
 boundary. No MTR station code is inferred from a single report. City Union
@@ -118,19 +113,12 @@ and transaction location when no station is known. The Shanghai pre-2017
 terminal ambiguity guard is retained. Existing Android cards also resolve
 the title from saved CU city metadata; custom titles take precedence.
 
-See [the report review](../research/station-reports-2026-11-01.md) for evidence
-and deferrals. The authoritative CSV contribution is published in
-`iebb/card-stations` at `a8e923c85ab61135640ae7a13d52055cbe578c67`
-and pinned by CardBal. Normal builds include the reviewed mappings:
-
-```sh
-python3 -m tools.stations.build --source csv --target all
-./android/gradlew -p android :app:assembleDebug
-```
-
-Xcode and Gradle regenerate their assets from this pin. For future CSV
-contributions, use `--csv-source` or `CARDBAL_STATIONS_SOURCE` to select a
-local checkout explicitly.
+The [Shenzhen format notes](https://github.com/domosekai/tripreader-data/blob/c5584d6b8d9a39d7162b7b9781134be52db66186/Guangdong/Shenzhen/README.md)
+and [public CSV](https://github.com/domosekai/tripreader-data/blob/c5584d6b8d9a39d7162b7b9781134be52db66186/Guangdong/Shenzhen/cu.csv)
+provide the terminal namespaces and source rows. Station names alone cannot
+resolve an unknown record format or establish a physical station link.
+Xcode and Gradle regenerate app assets from the catalog pin; see
+[station data](station-assets.md) for contributing and testing CSV changes.
 
 ## Attribution
 
@@ -145,16 +133,10 @@ is not asserted for APK-only data. OSM-derived coordinates retain their
 ## Refresh and verify
 
 ```sh
-python3 scripts/build_cross_platform_station_assets.py \
-  --target tunion --skip-tunion-osm --rebuild-unified --no-sync-android
-
-# Repeat from the checked-in snapshot, without fetching station sources:
-python3 scripts/build_cross_platform_station_assets.py \
-  --target tunion --skip-tunion-osm --offline-tunion-source \
-  --rebuild-unified --no-sync-android
+python3 -m tools.stations.build --source csv --target all --no-sync-android
 
 PYTHONWARNINGS='error::ResourceWarning' python3 -m unittest discover \
-  -s tests -p 'test_*.py' -q
+  -s tests -t . -p 'test_*.py' -q
 ```
 
 Both `build/stations/` and `ios/CardBal/Resources/` copies must match byte for byte.
@@ -202,7 +184,7 @@ older backup adds history without rolling back a balance. On iOS a file import
 also restores a previously deleted card. The backup has no UID: a UID from an
 earlier scan is kept. Beijing, Shenzhen Tong, Lingnan Pass, Suzhou and Tianfu
 Tong cards, and cards without a readable serial, are counted as skipped.
-This remains a backup-schema boundary even where CardBal now has live NFC
+This remains a backup-schema boundary even where CardBal has live NFC
 readers, including Shenzhen/Beijing and the iOS Tianfu Tong reader.
 Trip Reader's titles, comments, colors and trip annotations are not imported.
 

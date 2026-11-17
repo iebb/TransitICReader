@@ -1,16 +1,16 @@
 # Local 天府通 CPU cards
 
-Implemented for the iOS/Core NFC and Mac Catalyst/CryptoTokenKit transports.
-The ACR122U path was tested with a physical local CPU card on 2026-10-31.
+The iOS/Core NFC and Mac Catalyst/CryptoTokenKit transports support this layout.
+The ACR122U path has been tested with a physical local CPU card.
 iPad and macOS require an external reader. Built-in iPhone NFC discovery is
 configured with the public application AID but has not been physically tested
 with this card. Android's local Tianfu Tong decoder is not implemented.
 
-## 读卡识途 comparison
+## Sources and supported scope
 
-Reviewed the author's [Trip Reader site](https://www.domosekai.com/reader/index.html),
-[FAQ](https://www.domosekai.com/reader/faq.html), the official 1.7.17 Android APK
-already used by this repository's station-data review, and the author's public
+The protocol references are the author's [Trip Reader site](https://www.domosekai.com/reader/index.html),
+[FAQ](https://www.domosekai.com/reader/faq.html), the official 1.7.17 Android APK,
+and the author's public
 [card emulator](https://github.com/domosekai/cardemulator/blob/master/app/src/main/java/com/domosekai/cardemulator/HCEService.kt).
 The APK's SHA-256 is
 `b8cc78e73c3775f602656b4cde46c6ec4994ca364cdf985c5a18c6f68fe111b1`.
@@ -29,8 +29,7 @@ has no Chengdu directory at its pinned revision. The author's
 [Chengdu BRT issue](https://support.domosekai.com/bugs/view.php?id=358) documents
 full terminal-to-stop mappings shared by local and T-Union cards. Those are
 specific terminal identities, not a rule for decoding every Chengdu terminal.
-The tested card's terminal IDs did not match the reviewed APK's exact BRT table.
-CardBal therefore retains terminal IDs without inventing stations or map visits.
+CardBal retains unmatched terminal IDs without inventing stations or map visits.
 The local issuer enables China in the country filters; ownership alone is not
 evidence of visiting Chengdu.
 
@@ -72,13 +71,10 @@ All commands are SELECT, READ BINARY, READ RECORD or GET BALANCE. The external
 transport also reads the card UID. No PIN verification, authentication,
 value initialization, debit, credit or write commands are used.
 
-## Verification
+## Validation
 
-The physical Mac Catalyst scan returned the cash balance and nine cash records,
-including a correctly credited top-up. An exhaustive read of accessible root,
-public and monthly short-file identifiers and circular records was then saved
-outside the repository; the reader session was closed for offline development.
-Protected or otherwise undiscoverable data is not claimed to be dumped.
+Physical Mac ACR122U verification covers the cash purse and purchase/top-up
+records. Protected or otherwise undiscoverable data is outside that scope.
 
 Synthetic Swift tests exercise identification, BCD serial/date validation,
 cash units/signs, zero and truncated records, unknown types, monthly ride units,

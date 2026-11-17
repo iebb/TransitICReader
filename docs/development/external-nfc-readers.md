@@ -9,7 +9,7 @@ compatibility still depends on the unit, adapter, OS driver and available power;
 a powered hub may be necessary. Those physical configurations remain untested.
 Mac Catalyst with the connected ACR122U has been physically verified with Edy
 and an EZ-Link CEPAS v2 card, plus a local 天府通 CPU card. The latter uses its
-own application and cash/top-up files; see the [Trip Reader comparison](../decoding/tianfutong.md).
+own application and cash/top-up files; see the [Tianfu Tong reference](../decoding/tianfutong.md).
 Native iPhone CEPAS discovery remains supported
 where Core NFC exposes the implicit application through ISO 7816 or MIFARE.
 SimplyGo backend account balances are outside this local reader.
@@ -94,16 +94,15 @@ mapping is factual data; upstream decoder source code was not copied.
 
 ## Verification
 
-The physical EZ-Link card produced its stored-value balance and four history
-records: two MRT fares, a top-up and an activation event. Activation record
-amount bytes are metadata, not money. Both activation types are represented as
+Physical Mac ACR122U verification covers the EZ-Link stored-value purse and
+MRT, reload and activation records. Activation amount bytes are metadata,
+not money. Both activation types are represented as
 zero-charge events and covered by synthetic regressions. Existing 16-byte
 local CEPAS records remain readable alongside the newer tagged history format,
 and the two encodings deduplicate during rescans.
 
 The application uses Apple's `NumberFormatter` for SGD without overriding its
-symbol. With the tested English/Japan locale it produces `SGD`; English/Singapore
-produces `$`. An always-`S$` style would require an explicit override.
+symbol, so the displayed currency symbol follows the active locale.
 
 Raw customer captures and card identifiers are not repository fixtures. Tests
 exercise synthetic reader framing, status and malformed replies, explicit

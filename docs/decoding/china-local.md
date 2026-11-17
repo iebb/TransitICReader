@@ -1,8 +1,6 @@
 # Local Shenzhen, Wuhan, Lingnan Pass and Beijing purses
 
-Implemented 2026-11-01 in both platform codebases; Lingnan Pass added 2026-11-14, and the same day Lingnan Pass
-member cards, its record cities, the Shenzhen Tong `1A` expiry and Shenzhen Tong stations were aligned with
-Trip Reader 1.7.17. These are distinct local
+Both platforms read these distinct local
 applications, not aliases for China T-Union or City Union. Identification alone
 does not qualify: each reader requires a successful, four-byte balance response.
 No physical cards have been tested.
@@ -101,7 +99,7 @@ T-Union does: either side may be read first and the other interface is then
 checked; the result is one card, "Octopus + Lingnan Pass", with two
 applications. The Octopus HKD balance stays the card balance. The
 `DualCurrencyBalance` CN¥ row (Octopus – T-Union cards share one purse) is
-not filled from Lingnan Pass, whose RMB purse is separate. As before, an
+not filled from Lingnan Pass, whose RMB purse is separate. An
 Octopus card read first without an Octopus-service exchange rate finishes
 without checking for a second interface.
 
@@ -123,16 +121,15 @@ would not resolve discovery.
 Built-in iPhone reads therefore try only `PAY.SZT`, `AP1.WHCTC`, `PAY.APPY`
 and `PAY.TICL` (`ISO7816Card.selectsUnlistedApplications` is false); external
 readers also try Beijing's names. `PAY.APPY` and `PAY.TICL` are listed last in
-Info.plist so no other card's initial AID changes; before 2026-11-14 they were
-not listed, so Core NFC never reported a Lingnan-only card's ISO 7816
-interface. On every platform the local reader runs after the City Union / T-Union
-reader (2.6.0 ran it first, and City Union-only cards stopped reading). When a
+Info.plist so other cards retain their initial AID priority.
+On every platform the local reader runs after the City Union / T-Union
+reader. When a
 card has both, the local application is read after City Union / T-Union
 succeeded and added as another application; City Union / T-Union stays primary.
 
 Trip Reader database import remains limited to its existing City Union/T-Union
 backup layouts. Adding a live NFC reader does not establish a backup schema.
-The legacy FeliCa Shenzhen generation is also outside this addition; Trip
+The legacy FeliCa Shenzhen generation is also outside this reader; Trip
 Reader 1.7.17 reads only ISO-DEP cards, and its 深圳通 is this `PAY.SZT` reader.
 
 ## Evidence and validation
@@ -164,8 +161,6 @@ station data.
   70-byte layout (card number, expiry, issuer), issuer card names and cities,
   record cities; Shenzhen Tong SFI `1A` expiry and `5180` + last four terminal
   bytes for station lookup.
-- Lakr233/CoreExtendedNFC at `f62736587c4d918799835236aaa4d70a00a8adeb` has no
-  Lingnan Pass reader; nothing was used from it.
 - Apple:
   [ISO 7816 discovery identifiers](https://developer.apple.com/documentation/bundleresources/information-property-list/com.apple.developer.nfc.readersession.iso7816.select-identifiers).
 

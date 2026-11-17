@@ -3,7 +3,7 @@ package ad.neko.cardbal.android.nfc
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Independent read-only DESFire implementation; see docs/research/desfire-stored-value.md. */
+/** Independent read-only DESFire implementation; see docs/decoding/desfire-stored-value.md. */
 internal class DesfireReadException(val status: Int? = null, message: String = "Invalid DESFire response", val optionalFile: Boolean = false) : Exception(message)
 
 internal class DesfireReadSession(private val mode: WireMode, private val exchange: (ByteArray) -> ByteArray) {

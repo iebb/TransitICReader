@@ -1,6 +1,6 @@
 import Foundation
 
-// Wire-format facts are documented in docs/research/desfire-stored-value.md.
+// Wire-format facts are documented in docs/decoding/desfire-stored-value.md.
 // This implementation and all fixtures are independent of the GPL references.
 enum DesfireReadError: Error, Equatable {
     case malformedResponse, responseLimit, status(UInt8), unsupportedFile, protectedFile

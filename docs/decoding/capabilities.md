@@ -1,6 +1,7 @@
 # Card decoding on iPhone and Android
 
-Reviewed 2026-11-01. Both apps now implement the following on-card decoding.
+Both apps implement the following on-card decoding, with platform exceptions
+listed below.
 The checks use invented protocol bytes and production parsers; physical-card RF
 validation and access to every card generation remain separate requirements.
 An identifier, successful SELECT, logo or listed chip family does not count as
@@ -22,7 +23,8 @@ balance, ticket or travel-record support.
 | Snapper+ | Positively identified NZD purse | Paired SFI 3/4 records, signed fares/reversals and New Zealand dates |
 | KMT FeliCa generation | IDR purse and optional card number | Raw history retained; historical epoch remains unresolved |
 | T-Union / City Union | CNY purse; T-Union purse minus debt | PBOC and travel records; application/file identity retained in backups |
-| Newer Shenzhen Tong / Wuhan Tong | Local CNY purse, serial and readable validity | PBOC purchases/top-ups; terminal IDs remain numeric |
+| Newer Shenzhen Tong / Wuhan Tong | Local CNY purse, serial and readable validity | PBOC purchases/top-ups; Shenzhen purchases use City Union station lookup, Wuhan terminals remain numeric |
+| Lingnan Pass / Yang Cheng Tong | Local CNY purse, card number, expiry and member-card issuer | PBOC purchases/top-ups with city identification |
 | Legacy Beijing Yikatong | Local CNY purse on Android and iOS/macOS external readers | PBOC purchases/top-ups; built-in iPhone discovery unavailable for the short application names |
 | Lisboa Viva / navegante Zapping | EUR counter for provider 31 / tariff 33592 | Entry/transfer/exit events in Lisbon local time; no fare inferred |
 | NETS FlashPay / stored-value EZ-Link | Signed SGD-cent purse, CAN | CEPAS payments, MRT/bus transactions, reloads/refunds |
@@ -33,15 +35,18 @@ balance, ticket or travel-record support.
 | Macau Pass / 澳门通 ISO-DEP application | MOP purse, serial and validity | Recent PBOC-style purchases/top-ups; optional T-Union companion kept separately |
 | Navigo / OPUS / MOBIB / Rav-Kav | Network-specific contracts, passes and applicable trip/value counters | Public travel events; numeric operator/route/location fields |
 
-The Calypso reader identifies the network from public environment fields and
+The shared Calypso reader identifies the network from public environment fields and
 requires decoded ticket or event data. Shared application names such as
 `1TIC.ICA` are not evidence that a card belongs to Nice. See the
-[Calypso implementation notes](calypso-public-records.md) for the supported
-layouts and the Nice identification boundary.
+[Calypso reference](calypso.md) for supported layouts and the separate iPhone
+La Carte compatibility path, which can retain a scan with raw replies only.
+
+For the complete reader list, including Hanica and iOS-only Tianfu Tong, see
+the [decoder reference](cards.md#platform-decoder-coverage).
 
 ## Persistence and display
 
-New CEPAS, DESFire and Calypso records use bounded, versioned hex envelopes.
+CEPAS, DESFire and Calypso records use bounded, versioned hex envelopes.
 Both platforms preserve the same bytes in backups and select the corresponding
 codec before any generic Japanese or Korean decoder. Moving ring-buffer slots
 do not create extra visible events. Clipper completion and HSL/Waltti embedded
@@ -65,25 +70,28 @@ Myki, Nol, AT HOP and other identifier-only implementations are not counted.
 The local Tianfu Tong CPU reader is implemented on iOS but remains an Android
 parity gap. Legacy Beijing is implemented in both codebases, but its 2-/4-byte
 application names cannot be declared for built-in Core NFC discovery. These
-are explicit exceptions to built-in phone parity. Further balance-capable
-candidates are recorded in the [other-reader assessment](other-balance-readers.md).
+are explicit exceptions to built-in phone parity.
 
-MIFARE Classic examples from the GitHub survey, including Classic EasyCard and
+iPad and macOS require a compatible external USB NFC / CCID reader. iPhone
+also offers that reader path; see [external readers](../development/external-nfc-readers.md).
+The project has no watchOS app or WatchConnectivity sync implementation.
+
+MIFARE Classic cards, including Classic EasyCard and
 Bip!, have not been advertised as iPhone NFC support. Core NFC does not expose
 Classic sector access; Android additionally needs compatible hardware and the
 appropriate keys. No keys or card-writing commands are included. Clipper
 adaptations and their upstream fixture retain GPL-3.0-or-later notices and the
-original station-data attribution; see [Clipper](../decoding/clipper.md).
+original station-data attribution; see [Clipper](clipper.md).
 
 ## Evidence and tests
 
 - [CEPAS wire notes](cepas.md)
 - [DESFire application layouts and transport](desfire-stored-value.md)
-- [Clipper formats, tickets, station data and upstream licence](../decoding/clipper.md)
-- [Macau Pass application and read limitations](../decoding/macau-pass.md)
-- [Calypso layouts and primary sources](calypso-public-records.md)
-- [China local purse layouts and iPhone boundary](../decoding/china-local.md)
-- [Lisboa Zapping contracts, counters and history](../decoding/lisboa-zapping.md)
+- [Clipper formats, tickets, station data and upstream licence](clipper.md)
+- [Macau Pass application and read limitations](macau-pass.md)
+- [Calypso layouts and primary sources](calypso.md)
+- [China local purse layouts and iPhone boundary](china-local.md)
+- [Lisboa Zapping contracts, counters and history](lisboa-zapping.md)
 - Ryuto service `898F` / system `8B5D` and log fields: MIT
   [TRETJapanNFCReader at 03470a5](https://github.com/treastrain/TRETJapanNFCReader/blob/03470a515c0b06d762de39e6d80f9a07ed502cae/Sources/FeliCa/Ryuto/RyutoCardData.swift)
   and [service definition](https://github.com/treastrain/TRETJapanNFCReader/blob/03470a515c0b06d762de39e6d80f9a07ed502cae/Sources/FeliCa/Ryuto/RyutoCardItemType.swift).

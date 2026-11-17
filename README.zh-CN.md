@@ -57,10 +57,12 @@ Android 构建会自动调用共用的目录编译器。发布签名使用本地
 
 ## 开发
 
+- [文档目录](docs/README.md)
 - [测试与构建检查](docs/development/testing.md)
 - [TestFlight、Play 内部测试和商店发布的手动工作流](docs/development/releases.md)
 - [卡片解码](docs/decoding/cards.md)
-- [更多卡种的可行性与平台限制](docs/research/card-support.md)
+- [卡片支持范围与平台限制](docs/decoding/capabilities.md)
+- [新增或修改读卡器](docs/development/card-readers.md)
 - [站点数据与署名](docs/data/station-assets.md)
 - [站点报告服务](services/station-reports/README.md)
 

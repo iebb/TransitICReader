@@ -8,7 +8,7 @@ journey or ticket-product data does not produce a supported-card snapshot.
 The implementations were written from the protocol facts described below.
 No GPL implementation, station lookup, artwork or capture fixture is included.
 The checked-in shared vectors are wholly invented byte arrays, identifiers,
-amounts and dates. Physical cards were unavailable for validation.
+amounts and dates. Physical-card compatibility remains unverified.
 
 ## Applications and transport
 

@@ -34,8 +34,6 @@ pin. Normal builds do not call upstream station services.
 - Android generates exactly its four data payloads plus its own filtered
   manifest under `android/app/build/generated/`; these files are not committed.
 
-The obsolete Japanese JSON lookup, the old 820-entry Korean alias snapshot,
-duplicate geographic inputs, and duplicate portable databases are retired.
 Generated compatibility files are projected to the consumers that use them.
 The manifests exclude stale unrelated files in an output directory.
 

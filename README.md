@@ -32,7 +32,7 @@ Singapore maps](docs/development/external-nfc-readers.md).
 | `data/` | Catalog pin, geographic inputs, and offline maintenance inputs |
 | `services/station-reports/` | Station-report API and review interface |
 | `design/cards/` | Source/reference card artwork |
-| `docs/` | Decoder notes, data attribution, development guides, and research |
+| `docs/` | Current decoder references, data attribution, and development guides |
 
 ## Build
 
@@ -69,16 +69,15 @@ included. See [Android setup](android/README.md).
 
 ## Development
 
+- [Documentation index](docs/README.md)
 - [Testing and build checks](docs/development/testing.md)
 - [Simulator/emulator sample wallets and anonymization](docs/development/sample-data.md)
 - [Manual TestFlight, Play internal and store release workflows](docs/development/releases.md)
-- [Card capabilities on both platforms](docs/research/platform-parity.md)
+- [Card capabilities on both platforms](docs/decoding/capabilities.md)
 - [Card decoding](docs/decoding/cards.md)
 - [Clipper cards and tickets](docs/decoding/clipper.md)
 - [Macau Pass / 澳门通](docs/decoding/macau-pass.md)
-- [FareBot publicly readable card survey](docs/research/farebot-public-card-survey.md)
-- [Additional-card feasibility and platform gaps](docs/research/card-support.md)
-- [Apple Watch card-reading feasibility](docs/research/apple-watch-feasibility.md)
+- [Adding or changing a card reader](docs/development/card-readers.md)
 - [Station data and attribution](docs/data/station-assets.md)
 - [Station-report service](services/station-reports/README.md)
 
