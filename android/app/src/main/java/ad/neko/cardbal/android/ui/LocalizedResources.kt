@@ -289,6 +289,8 @@ internal val localizedResources = mapOf(
     "Display" to R.string.text_34e108c0896d0158,
     "Distance" to R.string.text_b7bdf7a2d6e73e58,
     "Done" to R.string.text_11a6767d5674c7e4,
+    "Download Full CardBal App" to R.string.text_ba22cd9a5a5e4110,
+    "Download the full app to save your cards." to R.string.text_d1c988afefe5e2fd,
     "Downloading images (%lld/%lld)..." to R.string.text_c9795190145dea5f,
     "Dual Mode" to R.string.text_cf067f57683cccfb,
     "EAST ASIA" to R.string.text_3b6c9428c32cec3f,

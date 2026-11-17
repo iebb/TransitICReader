@@ -15,6 +15,7 @@ final class QuickScanRoute: ObservableObject {
 }
 
 struct QuickScanView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var reader = NFCTransitReader(localOnly: true)
     @State private var showsUnavailable = false
     @State private var demoSnapshot: TransitCardSnapshot?
@@ -49,11 +50,37 @@ struct QuickScanView: View {
                     Button(action: scan) {
                         Label(Localizer.localize(snapshot == nil ? "Scan Card" : "Scan Another Card"),
                               systemImage: "sensor.tag.radiowaves.forward.fill")
-                            .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .font(.headline)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
+                            .background(colorScheme == .dark ? Color.white : Color.black,
+                                        in: RoundedRectangle(cornerRadius: 16))
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
                     .disabled(reader.isScanning)
                     .accessibilityIdentifier("clip-scan")
+                    #if APPCLIP
+                    VStack(alignment: .leading, spacing: 12) {
+                        Link(destination: URL(string: "https://apps.apple.com/app/id6760978958")!) {
+                            Label("Download Full CardBal App", systemImage: "arrow.down.app")
+                                .font(.headline)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .foregroundStyle(Color.primary)
+                                .background(Color(uiColor: .secondarySystemGroupedBackground),
+                                            in: RoundedRectangle(cornerRadius: 16))
+                                .overlay(RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(Color.primary.opacity(0.3)))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("clip-download")
+                        Text("Download the full app to save your cards.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    #endif
                 }
                 .padding(24)
                 .frame(maxWidth: 560)

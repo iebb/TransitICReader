@@ -281,6 +281,8 @@
     <string name="text_34e108c0896d0158" formatted="false">"표시"</string>
     <string name="text_b7bdf7a2d6e73e58" formatted="false">"거리"</string>
     <string name="text_11a6767d5674c7e4" formatted="false">"완료"</string>
+    <string name="text_ba22cd9a5a5e4110" formatted="false">"CardBal 전체 앱 다운로드"</string>
+    <string name="text_d1c988afefe5e2fd" formatted="false">"전체 앱을 다운로드하면 카드를 저장할 수 있습니다."</string>
     <string name="text_c9795190145dea5f" formatted="false">"이미지 다운로드 중 (%lld/%lld)…"</string>
     <string name="text_cf067f57683cccfb" formatted="false">"듀얼 모드"</string>
     <string name="text_3b6c9428c32cec3f" formatted="false">"동아시아"</string>
