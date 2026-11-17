@@ -21,6 +21,8 @@ protocol FeliCaCard {
     var currentIDm: Data { get }
     func polling(systemCode: Data, requestCode: FeliCaRequestCode, timeSlot: FeliCaTimeSlot) async throws -> (Data, Data)
     func readWithoutEncryption(serviceCodeList: [Data], blockList: [Data]) async throws -> (Int, Int, [Data])
+    /// Key versions of the given little-endian node codes; FFFF means the card lacks that node.
+    func requestService(nodeCodeList: [Data]) async throws -> [Data]
     func requestSystemCode() async throws -> [Data]
     func sendFeliCaCommand(commandPacket: Data) async throws -> Data
 }

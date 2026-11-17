@@ -20,6 +20,9 @@ class FeliCaTransceiver(private val nfc: NfcF) : AutoCloseable {
     fun readWithoutEncryption(serviceCodeLittleEndianHex: String, blockIndex: Int): ByteArray? =
         protocol.readWithoutEncryption(serviceCodeLittleEndianHex, blockIndex)
 
+    fun requestService(nodeCodesLittleEndianHex: List<String>): List<Int>? =
+        protocol.requestService(nodeCodesLittleEndianHex)
+
     internal fun exchangeOnline(command: ByteArray): ByteArray = protocol.exchangeOnline(command)
 
     override fun close() {

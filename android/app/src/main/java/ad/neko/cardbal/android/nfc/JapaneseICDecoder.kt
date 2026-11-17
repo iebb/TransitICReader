@@ -35,7 +35,8 @@ class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMe
                 if (profile == FeliCaProfile.Octopus) return OctopusOnlineDecoder.decode(felica, block, scannedAt, octopusStore)
                 val parsed = profile.parseBalance(block, scannedAt) ?: continue
                 val systemCodes = felica.requestSystemCodes().ifEmpty { listOf(profile.systemCode) }
-                val detected = profile.detectedBrand(systemCodes)
+                val issuer = if (profile == FeliCaProfile.JapanTransit) readTransitIssuer(felica) else null
+                val detected = issuer ?: profile.detectedBrand(systemCodes)
                 val transactions = when (profile) {
                     FeliCaProfile.JapanTransit, FeliCaProfile.IruCa, FeliCaProfile.Paspy, FeliCaProfile.Sapica -> readService(felica, "0F09", 20)
                     FeliCaProfile.Octopus, FeliCaProfile.Hanica -> emptyList()
@@ -222,6 +223,31 @@ class JapaneseICDecoder internal constructor(private val octopusStore: OctopusMe
             fields.add(ResultField("Points", "$points pts"))
         }
         return fields
+    }
+
+    /** Names a 0003 card by the issuer service it carries, as its system codes rarely tell. */
+    private fun readTransitIssuer(felica: FeliCaTransceiver): String? {
+        val keyVersions = felica.requestService(JapanTransitIssuer.nodeCodes)
+        val issuer = keyVersions?.let(JapanTransitIssuer::brand)
+        DebugLog.log("FeliCa", "Issuer services: " + (issuer ?: if (keyVersions == null) "request failed" else "none found"))
+        return issuer
+    }
+}
+
+/** Services in system 0003 that only one issuer's cards carry, checked in this order. */
+internal object JapanTransitIssuer {
+    private val services = listOf(
+        0x1808 to "Suica", 0x1A48 to "ICOCA", 0x1CC8 to "PASMO", 0x9888 to "Manaca",
+        0x1FC8 to "Nimoca", 0x1E08 to "TOICA", 0x1B88 to "PiTaPa", 0x228A to "SUGOCA",
+        0x254A to "Hayakaken", 0x2088 to "Kitaca", 0xBD48 to "icsca",
+    )
+
+    val nodeCodes: List<String> = services.map { (service, _) -> "%02X%02X".format(service and 0xff, service shr 8) }
+
+    /** The brand of the first issuer service whose key version is not FFFF. */
+    fun brand(keyVersions: List<Int>): String? {
+        if (keyVersions.size != services.size) return null
+        return services.zip(keyVersions).firstOrNull { (_, version) -> version != 0xFFFF }?.first?.second
     }
 }
 

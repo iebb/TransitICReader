@@ -65,6 +65,28 @@ internal class FeliCaProtocol(
         }
     }
 
+    /** Key versions of the given nodes; 0xFFFF means the card lacks that node. */
+    fun requestService(nodeCodesLittleEndianHex: List<String>): List<Int>? {
+        if (!selected || nodeCodesLittleEndianHex.size !in 1..32) return null
+        val nodes = nodeCodesLittleEndianHex.map { code ->
+            runCatching { code.hexToBytes() }.getOrNull()?.takeIf { it.size == 2 } ?: return null
+        }
+        val count = nodes.size
+        val command = byteArrayOf((11 + count * 2).toByte(), 0x02, *currentIdm, count.toByte()) +
+            nodes.reduce(ByteArray::plus)
+        return try {
+            val response = exchange(command)
+            if (!validAddressedFrame(response, 0x03) || response.size != 11 + count * 2 ||
+                (response[10].toInt() and 0xff) != count
+            ) null else (0 until count).map { index ->
+                val start = 11 + index * 2
+                (response[start].toInt() and 0xff) or ((response[start + 1].toInt() and 0xff) shl 8)
+            }
+        } catch (_: IOException) {
+            null
+        }
+    }
+
     fun exchangeOnline(command: ByteArray): ByteArray {
         if (!selected || command.isEmpty() || command.size > 253) throw OctopusProtocolException()
         val previous = currentIdm.copyOf()

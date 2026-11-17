@@ -73,7 +73,7 @@ public enum ICCardBrand: String, Codable, CaseIterable, Identifiable {
     private static let japaneseFeliCaFamilies: Set<String> = [
         "ayuca", "ci-ca", "desuca / ic e-card", "ex-ic", "fcf",
         "felica lite", "hanica", "hareca", "himawari bus", "ica",
-        "iruca", "itappy", "kitami bus / luluca", "kumamoto ic",
+        "icsca", "iruca", "itappy", "kitami bus / luluca", "kumamoto ic",
         "nagasaki smart", "nicepass", "nicopa", "noruca",
         "ntasu t-card", "ohmi railway bus", "paspy", "passca / ecomyca",
         "quicpay", "randen", "rapica", "ryuto", "sapica",
@@ -915,7 +915,7 @@ struct TransactionDetailView: View {
                              NanacoRawBreakdownView(raw: raw, tx: tx)
                         } else if brand == .edy {
                              EdyRawBreakdownView(raw: raw, tx: tx)
-                        } else if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") {
+                        } else if f.contains("japan") || f.contains("suica") || f.contains("pasmo") || f.contains("icoca") || f.contains("hayakaken") || f.contains("sugoca") || f.contains("kitaca") || f.contains("nimoca") || f.contains("toica") || f.contains("manaca") || f.contains("pitapa") || f.contains("icsca") {
                              if tx.category == .trainOn || tx.category == .trainOff || tx.type.contains("Transit Activity") || tx.type == "Entry" || tx.type == "Exit" || tx.type == "Discount Entry" {
                                  FeliCaTransitRawBreakdownView(raw: raw, tx: tx)
                              } else {

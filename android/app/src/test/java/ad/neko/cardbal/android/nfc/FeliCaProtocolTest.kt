@@ -86,6 +86,46 @@ class FeliCaProtocolTest {
         assertArrayEquals(otherIdm, commands.last().copyOfRange(2, 10))
     }
 
+    @Test fun serviceRequestsReturnOneKeyVersionPerNode() {
+        val commands = mutableListOf<ByteArray>()
+        val replies = ArrayDeque(listOf(
+            pollingResponse(firstIdm, "0003"),
+            byteArrayOf(15, 0x03, *firstIdm, 2, 0xFF.toByte(), 0xFF.toByte(), 1, 0),
+        ))
+        val protocol = FeliCaProtocol(firstIdm) { commands.add(it); replies.removeFirst() }
+        assertTrue(protocol.polling("0003"))
+        assertEquals(listOf(0xFFFF, 1), protocol.requestService(listOf("0818", "C81C")))
+        assertArrayEquals(byteArrayOf(15, 0x02, *firstIdm, 2, 0x08, 0x18, 0xC8.toByte(), 0x1C), commands.last())
+    }
+
+    @Test fun malformedServiceResponsesAreRejected() {
+        val good = byteArrayOf(13, 0x03, *firstIdm, 1, 1, 0)
+        val responses = listOf(
+            byteArrayOf(13, 0x03, *otherIdm, 1, 1, 0),
+            good.copyOf(12),
+            good.copyOf().also { it[10] = 2 },
+            good.copyOf().also { it[1] = 0x07 },
+        )
+        for (response in responses) {
+            var calls = 0
+            val protocol = FeliCaProtocol(firstIdm) {
+                if (++calls == 1) pollingResponse(firstIdm, "0003") else response
+            }
+            assertTrue(protocol.polling("0003"))
+            assertNull(protocol.requestService(listOf("0818")))
+        }
+        assertNull(FeliCaProtocol(firstIdm) { good }.requestService(listOf("0818")))
+    }
+
+    @Test fun transitIssuerIsTheFirstServiceTheCardHas() {
+        val absent = List(11) { 0xFFFF }
+        assertEquals("C81C", JapanTransitIssuer.nodeCodes[2])
+        assertEquals("PASMO", JapanTransitIssuer.brand(absent.toMutableList().also { it[2] = 1 }))
+        assertEquals("icsca", JapanTransitIssuer.brand(absent.toMutableList().also { it[10] = 0 }))
+        assertNull(JapanTransitIssuer.brand(absent))
+        assertNull(JapanTransitIssuer.brand(listOf(1)))
+    }
+
     @Test fun ioFailuresAndInvalidInputDoNotProduceData() {
         val protocol = FeliCaProtocol(firstIdm) { throw IOException("synthetic tag loss") }
         assertFalse(protocol.polling("FE00"))

@@ -76,6 +76,14 @@ precondition(profile.displayName == "Hanica" && profile.systemCode == "84A1" && 
 precondition(profile.serviceCodeLittleEndian == Data([0x8F, 0x89]) && HanicaCardFormat.service == Data([0x8F, 0x89]))
 precondition(profile.detectedBrand(using: ["84A1"]) == "Hanica")
 precondition(profile.parseBalance(block, Date()) == nil)
+let absent = Data([0xFF, 0xFF])
+precondition(FeliCaProfile.transitIssuerNodeCodes.count == 11 && FeliCaProfile.transitIssuerNodeCodes[2] == Data([0xC8, 0x1C]))
+var pasmoKeys = Array(repeating: absent, count: 11); pasmoKeys[2] = Data([0x01, 0x00])
+precondition(FeliCaProfile.transitIssuer(keyVersions: pasmoKeys) == "PASMO")
+var icscaKeys = Array(repeating: absent, count: 11); icscaKeys[10] = Data([0x00, 0x00])
+precondition(FeliCaProfile.transitIssuer(keyVersions: icscaKeys) == "icsca")
+precondition(FeliCaProfile.transitIssuer(keyVersions: Array(repeating: absent, count: 11)) == nil)
+precondition(FeliCaProfile.transitIssuer(keyVersions: [Data([0x01, 0x00])]) == nil)
 print("PASS Hanica layouts, dates, history and profile")
 '''
         program = "import Foundation\n" + models + data + formatting + decoder + main

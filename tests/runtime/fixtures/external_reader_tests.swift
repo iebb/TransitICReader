@@ -107,6 +107,15 @@ struct PurseMiFareCard: MiFareCard {
         let read = try await felica.readWithoutEncryption(serviceCodeList: [Data([0x17, 0x13])], blockList: [Data([0x80, 0])])
         precondition(read.0 == 0 && read.1 == 0 && read.2 == [block] && channel.script.isEmpty)
 
+        // Request Service returns one key version per node; FFFF marks a missing node.
+        let serviceCommand = Data(hexString: "FF00000012D440010F02") + idm + Data(hexString: "020818C81C")
+        let serviceResponse = Data(hexString: "D541000F03") + idm + Data(hexString: "02FFFF0100")
+        let serviceChannel = ScriptedChannel([(pollCommand, pollResponse, 0x90, 0), (serviceCommand, serviceResponse, 0x90, 0)])
+        let serviceCard = ACR122FeliCaCard(connection: serviceChannel)
+        _ = try await serviceCard.polling(systemCode: Data([0xFE, 0]), requestCode: .systemCode, timeSlot: .max1)
+        let keyVersions = try await serviceCard.requestService(nodeCodeList: [Data([0x08, 0x18]), Data([0xC8, 0x1C])])
+        precondition(keyVersions == [Data([0xFF, 0xFF]), Data([0x01, 0x00])] && serviceChannel.script.isEmpty)
+
         // Short PN532 packets, card errors, and mismatched IDs must not decode.
         for bad in [Data(hexString: "D541001D07"), Data(hexString: "D541001D07") + Data(repeating: 0, count: 8) + Data([0, 0, 1]) + block,
                     Data(hexString: "D54101")] {

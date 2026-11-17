@@ -1,6 +1,6 @@
 {
-  "en-GB": "• Android: Shanghai Public Transportation Card rides show their route on the map, including a ride whose entry is recorded by the card's City Union application and whose exit is recorded by its China T-Union one. BRT entries and exits are read more reliably.",
-  "ja": "• Android：上海公共交通カードの乗車ルートを地図に表示するようになりました。入場がCity Union、出場が交通聯合（China T-Union）のアプリに記録された乗車も含みます。BRTの入場・出場記録もより確実に読み取れます。",
-  "ko": "• Android: 상하이 교통카드의 이용 경로가 지도에 표시됩니다. 승차는 City Union, 하차는 중국 교통연합(China T-Union) 애플리케이션에 기록된 이용도 포함됩니다. BRT 승하차 기록도 더 안정적으로 읽습니다.",
-  "zh-Hans": "• Android：上海公共交通卡的乘车路线会显示在地图上，包括进站记录在住建部（City Union）应用、出站记录在交通联合应用的行程；BRT 的进出站记录也能更可靠地读取。"
+  "en-GB": "• Android: Shanghai Public Transportation Card rides show their route on the map, including a ride whose entry is recorded by the card's City Union application and whose exit is recorded by its China T-Union one. BRT entries and exits are read more reliably.\n• Japanese IC cards show their own name: Suica, PASMO, ICOCA, manaca, TOICA, PiTaPa, Kitaca, SUGOCA, nimoca, Hayakaken and icsca.",
+  "ja": "• Android：上海公共交通カードの乗車ルートを地図に表示するようになりました。入場がCity Union、出場が交通聯合（China T-Union）のアプリに記録された乗車も含みます。BRTの入場・出場記録もより確実に読み取れます。\n• 日本の交通系ICカードをカード名で表示するようになりました：Suica、PASMO、ICOCA、manaca、TOICA、PiTaPa、Kitaca、SUGOCA、nimoca、はやかけん、icsca。",
+  "ko": "• Android: 상하이 교통카드의 이용 경로가 지도에 표시됩니다. 승차는 City Union, 하차는 중국 교통연합(China T-Union) 애플리케이션에 기록된 이용도 포함됩니다. BRT 승하차 기록도 더 안정적으로 읽습니다.\n• 일본 교통 IC 카드가 각 카드 이름으로 표시됩니다: Suica, PASMO, ICOCA, manaca, TOICA, PiTaPa, Kitaca, SUGOCA, nimoca, 하야카켄, icsca.",
+  "zh-Hans": "• Android：上海公共交通卡的乘车路线会显示在地图上，包括进站记录在住建部（City Union）应用、出站记录在交通联合应用的行程；BRT 的进出站记录也能更可靠地读取。\n• 日本交通 IC 卡会显示各自的卡名：Suica、PASMO、ICOCA、manaca、TOICA、PiTaPa、Kitaca、SUGOCA、nimoca、Hayakaken（はやかけん）和 icsca。"
 }

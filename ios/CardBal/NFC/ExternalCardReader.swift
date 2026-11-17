@@ -204,6 +204,16 @@ final class ACR122FeliCaCard: FeliCaCard {
         return (0, 0, blocks)
     }
 
+    func requestService(nodeCodeList: [Data]) async throws -> [Data] {
+        guard (1...32).contains(nodeCodeList.count), nodeCodeList.allSatisfy({ $0.count == 2 }) else { throw ExternalReaderError.malformedResponse }
+        var command = Data([0x02]) + currentIDm + Data([UInt8(nodeCodeList.count)])
+        nodeCodeList.forEach { command.append($0) }
+        let response = [UInt8](try await sendFeliCaCommand(commandPacket: command))
+        guard response.count == 10 + nodeCodeList.count * 2, response[0] == 0x03, Data(response[1..<9]) == currentIDm,
+              Int(response[9]) == nodeCodeList.count else { throw ExternalReaderError.malformedResponse }
+        return (0..<nodeCodeList.count).map { Data(response[(10 + $0 * 2)..<(12 + $0 * 2)]) }
+    }
+
     func requestSystemCode() async throws -> [Data] {
         let response = [UInt8](try await sendFeliCaCommand(commandPacket: Data([0x0C]) + currentIDm))
         guard response.count >= 10, response[0] == 0x0D, Data(response[1..<9]) == currentIDm,

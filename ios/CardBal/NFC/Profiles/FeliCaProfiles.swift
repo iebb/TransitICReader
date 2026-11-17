@@ -13,6 +13,25 @@ public struct FeliCaProfile {
         return all.first(where: { normalized.contains($0.systemCode) })
     }
 
+    /// Services in system 0003 that only one issuer's cards carry, checked in
+    /// this order with Request Service. Cards without any are left generic.
+    static let transitIssuerServices: [(service: UInt16, brand: String)] = [
+        (0x1808, "Suica"), (0x1A48, "ICOCA"), (0x1CC8, "PASMO"), (0x9888, "Manaca"),
+        (0x1FC8, "Nimoca"), (0x1E08, "TOICA"), (0x1B88, "PiTaPa"), (0x228A, "SUGOCA"),
+        (0x254A, "Hayakaken"), (0x2088, "Kitaca"), (0xBD48, "icsca")
+    ]
+
+    static var transitIssuerNodeCodes: [Data] {
+        transitIssuerServices.map { Data([UInt8($0.service & 0xFF), UInt8($0.service >> 8)]) }
+    }
+
+    /// The brand of the first issuer service whose key version is not FFFF.
+    static func transitIssuer(keyVersions: [Data]) -> String? {
+        guard keyVersions.count == transitIssuerServices.count else { return nil }
+        return zip(transitIssuerServices, keyVersions)
+            .first { $0.1.count == 2 && $0.1 != Data([0xFF, 0xFF]) }?.0.brand
+    }
+
     public func detectedBrand(using systemCodes: [String], realSN: String? = nil) -> String {
         if systemCode == KMTCardFormat.systemCode { return "KMT" }
         let (sn, sc) = (realSN?.uppercased() ?? "none", systemCodes.joined(separator: ","))

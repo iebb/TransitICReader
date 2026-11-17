@@ -137,6 +137,7 @@ final class InventedCard: FeliCaCard {
         return (Data(repeating: 0, count: 8), systemCode)
     }
     func requestSystemCode() async throws -> [Data] { [Data([0x80, 8])] }
+    func requestService(nodeCodeList: [Data]) async throws -> [Data] { nodeCodeList.map { _ in Data([0xFF, 0xFF]) } }
     func readWithoutEncryption(serviceCodeList: [Data], blockList: [Data]) async throws -> (Int, Int, [Data]) { purseReads += 1; return (0, 0, [block]) }
     func sendFeliCaCommand(commandPacket: Data) async throws -> Data {
         operations.append(commandPacket[0])

@@ -71,7 +71,8 @@ struct JapaneseICDecoder: TransitCardDecoder {
         let formattedIDm = formatFeliCaIDm(idm)
         
         let systemCodes = (try? await feliCaTag.requestSystemCode().map { $0.hexString.uppercased() }) ?? [profile.systemCode]
-        let detectedBrand = profile.detectedBrand(using: systemCodes)
+        let issuer = profile.systemCode == "0003" ? await readTransitIssuer(feliCa: feliCa) : nil
+        let detectedBrand = issuer ?? profile.detectedBrand(using: systemCodes)
         
         var resultFields: [ResultField] = []
         if profile.displayName == "Japan Transit IC" {
@@ -227,6 +228,19 @@ struct JapaneseICDecoder: TransitCardDecoder {
             selectedSystem: Data([0x90, 0xB7]), status1: response.0,
             status2: response.1, blocks: response.2
         )
+    }
+
+    /// Names a 0003 card by the issuer service it carries, as its system codes rarely tell.
+    private static func readTransitIssuer(feliCa: FeliCaCard) async -> String? {
+        do {
+            let keyVersions = try await feliCa.requestService(nodeCodeList: FeliCaProfile.transitIssuerNodeCodes)
+            let issuer = FeliCaProfile.transitIssuer(keyVersions: keyVersions)
+            DebugLog.shared.log("FeliCa", "Issuer services: " + (issuer ?? "none found"))
+            return issuer
+        } catch {
+            DebugLog.shared.log("FeliCa", "Issuer service request failed: " + DebugLog.describe(error))
+            return nil
+        }
     }
 
     /// Generic reader for a FeliCa service — reads up to 20 blocks, stops at empty.

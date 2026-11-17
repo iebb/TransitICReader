@@ -58,6 +58,7 @@ private struct CoreFeliCaCard: FeliCaCard {
         let response = try await card.readWithoutEncryption(serviceCodeList: serviceCodeList, blockList: blockList)
         return (Int(response.0), Int(response.1), response.2)
     }
+    func requestService(nodeCodeList: [Data]) async throws -> [Data] { try await card.requestService(nodeCodeList: nodeCodeList) }
     func requestSystemCode() async throws -> [Data] { try await card.requestSystemCode() }
     func sendFeliCaCommand(commandPacket: Data) async throws -> Data { try await card.sendFeliCaCommand(commandPacket: commandPacket) }
 }

@@ -35,9 +35,29 @@ class JapaneseCardCurrencyMappingTests(unittest.TestCase):
                 r'"([0-9A-F]{4})": "([^"]+)"', sc_map_match.group(1)
             )
         }
+        issuer_match = re.search(
+            r"transitIssuerServices: \[\(service: UInt16, brand: String\)\] = \[(.*?)\n    \]",
+            profiles,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(issuer_match)
+        detected_families |= {
+            family.lower()
+            for family in re.findall(
+                r'\(0x[0-9A-F]{4}, "([^"]+)"\)', issuer_match.group(1)
+            )
+        }
 
         dedicated_japanese_families = {
             "suica",
+            "pasmo",
+            "icoca",
+            "manaca",
+            "nimoca",
+            "toica",
+            "pitapa",
+            "sugoca",
+            "kitaca",
             "hayakaken",
             "nanaco",
             "rakuten edy",
