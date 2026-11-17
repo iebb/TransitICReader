@@ -141,7 +141,7 @@ class SwiftDevelopmentSampleTests(unittest.TestCase):
         for name in ["rawRecordHasContent", "normalizedHex"]:
             model += re.search(r"    (?:private )?static func " + name + r"\(.*?^    }", saved, re.M | re.S).group() + "\n"
         model += "}\n"
-        fields = saved[saved.index("struct SavedCardField:"):saved.index("struct SavedCardColor:")]
+        fields = (ROOT / "ios/CardBal/Models/ScanResultField.swift").read_text()
         backup = store[store.index("struct CardBackupData:"):store.index("struct CardBackupImportResult")]
         data = utils[utils.index("extension Data {"):utils.index("struct BERTLVNode")]
         transaction = utils[utils.index("struct ResultField:"):utils.index("struct TransactionDecoderRegistry")]
