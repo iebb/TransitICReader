@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -69,4 +70,112 @@ import Foundation
             executable = path / 'invocation-tests'
             subprocess.run(['swiftc', str(ROOT / 'ios/CardBal/Helpers/ClipInvocation.swift'),
                             str(path / 'QuickScanRoute.swift'), str(path / 'InvocationTests.swift'), '-o', str(executable)], check=True)
+            subprocess.run([str(executable)], check=True)
+
+
+    @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('swiftc'), 'Swift SDK tests run on remote macOS')
+    def test_external_scan_retirement_and_amount_visibility(self):
+        from tests.runtime.test_dual_applications import method
+        source = (ROOT / 'ios/CardBal/NFC/NFCTransitReader.swift').read_text()
+        start = method(source, 'startScanning').split('        #endif')[0] + '\n    }'
+        start = start.replace('        #if !APPCLIP\n', '')
+        cancel = method(source, 'cancelScanning')
+        cancel = re.sub(r'        #if canImport\(CoreNFC\).*?        #endif', '', cancel, flags=re.S)
+        cancel = cancel.replace('        #if !APPCLIP\n', '').replace('        #endif\n', '')
+        cancel_external = method(source, 'cancelExternalScan')
+        view = (ROOT / 'ios/CardBal/Views/QuickScanView.swift').read_text()
+        predicate = re.search(r'if (transaction.amountKnown[^\n]+) \{', view).group(1)
+        # Compile the production rescan action too; its unavailable branch must
+        # clear both real and demo results before returning.
+        scan = method(view, 'scan')
+        harness = r'''
+import Foundation
+struct Snapshot { let cardFamily: String }
+struct CardPollingOption: OptionSet {
+    let rawValue: Int
+    static let iso18092 = Self(rawValue: 1), iso14443 = Self(rawValue: 2), iso15693 = Self(rawValue: 4)
+}
+enum StatusKind { case idle, error, success }
+enum NFCTestError: Error { case unsupportedCard }
+struct DebugLog {
+    static let shared = Self()
+    func log(_ category: String, _ value: String) {}
+    static func describe(_ error: Error) -> String { "error" }
+}
+@MainActor final class ScanProgress {
+    @TaskLocal static var current: ScanProgress?
+    init(_ callback: @escaping (String) -> Void) {}
+    func finish() {}
+}
+@MainActor final class ExternalReader {
+    var pending: [CheckedContinuation<Snapshot, Error>] = []
+    func scan(readerName: String?, options: CardPollingOption) async throws -> Snapshot {
+        try await withCheckedThrowingContinuation { pending.append($0) }
+    }
+}
+@MainActor final class Reader {
+    var isScanning = false
+    var usesExternalReader = true
+    var externalScanID: UUID?
+    var externalScanTask: Task<Void, Never>?
+    let externalReader = ExternalReader()
+    var selectedExternalReaderName: String?
+    var latestSnapshot: Snapshot?
+    var status = ""
+    var isNFCAvailable = true
+    func updateStatus(_ text: String, kind: StatusKind) { status = text }
+    func clearResult() { latestSnapshot = nil }
+    START
+    CANCEL
+    CANCEL_EXTERNAL
+}
+@MainActor final class ScanView {
+    let reader = Reader()
+    var previewMessage: String?
+    var isDemo = true
+    var demoSnapshot: Snapshot? = Snapshot(cardFamily: "Demo A")
+    var showsUnavailable = false
+    SCAN
+}
+struct Transaction { let amountKnown: Bool; let hasUnresolvedKoreanTransitFare: Bool; let amount: Decimal }
+func showsAmount(_ transaction: Transaction) -> Bool { PREDICATE }
+@main struct Tests {
+    @MainActor static func main() async throws {
+        precondition(!showsAmount(Transaction(amountKnown: true, hasUnresolvedKoreanTransitFare: true, amount: 0)), "Unresolved KSX fare must not display zero")
+        precondition(showsAmount(Transaction(amountKnown: true, hasUnresolvedKoreanTransitFare: false, amount: 0)), "Confirmed free fare must remain visible")
+        precondition(!showsAmount(Transaction(amountKnown: false, hasUnresolvedKoreanTransitFare: false, amount: 0)))
+        let view = ScanView()
+        view.reader.latestSnapshot = Snapshot(cardFamily: "A")
+        view.reader.isNFCAvailable = false
+        view.scan()
+        precondition(view.reader.latestSnapshot == nil && view.demoSnapshot == nil && !view.isDemo && view.showsUnavailable, "Unavailable rescan retained A")
+        let reader = Reader()
+        reader.startScanning()
+        try await Task.sleep(for: .milliseconds(20))
+        let old = reader.externalReader.pending.removeFirst()
+        let oldTask = reader.externalScanTask!
+        reader.cancelScanning()
+        precondition(oldTask.isCancelled && reader.externalScanTask == nil && reader.externalScanID == nil && !reader.isScanning, "Invocation did not retire external reader")
+        reader.startScanning()
+        try await Task.sleep(for: .milliseconds(20))
+        let currentID = reader.externalScanID
+        let current = reader.externalReader.pending.removeFirst()
+        old.resume(returning: Snapshot(cardFamily: "A"))
+        await oldTask.value
+        precondition(reader.latestSnapshot == nil && reader.isScanning && reader.externalScanID == currentID && reader.externalScanTask != nil, "Old external completion published or reset new scan")
+        current.resume(returning: Snapshot(cardFamily: "B"))
+        await reader.externalScanTask?.value
+        precondition(reader.latestSnapshot?.cardFamily == "B" && !reader.isScanning)
+        print("External retirement, late completion, result clearing, unknown and confirmed-zero fares passed")
+    }
+}
+'''
+        for key, value in [('START', start), ('CANCEL_EXTERNAL', cancel_external), ('CANCEL', cancel), ('SCAN', scan), ('PREDICATE', predicate)]:
+            harness = harness.replace(key, value)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            swift = path / 'regressions.swift'
+            swift.write_text(harness)
+            executable = path / 'regressions'
+            subprocess.run(['swiftc', '-parse-as-library', str(swift), '-o', str(executable)], check=True)
             subprocess.run([str(executable)], check=True)

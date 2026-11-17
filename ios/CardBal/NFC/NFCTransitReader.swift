@@ -29,7 +29,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     private var pendingPrimary: TransitCardSnapshot?
     private var restartForCompanion = false
     private var secondSideTimeout: Task<Void, Never>?
-    private var isReadingTag = false
+    private var readingSession: NFCTagReaderSession?
     private var session: NFCTagReaderSession?
     private var scanProgress: ScanProgress?
 
@@ -51,6 +51,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
     private let externalReader = ExternalCardReader()
     private var externalScanTask: Task<Void, Never>?
+    private var externalScanID: UUID?
 
     #endif
     init(localOnly: Bool = false) {
@@ -105,25 +106,38 @@ final class NFCTransitReader: NSObject, ObservableObject {
             isScanning = true
             DebugLog.shared.log("Scan", "External reader scan started")
             updateStatus(String(localized: "Reading card on external reader…"), kind: .idle)
+            let scanID = UUID()
+            externalScanID = scanID
             externalScanTask = Task { [weak self] in
                 guard let self else { return }
                 let progress = ScanProgress { [weak self] message in
-                    self?.updateStatus(message, kind: .idle)
+                    guard let self, self.externalScanID == scanID else { return }
+                    self.updateStatus(message, kind: .idle)
                 }
                 // Runs before any queued step can apply, so the result stays.
-                defer { progress.finish(); self.isScanning = false; self.externalScanTask = nil }
+                defer {
+                    progress.finish()
+                    if self.externalScanID == scanID {
+                        self.isScanning = false
+                        self.externalScanTask = nil
+                        self.externalScanID = nil
+                    }
+                }
                 do {
                     let snapshot = try await ScanProgress.$current.withValue(progress) {
                         try await self.externalReader.scan(readerName: self.selectedExternalReaderName, options: options)
                     }
                     try Task.checkCancellation()
+                    guard self.externalScanID == scanID else { return }
                     DebugLog.shared.log("Scan", "External reader: read \(snapshot.cardFamily)")
                     self.latestSnapshot = snapshot
                     self.updateStatus(String(localized: "Read successful: ") + snapshot.cardFamily, kind: .success)
                 } catch is CancellationError {
+                    guard self.externalScanID == scanID else { return }
                     DebugLog.shared.log("Scan", "External reader scan cancelled")
                     self.updateStatus(String(localized: "Scan cancelled."), kind: .idle)
                 } catch {
+                    guard self.externalScanID == scanID else { return }
                     DebugLog.shared.log("Scan", "External reader scan failed: " + DebugLog.describe(error))
                     let message = (error as? NFCTestError) != nil
                         ? String(localized: "Could not read any supported transit card data.") : error.localizedDescription
@@ -145,10 +159,20 @@ final class NFCTransitReader: NSObject, ObservableObject {
     }
 
     #if !APPCLIP
-    func cancelExternalScan() { externalScanTask?.cancel() }
+    func cancelExternalScan() {
+        externalScanID = nil
+        externalScanTask?.cancel()
+        externalScanTask = nil
+        isScanning = false
+    }
     #endif
 
+    func clearResult() { latestSnapshot = nil }
+
     func cancelScanning() {
+        #if !APPCLIP
+        cancelExternalScan()
+        #endif
         #if canImport(CoreNFC) && !targetEnvironment(macCatalyst)
         let active = session
         session = nil
@@ -289,6 +313,7 @@ final class NFCTransitReader: NSObject, ObservableObject {
         restartForCompanion = false
         phase = .regular
         readsCompanionProtocol = false
+        readingSession = nil
         isScanning = false
     }
 
@@ -419,7 +444,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
 
     nonisolated func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
         Task { @MainActor in
-            guard self.session === session, self.isScanning, !self.isReadingTag, !tags.isEmpty else { return }
+            guard self.session === session, self.isScanning, self.readingSession !== session, !tags.isEmpty else { return }
             // One dual-protocol card may be reported once per technology.
             // Start with its FeliCa interface and discover ISO afresh after the
             // protocol switch. Two discoveries of the same type remain ambiguous.
@@ -436,13 +461,16 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 self.restartPolling(session)
                 return
             }
-            self.isReadingTag = true
-            defer { self.isReadingTag = false }
+            self.readingSession = session
+            defer {
+                if self.readingSession === session { self.readingSession = nil }
+            }
             self.secondSideTimeout?.cancel()
             DebugLog.shared.log("Scan", "Tag detected: " + self.describeDetectedTag(tag)
                                 + (dualDiscovery ? " (with an ISO 7816 interface)" : ""))
             do {
                 try await session.connect(to: tag)
+                guard self.session === session else { return }
                 guard let cardTag = CardTag(tag) else {
                     DebugLog.shared.log("Scan", "Tag type not supported")
                     self.fail("Could not read any supported transit card data.", session: session)
@@ -470,7 +498,10 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                 var snapshot: TransitCardSnapshot?
                 var declined: [String] = []
                 for decoder in decoders {
-                    guard await decoder.canDecode(tag: cardTag) else {
+                    guard self.session === session else { return }
+                    let canDecode = await decoder.canDecode(tag: cardTag)
+                    guard self.session === session else { return }
+                    guard canDecode else {
                         declined.append(String(describing: decoder))
                         continue
                     }
@@ -480,12 +511,14 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                                 try await decoder.decode(tag: cardTag, scannedAt: Date())
                             }
                         }
+                        guard self.session === session else { return }
                         DebugLog.shared.log("Scan", "\(decoder): read \(snapshot?.cardFamily ?? "card")")
                         break
                     } catch {
                         DebugLog.shared.log("Scan", "\(decoder): " + DebugLog.describe(error))
                     }
                 }
+                guard self.session === session else { return }
                 if !declined.isEmpty {
                     DebugLog.shared.log("Scan", "Not for this tag: " + declined.joined(separator: ", "))
                 }
@@ -495,6 +528,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                         await ChineseLocalDecoder.addingLocalApplication(to: primary, tag: cardTag)
                     }
                 }
+                    guard self.session === session else { return }
                     #if !APPCLIP
                     if let detectedSnapshot = snapshot,
                        detectedSnapshot.technology == "FeliCa",
@@ -544,6 +578,7 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
 
                     #endif
 
+                guard self.session === session else { return }
                 if dualDiscovery && snapshot?.applicationSnapshots.contains(where: \.isOctopus) != true {
                     DebugLog.shared.log("Scan", "FeliCa side of the two tags is not Octopus; asking for one card")
                     self.endProgress()

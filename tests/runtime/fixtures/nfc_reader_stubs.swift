@@ -42,7 +42,11 @@ final class NFCTagReaderSession {
         pollingOption = configuration.pollingOption
         restarts += 1
     }
-    func connect(to tag: NFCTag) async throws {}
+    var holdsConnect = false
+    var pendingConnect: CheckedContinuation<Void, Never>?
+    func connect(to tag: NFCTag) async throws {
+        if holdsConnect { await withCheckedContinuation { pendingConnect = $0 } }
+    }
 }
 enum JapaneseICDecoder: TransitCardDecoder {
     static func canDecode(tag: NFCTag) async -> Bool {

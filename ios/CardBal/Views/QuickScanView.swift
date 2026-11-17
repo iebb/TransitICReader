@@ -140,7 +140,7 @@ struct QuickScanView: View {
                 }
             }
             Spacer(minLength: 8)
-            if transaction.amountKnown {
+            if transaction.amountKnown && !transaction.hasUnresolvedKoreanTransitFare {
                 let currency = transaction.currencyCode ?? brand.region.currencyCode
                 Text(formatCurrency(amount: transaction.amount, code: currency,
                                     fractionDigits: defaultFractionDigits(for: currency)))
@@ -151,9 +151,10 @@ struct QuickScanView: View {
 
     private func scan() {
         previewMessage = nil
-        guard reader.isNFCAvailable else { showsUnavailable = true; return }
         isDemo = false
         demoSnapshot = nil
+        reader.clearResult()
+        guard reader.isNFCAvailable else { showsUnavailable = true; return }
         reader.startScanning(options: [.iso14443, .iso18092])
     }
 

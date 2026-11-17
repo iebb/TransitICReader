@@ -41,7 +41,8 @@ class DualApplicationTests(unittest.TestCase):
         reader = reader[:reader.index(" #if !APPCLIP\nextension NFCTransitReader {\n    private func performEnhancedFeliCaHandshake")]
         # Exercise the built-in reader state machine independently of UIKit and
         # the external-reader service. Hardware transports have separate tests.
-        cancel = method(reader, "cancelScanning")
+        cancel = method(reader, "cancelScanning").replace("        cancelExternalScan()", "")
+        clear = "    func clearResult() { latestSnapshot = nil }"
         start = reader.index("    @Published private(set) var externalReaderNames")
         end = reader.index("    var statusSymbol:", start)
         reader = reader[:start].replace("private let localOnly: Bool", "private let localOnly = false") + '''
@@ -49,7 +50,7 @@ class DualApplicationTests(unittest.TestCase):
     func startScanning(options: NFCTagReaderSession.PollingOption = [.iso18092, .iso14443, .iso15693]) {
         startInternalScanning(options: options)
     }
-''' + cancel + '\n' + reader[end:]
+''' + clear + '\n' + cancel + '\n' + reader[end:]
         reader = reader.replace("CEPASDecoder.self, StoredValueDecoder.self, ", "")
         reader = "\n".join(line for line in reader.splitlines()
                            if not line.startswith("import ") and "logger" not in line
@@ -432,6 +433,29 @@ func testDualCurrency(octopus: TransitCardSnapshot, plain: TransitCardSnapshot) 
         explicitCancel.cancelScanning()
         check(!explicitCancel.isScanning && explicitSession.invalidated && explicitCancel.latestSnapshot == nil,
               "Explicit cancellation must invalidate without a result")
+        let retry = NFCTransitReader(); retry.startScanning(options: [.iso18092])
+        let oldSession = retry.session!; oldSession.holdsConnect = true
+        retry.tagReaderSession(oldSession, didDetect: [.feliCa(TestFeliCaTag(octopus))])
+        try await Task.sleep(for: .milliseconds(30))
+        check(retry.readingSession === oldSession, "First read did not suspend")
+        retry.cancelScanning()
+        retry.startScanning(options: [.iso18092])
+        let newSession = retry.session!; newSession.holdsConnect = true
+        retry.tagReaderSession(newSession, didDetect: [.feliCa(TestFeliCaTag(different))])
+        try await Task.sleep(for: .milliseconds(30))
+        check(retry.readingSession === newSession, "Cancelled read blocked retry")
+        oldSession.pendingConnect?.resume(); oldSession.pendingConnect = nil
+        try await Task.sleep(for: .milliseconds(30))
+        check(retry.readingSession === newSession && retry.session === newSession && retry.latestSnapshot == nil,
+              "Stale read completion reset or published into retry")
+        newSession.pendingConnect?.resume(); newSession.pendingConnect = nil
+        try await Task.sleep(for: .milliseconds(30))
+        check(retry.latestSnapshot?.storageIdentifier == different.storageIdentifier && !retry.isScanning,
+              "Retry did not publish its own card")
+        retry.clearResult(); retry.startScanning(options: [.iso18092]); retry.cancelScanning()
+        check(retry.latestSnapshot == nil, "Cancelled rescan displayed the previous card")
+        retry.startScanning(options: [.iso18092]); retry.fail("Read failed", session: retry.session!)
+        check(retry.latestSnapshot == nil, "Failed rescan displayed the previous card")
         let dismissed = NFCTransitReader(); dismissed.startScanning()
         dismissed.tagReaderSession(dismissed.session!, didInvalidateWithError: NSError(domain: "NFC", code: 200))
         try await Task.sleep(for: .milliseconds(30))
