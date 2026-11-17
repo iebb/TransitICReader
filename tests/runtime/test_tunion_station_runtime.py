@@ -92,6 +92,12 @@ check(TUnionCityDatabase.lookupTravelStation(cityID: "3320", stationID: "FFFFFFF
 check(CityUnionStationDatabase.shenzhenTravelTerminal(cityID: "5840", terminalID: "0000000268035ZZZ") == nil, "Invalid Shenzhen terminal accepted")
 check(CityUnionStationDatabase.lookup(terminalID: "518068035001", date: nil)?.name == "后瑞", "Shenzhen CU terminal lookup")
 check(CityUnionStationDatabase.lookup(terminalID: "518068099001", date: nil) == nil, "Broad Shenzhen line prefix matched a station")
+check(CityUnionStationDatabase.cityName("3100") == "杭州市", "CU city 3100 must be Hangzhou")
+check(CityUnionStationDatabase.lookup(terminalID: "310001028402", date: nil)?.stationKey == "331000010006", "Hangzhou CU terminal lookup")
+check(CityUnionStationDatabase.lookup(terminalID: "310001028499", date: nil) == nil, "Unlisted Hangzhou terminal guessed")
+check(CityUnionStationDatabase.lingnanLookup(terminalID: "010000163423")?.name == "天河客运站", "Lingnan Pass terminal lookup")
+check(CityUnionStationDatabase.lingnanLookup(terminalID: "0100001634") == nil, "Lingnan terminal prefix accepted")
+check(CityUnionStationDatabase.lookup(terminalID: "010000163423", date: nil) == nil, "Lingnan terminal resolved as City Union")
 var pboc = Data(repeating: 0, count: 23)
 pboc[9] = 0x06
 pboc.replaceSubrange(10..<16, with: Data(hex: "413101784816"))
@@ -136,6 +142,8 @@ print("PASS: production T-Union station and terminal decoding")
                     ("518068035", "后瑞", "1号线", "地铁", None),
                     ("518040013", "岗厦", "10号线", "地铁", None),
                     ("518068008", "会展中心", "1号线", "地铁", None),
+                    ("310001028402", "七堡", "1号线", "", "331000010006"),
+                    ("010000163423", "天河客运站", "3号线", "", "581000030010"),
                 ])
             swift = directory / "main.swift"
             swift.write_text(adapters + catalog + "\nstruct TUnionDecoder {\n" + "\n".join(methods) + "\n}\n" + main)

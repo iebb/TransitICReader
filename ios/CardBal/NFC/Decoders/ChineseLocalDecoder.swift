@@ -81,7 +81,11 @@ struct ChineseLocalDecoder: TransitCardDecoder {
             if [UInt8(6), 9].contains(history.type) {
                 station = CityUnionStationDatabase.lookup(terminalID: "5180" + history.terminal.suffix(8), date: history.date)
             }
-        case .lingnan?: city = ChineseLocalProtocol.lingnanRecordCity(data)
+        case .lingnan?:
+            city = ChineseLocalProtocol.lingnanRecordCity(data)
+            if [UInt8(6), 9].contains(history.type) {
+                station = CityUnionStationDatabase.lingnanLookup(terminalID: history.terminal)
+            }
         default: break
         }
         let isBus = station?.type == "BRT" || station?.type == "公交"

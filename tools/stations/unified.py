@@ -1554,6 +1554,8 @@ def validate_database(connection: sqlite3.Connection) -> None:
             WHERE NOT (
                     (t.city_id = '2000' AND t.terminal_prefix LIKE '2000%'
                         AND length(t.terminal_prefix) IN (8, 10, 12))
+                    OR (t.city_id IN ('0100', '3100') AND t.terminal_prefix LIKE t.city_id || '%'
+                        AND length(t.terminal_prefix) = 12)
                     OR (t.city_id = '5180' AND t.terminal_prefix LIKE '5180%'
                         AND length(t.terminal_prefix) = 9)
                 )
@@ -1563,7 +1565,12 @@ def validate_database(connection: sqlite3.Connection) -> None:
                     SELECT 1 FROM station_identifiers i
                     WHERE i.namespace = 'cn.tunion.station_key'
                         AND i.code = t.station_key
-                        AND i.code LIKE CASE t.city_id WHEN '2000' THEN '2900%' WHEN '5180' THEN '5840%' END
+                        AND CASE t.city_id
+                            WHEN '2000' THEN i.code LIKE '2900%'
+                            WHEN '5180' THEN i.code LIKE '5840%'
+                            WHEN '3100' THEN substr(i.code, 1, 4) IN ('3310', '3350', '3370')
+                            WHEN '0100' THEN substr(i.code, 1, 4) IN ('5810', '5880')
+                        END
                 ))
         """,
         "invalid China terminal station mappings": """

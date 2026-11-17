@@ -3,6 +3,7 @@ package ad.neko.cardbal.android.data
 internal object ChineseCityCodes {
     fun cityUnionName(code: String): String? = when (code) {
         "2000", "上海市" -> "上海市"
+        "3100", "杭州市" -> "杭州市"
         "5180", "深圳市" -> "深圳市"
         else -> null
     }

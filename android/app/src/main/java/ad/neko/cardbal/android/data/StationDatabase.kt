@@ -187,6 +187,15 @@ class StationDatabase private constructor(private val context: Context) {
         }
     }
 
+    /** A Lingnan Pass metro terminal ("0100…") resolves to its station by exact terminal. */
+    fun lingnanTerminal(terminal: String): ChineseLocation? {
+        val normalized = terminal.uppercase()
+        if(normalized.length!=12 || !normalized.startsWith("0100")) return null
+        unifiedDb.rawQuery("SELECT station_name,station_key,station_type FROM cityunion_terminal_prefixes WHERE city_id='0100' AND terminal_prefix=?",arrayOf(normalized)).use {
+            return if(it.moveToFirst()) ChineseLocation(it.getString(0),it.getString(1),it.getString(2)) else null
+        }
+    }
+
     fun tUnionTravel(city: String, station: String, terminal: String): ChineseLocation? {
         tUnionLocation(city + station)?.let { return it }
         tUnionTerminal("1e", terminal, city)?.let { return it }

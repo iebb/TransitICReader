@@ -30,6 +30,7 @@ enum TianfuTongDecoder { static func decodeRecord(data: Data, index: Int) -> Tra
 enum CityUnionStationDatabase {
  struct Station { let name: String; let type: String }
  static func lookup(terminalID: String, date: Date?) -> Station? { nil }
+ static func lingnanLookup(terminalID: String) -> Station? { nil }
 }
 enum ClipperDecoder {
  static func decodeTransaction(_ data: Data, context: [Data], index: Int) -> TransitTransaction? { fatalError("Clipper fallback used") }

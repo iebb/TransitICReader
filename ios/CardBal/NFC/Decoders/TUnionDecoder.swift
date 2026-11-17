@@ -1024,6 +1024,7 @@ enum CityUnionStationDatabase {
     static func cityName(_ code: String) -> String? {
         switch code {
         case "2000": return "上海市"
+        case "3100": return "杭州市"
         case "5180": return "深圳市"
         default: return nil
         }
@@ -1039,6 +1040,13 @@ enum CityUnionStationDatabase {
             guard let date, date.timeIntervalSince1970 >= 1_483_200_000 else { return nil }
         }
         return stations.first { $0.prefix.hasPrefix(city) && terminal.hasPrefix($0.prefix) }
+    }
+
+    /// A Lingnan Pass metro terminal ("0100…") resolves to its station by exact terminal.
+    static func lingnanLookup(terminalID: String) -> Station? {
+        let terminal = terminalID.uppercased()
+        guard terminal.count == 12, terminal.hasPrefix("0100") else { return nil }
+        return stations.first { $0.prefix == terminal }
     }
 
     static func shenzhenTravelTerminal(cityID: String, terminalID: String) -> String? {

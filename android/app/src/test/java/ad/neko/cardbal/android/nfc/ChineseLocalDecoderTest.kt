@@ -169,6 +169,14 @@ class ChineseLocalDecoderTest {
             assertEquals(terminal, location, ChineseLocalDecoder.decodeRecord(record("06", terminal), ChineseLocalProtocol.Kind.Lingnan)!!.location)
         }
         assertNull(ChineseLocalDecoder.decodeRecord(record("06", "010200000000"))!!.location)
+        lookups.clear()
+        val lingnan = ChineseLocalDecoder.decodeRecord(record("06", "010000163423"), ChineseLocalProtocol.Kind.Lingnan) { terminal ->
+            lookups.add(terminal); ad.neko.cardbal.android.data.StationDatabase.ChineseLocation("天河客运站", "581000030010", "") }!!
+        assertEquals(listOf("010000163423"), lookups)
+        assertEquals("广州市 • 天河客运站", lingnan.location)
+        assertEquals(ad.neko.cardbal.android.data.TransactionCategory.train, lingnan.category)
+        ChineseLocalDecoder.decodeRecord(record("02", "010000163423"), ChineseLocalProtocol.Kind.Lingnan) { lookups.add(it); null }
+        assertEquals(1, lookups.size)
     }
 
     @Test fun ticlReplyAloneGivesTheBalanceButNoInventedDetails() {

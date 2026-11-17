@@ -248,7 +248,7 @@ class ChineseLocalDecoder : TransitCardDecoder {
             )
             return snapshot.copy(applications = listOf(TransitApplication.from(snapshot, records)))
         }
-        /** [cityUnionStation] resolves a City Union terminal ("5180…") to its station. */
+        /** [cityUnionStation] resolves a City Union ("5180…") or Lingnan Pass ("0100…") terminal to its station. */
         internal fun decodeRecord(bytes: ByteArray, kind: ChineseLocalProtocol.Kind? = null,
                          cityUnionStation: (String) -> StationDatabase.ChineseLocation? = { null }): TransitTransaction? {
             val h = ChineseLocalProtocol.history(bytes) ?: return null
@@ -256,7 +256,7 @@ class ChineseLocalDecoder : TransitCardDecoder {
             val (city, station) = when (kind) {
                 // As Trip Reader does, a Shenzhen Tong terminal resolves like a Shenzhen City Union one: 5180 + its last four bytes.
                 ChineseLocalProtocol.Kind.Shenzhen -> "深圳市" to (if (h.type == 6 || h.type == 9) cityUnionStation("5180" + h.terminal.takeLast(8)) else null)
-                ChineseLocalProtocol.Kind.Lingnan -> ChineseLocalProtocol.lingnanRecordCity(bytes) to null
+                ChineseLocalProtocol.Kind.Lingnan -> ChineseLocalProtocol.lingnanRecordCity(bytes) to (if (h.type == 6 || h.type == 9) cityUnionStation(h.terminal) else null)
                 else -> null to null
             }
             val bus = station?.type in setOf("BRT", "公交", "bus")
