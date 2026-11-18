@@ -35,7 +35,7 @@ struct CEPASDecoder: TransitCardDecoder {
             case .purse: ScanProgress.report(.balance)
             case .history(let next, let total): ScanProgress.report(.transactionCount(next, total))
             }
-        }) else { throw NFCTestError.unsupportedCard }
+        }, log: { DebugLog.shared.log("CEPAS", $0) }) else { throw NFCTestError.unsupportedCard }
         let rawPurse = card.purse.raw.map { String(format: "%02X", $0) }.joined()
         let history = card.rawHistory.map { $0.map { String(format: "%02X", $0) }.joined() }
         let uid = identifier.map { String(format: "%02X", $0) }.joined()
@@ -59,7 +59,7 @@ struct CEPASDecoder: TransitCardDecoder {
                 ResultField(title: "Purse Status", value: String(format: "0x%02X", card.purse.status)),
                 ResultField(title: "History", value: card.historyComplete ? "On-card records read" : "Some on-card records were unavailable")
             ],
-            rawSections: [RawDataSection(title: "CEPAS Purse 3", fields: [RawDataField(title: "Read Purse", value: rawPurse)])],
+            rawSections: [RawDataSection(title: "CEPAS Purse \(card.purseID)", fields: [RawDataField(title: "Read Purse", value: rawPurse)])],
             rawTransactions: history, rawTransitHistory: [], scannedAt: scannedAt
         )
     }

@@ -15,6 +15,7 @@ class ExternalReaderTests(unittest.TestCase):
         sources = [
             "ios/CardBal/NFC/CardTransport.swift",
             "ios/CardBal/NFC/ScanProgress.swift",
+            "ios/CardBal/Utils/DebugLog.swift",
             "ios/CardBal/NFC/ExternalCardReader.swift",
             "ios/CardBal/NFC/Decoders/TransitCardDecoder.swift",
             "ios/CardBal/NFC/Profiles/CEPASProtocol.swift",

@@ -2,6 +2,7 @@ package ad.neko.cardbal.android.nfc
 
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
+import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.RawDataField
 import ad.neko.cardbal.android.data.RawDataSection
 import ad.neko.cardbal.android.data.ResultField
@@ -16,11 +17,11 @@ class CEPASDecoder : TransitCardDecoder {
 
     override fun decode(tag: Tag, scannedAt: Instant): TransitCardSnapshot? {
         val technology = IsoDep.get(tag) ?: return null
-        return runCatching {
+        return try {
             technology.use { iso ->
                 iso.connect()
                 iso.timeout = 2500
-                val card = CepasProtocol.read(iso::transceive) ?: return null
+                val card = CepasProtocol.read({ DebugLog.log("CEPAS", it) }, iso::transceive) ?: return null
                 TransitCardSnapshot(
                     technology = "ISO7816", cardFamily = card.family,
                     identifierLabel = "CAN", identifierValue = card.serial,
@@ -33,11 +34,14 @@ class CEPASDecoder : TransitCardDecoder {
                         ResultField("Currency", "SGD"), ResultField("Purse Status", "0x%02X".format(card.purse.status)),
                         ResultField("History", if (card.historyComplete) "On-card records read" else "Some on-card records were unavailable"),
                     ),
-                    rawSections = listOf(RawDataSection("CEPAS Purse 3", listOf(RawDataField("Read Purse", card.purse.raw.hexString())))),
+                    rawSections = listOf(RawDataSection("CEPAS Purse ${card.purseId}", listOf(RawDataField("Read Purse", card.purse.raw.hexString())))),
                     rawTransactions = card.rawHistory.map { it.hexString() }, rawTransitHistory = emptyList(),
                     scannedAt = scannedAt,
                 )
             }
-        }.getOrNull()
+        } catch (error: Exception) {
+            DebugLog.log("CEPAS", "Failed: ${error.javaClass.simpleName.ifEmpty { "Exception" }}")
+            null
+        }
     }
 }

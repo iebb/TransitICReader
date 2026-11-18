@@ -4,6 +4,9 @@ import ad.neko.cardbal.android.data.AdditionalCardHistory
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Stands in for android.nfc.TagLostException, whose android.jar stub cannot be built in unit tests. */
+private class TagLostException : java.io.IOException()
+
 /** All bytes are invented fixtures, not reference-project captures. */
 class CepasProtocolTest {
     private fun purse(prefix: Int = 0x11, history: Int = 3) = ByteArray(63).also {
@@ -123,14 +126,14 @@ class CepasProtocolTest {
             byteArrayOf(0x90.toByte(), 1), purse() + byteArrayOf(0x69, 0x82.toByte()))) {
             var calls = 0
             assertNull(CepasProtocol.read { if (++calls == 1) ok(byteArrayOf()) else bad })
-            assertEquals(2, calls)
+            assertEquals(17, calls) // purse 3, then 0..15 without 3, each rejected
         }
         var calls = 0
         assertNull(CepasProtocol.read { if (++calls == 1) ok(byteArrayOf()) else byteArrayOf(0x6C, 63) })
-        assertEquals(3, calls)
+        assertEquals(33, calls)
         calls = 0
         assertNull(CepasProtocol.read { calls++; byteArrayOf(0x61, 1) })
-        assertEquals(16, calls)
+        assertEquals(48, calls)
     }
 
     @Test fun optionalUnavailableOrMalformedHistoryPreservesValidatedBalance() {
@@ -153,12 +156,131 @@ class CepasProtocolTest {
         assertEquals(2, calls)
     }
 
-    @Test fun selectionRejectionDoesNotReadPurseOrRewriteFileIDAsLe() {
-        for (status in listOf(byteArrayOf(0x6A, 0x82.toByte()), byteArrayOf(0x6C, 63))) {
-            val commands = mutableListOf<String>()
-            assertNull(CepasProtocol.read { command -> commands.add(command.hex()); status })
-            assertEquals(listOf("00A40000024000"), commands)
+    @Test fun selectionRejectionRetriesWithLeThenTriesPurseThreeOnceWithoutRewritingFileID() {
+        val commands = mutableListOf<String>()
+        assertNull(CepasProtocol.read { command -> commands.add(command.hex()); byteArrayOf(0x6A, 0x82.toByte()) })
+        assertEquals(listOf("00A40000024000", "00A4000002400000", "9032030000"), commands)
+        commands.clear()
+        assertNull(CepasProtocol.read { command -> commands.add(command.hex()); byteArrayOf(0x6C, 63) })
+        assertEquals(listOf("00A40000024000", "00A4000002400000", "00A400000240003F", "9032030000", "903203003F"), commands)
+    }
+
+    @Test fun selectWithLeIsUsedWhenTheCaseThreeFormIsRefused() {
+        val commands = mutableListOf<String>()
+        val logs = mutableListOf<String>()
+        val card = CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            when (command.hex()) {
+                "00A40000024000" -> byteArrayOf(0x67, 0)
+                "00A4000002400000" -> ok(byteArrayOf())
+                "9032030000" -> ok(purse(history = 1))
+                "90320300010010" -> ok(record())
+                else -> error("unexpected")
+            }
+        }!!
+        assertEquals(3, card.purseId)
+        assertTrue(card.historyComplete)
+        assertEquals(listOf("00A40000024000", "00A4000002400000", "9032030000", "90320300010010"), commands)
+        assertEquals(listOf("select: status 6700, 0 bytes"), logs)
+    }
+
+    @Test fun refusedSelectionStillReadsAValidPurseThreeWithAWarning() {
+        val commands = mutableListOf<String>()
+        val logs = mutableListOf<String>()
+        val card = CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            if (command.hex() == "9032030000") ok(purse(history = 0)) else byteArrayOf(0x6A, 0x82.toByte())
+        }!!
+        assertEquals(-100L, card.balanceMinor)
+        assertEquals(listOf("00A40000024000", "00A4000002400000", "9032030000"), commands)
+        assertEquals(listOf("select: status 6A82, 0 bytes", "select-le: status 6A82, 0 bytes",
+            "File 4000 not selected; trying purse 3 once", "Warning: purse read without selecting file 4000"), logs)
+    }
+
+    @Test fun missingPurseThreeFallsBackToTheFirstValidPurseAndItsHistory() {
+        val commands = mutableListOf<String>()
+        val logs = mutableListOf<String>()
+        val card = CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            when (command.hex()) {
+                "00A40000024000" -> ok(byteArrayOf())
+                "9032030000" -> byteArrayOf(0x6A, 0x83.toByte())
+                "9032000000" -> ok(purse().copyOf(40))
+                "9032010000" -> ok(purse(0x10, history = 1))
+                "90320100010010" -> ok(record())
+                else -> error("unexpected")
+            }
+        }!!
+        assertEquals(1, card.purseId)
+        assertEquals("EZ-Link", card.family)
+        assertEquals(-100L, card.balanceMinor)
+        assertTrue(card.historyComplete)
+        assertEquals(-275L, CepasProtocol.decodeHistory(card.rawHistory.single())!!.amountMinor)
+        assertEquals(listOf("00A40000024000", "9032030000", "9032000000", "9032010000", "90320100010010"), commands)
+        assertEquals(listOf("purse 3: status 6A83, 0 bytes", "parse purse 0: length not 63..256, 40 bytes, L -",
+            "Warning: purse 3 unavailable, using purse 1"), logs)
+    }
+
+    private fun rejected(id: Int): ByteArray = when (id % 4) {
+        0 -> purse().also { it[0] = 0 }
+        1 -> purse().also { it[41] = 2 }
+        2 -> purse().also { it[12] = 0x3A }
+        else -> purse().copyOf(62)
+    }
+
+    @Test fun everyPurseSlotFailingStaysUnsupportedAndLogsEachRule() {
+        val logs = mutableListOf<String>()
+        var calls = 0
+        val none = CepasProtocol.read(logs::add) { command ->
+            calls++
+            if (command.hex() == "00A40000024000") ok(byteArrayOf()) else ok(rejected(command[2].toInt()))
         }
+        assertNull(none)
+        assertEquals(17, calls)
+        for (rule in listOf("version 00/FF", "63+L exceeds length, 63 bytes, L 02", "CAN not BCD", "length not 63..256, 62 bytes, L 00"))
+            assertTrue(rule, logs.any { rule in it })
+        assertEquals("Unsupported: no valid purse in 16 tried", logs.last())
+        assertFalse(logs.joinToString().contains("1234567890")) // no CAN digits or payload
+        logs.clear()
+        val commands = mutableListOf<String>()
+        assertNull(CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            if (command.hex() == "9032030000") ok(rejected(3)) else byteArrayOf(0x6A, 0x82.toByte())
+        })
+        assertEquals(3, commands.size)
+        assertEquals("Unsupported: no valid purse in 1 tried", logs.last())
+    }
+
+    @Test fun lostCardUnsupportedCommandOrCommandLimitEndsThePurseSearch() {
+        val logs = mutableListOf<String>()
+        var calls = 0
+        assertNull(CepasProtocol.read(logs::add) { if (++calls == 1) ok(byteArrayOf()) else throw TagLostException() })
+        assertEquals(2, calls)
+        assertEquals(listOf("purse 3: no reply (TagLostException)",
+            "Unsupported: no valid purse (card connection lost: TagLostException)"), logs)
+        calls = 0
+        assertNull(CepasProtocol.read { if (++calls == 1) ok(byteArrayOf()) else byteArrayOf(0x6E, 0) })
+        assertEquals(2, calls)
+        logs.clear()
+        calls = 0
+        assertNull(CepasProtocol.read(logs::add) { if (++calls == 1) ok(byteArrayOf()) else byteArrayOf(0x61, 1) })
+        assertEquals(65, calls)
+        assertEquals("Unsupported: no valid purse (command limit reached)", logs.last())
+    }
+
+    @Test fun historyFailureIsLoggedWithoutLosingTheBalance() {
+        val logs = mutableListOf<String>()
+        var calls = 0
+        val card = CepasProtocol.read(logs::add) {
+            when (++calls) {
+                1 -> ok(byteArrayOf())
+                2 -> ok(purse(history = 2))
+                else -> byteArrayOf(0x69, 0x82.toByte())
+            }
+        }!!
+        assertEquals(-100L, card.balanceMinor)
+        assertFalse(card.historyComplete)
+        assertEquals(listOf("history 0: status 6982, 0 bytes", "Warning: history incomplete, 0 of 2 records"), logs)
     }
 
     @Test fun historyIsPagedWithinFifteenRecordsAndOversizedResponsesAreRejected() {

@@ -112,16 +112,21 @@ precondition(chained != nil && chains[2] == Data([0, 0xC0, 0, 0, 43]))
 for response in [Data(), Data([0x90]), Data([0x91, 0]), Data([0x90, 1]), ok(Data(purse().prefix(5))), purse() + Data([0x69, 0x82])] {
     var count = 0
     let failed = await CEPASProtocol.read { _ in count += 1; return count == 1 ? ok(Data()) : response }
-    precondition(failed == nil && count == 2)
+    precondition(failed == nil && count == 17) // purse 3, then 0...15 without 3, each rejected
 }
-for status in [Data([0x6A, 0x82]), Data([0x6C, 63])] {
-    var commands: [Data] = []
-    let rejected = await CEPASProtocol.read { command in commands.append(command); return status }
-    precondition(rejected == nil && commands == [CEPASProtocol.selectFileCommand()])
-}
+// A refused SELECT is retried once with Le, then GET PURSE 3 is tried once;
+// the case-3 SELECT's file ID is never rewritten as Le.
+var commands: [Data] = []
+let refused = await CEPASProtocol.read { command in commands.append(command); return Data([0x6A, 0x82]) }
+precondition(refused == nil)
+precondition(commands.map(hex) == ["00A40000024000", "00A4000002400000", "9032030000"])
+commands = []
+let wrongLength = await CEPASProtocol.read { command in commands.append(command); return Data([0x6C, 63]) }
+precondition(wrongLength == nil)
+precondition(commands.map(hex) == ["00A40000024000", "00A4000002400000", "00A400000240003F", "9032030000", "903203003F"])
 var count = 0
 let loop = await CEPASProtocol.read { _ in count += 1; return Data([0x61, 1]) }
-precondition(loop == nil && count == 16)
+precondition(loop == nil && count == 48)
 count = 0
 let failedHistory = await CEPASProtocol.read { _ in
     count += 1
@@ -157,6 +162,121 @@ let oversized = await CEPASProtocol.read { _ in
 }
 precondition(oversized!.balanceMinor == -100 && !oversized!.historyComplete && oversized!.rawHistory.isEmpty)
 precondition(CEPASProtocol.issuerTimeZone == "Asia/Singapore")
+
+// SELECT fallback: case-3 refused, the Le form accepted.
+var logs: [String] = []
+commands = []
+let withLe = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    switch hex(command) {
+    case "00A40000024000": return Data([0x67, 0x00])
+    case "00A4000002400000", "90320300010010": return ok(hex(command) == "90320300010010" ? record() : Data())
+    case "9032030000": return ok(purse(history: 1))
+    default: fatalError("unexpected command")
+    }
+}, log: { logs.append($0) })
+precondition(withLe!.purseID == 3 && withLe!.historyComplete && withLe!.rawHistory.count == 1)
+precondition(commands.map(hex) == ["00A40000024000", "00A4000002400000", "9032030000", "90320300010010"])
+precondition(logs == ["select: status 6700, 0 bytes"])
+
+// Both SELECTs refused: GET PURSE 3 is still tried once, with a warning.
+logs = []
+commands = []
+let unselected = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    return hex(command) == "9032030000" ? ok(purse(history: 0)) : Data([0x6A, 0x82])
+}, log: { logs.append($0) })
+precondition(unselected!.balanceMinor == -100 && unselected!.purseID == 3)
+precondition(commands.map(hex) == ["00A40000024000", "00A4000002400000", "9032030000"])
+precondition(logs == ["select: status 6A82, 0 bytes", "select-le: status 6A82, 0 bytes",
+                      "File 4000 not selected; trying purse 3 once", "Warning: purse read without selecting file 4000"])
+
+// Purse 3 missing, purse 0 malformed, purse 1 valid: purse 1 and its history are used.
+logs = []
+commands = []
+let other = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    switch hex(command) {
+    case "00A40000024000": return ok(Data())
+    case "9032030000": return Data([0x6A, 0x83])
+    case "9032000000": return ok(Data(purse().prefix(40)))
+    case "9032010000": return ok(purse(0x10, history: 1))
+    case "90320100010010": return ok(record())
+    default: fatalError("unexpected command")
+    }
+}, log: { logs.append($0) })
+precondition(other!.purseID == 1 && other!.family == "EZ-Link" && other!.balanceMinor == -100)
+precondition(other!.historyComplete && CEPASProtocol.decodeHistory(other!.rawHistory[0])!.amountMinor == -275)
+precondition(commands.map(hex) == ["00A40000024000", "9032030000", "9032000000", "9032010000", "90320100010010"])
+precondition(logs == ["purse 3: status 6A83, 0 bytes", "parse purse 0: length not 63..256, 40 bytes, L -",
+                      "Warning: purse 3 unavailable, using purse 1"])
+
+// Every slot fails a parse rule: unsupported, never a balance, and the log says why.
+func rejected(_ id: UInt8) -> Data {
+    var p = purse()
+    switch id % 4 {
+    case 0: p[0] = 0
+    case 1: p[41] = 2
+    case 2: p[12] = 0x3A
+    default: p = Data(p.prefix(62))
+    }
+    return p
+}
+logs = []
+count = 0
+let none = await CEPASProtocol.read(exchange: { command in
+    count += 1
+    return hex(command) == "00A40000024000" ? ok(Data()) : ok(rejected(command[2]))
+}, log: { logs.append($0) })
+precondition(none == nil && count == 17)
+for rule in ["version 00/FF", "63+L exceeds length, 63 bytes, L 02", "CAN not BCD", "length not 63..256, 62 bytes, L 00"] {
+    precondition(logs.contains { $0.contains(rule) }, rule)
+}
+precondition(logs.last == "Unsupported: no valid purse in 16 tried")
+precondition(!logs.joined().contains("1234567890")) // no CAN digits or payload in the log
+// SELECT fallback with the only tried purse invalid stays unsupported too.
+logs = []
+commands = []
+let unselectedInvalid = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    return hex(command) == "9032030000" ? ok(rejected(3)) : Data([0x6A, 0x82])
+}, log: { logs.append($0) })
+precondition(unselectedInvalid == nil && commands.count == 3)
+precondition(logs.last == "Unsupported: no valid purse in 1 tried")
+
+// A lost card or an unsupported command ends the purse search at once.
+struct TagLost: Error {}
+logs = []
+count = 0
+let lost = await CEPASProtocol.read(exchange: { command in
+    count += 1
+    if count == 1 { return ok(Data()) }
+    throw TagLost()
+}, log: { logs.append($0) })
+precondition(lost == nil && count == 2)
+precondition(logs == ["purse 3: no reply (TagLost)", "Unsupported: no valid purse (card connection lost: TagLost)"])
+count = 0
+let unsupported = await CEPASProtocol.read { _ in count += 1; return count == 1 ? ok(Data()) : Data([0x6D, 0]) }
+precondition(unsupported == nil && count == 2)
+// Endless chaining stops at the command limit.
+logs = []
+count = 0
+let limited = await CEPASProtocol.read(exchange: { _ in
+    count += 1
+    return count == 1 ? ok(Data()) : Data([0x61, 1])
+}, log: { logs.append($0) })
+precondition(limited == nil && count == 65)
+precondition(logs.last == "Unsupported: no valid purse (command limit reached)")
+
+// History failures keep the purse and say where reading stopped.
+logs = []
+count = 0
+let partial = await CEPASProtocol.read(exchange: { _ in
+    count += 1
+    return count == 1 ? ok(Data()) : count == 2 ? ok(purse(history: 2)) : Data([0x69, 0x82])
+}, log: { logs.append($0) })
+precondition(partial!.balanceMinor == -100 && !partial!.historyComplete)
+precondition(logs == ["history 0: status 6982, 0 bytes", "Warning: history incomplete, 0 of 2 records"])
 print("PASS CEPAS independent protocol")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-cepas-synthetic-") as directory:
