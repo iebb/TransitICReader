@@ -1,9 +1,12 @@
 <resources>
+    <!-- Dark launch background, so dark mode starts without a cream flash. -->
+    <color name="splash_background">#1C1B1F</color>
+
     <style name="BaseAppTheme" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:colorAccent">#008F8C</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#1C1B1F</item>
-        <item name="android:navigationBarColor">#1C1B1F</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
         <item name="android:fontFamily">sans</item>
     </style>
 
