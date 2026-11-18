@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -19,6 +20,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -129,6 +136,8 @@ class MainActivity : ComponentActivity() {
     private val reader: CardBalNfcReader by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Draw behind the bars on every API level; the bar icons follow the system dark theme.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         DebugLog.install(noBackupFilesDir)
         // AirFeedback crash reports: a crash is saved and sent on the next launch.
@@ -204,6 +213,8 @@ private fun CardBalApp(
         val routePoints = remember(selectedCard) { transactionDecoder.stationPinsFor(selectedCard) }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             CardDetailScreen(
+                // Its top app bars take the status bar; keep content clear of the navigation bar and cutouts.
+                modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
                 card = selectedCard,
                 transactions = transactions,
                 routePoints = routePoints,
@@ -244,10 +255,12 @@ private fun CardBalApp(
             }
         },
     ) { padding ->
+        // Consumed so top app bars inside a tab (Feedback, card faces) don't add the status bar again.
         val contentModifier = if (Tab.entries[selectedTab] == Tab.Map) {
-            Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())
+            val bottom = PaddingValues(bottom = padding.calculateBottomPadding())
+            Modifier.fillMaxSize().padding(bottom).consumeWindowInsets(bottom)
         } else {
-            Modifier.fillMaxSize().padding(padding)
+            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
         }
         Surface(contentModifier, color = MaterialTheme.colorScheme.background) {
             when (Tab.entries[selectedTab]) {
