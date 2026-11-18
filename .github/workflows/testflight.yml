@@ -10,7 +10,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: cardbal-stores
@@ -38,15 +38,36 @@ jobs:
       - name: Install App Store Connect client
         run: python3 -m pip install -r tools/release/requirements-appstore.txt
       - id: build
-        name: Assign the next build number
-        # One above the highest plain build number already in App Store Connect.
+        name: Select open marketing version and next build number
+        # One above the highest plain build number already in App Store Connect;
+        # advances patch version when the repository's train is closed in ASC.
         env:
           ASC_APP_ID: ${{ vars.ASC_APP_ID }}
           ASC_KEY_TYPE: ${{ vars.ASC_KEY_TYPE || 'team' }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-        run: python3 -m tools.release.ios_build_number
+          CANDIDATE_VERSION: ${{ steps.version.outputs.version }}
+          EXPLICIT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -z "${EXPLICIT_VERSION// /}" ]; then
+            python3 -m tools.release.ios_build_number --version "$CANDIDATE_VERSION" --allow-bump
+          else
+            python3 -m tools.release.ios_build_number --version "$CANDIDATE_VERSION"
+          fi
+      - name: Bump closed version in repository
+        if: steps.build.outputs.version_bumped == 'true'
+        env:
+          BUMPED_VERSION: ${{ steps.build.outputs.ios_version }}
+        run: |
+          python3 -m tools.release.versions --write-version "$BUMPED_VERSION"
+          if ! git diff --quiet -- CardBal.xcodeproj/project.pbxproj android/app/build.gradle.kts; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add CardBal.xcodeproj/project.pbxproj android/app/build.gradle.kts
+            git commit -m "chore(release): bump version to $BUMPED_VERSION"
+            git push origin HEAD:master || echo "::warning::Skipped pushing version bump because master advanced concurrently"
+          fi
       - run: xcodebuild -version
       - name: Compile pinned station catalog
         run: python3 -m tools.stations.build --source csv --target all --no-sync-android
@@ -54,7 +75,7 @@ jobs:
         run: python3 -m unittest discover -s tests -t .
       - name: Archive and export signed iOS app
         env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_VERSION: ${{ steps.build.outputs.ios_version }}
           IOS_BUILD_NUMBER: ${{ steps.build.outputs.ios_build }}
           IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
@@ -64,7 +85,7 @@ jobs:
         run: bash tools/release/ios_archive.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ios-${{ steps.version.outputs.version }}-${{ steps.build.outputs.ios_build }}
+          name: ios-${{ steps.build.outputs.ios_version }}-${{ steps.build.outputs.ios_build }}
           path: |
             build/ios/export/*.ipa
             build/ios/CardBal.xcarchive/dSYMs
@@ -78,6 +99,6 @@ jobs:
         run: python3 -m tools.release.testflight --ipa build/ios/export/CardBal.ipa
       - name: Record upload
         env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_VERSION: ${{ steps.build.outputs.ios_version }}
           IOS_BUILD_NUMBER: ${{ steps.build.outputs.ios_build }}
         run: echo "Uploaded iOS $RELEASE_VERSION ($IOS_BUILD_NUMBER) to TestFlight. Apple processing may still be pending." >> "$GITHUB_STEP_SUMMARY"

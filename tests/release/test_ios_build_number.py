@@ -7,7 +7,27 @@ from unittest import mock
 
 from tools.release import ios_build_number
 from tools.release.app_store import ReleaseError
-from tools.release.ios_build_number import next_ios_build, uploaded_build_numbers
+from tools.release.ios_build_number import next_ios_build, open_ios_version, uploaded_build_numbers
+
+
+class OpenVersionTests(unittest.TestCase):
+    def test_bumps_closed_train_and_keeps_editable_or_in_review_train(self):
+        self.assertEqual(
+            open_ios_version("2.5.0", [{"attributes": {"versionString": "2.5.0", "appVersionState": "READY_FOR_DISTRIBUTION"}}]),
+            "2.5.1",
+        )
+        self.assertEqual(
+            open_ios_version("2.5.0", [{"attributes": {"versionString": "2.5.0", "appStoreState": "READY_FOR_SALE"}}]),
+            "2.5.1",
+        )
+        self.assertEqual(
+            open_ios_version("2.5.0", [{"attributes": {"versionString": "2.5.0", "appVersionState": "WAITING_FOR_REVIEW"}}]),
+            "2.5.0",
+        )
+        self.assertEqual(
+            open_ios_version("2.5.0", [{"attributes": {"versionString": "2.5.0", "appStoreState": "PREPARE_FOR_SUBMISSION"}}]),
+            "2.5.0",
+        )
 
 
 class NextBuildTests(unittest.TestCase):

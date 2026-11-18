@@ -82,10 +82,43 @@ def paired_store_builds(apple: dict, google: dict) -> dict[str, str]:
     return {"version": build["version"], "ios_build_id": build["id"], "android_version_code": str(int(code))}
 
 
+def write_repository_version(version: str, root: Path = ROOT) -> bool:
+    if not re.fullmatch(VERSION_PATTERN, version):
+        raise ValueError("Version must have three numeric components, for example 2.5.0.")
+    ios_path = root / IOS_PROJECT
+    android_path = root / ANDROID_BUILD_SCRIPT
+    ios_before = ios_path.read_text(encoding="utf-8")
+    android_before = android_path.read_text(encoding="utf-8")
+    ios_after = re.sub(
+        r'^(\s*MARKETING_VERSION = )"[^";\s]*"(;)$|^(\s*MARKETING_VERSION = )[^";\s]+(;)$',
+        lambda m: f'{m.group(1)}"{version}"{m.group(2)}' if m.group(1) else f"{m.group(3)}{version}{m.group(4)}",
+        ios_before,
+        flags=re.MULTILINE,
+    )
+    android_after = re.sub(
+        r'(gradleProperty\("transitic\.versionName"\)\.orElse\(")([^"]*)("\))',
+        rf"\g<1>{version}\g<3>",
+        android_before,
+    )
+    if ios_marketing_version(ios_after) != version or android_version_name(android_after) != version:
+        raise ValueError(f"Could not update both repository version declarations to {version}.")
+    changed = (ios_after != ios_before) or (android_after != android_before)
+    if ios_after != ios_before:
+        ios_path.write_text(ios_after, encoding="utf-8")
+    if android_after != android_before:
+        android_path.write_text(android_after, encoding="utf-8")
+    return changed
+
+
 def main(argv: list[str] | None = None, now: datetime | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args(argv)
+    parser.add_argument("--write-version", help="Update iOS and Android repository marketing versions")
+    args = parser.parse_args(argv)
     try:
+        if args.write_version is not None:
+            write_repository_version(args.write_version)
+            print(f"Updated iOS and Android repository versions to {args.write_version}")
+            return
         values = upload_versions(os.environ.get("RELEASE_VERSION", ""), now)
     except ValueError as error:
         parser.error(str(error))
