@@ -19,7 +19,9 @@ struct CEPASDecoder: TransitCardDecoder {
         case .iso7816(let iso):
             identifier = iso.identifier
             exchange = { command in
-                guard let apdu = CardAPDU(data: command) else { throw NFCTestError.unsupportedCard }
+                // The legacy six-byte GET PURSE is no valid APDU here (Core NFC
+                // refuses it too); the protocol skips it and goes on.
+                guard let apdu = CardAPDU(data: command) else { throw CEPASProtocol.CommandNotSendable() }
                 let response = try await iso.sendCommand(apdu: apdu)
                 return response.0 + Data([response.1, response.2])
             }
@@ -27,7 +29,10 @@ struct CEPASDecoder: TransitCardDecoder {
             identifier = mifare.identifier
             // Core NFC's raw MIFARE path retains APDU status bytes. Do not use
             // an AID SELECT to work around discovery restrictions.
-            exchange = { try await mifare.sendMiFareCommand(commandPacket: $0) }
+            exchange = { command in
+                do { return try await mifare.sendMiFareCommand(commandPacket: command) }
+                catch is CardCommandNotSendable { throw CEPASProtocol.CommandNotSendable() }
+            }
         default: throw NFCTestError.unsupportedCard
         }
         guard let card = await CEPASProtocol.read(exchange: exchange, progress: { stage in

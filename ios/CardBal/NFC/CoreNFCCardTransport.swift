@@ -26,7 +26,11 @@ private struct CoreMiFareCard: MiFareCard {
         }
     }
     func sendMiFareCommand(commandPacket: Data) async throws -> Data {
-        try await card.sendMiFareCommand(commandPacket: commandPacket)
+        do { return try await card.sendMiFareCommand(commandPacket: commandPacket) }
+        catch let error as NFCReaderError
+            where error.code == .readerErrorInvalidParameter || error.code == .readerErrorInvalidParameterLength {
+            throw CardCommandNotSendable()
+        }
     }
 }
 

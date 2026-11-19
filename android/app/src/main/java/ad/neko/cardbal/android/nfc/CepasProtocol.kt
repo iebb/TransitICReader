@@ -37,6 +37,9 @@ internal object CepasProtocol {
     /** The same SELECT with Le 00, for cards that refuse the case-3 form. */
     fun selectFileWithLeCommand() = byteArrayOf(0, 0xA4.toByte(), 0, 0, 2, 0x40, 0, 0)
     fun purseCommand(purseId: Int = PURSE_ID) = byteArrayOf(0x90.toByte(), 0x32, purseId.toByte(), 0, 0)
+    /** The six-byte GET PURSE some legacy cards need (CoreExtendedNFC's note);
+     * tried first when the short form answers 6700. */
+    fun purseLegacyCommand(purseId: Int = PURSE_ID) = byteArrayOf(0x90.toByte(), 0x32, purseId.toByte(), 0, 0, 0)
     /** GET PURSE with Lc 1, data 00 and Le 00, for cards that answer the short form with 6700. */
     fun purseWithDataCommand(purseId: Int = PURSE_ID) = byteArrayOf(0x90.toByte(), 0x32, purseId.toByte(), 0, 1, 0, 0)
     fun historyCommand(offset: Int, count: Int, purseId: Int = PURSE_ID): ByteArray? = if (offset in 0..254 && count in 1..15)
@@ -97,9 +100,10 @@ internal object CepasProtocol {
     /**
      * Select file 4000 (again with Le if refused; GET PURSE is still tried once
      * without it), then purse 3, then the other purses 0..15 until one passes
-     * [parsePurse]. A purse answering 6700 is asked once more with Lc 1; once
-     * that form is understood (9000 or 6B00) it is used for the remaining
-     * purses. A lost card or an unsupported command ends the search.
+     * [parsePurse]. A purse answering 6700 is asked again with the legacy
+     * six-byte form, then with Lc 1; the first form understood (9000 or 6B00)
+     * is used for the remaining purses. A lost card or an unsupported command
+     * ends the search.
      * [log] gets stages, status words and lengths only, never response bytes.
      */
     fun read(log: (String) -> Unit = {}, exchange: (ByteArray) -> ByteArray): ReadResult? {
@@ -114,16 +118,19 @@ internal object CepasProtocol {
         val candidates = if (selected) listOf(PURSE_ID) + (0..15).filter { it != PURSE_ID } else listOf(PURSE_ID)
         var found: Pair<Int, Purse>? = null
         var stop: String? = null
-        var withData = false
+        var form = PurseForm.Short
         for (id in candidates) {
             if (sent >= EXCHANGE_LIMIT) { stop = "command limit reached"; break }
-            var reply = if (withData) attempt("purse $id lc", purseWithDataCommand(id), 256)
-                else attempt("purse $id", purseCommand(id), 256)
-            if (!withData && reply.status == 0x6700 && reply.data == null && reply.error == null) {
-                if (sent >= EXCHANGE_LIMIT) { stop = "command limit reached"; break }
-                log("purse $id: retrying with Lc 1")
-                reply = attempt("purse $id lc", purseWithDataCommand(id), 256)
-                if (reply.data != null || reply.status == 0x6B00) withData = true
+            var reply = attempt(form.stage(id), form.command(id), 256)
+            if (form == PurseForm.Short && reply.wrongLength()) {
+                for (retry in listOf(PurseForm.Legacy, PurseForm.WithData)) {
+                    if (sent >= EXCHANGE_LIMIT) { stop = "command limit reached"; break }
+                    log("purse $id: retrying with ${if (retry == PurseForm.Legacy) "legacy form" else "Lc 1"}")
+                    reply = attempt(retry.stage(id), retry.command(id), 256)
+                    if (reply.understood()) { form = retry; break }
+                    if (reply.stopReason() != null) break
+                }
+                if (stop != null) break
             }
             val payload = reply.data
             if (payload == null) {
@@ -162,8 +169,26 @@ internal object CepasProtocol {
         return ReadResult(purse, purseId, records, offset == purse.historyCount)
     }
 
+    /** The GET PURSE wire form in use: short until a purse answers 6700. */
+    private enum class PurseForm {
+        Short, Legacy, WithData;
+        fun command(id: Int) = when (this) {
+            Short -> purseCommand(id)
+            Legacy -> purseLegacyCommand(id)
+            WithData -> purseWithDataCommand(id)
+        }
+        fun stage(id: Int) = when (this) {
+            Short -> "purse $id"
+            Legacy -> "purse $id legacy"
+            WithData -> "purse $id lc"
+        }
+    }
+
     /** Payload on exact 9000, otherwise the last status word, length and any transport error. */
     private class Reply(val data: ByteArray?, val status: Int = -1, val length: Int = 0, val error: String? = null) {
+        fun wrongLength() = data == null && error == null && status == 0x6700
+        /** The card accepted this GET PURSE form: data, or a missing purse. */
+        fun understood() = data != null || (error == null && status == 0x6B00)
         fun summary() = when {
             error != null -> "no reply ($error)"
             status < 0 -> "short reply, $length bytes"

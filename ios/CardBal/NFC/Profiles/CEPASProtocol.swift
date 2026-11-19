@@ -59,8 +59,34 @@ enum CEPASProtocol {
     /// The same SELECT with Le 00, for cards that refuse the case-3 form.
     static func selectFileWithLeCommand() -> Data { Data([0, 0xA4, 0, 0, 2, 0x40, 0, 0]) }
     static func purseCommand(_ id: UInt8 = purseID) -> Data { Data([0x90, 0x32, id, 0, 0]) }
+    /// The six-byte GET PURSE some legacy cards need (CoreExtendedNFC's note);
+    /// tried first when the short form answers 6700.
+    static func purseLegacyCommand(_ id: UInt8 = purseID) -> Data { Data([0x90, 0x32, id, 0, 0, 0]) }
     /// GET PURSE with Lc 1, data 00 and Le 00, for cards that answer the short form with 6700.
     static func purseWithDataCommand(_ id: UInt8 = purseID) -> Data { Data([0x90, 0x32, id, 0, 1, 0, 0]) }
+
+    /// Thrown by an exchange that cannot express a command on its transport.
+    /// The card was never asked, so the read skips that form and carries on.
+    struct CommandNotSendable: Error {}
+
+    /// The GET PURSE wire form in use: short until a purse answers 6700.
+    private enum PurseForm {
+        case short, legacy, withData
+        func command(_ id: UInt8) -> Data {
+            switch self {
+            case .short: return CEPASProtocol.purseCommand(id)
+            case .legacy: return CEPASProtocol.purseLegacyCommand(id)
+            case .withData: return CEPASProtocol.purseWithDataCommand(id)
+            }
+        }
+        func stage(_ id: UInt8) -> String {
+            switch self {
+            case .short: return "purse \(id)"
+            case .legacy: return "purse \(id) legacy"
+            case .withData: return "purse \(id) lc"
+            }
+        }
+    }
     static func historyCommand(offset: Int, count: Int, purse id: UInt8 = purseID) -> Data? {
         guard (0...254).contains(offset), (1...15).contains(count) else { return nil }
         return Data([0x90, 0x32, id, 0, 1, UInt8(offset), UInt8(count * 16)])
@@ -135,9 +161,10 @@ enum CEPASProtocol {
 
     /// Select file 4000 (again with Le if refused; GET PURSE is still tried once
     /// without it), then purse 3, then the other purses 0...15 until one passes
-    /// `parsePurse`. A purse answering 6700 is asked once more with Lc 1; once
-    /// that form is understood (9000 or 6B00) it is used for the remaining
-    /// purses. A lost card or an unsupported command ends the search.
+    /// `parsePurse`. A purse answering 6700 is asked again with the legacy
+    /// six-byte form, then with Lc 1; the first form understood (9000 or 6B00)
+    /// is used for the remaining purses. A form the transport cannot send is
+    /// skipped. A lost card or an unsupported command ends the search.
     /// Optional log failures never erase a validated balance. `log` gets
     /// stages, status words and lengths only, never response bytes.
     static func read(exchange: (Data) async throws -> Data,
@@ -146,7 +173,8 @@ enum CEPASProtocol {
         var sent = 0
         func attempt(_ stage: String, _ command: Data, maximum: Int) async -> Reply {
             let reply = await request(command, maximum: maximum) { sent += 1; return try await exchange($0) }
-            if reply.data == nil { log("\(stage): \(reply.summary)") }
+            if reply.notSendable { sent -= 1 } // never reached the card
+            else if reply.data == nil { log("\(stage): \(reply.summary)") }
             return reply
         }
 
@@ -157,16 +185,26 @@ enum CEPASProtocol {
         let candidates: [UInt8] = selected ? [purseID] + (UInt8(0)...15).filter { $0 != purseID } : [purseID]
         var found: (id: UInt8, purse: Purse)?
         var stop: String?
-        var withData = false
+        var form = PurseForm.short
+        var legacySendable = true
         for id in candidates {
             if sent >= exchangeLimit { stop = "command limit reached"; break }
-            var reply = await withData ? attempt("purse \(id) lc", purseWithDataCommand(id), maximum: 256)
-                : attempt("purse \(id)", purseCommand(id), maximum: 256)
-            if !withData, reply.status == 0x6700, reply.data == nil, reply.error == nil {
-                if sent >= exchangeLimit { stop = "command limit reached"; break }
-                log("purse \(id): retrying with Lc 1")
-                reply = await attempt("purse \(id) lc", purseWithDataCommand(id), maximum: 256)
-                if reply.data != nil || reply.status == 0x6B00 { withData = true }
+            var reply = await attempt(form.stage(id), form.command(id), maximum: 256)
+            if form == .short, reply.wrongLength {
+                for retry in [PurseForm.legacy, .withData] where retry != .legacy || legacySendable {
+                    if sent >= exchangeLimit { stop = "command limit reached"; break }
+                    log("purse \(id): retrying with \(retry == .legacy ? "legacy form" : "Lc 1")")
+                    let next = await attempt(retry.stage(id), retry.command(id), maximum: 256)
+                    if next.notSendable {
+                        legacySendable = false
+                        log("purse \(id): legacy form not sendable on this device")
+                        continue
+                    }
+                    reply = next
+                    if reply.understood { form = retry; break }
+                    if reply.stopReason != nil { break }
+                }
+                if stop != nil { break }
             }
             guard let payload = reply.data else {
                 if let reason = reply.stopReason { stop = reason; break }
@@ -214,6 +252,12 @@ enum CEPASProtocol {
         var status: Int = -1
         var length = 0
         var error: String?
+        /// The exchange refused to send the command; the card was never asked.
+        var notSendable = false
+
+        var wrongLength: Bool { data == nil && error == nil && !notSendable && status == 0x6700 }
+        /// The card accepted this GET PURSE form: data, or a missing purse.
+        var understood: Bool { data != nil || (error == nil && status == 0x6B00) }
 
         var summary: String {
             if let error { return "no reply (\(error))" }
@@ -241,6 +285,7 @@ enum CEPASProtocol {
         for _ in 0..<16 {
             let response: Data
             do { response = try await exchange(command) }
+            catch is CommandNotSendable { return Reply(data: nil, status: status, length: collected.count, notSendable: true) }
             catch { return Reply(data: nil, status: status, length: collected.count, error: String(describing: type(of: error))) }
             guard response.count >= 2 else { return Reply(data: nil, length: response.count) }
             let b = Array(response)

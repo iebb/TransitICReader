@@ -278,58 +278,114 @@ let partial = await CEPASProtocol.read(exchange: { _ in
 precondition(partial!.balanceMinor == -100 && !partial!.historyComplete)
 precondition(logs == ["history 0: status 6982, 0 bytes", "Warning: history incomplete, 0 of 2 records"])
 
-// Purse 3 answers the short GET PURSE with 6700: it is asked once more with Lc 1.
+// Purse 3 answers the short GET PURSE with 6700: the legacy six-byte form is tried first.
+precondition(hex(CEPASProtocol.purseLegacyCommand()) == "903203000000")
 precondition(hex(CEPASProtocol.purseWithDataCommand()) == "90320300010000")
+logs = []
+commands = []
+let legacyRead = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    switch hex(command) {
+    case "00A40000024000": return ok(Data())
+    case "9032030000": return Data([0x67, 0x00])
+    case "903203000000": return ok(purse(0x10, history: 1))
+    case "90320300010010": return ok(record())
+    default: fatalError("unexpected command")
+    }
+}, log: { logs.append($0) })
+precondition(legacyRead!.purseID == 3 && legacyRead!.family == "EZ-Link" && legacyRead!.balanceMinor == -100 && legacyRead!.historyComplete)
+precondition(commands.map(hex) == ["00A40000024000", "9032030000", "903203000000", "90320300010010"])
+precondition(logs == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with legacy form"])
+// Legacy also 6700: the Lc 1 form reads the purse.
 logs = []
 commands = []
 let lcRead = await CEPASProtocol.read(exchange: { command in
     commands.append(command)
     switch hex(command) {
     case "00A40000024000": return ok(Data())
-    case "9032030000": return Data([0x67, 0x00])
+    case "9032030000", "903203000000": return Data([0x67, 0x00])
     case "90320300010000": return ok(purse(0x10, history: 1))
     case "90320300010010": return ok(record())
     default: fatalError("unexpected command")
     }
 }, log: { logs.append($0) })
-precondition(lcRead!.purseID == 3 && lcRead!.family == "EZ-Link" && lcRead!.balanceMinor == -100 && lcRead!.historyComplete)
-precondition(commands.map(hex) == ["00A40000024000", "9032030000", "90320300010000", "90320300010010"])
-precondition(logs == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1"])
-// Lc form also 6700: not adopted, the other purses keep the short form.
+precondition(lcRead!.purseID == 3 && lcRead!.balanceMinor == -100 && lcRead!.historyComplete)
+precondition(commands.map(hex) == ["00A40000024000", "9032030000", "903203000000", "90320300010000", "90320300010010"])
+precondition(logs == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with legacy form",
+                      "purse 3 legacy: status 6700, 0 bytes", "purse 3: retrying with Lc 1"])
+// The transport cannot send the legacy form (Core NFC): it is skipped, never a lost card.
 logs = []
 commands = []
-let lcWrong = await CEPASProtocol.read(exchange: { command in
+let skipped = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    if command.count == 6 { throw CEPASProtocol.CommandNotSendable() }
+    switch hex(command) {
+    case "00A40000024000": return ok(Data())
+    case "9032030000": return Data([0x67, 0x00])
+    case "90320300010000": return ok(purse(0x10, history: 0))
+    default: fatalError("unexpected command")
+    }
+}, log: { logs.append($0) })
+precondition(skipped!.purseID == 3 && skipped!.balanceMinor == -100)
+precondition(commands.map(hex) == ["00A40000024000", "9032030000", "903203000000", "90320300010000"])
+precondition(logs == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with legacy form",
+                      "purse 3: legacy form not sendable on this device", "purse 3: retrying with Lc 1"])
+// Unsendable legacy and every purse 6700: the legacy form is not offered again, the search runs on.
+logs = []
+commands = []
+let skippedAll = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    if command.count == 6 { throw CEPASProtocol.CommandNotSendable() }
+    return hex(command) == "00A40000024000" ? ok(Data()) : Data([0x67, 0x00])
+}, log: { logs.append($0) })
+precondition(skippedAll == nil && commands.count == 34 && commands.filter { $0.count == 6 }.count == 1)
+precondition(logs.filter { $0.contains("not sendable") }.count == 1)
+precondition(logs.last == "Unsupported: no valid purse in 16 tried")
+// Every form 6700 on purse 3: no retry is adopted, the other purses keep the short form.
+logs = []
+commands = []
+let allWrong = await CEPASProtocol.read(exchange: { command in
     commands.append(command)
     if hex(command) == "00A40000024000" { return ok(Data()) }
     return command[2] == 3 ? Data([0x67, 0x00]) : Data([0x6B, 0x00])
 }, log: { logs.append($0) })
-precondition(lcWrong == nil && commands.count == 18)
-precondition(Array(commands.map(hex)[1..<4]) == ["9032030000", "90320300010000", "9032000000"])
-precondition(Array(logs.prefix(4)) == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1",
+precondition(allWrong == nil && commands.count == 19)
+precondition(Array(commands.map(hex)[1..<5]) == ["9032030000", "903203000000", "90320300010000", "9032000000"])
+precondition(Array(logs.prefix(6)) == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with legacy form",
+                                       "purse 3 legacy: status 6700, 0 bytes", "purse 3: retrying with Lc 1",
                                        "purse 3 lc: status 6700, 0 bytes", "purse 0: status 6B00, 0 bytes"])
 precondition(logs.last == "Unsupported: no valid purse in 16 tried")
-// Lc form 6B00 (the real-card pattern): the Lc form is used for the remaining purses.
-logs = []
+// Legacy 6B00 (the real-card pattern if understood): the legacy form is used for the remaining purses.
 commands = []
-let lcAbsent = await CEPASProtocol.read(exchange: { command in
+let legacyAbsent = await CEPASProtocol.read { command in
     commands.append(command)
     switch hex(command) {
     case "00A40000024000": return ok(Data())
     case "9032030000": return Data([0x67, 0x00])
     default: return Data([0x6B, 0x00])
     }
+}
+precondition(legacyAbsent == nil && commands.count == 18)
+precondition(Array(commands.map(hex)[1..<5]) == ["9032030000", "903203000000", "903200000000", "903201000000"])
+precondition(hex(commands.last!) == "90320F000000")
+// Legacy 6700, Lc 6B00: the Lc form is used for the remaining purses.
+logs = []
+commands = []
+let lcAbsent = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    if command.count == 7 { return hex(command) == "00A40000024000" ? ok(Data()) : Data([0x6B, 0x00]) }
+    return Data([0x67, 0x00])
 }, log: { logs.append($0) })
-precondition(lcAbsent == nil && commands.count == 18)
-precondition(Array(commands.map(hex)[1..<5]) == ["9032030000", "90320300010000", "90320000010000", "90320100010000"])
+precondition(lcAbsent == nil && commands.count == 19)
+precondition(Array(commands.map(hex)[1..<5]) == ["9032030000", "903203000000", "90320300010000", "90320000010000"])
 precondition(hex(commands.last!) == "90320F00010000")
-precondition(Array(logs.prefix(4)) == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1",
-                                       "purse 3 lc: status 6B00, 0 bytes", "purse 0 lc: status 6B00, 0 bytes"])
+precondition(Array(logs[4..<6]) == ["purse 3 lc: status 6B00, 0 bytes", "purse 0 lc: status 6B00, 0 bytes"])
 precondition(logs.last == "Unsupported: no valid purse in 16 tried")
 // Lc form answers 9000 with purses failing the parse rules: never a balance, no payload logged.
 logs = []
 let lcInvalid = await CEPASProtocol.read(exchange: { command in
     if hex(command) == "00A40000024000" { return ok(Data()) }
-    return command.count == 5 ? Data([0x67, 0x00]) : ok(rejected(command[2]))
+    return command.count < 7 ? Data([0x67, 0x00]) : ok(rejected(command[2]))
 }, log: { logs.append($0) })
 precondition(lcInvalid == nil)
 precondition(logs.contains("parse purse 3: length not 63..256, 62 bytes, L 00"))

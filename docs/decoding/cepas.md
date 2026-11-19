@@ -11,12 +11,15 @@ account balances are not queried or inferred.
 
 The read flow selects file 4000 with `00A40000024000`, then sends GET PURSE
 `9032030000`, matching CoreExtendedNFC's CEPAS reader and FareBot/Metrodroid's
-GET PURSE. A purse that answers exactly `6700` (wrong length) is asked once
-more as `90320300010000` (Lc 1, data `00`, Le `00`); some 2012 EZ-Link cards
-return `6700` to the short form on purse 3 and `6B00` on every other purse. Once
-the Lc form returns `9000` or `6B00` it is used for the remaining purses. Its
-answer passes the same structural checks; the log gets status words and
-lengths only. GET HISTORY is
+GET PURSE. Some 2012 EZ-Link cards return `6700` (wrong length) to that form on
+purse 3 and `6B00` on every other purse. A purse that answers exactly `6700` is
+asked again with the legacy six-byte form `903203000000` (CoreExtendedNFC notes
+that some legacy cards need it), then as `90320300010000` (Lc 1, data `00`, Le
+`00`). The first form that returns `9000` or `6B00` is used for the remaining
+purses. The Swift ISO 7816 path (Core NFC and external readers) cannot express
+the six-byte form, and the raw MIFARE path may be refused locally; either way it
+is skipped with a log line, never treated as a lost card. Answers pass the same
+structural checks; the log gets status words and lengths only. GET HISTORY is
 `9032030001<offset><Le>`, with at most 15 records per request and Le set to the
 requested record count times 16. Requests support one corrected-Le retry and
 bounded `61xx` response chaining; final status must be exactly `9000`. The SELECT

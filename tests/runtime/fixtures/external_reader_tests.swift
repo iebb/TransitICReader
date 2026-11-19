@@ -70,6 +70,34 @@ final class PurseCard: ISO7816Card {
         }
     }
 }
+/// Answers the short GET PURSE with 6700 and the Lc 1 form with the purse.
+final class WrongLengthPurseCard: ISO7816Card {
+    let identifier = Data([1, 2, 3, 4]), initialSelectedAID = "", applicationData: Data? = nil
+    var commands: [Data] = []
+    let purse: Data, history: Data
+    init(purse: Data, history: Data) { self.purse = purse; self.history = history }
+    func sendCommand(apdu: CardAPDU) async throws -> (Data, UInt8, UInt8) {
+        commands.append(apdu.encoded)
+        switch apdu.encoded.hexString {
+        case "00A40000024000": return (Data(), 0x90, 0)
+        case "9032030000": return (Data(), 0x67, 0)
+        case "90320300010000": return (purse, 0x90, 0)
+        case "90320300010020": return (history, 0x90, 0)
+        default: return (Data(), 0x6A, 0x82)
+        }
+    }
+}
+/// Raw MIFARE transport whose reader refuses six-byte packets locally, as Core NFC may.
+struct RefusingMiFareCard: MiFareCard {
+    let iso: WrongLengthPurseCard
+    var identifier: Data { iso.identifier }
+    var mifareFamily: MiFareFamily { .desfire }
+    func sendMiFareCommand(commandPacket: Data) async throws -> Data {
+        guard commandPacket.count != 6 else { throw CardCommandNotSendable() }
+        let response = try await iso.sendCommand(apdu: CardAPDU(data: commandPacket)!)
+        return response.0 + Data([response.1, response.2])
+    }
+}
 struct PurseMiFareCard: MiFareCard {
     let iso: PurseCard
     var identifier: Data { iso.identifier }
@@ -158,6 +186,16 @@ struct PurseMiFareCard: MiFareCard {
         let externalSnapshot = try await CEPASDecoder.decode(tag: .iso7816(external), scannedAt: Date())
         precondition(externalSnapshot.balanceText == snapshot.balanceText && externalSnapshot.rawTransactions == snapshot.rawTransactions)
         precondition(ceChannel.script.isEmpty)
+        // 6700 to the short GET PURSE: the legacy six-byte form cannot be sent on
+        // these transports, so it is skipped (never a lost card) and Lc 1 reads the purse.
+        let wrongLength = WrongLengthPurseCard(purse: purse, history: iso.history)
+        let lcSnapshot = try await CEPASDecoder.decode(tag: .iso7816(wrongLength), scannedAt: Date())
+        precondition(lcSnapshot.balanceText == snapshot.balanceText && lcSnapshot.rawTransactions == snapshot.rawTransactions)
+        precondition(wrongLength.commands.map(\.hexString) == ["00A40000024000", "9032030000", "90320300010000", "90320300010020"])
+        let refusing = RefusingMiFareCard(iso: WrongLengthPurseCard(purse: purse, history: iso.history))
+        let refusedSnapshot = try await CEPASDecoder.decode(tag: .miFare(refusing), scannedAt: Date())
+        precondition(refusedSnapshot.balanceText == snapshot.balanceText)
+        precondition(refusing.iso.commands == wrongLength.commands)
         let decoded = CEPASProtocol.decodeHistory(CEPASProtocol.encodeHistory(transaction)!)!
         precondition(decoded.amountMinor == -100 && decoded.kind == .bus)
         for kind: UInt8 in [0xF0, 0x05] {

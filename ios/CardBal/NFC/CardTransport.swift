@@ -27,6 +27,9 @@ protocol FeliCaCard {
     func sendFeliCaCommand(commandPacket: Data) async throws -> Data
 }
 
+/// The reader refused a command locally, before it reached the card.
+struct CardCommandNotSendable: Error {}
+
 enum MiFareFamily { case ultralight, desfire, plus, unknown }
 protocol MiFareCard {
     var identifier: Data { get }
