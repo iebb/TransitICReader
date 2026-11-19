@@ -2,6 +2,8 @@
 
 [English](README.md) | 简体中文 | [日本語](README.ja.md)
 
+![CardBal — 将交通卡收在一起](docs/images/cardbal-hero.png)
+
 CardBal 是适用于 iPhone、iPad、Mac 和 Android 的交通 IC 卡读卡应用。
 查看卡片余额、回顾最近的乘车记录，并将多张卡片保存在同一个钱包中。
 
@@ -15,6 +17,8 @@ EZ-Link 等卡片。可读取的余额和记录因卡种而异。
 - 在有站点数据的情况下，将乘车记录显示在地图上
 - 备份钱包，并在 iPhone 和 Android 之间迁移
 
+![CardBal 卡片、余额与乘车路线主题插画](docs/images/cardbal-journeys.png)
+
 ## 支持平台
 
 | 平台 | 读卡方式 |
@@ -27,6 +31,7 @@ EZ-Link 等卡片。可读取的余额和记录因卡种而异。
 
 - [下载](https://github.com/iebb/TransitICReader/releases)
 - [支持的卡片](docs/decoding/capabilities.md)
+- [站点数据与路线目录 — card-stations](https://github.com/iebb/card-stations)
 - [外接读卡器设置](docs/development/external-nfc-readers.md)
 - [构建与开发指南](docs/README.md)
 - [许可与致谢](docs/licenses/README.md)

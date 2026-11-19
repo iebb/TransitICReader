@@ -35,6 +35,7 @@ reference. Release notes are publishing inputs under `release-notes/`.
 - [Trip Reader station formats and backup import](data/tripreader.md)
 - [UB Smart Bus data](data/ub-smart-bus.md)
 - [Downloaded card faces](design/card-faces.md)
+- [README artwork and generation prompts](design/readme-artwork.md)
 - [EZ-Link artwork source and preparation](design/ezlink-artwork.md)
 - [OKICA artwork and default selection](design/okica-card-face.md)
 
