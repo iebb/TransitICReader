@@ -741,7 +741,7 @@
 				CODE_SIGN_ENTITLEMENTS = ios/CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 74;
+				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -782,7 +782,7 @@
 				CARDBAL_CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_IDENTITY = "$(CARDBAL_CODE_SIGN_IDENTITY)";
 				CODE_SIGN_STYLE = "$(CARDBAL_CODE_SIGN_STYLE)";
-				CURRENT_PROJECT_VERSION = 74;
+				CURRENT_PROJECT_VERSION = 75;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -864,7 +864,7 @@
             CLANG_ENABLE_MODULES = YES;
             CODE_SIGN_ENTITLEMENTS = ios/CardBalClip/CardBalClip.entitlements;
             CODE_SIGN_STYLE = Automatic;
-            CURRENT_PROJECT_VERSION = 74;
+            CURRENT_PROJECT_VERSION = 75;
             DEVELOPMENT_TEAM = 7P8CLHDH5G;
             GENERATE_INFOPLIST_FILE = NO;
             INFOPLIST_FILE = ios/CardBalClip/Info.plist;
@@ -888,7 +888,7 @@
             CLANG_ENABLE_MODULES = YES;
             CODE_SIGN_ENTITLEMENTS = ios/CardBalClip/CardBalClip.entitlements;
             CODE_SIGN_STYLE = Automatic;
-            CURRENT_PROJECT_VERSION = 74;
+            CURRENT_PROJECT_VERSION = 75;
             DEVELOPMENT_TEAM = 7P8CLHDH5G;
             GENERATE_INFOPLIST_FILE = NO;
             INFOPLIST_FILE = ios/CardBalClip/Info.plist;
