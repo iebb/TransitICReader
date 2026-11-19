@@ -37,6 +37,8 @@ internal object CepasProtocol {
     /** The same SELECT with Le 00, for cards that refuse the case-3 form. */
     fun selectFileWithLeCommand() = byteArrayOf(0, 0xA4.toByte(), 0, 0, 2, 0x40, 0, 0)
     fun purseCommand(purseId: Int = PURSE_ID) = byteArrayOf(0x90.toByte(), 0x32, purseId.toByte(), 0, 0)
+    /** GET PURSE with Lc 1, data 00 and Le 00, for cards that answer the short form with 6700. */
+    fun purseWithDataCommand(purseId: Int = PURSE_ID) = byteArrayOf(0x90.toByte(), 0x32, purseId.toByte(), 0, 1, 0, 0)
     fun historyCommand(offset: Int, count: Int, purseId: Int = PURSE_ID): ByteArray? = if (offset in 0..254 && count in 1..15)
         byteArrayOf(0x90.toByte(), 0x32, purseId.toByte(), 0, 1, offset.toByte(), (count * 16).toByte()) else null
 
@@ -95,7 +97,9 @@ internal object CepasProtocol {
     /**
      * Select file 4000 (again with Le if refused; GET PURSE is still tried once
      * without it), then purse 3, then the other purses 0..15 until one passes
-     * [parsePurse]. A lost card or an unsupported command ends the search.
+     * [parsePurse]. A purse answering 6700 is asked once more with Lc 1; once
+     * that form is understood (9000 or 6B00) it is used for the remaining
+     * purses. A lost card or an unsupported command ends the search.
      * [log] gets stages, status words and lengths only, never response bytes.
      */
     fun read(log: (String) -> Unit = {}, exchange: (ByteArray) -> ByteArray): ReadResult? {
@@ -110,9 +114,17 @@ internal object CepasProtocol {
         val candidates = if (selected) listOf(PURSE_ID) + (0..15).filter { it != PURSE_ID } else listOf(PURSE_ID)
         var found: Pair<Int, Purse>? = null
         var stop: String? = null
+        var withData = false
         for (id in candidates) {
             if (sent >= EXCHANGE_LIMIT) { stop = "command limit reached"; break }
-            val reply = attempt("purse $id", purseCommand(id), 256)
+            var reply = if (withData) attempt("purse $id lc", purseWithDataCommand(id), 256)
+                else attempt("purse $id", purseCommand(id), 256)
+            if (!withData && reply.status == 0x6700 && reply.data == null && reply.error == null) {
+                if (sent >= EXCHANGE_LIMIT) { stop = "command limit reached"; break }
+                log("purse $id: retrying with Lc 1")
+                reply = attempt("purse $id lc", purseWithDataCommand(id), 256)
+                if (reply.data != null || reply.status == 0x6B00) withData = true
+            }
             val payload = reply.data
             if (payload == null) {
                 stop = reply.stopReason() ?: continue

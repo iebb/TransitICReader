@@ -277,6 +277,66 @@ let partial = await CEPASProtocol.read(exchange: { _ in
 }, log: { logs.append($0) })
 precondition(partial!.balanceMinor == -100 && !partial!.historyComplete)
 precondition(logs == ["history 0: status 6982, 0 bytes", "Warning: history incomplete, 0 of 2 records"])
+
+// Purse 3 answers the short GET PURSE with 6700: it is asked once more with Lc 1.
+precondition(hex(CEPASProtocol.purseWithDataCommand()) == "90320300010000")
+logs = []
+commands = []
+let lcRead = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    switch hex(command) {
+    case "00A40000024000": return ok(Data())
+    case "9032030000": return Data([0x67, 0x00])
+    case "90320300010000": return ok(purse(0x10, history: 1))
+    case "90320300010010": return ok(record())
+    default: fatalError("unexpected command")
+    }
+}, log: { logs.append($0) })
+precondition(lcRead!.purseID == 3 && lcRead!.family == "EZ-Link" && lcRead!.balanceMinor == -100 && lcRead!.historyComplete)
+precondition(commands.map(hex) == ["00A40000024000", "9032030000", "90320300010000", "90320300010010"])
+precondition(logs == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1"])
+// Lc form also 6700: not adopted, the other purses keep the short form.
+logs = []
+commands = []
+let lcWrong = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    if hex(command) == "00A40000024000" { return ok(Data()) }
+    return command[2] == 3 ? Data([0x67, 0x00]) : Data([0x6B, 0x00])
+}, log: { logs.append($0) })
+precondition(lcWrong == nil && commands.count == 18)
+precondition(Array(commands.map(hex)[1..<4]) == ["9032030000", "90320300010000", "9032000000"])
+precondition(Array(logs.prefix(4)) == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1",
+                                       "purse 3 lc: status 6700, 0 bytes", "purse 0: status 6B00, 0 bytes"])
+precondition(logs.last == "Unsupported: no valid purse in 16 tried")
+// Lc form 6B00 (the real-card pattern): the Lc form is used for the remaining purses.
+logs = []
+commands = []
+let lcAbsent = await CEPASProtocol.read(exchange: { command in
+    commands.append(command)
+    switch hex(command) {
+    case "00A40000024000": return ok(Data())
+    case "9032030000": return Data([0x67, 0x00])
+    default: return Data([0x6B, 0x00])
+    }
+}, log: { logs.append($0) })
+precondition(lcAbsent == nil && commands.count == 18)
+precondition(Array(commands.map(hex)[1..<5]) == ["9032030000", "90320300010000", "90320000010000", "90320100010000"])
+precondition(hex(commands.last!) == "90320F00010000")
+precondition(Array(logs.prefix(4)) == ["purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1",
+                                       "purse 3 lc: status 6B00, 0 bytes", "purse 0 lc: status 6B00, 0 bytes"])
+precondition(logs.last == "Unsupported: no valid purse in 16 tried")
+// Lc form answers 9000 with purses failing the parse rules: never a balance, no payload logged.
+logs = []
+let lcInvalid = await CEPASProtocol.read(exchange: { command in
+    if hex(command) == "00A40000024000" { return ok(Data()) }
+    return command.count == 5 ? Data([0x67, 0x00]) : ok(rejected(command[2]))
+}, log: { logs.append($0) })
+precondition(lcInvalid == nil)
+precondition(logs.contains("parse purse 3: length not 63..256, 62 bytes, L 00"))
+precondition(logs.contains("parse purse 0: version 00/FF, 63 bytes, L 00"))
+precondition(logs.last == "Unsupported: no valid purse in 16 tried")
+precondition(!logs.joined().contains("1234567890")) // no CAN digits
+precondition(!logs.joined().contains(hex(Data(purse().prefix(8))))) // no payload bytes
 print("PASS CEPAS independent protocol")
 '''
         with tempfile.TemporaryDirectory(prefix="cardbal-cepas-synthetic-") as directory:

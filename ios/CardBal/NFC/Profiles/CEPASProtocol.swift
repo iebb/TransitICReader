@@ -59,6 +59,8 @@ enum CEPASProtocol {
     /// The same SELECT with Le 00, for cards that refuse the case-3 form.
     static func selectFileWithLeCommand() -> Data { Data([0, 0xA4, 0, 0, 2, 0x40, 0, 0]) }
     static func purseCommand(_ id: UInt8 = purseID) -> Data { Data([0x90, 0x32, id, 0, 0]) }
+    /// GET PURSE with Lc 1, data 00 and Le 00, for cards that answer the short form with 6700.
+    static func purseWithDataCommand(_ id: UInt8 = purseID) -> Data { Data([0x90, 0x32, id, 0, 1, 0, 0]) }
     static func historyCommand(offset: Int, count: Int, purse id: UInt8 = purseID) -> Data? {
         guard (0...254).contains(offset), (1...15).contains(count) else { return nil }
         return Data([0x90, 0x32, id, 0, 1, UInt8(offset), UInt8(count * 16)])
@@ -133,7 +135,9 @@ enum CEPASProtocol {
 
     /// Select file 4000 (again with Le if refused; GET PURSE is still tried once
     /// without it), then purse 3, then the other purses 0...15 until one passes
-    /// `parsePurse`. A lost card or an unsupported command ends the search.
+    /// `parsePurse`. A purse answering 6700 is asked once more with Lc 1; once
+    /// that form is understood (9000 or 6B00) it is used for the remaining
+    /// purses. A lost card or an unsupported command ends the search.
     /// Optional log failures never erase a validated balance. `log` gets
     /// stages, status words and lengths only, never response bytes.
     static func read(exchange: (Data) async throws -> Data,
@@ -153,9 +157,17 @@ enum CEPASProtocol {
         let candidates: [UInt8] = selected ? [purseID] + (UInt8(0)...15).filter { $0 != purseID } : [purseID]
         var found: (id: UInt8, purse: Purse)?
         var stop: String?
+        var withData = false
         for id in candidates {
             if sent >= exchangeLimit { stop = "command limit reached"; break }
-            let reply = await attempt("purse \(id)", purseCommand(id), maximum: 256)
+            var reply = await withData ? attempt("purse \(id) lc", purseWithDataCommand(id), maximum: 256)
+                : attempt("purse \(id)", purseCommand(id), maximum: 256)
+            if !withData, reply.status == 0x6700, reply.data == nil, reply.error == nil {
+                if sent >= exchangeLimit { stop = "command limit reached"; break }
+                log("purse \(id): retrying with Lc 1")
+                reply = await attempt("purse \(id) lc", purseWithDataCommand(id), maximum: 256)
+                if reply.data != nil || reply.status == 0x6B00 { withData = true }
+            }
             guard let payload = reply.data else {
                 if let reason = reply.stopReason { stop = reason; break }
                 continue

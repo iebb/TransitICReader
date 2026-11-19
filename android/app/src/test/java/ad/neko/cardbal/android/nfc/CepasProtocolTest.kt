@@ -251,6 +251,78 @@ class CepasProtocolTest {
         assertEquals("Unsupported: no valid purse in 1 tried", logs.last())
     }
 
+    @Test fun wrongLengthPurseIsRetriedOnceWithLcOne() {
+        assertEquals("90320300010000", CepasProtocol.purseWithDataCommand().hex())
+        val commands = mutableListOf<String>()
+        val logs = mutableListOf<String>()
+        val card = CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            when (command.hex()) {
+                "00A40000024000" -> ok(byteArrayOf())
+                "9032030000" -> byteArrayOf(0x67, 0)
+                "90320300010000" -> ok(purse(0x10, history = 1))
+                "90320300010010" -> ok(record())
+                else -> error("unexpected")
+            }
+        }!!
+        assertEquals(3, card.purseId)
+        assertEquals("EZ-Link", card.family)
+        assertEquals(-100L, card.balanceMinor)
+        assertTrue(card.historyComplete)
+        assertEquals(listOf("00A40000024000", "9032030000", "90320300010000", "90320300010010"), commands)
+        assertEquals(listOf("purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1"), logs)
+    }
+
+    @Test fun lcRetryThatFailsStaysUnsupportedWithoutPayloadInTheLog() {
+        // Lc form also 6700: it is not adopted, and the other purses keep the short form.
+        val logs = mutableListOf<String>()
+        val commands = mutableListOf<String>()
+        assertNull(CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            when {
+                command.hex() == "00A40000024000" -> ok(byteArrayOf())
+                command[2].toInt() == 3 -> byteArrayOf(0x67, 0)
+                else -> byteArrayOf(0x6B, 0)
+            }
+        })
+        assertEquals(18, commands.size)
+        assertEquals(listOf("9032030000", "90320300010000", "9032000000"), commands.subList(1, 4))
+        assertEquals(listOf("purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1", "purse 3 lc: status 6700, 0 bytes",
+            "purse 0: status 6B00, 0 bytes"), logs.take(4))
+        assertEquals("Unsupported: no valid purse in 16 tried", logs.last())
+        // Lc form 6B00 (the real-card pattern): the Lc form is used for the remaining purses.
+        logs.clear()
+        commands.clear()
+        assertNull(CepasProtocol.read(logs::add) { command ->
+            commands.add(command.hex())
+            when (command.hex()) {
+                "00A40000024000" -> ok(byteArrayOf())
+                "9032030000" -> byteArrayOf(0x67, 0)
+                else -> byteArrayOf(0x6B, 0)
+            }
+        })
+        assertEquals(18, commands.size)
+        assertEquals(listOf("9032030000", "90320300010000", "90320000010000", "90320100010000"), commands.subList(1, 5))
+        assertEquals("90320F00010000", commands.last())
+        assertEquals(listOf("purse 3: status 6700, 0 bytes", "purse 3: retrying with Lc 1", "purse 3 lc: status 6B00, 0 bytes",
+            "purse 0 lc: status 6B00, 0 bytes"), logs.take(4))
+        assertEquals("Unsupported: no valid purse in 16 tried", logs.last())
+        // Lc form answers 9000 with purses failing the parse rules: never a balance, no payload logged.
+        logs.clear()
+        assertNull(CepasProtocol.read(logs::add) { command ->
+            when {
+                command.hex() == "00A40000024000" -> ok(byteArrayOf())
+                command.size == 5 -> byteArrayOf(0x67, 0)
+                else -> ok(rejected(command[2].toInt()))
+            }
+        })
+        assertTrue(logs.contains("parse purse 3: length not 63..256, 62 bytes, L 00"))
+        assertTrue(logs.contains("parse purse 0: version 00/FF, 63 bytes, L 00"))
+        assertEquals("Unsupported: no valid purse in 16 tried", logs.last())
+        assertFalse(logs.joinToString().contains("1234567890")) // no CAN digits
+        assertFalse(logs.joinToString().contains(purse().copyOf(8).hex())) // no payload bytes
+    }
+
     @Test fun lostCardUnsupportedCommandOrCommandLimitEndsThePurseSearch() {
         val logs = mutableListOf<String>()
         var calls = 0
