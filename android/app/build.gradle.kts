@@ -48,7 +48,7 @@ val gitSigned = providers.gradleProperty("cardbal.gitSigned")
     .map { it.equals("true", ignoreCase = true) }
     .getOrElse(false)
 
-val appVersionName = providers.gradleProperty("transitic.versionName").orElse("2.7.0").get()
+val appVersionName = providers.gradleProperty("transitic.versionName").orElse("2.7.1").get()
 require(appVersionName.isNotBlank() && appVersionName == appVersionName.trim() &&
     appVersionName.none { it.isISOControl() }) {
     "transitic.versionName must be a nonempty version without surrounding whitespace or control characters"

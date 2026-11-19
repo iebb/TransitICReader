@@ -1,0 +1,6 @@
+{
+  "en-GB": "• More Singapore EZ-Link and other CEPAS cards can be read. If a card still can't be read, Copy Debug Log in Settings > Troubleshooting records why.",
+  "ja": "• 読み取れるシンガポールのEZ-LinkなどのCEPASカードが増えました。読み取れない場合は、その理由が「設定」>「トラブルシューティング」の「デバッグログをコピー」に記録されます。",
+  "ko": "• 더 많은 싱가포르 EZ-Link 및 기타 CEPAS 카드를 읽을 수 있습니다. 읽을 수 없는 경우 그 이유가 설정 > 문제 해결의 ‘디버그 로그 복사’에 기록됩니다.",
+  "zh-Hans": "• 可读取更多新加坡 EZ-Link 及其他 CEPAS 卡。若仍无法读取，原因会记录在“设置”>“故障排除”的“复制调试日志”中。"
+}

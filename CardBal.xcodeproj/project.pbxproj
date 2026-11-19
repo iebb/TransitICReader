@@ -752,7 +752,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7.0;
+				MARKETING_VERSION = 2.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -793,7 +793,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7.0;
+				MARKETING_VERSION = 2.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(CARDBAL_PROVISIONING_PROFILE)";
@@ -869,7 +869,7 @@
             GENERATE_INFOPLIST_FILE = NO;
             INFOPLIST_FILE = ios/CardBalClip/Info.plist;
             IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-            MARKETING_VERSION = 2.7.0;
+            MARKETING_VERSION = 2.7.1;
             PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal.Clip;
             PRODUCT_NAME = "$(TARGET_NAME)";
             SDKROOT = iphoneos;
@@ -893,7 +893,7 @@
             GENERATE_INFOPLIST_FILE = NO;
             INFOPLIST_FILE = ios/CardBalClip/Info.plist;
             IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-            MARKETING_VERSION = 2.7.0;
+            MARKETING_VERSION = 2.7.1;
             PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal.Clip;
             PRODUCT_NAME = "$(TARGET_NAME)";
             SDKROOT = iphoneos;
