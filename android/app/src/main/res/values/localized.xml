@@ -4,14 +4,17 @@
     <string name="text_6c179f21e6f62b62" formatted="false">"  "</string>
     <string name="text_8c32535dffab23e9" formatted="false">"%@ Balance"</string>
     <string name="text_79077f2848e298b9" formatted="false">"%@ Hex Export"</string>
+    <string name="text_c0ec6f555f0e4a27" formatted="false">"%@ Last Use"</string>
     <string name="text_22d8e2f4c30a1f6a" formatted="false">"%@ Product"</string>
     <string name="text_315a7246fd8cfe4d" formatted="false">"%@ Provider Code"</string>
     <string name="text_f9c7437593ae981e" formatted="false">"%@ Raw Counter"</string>
     <string name="text_eeac9407f589c6b3" formatted="false">"%@ Remaining Trips"</string>
     <string name="text_1a63d6ae2975c24d" formatted="false">"%@ Serial Number"</string>
     <string name="text_cdc0a8b4c71cfc2a" formatted="false">"%@ Sold At"</string>
+    <string name="text_f6287e4c01994a70" formatted="false">"%@ Status"</string>
     <string name="text_83a4bed0e8a48a8d" formatted="false">"%@ Valid From"</string>
     <string name="text_256b1675887f46ac" formatted="false">"%@ Valid Until"</string>
+    <string name="text_9c667b0d7e9de695" formatted="false">"%@ Zones"</string>
     <string name="text_a197c8abedb25136" formatted="false">"%@ in view"</string>
     <string name="text_86c862dae2b22bd8" formatted="false">"%@ on-card balance"</string>
     <string name="text_0a586806353dd8ec" formatted="false">"%@ on-card record"</string>
@@ -107,6 +110,7 @@
     <string name="text_291a81630d631d96" formatted="false">"Balances are shown as reported by each application and are not added together."</string>
     <string name="text_27f544bbd2655a39" formatted="false">"Blacklisted"</string>
     <string name="text_c83082a00fab0a4c" formatted="false">"Block %lld"</string>
+    <string name="text_18f2a0947f9d6523" formatted="false">"Blocked"</string>
     <string name="text_ec7d56a01607001e" formatted="false">"Blue"</string>
     <string name="text_8358533065040556" formatted="false">"Branch Code"</string>
     <string name="text_090ed4316f1d99fd" formatted="false">"Brand"</string>
@@ -128,6 +132,7 @@
     <string name="text_160d56887855bde8" formatted="false">"CEPAS Version"</string>
     <string name="text_3c4f629a81828aa3" formatted="false">"CEPAS record 0x%02X"</string>
     <string name="text_a8e863c8f1778a92" formatted="false">"CNY Balance"</string>
+    <string name="text_9e4dc07bf2936445" formatted="false">"CRTM Service"</string>
     <string name="text_464b21ea40c748de" formatted="false">"Calypso SFI %02X Record %d"</string>
     <string name="text_2bfcff4560c57a01" formatted="false">"Camera Access Needed"</string>
     <string name="text_0bff6378346cdbb5" formatted="false">"Camera is unavailable on this device. Choose a photo from Gallery."</string>
@@ -311,6 +316,7 @@
     <string name="text_60e19de8fff7c821" formatted="false">"Exit Code"</string>
     <string name="text_c9cd7d47bfc5960c" formatted="false">"Exit Station"</string>
     <string name="text_e72d5d8d0b167d21" formatted="false">"Expanded"</string>
+    <string name="text_424a2551d356754c" formatted="false">"Expired"</string>
     <string name="text_c5273ea9d44e5812" formatted="false">"Expired %@"</string>
     <string name="text_f6725f3af08a06a2" formatted="false">"Expires"</string>
     <string name="text_d600e62a6861fced" formatted="false">"Expiry Date"</string>
@@ -477,6 +483,7 @@
     <string name="text_d6bdbbe65ac659a4" formatted="false">"Macau Pass Read Status"</string>
     <string name="text_2f01dd86456511e6" formatted="false">"Macau Pass Unrecognized History Record"</string>
     <string name="text_e2ab0d74b23c5a80" formatted="false">"Macau Pass decoding is adapted from TU-Reader (MIT), copyright 2026 HaoTian22."</string>
+    <string name="text_4da173f153f4f59b" formatted="false">"Madrid Online"</string>
     <string name="text_6ead8d1d6f1c6445" formatted="false">"Magnetic Ticket Purchase"</string>
     <string name="text_b31d6d779f9863c2" formatted="false">"Manage Card Faces"</string>
     <string name="text_b0b9fe24ffa96291" formatted="false">"Manual"</string>
@@ -632,6 +639,7 @@
     <string name="text_0123f7e78f101348" formatted="false">"Product %lld, zone %lld"</string>
     <string name="text_fe45bdfabed62460" formatted="false">"Product Code"</string>
     <string name="text_f123dc0e0e44a188" formatted="false">"Product Type"</string>
+    <string name="text_d696a35bdd1883da" formatted="false">"Profile"</string>
     <string name="text_abfcecfabeb7545e" formatted="false">"Province"</string>
     <string name="text_3261c5a271a143e8" formatted="false">"Province map unavailable"</string>
     <string name="text_cf688007f70222ab" formatted="false">"Provinces"</string>
@@ -665,10 +673,12 @@
     <string name="text_c03e917604df7a78" formatted="false">"Reading card on external reader…"</string>
     <string name="text_9fc4a29d0bc4c1a7" formatted="false">"Reading card..."</string>
     <string name="text_36beca142c62d908" formatted="false">"Reading card…"</string>
+    <string name="text_50bb4f65a31dce17" formatted="false">"Reading through CRTM… Keep the card in place."</string>
     <string name="text_668570fc07fbd43b" formatted="false">"Reading transactions (%lld of %lld)…"</string>
     <string name="text_c7b7c8add23db536" formatted="false">"Reading transactions…"</string>
     <string name="text_e3a4d62b241ef756" formatted="false">"Reading transit activity…"</string>
     <string name="text_0fc985ca26decc9e" formatted="false">"Reads Suica, PASMO, ICOCA and other Japanese IC cards, nanaco, Rakuten Edy and WAON, T-money, EZL and Cashbee, U-Money, Octopus, China T-Union and City Union cards, and Lignes d’Azur."</string>
+    <string name="text_f2cfb4221a8a6448" formatted="false">"Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM."</string>
     <string name="text_092938788836b819" formatted="false">"Ready for NFC."</string>
     <string name="text_efc846b39baa3363" formatted="false">"Ready to Read a Card"</string>
     <string name="text_8660d6ca4e3d09ba" formatted="false">"Ready to scan."</string>

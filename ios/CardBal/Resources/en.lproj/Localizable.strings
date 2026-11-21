@@ -1176,3 +1176,21 @@
 "Download Full CardBal App" = "Download Full CardBal App";
 
 "Download the full app to save your cards." = "Download the full app to save your cards.";
+
+"Madrid Online" = "Madrid Online";
+
+"Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM." = "Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM.";
+
+"Reading through CRTM… Keep the card in place." = "Reading through CRTM… Keep the card in place.";
+
+"Profile" = "Profile";
+
+"%@ Zones" = "%@ Zones";
+
+"%@ Last Use" = "%@ Last Use";
+
+"Blocked" = "Blocked";
+"%@ Status" = "%@ Status";
+"Expired" = "Expired";
+
+"CRTM Service" = "CRTM Service";

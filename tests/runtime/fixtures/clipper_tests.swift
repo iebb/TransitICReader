@@ -79,6 +79,7 @@ typealias EdyDecoder = UnrelatedDecoder
 typealias WAONDecoder = UnrelatedDecoder
 typealias NanacoDecoder = UnrelatedDecoder
 typealias StoredValueDecoder = UnrelatedDecoder
+typealias MadridTTPDecoder = UnrelatedDecoder
 typealias TianfuTongDecoder = UnrelatedDecoder
 typealias ChineseLocalDecoder = UnrelatedDecoder
 

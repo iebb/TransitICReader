@@ -18,6 +18,7 @@ reference. Release notes are publishing inputs under `release-notes/`.
 - [Macau Pass](decoding/macau-pass.md)
 - [Calypso public records](decoding/calypso.md)
 - [Lisboa Viva / navegante Zapping](decoding/lisboa-zapping.md)
+- [Madrid Tarjeta Transporte Público](decoding/madrid-ttp.md)
 
 ## Development
 

@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Madrid: read Tarjeta Transporte Público passes and multi-trip tickets, with zones, validity, remaining trips and profile. These cards can only be read through the Consorcio de Transportes de Madrid's service; turn off Madrid Online in Settings > Privacy to stop this.",
+  "ja": "• マドリード：Tarjeta Transporte Públicoの定期券と回数券（ゾーン、有効期間、残り回数）やプロフィールを読み取れるようになりました。このカードはマドリード交通局（CRTM）のサービス経由でのみ読み取れます。「設定」>「プライバシー」の「マドリードのオンライン読み取り」をオフにすると使用しません。",
+  "ko": "• 마드리드: Tarjeta Transporte Público의 정기권과 회수권(구역, 유효 기간, 남은 횟수) 및 프로필을 읽을 수 있습니다. 이 카드는 마드리드 교통국(CRTM) 서비스를 통해서만 읽을 수 있으며, 설정 > 개인정보에서 ‘마드리드 온라인 읽기’를 끄면 사용하지 않습니다.",
+  "zh-Hans": "• 马德里：可读取 Tarjeta Transporte Público 的月票和次票（区域、有效期、剩余次数）及身份类别。此卡只能通过马德里交通联合会（CRTM）的服务读取；在“设置”>“隐私”中关闭“马德里在线读取”即可停用。"
+}

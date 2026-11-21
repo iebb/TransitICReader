@@ -28,6 +28,7 @@ balance, ticket or travel-record support.
 | Legacy Beijing Yikatong | Local CNY purse on Android and iOS/macOS external readers | PBOC purchases/top-ups; built-in iPhone discovery unavailable for the short application names |
 | Lisboa Viva / navegante Zapping | EUR counter for provider 31 / tariff 33592 | Entry/transfer/exit events in Lisbon local time; no fare inferred |
 | NETS FlashPay / stored-value EZ-Link | Signed SGD-cent purse, CAN | CEPAS payments, MRT/bus transactions, reloads/refunds |
+| Madrid Tarjeta Transporte Público | Online read through CRTM: card number, profile, passes, multi-trip tickets and validity | Last use per ticket; no trip history or purse |
 | Opal DESFire | Signed AUD-cent purse | Last-event summary only; no fare inferred from that summary |
 | HSL V1/V2 / Waltti DESFire | EUR purse and ticket-product validity | Journey logs, last reload and embedded ticket validations |
 | Clipper public DESFire layout | Signed USD-cent purse, serial and optional expiry | Trips and reloads; pending/completed halves reconciled, agency/route/station lookup |

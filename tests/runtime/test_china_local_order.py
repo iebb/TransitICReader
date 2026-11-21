@@ -93,7 +93,8 @@ class ChinaLocalOrderTests(unittest.TestCase):
         order = names(listing, r"\(")
         self.assertEqual(order, [
             "CEPASDecoder", "MacauPassDecoder", "ClipperDecoder", "ClipperUltralightDecoder",
-            "StoredValueDecoder", "CalypsoDecoder", "Iso7816Decoder", "ChineseLocalDecoder", "JapaneseICDecoder",
+            "StoredValueDecoder", "MadridTtpDecoder", "CalypsoDecoder", "Iso7816Decoder", "ChineseLocalDecoder",
+            "JapaneseICDecoder",
         ])
 
 

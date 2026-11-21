@@ -15,6 +15,7 @@ struct UnsupportedDecoder: TransitCardDecoder {
 }
 typealias EdyDecoder = UnsupportedDecoder
 typealias StoredValueDecoder = UnsupportedDecoder
+typealias MadridTTPDecoder = UnsupportedDecoder
 typealias ClipperDecoder = UnsupportedDecoder
 typealias ClipperUltralightDecoder = UnsupportedDecoder
 typealias MacauPassDecoder = UnsupportedDecoder

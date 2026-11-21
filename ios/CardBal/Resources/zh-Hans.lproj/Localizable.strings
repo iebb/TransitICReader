@@ -1178,3 +1178,21 @@
 "Download Full CardBal App" = "下载完整版 CardBal";
 
 "Download the full app to save your cards." = "下载完整版 App，即可保存卡片。";
+
+"Madrid Online" = "马德里在线读取";
+
+"Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM." = "通过马德里交通联合体 CRTM 读取 Tarjeta Transporte Público 的票券。每次读取都会将卡片的应答发送给 CRTM。";
+
+"Reading through CRTM… Keep the card in place." = "正在通过 CRTM 读取…请勿移动卡片。";
+
+"Profile" = "身份类别";
+
+"%@ Zones" = "%@ 有效区域";
+
+"%@ Last Use" = "%@ 上次使用";
+
+"Blocked" = "已停用";
+"%@ Status" = "%@ 状态";
+"Expired" = "已过期";
+
+"CRTM Service" = "CRTM 服务";

@@ -1179,3 +1179,21 @@
 "Download Full CardBal App" = "CardBal 전체 앱 다운로드";
 
 "Download the full app to save your cards." = "전체 앱을 다운로드하면 카드를 저장할 수 있습니다.";
+
+"Madrid Online" = "마드리드 온라인 읽기";
+
+"Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM." = "마드리드 교통 연합 CRTM을 통해 Tarjeta Transporte Público 티켓을 읽습니다. 읽을 때마다 카드 응답이 CRTM으로 전송됩니다.";
+
+"Reading through CRTM… Keep the card in place." = "CRTM을 통해 읽는 중… 카드를 움직이지 마세요.";
+
+"Profile" = "이용자 구분";
+
+"%@ Zones" = "%@ 유효 구역";
+
+"%@ Last Use" = "%@ 최근 사용";
+
+"Blocked" = "사용 중지";
+"%@ Status" = "%@ 상태";
+"Expired" = "만료됨";
+
+"CRTM Service" = "CRTM 서비스";

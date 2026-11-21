@@ -52,6 +52,7 @@ class DualApplicationTests(unittest.TestCase):
     }
 ''' + clear + '\n' + cancel + '\n' + reader[end:]
         reader = reader.replace("CEPASDecoder.self, StoredValueDecoder.self, ", "")
+        reader = reader.replace("decoders.insert(MadridTTPDecoder.self, at: index + 1)", "")
         reader = "\n".join(line for line in reader.splitlines()
                            if not line.startswith("import ") and "logger" not in line
                            and not line.strip().startswith(("#if", "#endif", "#else")))

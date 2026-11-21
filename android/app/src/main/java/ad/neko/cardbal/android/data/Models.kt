@@ -39,6 +39,7 @@ data class SavedCardColor(
                 f == "macau pass" -> SavedCardColor(0.0, 0.48, 0.27)
                 f == "snapper+" || f == "snapper plus" -> SavedCardColor(0.76, 0.08, 0.17)
                 f == "kmt" || f == "kartu multi trip" -> SavedCardColor(0.16, 0.47, 0.31)
+                f == "tarjeta transporte público" -> SavedCardColor(0.84, 0.10, 0.17)
                 "suica" in f -> SavedCardColor(0.10, 0.58, 0.12)
                 "pasmo" in f -> SavedCardColor(0.88, 0.28, 0.44)
                 "icoca" in f -> SavedCardColor(0.00, 0.48, 0.72)

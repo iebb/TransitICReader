@@ -23,9 +23,11 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     private var clipperLookup: ClipperLookup = ClipperLookup.Numeric
     private var octopusStore: OctopusMetadataStore? = null
     private var generalPreferences: SharedPreferences? = null
+    private var madridPreferences: SharedPreferences? = null
     private val decoders: List<TransitCardDecoder>
         get() = orderedDecoders(clipperLookup, octopusStore,
-            developerMode = generalPreferences?.getBoolean(DeveloperModePreferences.ENABLED_KEY, false) == true)
+            developerMode = generalPreferences?.getBoolean(DeveloperModePreferences.ENABLED_KEY, false) == true,
+            madridPreferences = madridPreferences)
     private val _latestSnapshot = MutableStateFlow<TransitCardSnapshot?>(null)
     private val _status = MutableStateFlow("Ready to scan.")
     private val _isScanning = MutableStateFlow(false)
@@ -42,6 +44,7 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
         clipperLookup = ClipperTransitCatalog.get(activity)
         octopusStore = OctopusMetadataStore(activity.applicationContext.getSharedPreferences(OctopusMetadataStore.PREFERENCES, 0))
         generalPreferences = activity.applicationContext.getSharedPreferences(DeveloperModePreferences.PREFERENCES, 0)
+        madridPreferences = activity.applicationContext.getSharedPreferences(MadridTtpPreferences.PREFERENCES, 0)
         val adapter = NfcAdapter.getDefaultAdapter(activity)
         if (adapter == null || !adapter.isEnabled) {
             if (_status.value != "NFC is not available.") DebugLog.log("Scan", "Scan not started: NFC reading is not available")
@@ -105,9 +108,11 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
     internal companion object {
         // City Union / T-Union (Iso7816Decoder) are read before the local reader, whose
         // SELECTs ran first in 2.6.0 and left City Union-only cards unreadable.
-        internal fun orderedDecoders(clipperLookup: ClipperLookup, octopusStore: OctopusMetadataStore?, developerMode: Boolean = false): List<TransitCardDecoder> = listOf(
+        // Madrid cards are read online, after the public DESFire layouts.
+        internal fun orderedDecoders(clipperLookup: ClipperLookup, octopusStore: OctopusMetadataStore?, developerMode: Boolean = false,
+                                     madridPreferences: SharedPreferences? = null): List<TransitCardDecoder> = listOf(
             CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
-            StoredValueDecoder(), CalypsoDecoder(), Iso7816Decoder(developerMode), ChineseLocalDecoder(), JapaneseICDecoder(octopusStore),
+            StoredValueDecoder(), MadridTtpDecoder(madridPreferences), CalypsoDecoder(), Iso7816Decoder(developerMode), ChineseLocalDecoder(), JapaneseICDecoder(octopusStore),
         )
 
         /** Reads in order until one decoder succeeds. After a City Union / T-Union read, the local

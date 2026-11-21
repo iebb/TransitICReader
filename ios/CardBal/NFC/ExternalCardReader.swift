@@ -60,6 +60,10 @@ final class ExternalCardReader {
             if let snapshot = try? await MacauPassDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await ClipperDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await StoredValueDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            #if !APPCLIP
+            if await MadridTTPDecoder.canDecode(tag: .iso7816(iso)),
+               let snapshot = try? await MadridTTPDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            #endif
             if let snapshot = try? await TianfuTongDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await CalypsoDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             let aids = [CityUnionDecoder.applicationAID, TUnionDecoder.applicationAID,

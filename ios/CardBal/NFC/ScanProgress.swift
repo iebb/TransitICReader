@@ -4,7 +4,7 @@ import Foundation
 /// mirrored into the in-app reader status.
 enum ScanStep: Equatable {
     case found, balance, transactions, transactionCount(Int, Int), activity, details
-    case octopusOnline, octopusUnavailable, finishing, done
+    case octopusOnline, octopusUnavailable, madridOnline, finishing, done
 
     var message: String {
         switch self {
@@ -16,6 +16,7 @@ enum ScanStep: Equatable {
         case .details: return String(localized: "Reading card details…")
         case .octopusOnline: return String(localized: "Checking Octopus online… Keep the card in place.")
         case .octopusUnavailable: return String(localized: "Octopus Online is unavailable. Finishing the read…")
+        case .madridOnline: return String(localized: "Reading through CRTM… Keep the card in place.")
         case .finishing: return String(localized: "Almost done…")
         case .done: return String(localized: "Card read.")
         }

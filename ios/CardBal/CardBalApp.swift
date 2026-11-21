@@ -30,6 +30,7 @@ struct CardBalApp: App {
             DeveloperModePreferences.enabledKey: false,
             KoreanTripCrowdsourcingPreferences.enabledKey: true,
             OctopusOnlinePreferences.enabledKey: true,
+            MadridTTPPreferences.enabledKey: true,
             KoreanTripCrowdsourcingPreferences.endpointKey: "https://korean-trip-crowdsourcing.ieb.app/ingest/korean-trip-records"
         ])
     }

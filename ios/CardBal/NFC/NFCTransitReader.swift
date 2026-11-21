@@ -489,6 +489,13 @@ extension NFCTransitReader: NFCTagReaderSessionDelegate {
                         ChineseLocalDecoder.self,
                         EdyDecoder.self, WAONDecoder.self, NanacoDecoder.self, JapaneseICDecoder.self
                     ]
+                #if !APPCLIP
+                // Madrid cards are read online, after the public DESFire layouts.
+                if phase == .regular,
+                   let index = decoders.firstIndex(where: { ObjectIdentifier($0) == ObjectIdentifier(StoredValueDecoder.self) }) {
+                    decoders.insert(MadridTTPDecoder.self, at: index + 1)
+                }
+                #endif
                 // When the phone found the card by a Calypso application (La Carte),
                 // read it before decoders that open other applications on the card.
                 if phase == .regular, CalypsoDecoder.isPreselected(cardTag),

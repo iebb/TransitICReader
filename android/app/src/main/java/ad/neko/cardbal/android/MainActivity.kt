@@ -110,6 +110,7 @@ import ad.neko.cardbal.android.data.SavedCardRecord
 import ad.neko.cardbal.android.data.TransactionDecoder
 import ad.neko.cardbal.android.data.TripReaderBackup
 import ad.neko.cardbal.android.nfc.CardBalNfcReader
+import ad.neko.cardbal.android.nfc.MadridTtpPreferences
 import ad.neko.cardbal.android.nfc.OctopusMetadataStore
 import ad.neko.cardbal.android.nfc.OctopusOnlineDecoder
 import ad.neko.cardbal.android.ui.tr
@@ -527,6 +528,8 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
     val octopusPreferences = remember(context) { context.getSharedPreferences("octopus", 0) }
     var octopusOnlineEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusOnlineEnabled", true)) }
     var octopusCardUpdatesEnabled by remember { mutableStateOf(octopusPreferences.getBoolean("octopusCardUpdatesEnabled", false)) }
+    val madridPreferences = remember(context) { context.getSharedPreferences(MadridTtpPreferences.PREFERENCES, 0) }
+    var madridOnlineEnabled by remember { mutableStateOf(madridPreferences.getBoolean(MadridTtpPreferences.ENABLED_KEY, true)) }
     val koreanTripPreferences = remember(context) {
         context.getSharedPreferences(KoreanTripCrowdsourcingPreferences.PREFERENCES, 0)
     }
@@ -700,6 +703,22 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                         )
                     }
                 }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Madrid Online"), modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = madridOnlineEnabled,
+                        onCheckedChange = {
+                            madridOnlineEnabled = it
+                            madridPreferences.edit().putBoolean(MadridTtpPreferences.ENABLED_KEY, it).apply()
+                        },
+                        modifier = Modifier.semantics { contentDescription = context.tr("Madrid Online") },
+                    )
+                }
+                Text(
+                    tr("Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     tr("Scans are stored on this device."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -770,7 +789,7 @@ private fun SettingsScreen(cards: List<SavedCardRecord>, repository: CardWalletR
                     enabled = !debugLogIsEmpty,
                     onClick = {
                         val octopus = OctopusMetadataStore(context.getSharedPreferences(OctopusMetadataStore.PREFERENCES, 0))
-                        val text = DebugLog.shared.exportText(debugEnvironment(), listOf(OctopusOnlineDecoder.debugSummary(octopus)))
+                        val text = DebugLog.shared.exportText(debugEnvironment(), listOf(OctopusOnlineDecoder.debugSummary(octopus), "Madrid Online: ${if (madridOnlineEnabled) "on" else "off"}"))
                         context.getSystemService(ClipboardManager::class.java)
                             ?.setPrimaryClip(ClipData.newPlainText(DebugLog.TITLE, text))
                         debugLogMessage = "Debug log copied."

@@ -1278,6 +1278,7 @@ struct SettingsView: View {
     @AppStorage(DeveloperModePreferences.enabledKey) private var developerModeEnabled = false
     @AppStorage(OctopusOnlinePreferences.enabledKey) private var octopusOnlineEnabled = true
     @AppStorage(OctopusOnlinePreferences.cardUpdatesKey) private var octopusCardUpdatesEnabled = false
+    @AppStorage(MadridTTPPreferences.enabledKey) private var madridOnlineEnabled = true
     @State private var backupDocument = CardBalBackupDocument()
     @State private var isExportingBackup = false
     @State private var isImportingBackup = false
@@ -1386,7 +1387,7 @@ struct SettingsView: View {
     private var troubleshootingSection: some View {
         Section {
             Button {
-                UIPasteboard.general.string = DebugLog.shared.exportText(details: [OctopusOnlinePreferences.debugSummary])
+                UIPasteboard.general.string = DebugLog.shared.exportText(details: [OctopusOnlinePreferences.debugSummary, MadridTTPPreferences.debugSummary])
                 debugLogMessage = "Debug log copied."
             } label: {
                 Label("Copy Debug Log", systemImage: "doc.on.doc")
@@ -1567,6 +1568,11 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+            Section {
+                Toggle("Madrid Online", isOn: $madridOnlineEnabled)
+            } footer: {
+                Text("Reads Tarjeta Transporte Público tickets through CRTM, the Madrid transport consortium. Each read sends the card's replies to CRTM.")
             }
             Section {
                 Picker("Serial Number Display", selection: $snDisplayMode) {

@@ -1,0 +1,245 @@
+{
+ "_comment": "Invented CRTM card-reading exchange. No real card, session or service reply.",
+ "session": {
+  "status": {
+   "code": "0000",
+   "description": null
+  },
+  "uuid": "00000000-0000-4000-8000-000000000000"
+ },
+ "rounds": [
+  {
+   "response": {
+    "status": {
+     "code": "0010",
+     "description": []
+    },
+    "capdu": [
+     "9060000000",
+     "90AF000000",
+     "90AF000000",
+     "905A00000300000100",
+     "900A0000010200"
+    ],
+    "balance": null,
+    "titleList": null
+   },
+   "replies": [
+    "0401010100180591AF",
+    "0401010104180591AF",
+    "04112233445566000000000000009100",
+    "9100",
+    "001122334455667791AF"
+   ]
+  },
+  {
+   "response": {
+    "status": {
+     "code": "0010",
+     "description": []
+    },
+    "capdu": [
+     "90AF0000100102030405060708090A0B0C0D0E0F1000",
+     "90BD0000070000000000000000"
+    ]
+   },
+   "replies": [
+    "11223344556677889100",
+    "00000000000000000000000000000000009100"
+   ]
+  }
+ ],
+ "final": {
+  "status": {
+   "code": "0000",
+   "description": []
+  },
+  "capdu": null,
+  "balance": {
+   "desfireSerial": "04112233445566",
+   "now": "2026-11-21 10:00:00",
+   "controlDigit": "0",
+   "orderCode": "C",
+   "cardOrderNumber": "000000099",
+   "initAppDate": "2021-05-31",
+   "finishAppDate": "2031-05-31",
+   "blockedApp": false,
+   "groupName": "Normal",
+   "groupShortName": "Normal",
+   "groupId": 0,
+   "initGroupDate": "2021-05-31",
+   "finishGroupDate": "2031-05-31",
+   "profiles": [
+    {
+     "profileId": 1,
+     "profileName": "Normal",
+     "initProfileDate": "2021-05-31",
+     "finishProfileDate": "2031-05-31"
+    },
+    {
+     "profileId": 3,
+     "profileName": "Joven",
+     "initProfileDate": "2021-05-31",
+     "finishProfileDate": "2027-03-14"
+    }
+   ],
+   "cardNumber": "0010000000000000099",
+   "titTemp": {
+    "name": "Abono 30 días",
+    "titleId": "0",
+    "chargeState": "0",
+    "profileName": "Joven",
+    "profileId": "3",
+    "blocked": false,
+    "canBlock": true,
+    "validityZones": "A",
+    "fedtIndex": 0,
+    "purchaseChargeDate": "2026-11-02 08:15:00",
+    "operators": [],
+    "lastValidationDate": "2026-11-20 18:42:10",
+    "lastValidationPoint": "0",
+    "lastUserQtyInsp": 0,
+    "initChargeDate": "2026-11-02",
+    "finishChargeDate": "2026-11-12",
+    "firstDateValCharge": "2026-11-03",
+    "finalDateValCharge": "2026-12-02",
+    "purchaseRechargeDate": null,
+    "initRechargeDate": null,
+    "finishRechargeDate": null,
+    "firstDateValRecharge": null,
+    "finalDateValRecharge": null,
+    "validityDays": 30,
+    "rechargeState": "0"
+   },
+   "titMV1": {
+    "name": "10 viajes",
+    "titleId": "0",
+    "chargeState": "0",
+    "profileName": "Normal",
+    "profileId": "1",
+    "blocked": false,
+    "canBlock": false,
+    "validityZones": "MetroMadrid",
+    "fedtIndex": 1,
+    "purchaseChargeDate": "2026-10-01T00:00:00.000+0000",
+    "operators": [],
+    "lastValidationDate": "2026-11-18T17:05:00+01:00",
+    "lastValidationPoint": "0",
+    "lastUserQtyInsp": 0,
+    "trips": "7",
+    "suplementInfo": null
+   },
+   "titMV2": null,
+   "titMV3": null
+  },
+  "titleList": {
+   "controlDigit": "0",
+   "cardName": "Tarjeta Transporte Público Personal",
+   "groupId": "0",
+   "groupName": "Normal",
+   "groupShortName": "Normal",
+   "items": null,
+   "families": [
+    {
+     "name": "Abonos",
+     "familyId": "0",
+     "titles": [
+      {
+       "titleId": "0",
+       "titleName": "Abono 30 días",
+       "fare": 20.0
+      }
+     ]
+    }
+   ]
+  },
+  "updateReason": null,
+  "uniqueIdTransactionMS": null,
+  "uniqueIdTransactionLS": null
+ },
+ "expectedFields": [
+  [
+   "Card Number",
+   "0010000000000000099"
+  ],
+  [
+   "Card Type",
+   "Tarjeta Transporte Público Personal"
+  ],
+  [
+   "Profile",
+   "Normal"
+  ],
+  [
+   "Joven Valid Until",
+   "2027-03-14"
+  ],
+  [
+   "Issue Date",
+   "2021-05-31"
+  ],
+  [
+   "Expiry Date",
+   "2031-05-31"
+  ],
+  [
+   "Ticket",
+   "Abono 30 días"
+  ],
+  [
+   "Abono 30 días Zones",
+   "A"
+  ],
+  [
+   "Abono 30 días Valid From",
+   "2026-11-03"
+  ],
+  [
+   "Abono 30 días Valid Until",
+   "2026-12-02"
+  ],
+  [
+   "Abono 30 días Sold At",
+   "2026-11-02 08:15"
+  ],
+  [
+   "Abono 30 días Last Use",
+   "2026-11-20 18:42"
+  ],
+  [
+   "Ticket",
+   "10 viajes"
+  ],
+  [
+   "10 viajes Zones",
+   "MetroMadrid"
+  ],
+  [
+   "10 viajes Remaining Trips",
+   "7"
+  ],
+  [
+   "10 viajes Sold At",
+   "2026-10-01 02:00"
+  ],
+  [
+   "10 viajes Last Use",
+   "2026-11-18 17:05"
+  ]
+ ],
+ "refusedCommands": [
+  "903D00000801000000010000AA00",
+  "90C7000000",
+  "90AF000000",
+  "00A4040007A000000003101000",
+  "905A000003000001",
+  "9060000001"
+ ],
+ "permittedCommands": [
+  "9060000000",
+  "905A00000300000100",
+  "900A0000010200",
+  "90BD0000070000000000000000",
+  "90F50000010000"
+ ]
+}
