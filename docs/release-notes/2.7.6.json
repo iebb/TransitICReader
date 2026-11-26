@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Android: fixed a crash when scrolling to the end of a card's records, which happened when a card stored two identical records, such as on a Boston CharlieCard.",
+  "ja": "• Android：カードに同一の利用記録が2件ある場合（ボストンのCharlieCardなど）、履歴を最後までスクロールするとアプリが終了する問題を修正しました。",
+  "ko": "• Android: 카드에 동일한 기록이 두 개 저장된 경우(보스턴 CharlieCard 등) 기록 목록을 끝까지 스크롤하면 앱이 종료되던 문제를 수정했습니다.",
+  "zh-Hans": "• Android:修复了卡片存有两条相同记录(例如波士顿 CharlieCard)时,滚动到记录末尾会闪退的问题。"
+}
