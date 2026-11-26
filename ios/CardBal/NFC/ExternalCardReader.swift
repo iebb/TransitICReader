@@ -86,6 +86,17 @@ final class ExternalCardReader {
             // Local applications are read after City Union / T-Union, whose read their SELECTs could disturb.
             try Task.checkCancellation()
             if let snapshot = try? await ChineseLocalDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            // MIFARE Classic transit cards (CharlieCard) over the reader's PC/SC
+            // storage commands. The public keys are tried read-only.
+            #if !APPCLIP
+            if supportsFeliCa {
+                try Task.checkCancellation()
+                let classic = ACR122ClassicCard(connection: connection, identifier: uid)
+                if let snapshot = try? await CharlieCardDecoder.decode(tag: .classic(classic), scannedAt: Date()) {
+                    return snapshot
+                }
+            }
+            #endif
             if supportsFeliCa, uid.count == 7 {
                 try Task.checkCancellation()
                 let ticket = ACR122UltralightCard(connection: connection, identifier: uid)
@@ -116,6 +127,32 @@ struct ACR122UltralightCard: MiFareCard {
         guard response[2] == 0 else { throw ExternalReaderError.readerStatus(response[2]) }
         guard response.count == 19 else { throw ExternalReaderError.malformedResponse }
         return Data(response.dropFirst(3))
+    }
+}
+
+/// MIFARE Classic access through the ACR122U PC/SC storage pseudo-APDUs.
+/// Loads a key into slot 0, authenticates a block, then reads it. Read-only.
+struct ACR122ClassicCard: ClassicCard {
+    let connection: any CardCommandChannel
+    let identifier: Data
+
+    func authenticate(block: Int, key: Data, isKeyB: Bool) async throws -> Bool {
+        guard key.count == 6, (0...255).contains(block) else { throw ExternalReaderError.malformedResponse }
+        let load = try await connection.exchange(Data([0xFF, 0x82, 0, 0, 6]) + key)
+        guard load.1 == 0x90, load.2 == 0 else { throw ExternalReaderError.readerStatus(load.1) }
+        let auth = try await connection.exchange(
+            Data([0xFF, 0x86, 0, 0, 5, 1, 0, UInt8(block), isKeyB ? 0x61 : 0x60, 0]))
+        return auth.1 == 0x90 && auth.2 == 0
+    }
+
+    func readBlock(_ block: Int) async throws -> Data {
+        guard (0...255).contains(block) else { throw ExternalReaderError.malformedResponse }
+        let response = try await connection.exchange(Data([0xFF, 0xB0, 0, UInt8(block), 0x10]))
+        guard response.1 == 0x90, response.2 == 0 else {
+            throw ExternalReaderError.cardStatus(UInt16(response.1) << 8 | UInt16(response.2))
+        }
+        guard response.0.count == 16 else { throw ExternalReaderError.malformedResponse }
+        return response.0
     }
 }
 

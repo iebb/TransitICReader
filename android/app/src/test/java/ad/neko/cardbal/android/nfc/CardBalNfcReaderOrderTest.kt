@@ -61,7 +61,7 @@ class CardBalNfcReaderOrderTest {
     @Test fun iso7816IsReadBeforeTheLocalReader() {
         val order = CardBalNfcReader.orderedDecoders(ClipperLookup.Numeric, null).map { it::class.simpleName }
         assertEquals(listOf("CEPASDecoder", "MacauPassDecoder", "ClipperDecoder", "ClipperUltralightDecoder", "StoredValueDecoder",
-            "MadridTtpDecoder", "CalypsoDecoder", "Iso7816Decoder", "ChineseLocalDecoder", "JapaneseICDecoder"), order)
+            "MadridTtpDecoder", "CalypsoDecoder", "Iso7816Decoder", "ChineseLocalDecoder", "CharlieCardDecoder", "JapaneseICDecoder"), order)
         assertTrue(order.indexOf("Iso7816Decoder") < order.indexOf("ChineseLocalDecoder"))
     }
 

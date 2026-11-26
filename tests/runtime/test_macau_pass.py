@@ -66,6 +66,7 @@ typealias CalypsoDecoder = UnrelatedDecoder
 typealias CEPASDecoder = UnrelatedDecoder
 typealias ClipperDecoder = UnrelatedDecoder
 typealias ClipperUltralightDecoder = UnrelatedDecoder
+typealias CharlieCardDecoder = UnrelatedDecoder
 typealias EdyDecoder = UnrelatedDecoder
 typealias WAONDecoder = UnrelatedDecoder
 typealias NanacoDecoder = UnrelatedDecoder

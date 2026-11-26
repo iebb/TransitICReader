@@ -50,6 +50,7 @@ presentation logic.
 | Clipper | DESFire / Ultralight | DESFire / Ultralight | USD purse, trip/top-up history and mapped stations for the public DESFire format; disposable ticket state and validations. [Format](clipper.md). |
 | Macau Pass / 澳门通 | ISO 7816 / CCID | ISO-DEP | MOP purse, serial, validity and recent transaction records; optional T-Union companion. [Format](macau-pass.md). |
 | Madrid Tarjeta Transporte Público | DESFire + optional online read | DESFire + optional online read | Card, profile, pass and multi-trip ticket details through CRTM's service; local reading is impossible. [Format](madrid-ttp.md). |
+| CharlieCard | MIFARE Classic (external reader) | MIFARE Classic | USD purse, serial, second card number and the last trips; read with bundled public keys. Built-in iPhone NFC cannot read it. [Format](charliecard.md). |
 
 Both platforms try CEPAS before readers that change the implicit application,
 then Macau Pass, Clipper and the remaining DESFire, Chinese, Calypso, Korean and FeliCa readers.

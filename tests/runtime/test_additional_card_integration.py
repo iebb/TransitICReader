@@ -37,6 +37,7 @@ enum ClipperDecoder {
  static func canonicalHistoryRecord(_ raw: String) -> String { raw }
 }
 enum ClipperUltralightDecoder { static func decodeTransaction(_ data: Data) -> TransitTransaction? { fatalError("Clipper ticket fallback used") } }
+enum CharlieCardDecoder { static func decodeTransaction(_ data: Data) -> TransitTransaction? { fatalError("CharlieCard fallback used") } }
 enum MacauPassDecoder { static func decodeTransaction(_ data: Data) -> TransitTransaction? { fatalError("Macau fallback used") } }
 enum TUnionDecoder {
  static func decodeTravelRecord(data: Data, index: Int) -> TransitTransaction? { fatalError("China fallback used") }

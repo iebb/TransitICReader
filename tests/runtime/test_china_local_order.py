@@ -94,7 +94,7 @@ class ChinaLocalOrderTests(unittest.TestCase):
         self.assertEqual(order, [
             "CEPASDecoder", "MacauPassDecoder", "ClipperDecoder", "ClipperUltralightDecoder",
             "StoredValueDecoder", "MadridTtpDecoder", "CalypsoDecoder", "Iso7816Decoder", "ChineseLocalDecoder",
-            "JapaneseICDecoder",
+            "CharlieCardDecoder", "JapaneseICDecoder",
         ])
 
 

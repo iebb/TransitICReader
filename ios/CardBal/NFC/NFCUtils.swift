@@ -276,6 +276,11 @@ struct TransactionDecoderRegistry {
                 return ClipperDecoder.decodeTransaction(data, context: context.map { Data(hexString: $0) }, index: index)
             }
         }
+        #if !APPCLIP
+        if family == "CharlieCard" && technology == "MIFARE Classic" {
+            return CharlieCardDecoder.decodeTransaction(data)
+        }
+        #endif
         if AdditionalCardHistory.handles(family) {
             return kind == .transactions ? AdditionalCardHistory.decode(raw: raw, family: family, context: context) : nil
         }

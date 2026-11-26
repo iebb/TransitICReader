@@ -181,6 +181,7 @@
     <string name="text_e4a923c76a0c3097" formatted="false">"取现"</string>
     <string name="text_2678d6a96a225209" formatted="false">"充值／转账／收款金额"</string>
     <string name="text_f733012fdfc79e1c" formatted="false">"充值金额"</string>
+    <string name="text_40ebe9683b77b4a4" formatted="false">"查理卡"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"在线查询"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"提交前请核对自动填入的代码。车站信息会显示在公开列表中；卡 ID 和设备 ID 不会公开。"</string>
     <string name="text_f007f43b2b65ac1e" formatted="false">"查看交通卡"</string>
@@ -770,6 +771,7 @@
     <string name="text_2614973765bebff6" formatted="false">"无法扫描"</string>
     <string name="text_60a5547e248dea0b" formatted="false">"读卡数据保存在此设备上。"</string>
     <string name="text_c4b407ae351ef63b" formatted="false">"定期票"</string>
+    <string name="text_4d2b0ed1f48f84bd" formatted="false">"第二卡号"</string>
     <string name="text_0e9489650b188cfe" formatted="false">"选择响应"</string>
     <string name="text_c37be0f905a37335" formatted="false">"选择状态字 SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"选中的 AID"</string>
@@ -834,6 +836,7 @@
     <string name="text_14773817bcf0cbbf" formatted="false">"子类型"</string>
     <string name="text_e7e72948c5d52dc6" formatted="false">"提交报告"</string>
     <string name="text_a26e25c373b284ff" formatted="false">"子类型"</string>
+    <string name="text_9bfd4f92fa5fdf20" formatted="false">"地铁"</string>
     <string name="text_e3f63f7122765f73" formatted="false">"Suica · PASMO · ICOCA · T-money · EZL · 交通联合 · CEPAS · 澳门通"</string>
     <string name="text_9c7c53e80a4e74d5" formatted="false">"日出"</string>
     <string name="text_be91940b79f46910" formatted="false">"支持"</string>
@@ -887,6 +890,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"票券"</string>
     <string name="text_ae63e705a5a8c2d8" formatted="false">"车票类别"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"检票闸机"</string>
+    <string name="text_2cbb4752d72ed48a" formatted="false">"售票机"</string>
     <string name="text_a4a454897222f91f" formatted="false">"车票状态"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"票种"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"验票"</string>

@@ -181,6 +181,7 @@
     <string name="text_e4a923c76a0c3097" formatted="false">"Cash Withdrawal"</string>
     <string name="text_2678d6a96a225209" formatted="false">"Charge / Transfer / Receipt Amount"</string>
     <string name="text_f733012fdfc79e1c" formatted="false">"Charge Amount"</string>
+    <string name="text_40ebe9683b77b4a4" formatted="false">"CharlieCard"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"Check Online"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"Check any prefilled code before submitting. Station details appear on the public request list; card and device IDs stay private."</string>
     <string name="text_f007f43b2b65ac1e" formatted="false">"Check your transit card"</string>
@@ -770,6 +771,7 @@
     <string name="text_2614973765bebff6" formatted="false">"Scanning Unavailable"</string>
     <string name="text_60a5547e248dea0b" formatted="false">"Scans are stored on this device."</string>
     <string name="text_c4b407ae351ef63b" formatted="false">"Season pass"</string>
+    <string name="text_4d2b0ed1f48f84bd" formatted="false">"Second Card Number"</string>
     <string name="text_0e9489650b188cfe" formatted="false">"Select Response"</string>
     <string name="text_c37be0f905a37335" formatted="false">"Select SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"Selected AID"</string>
@@ -834,6 +836,7 @@
     <string name="text_14773817bcf0cbbf" formatted="false">"Sub Type"</string>
     <string name="text_e7e72948c5d52dc6" formatted="false">"Submit Report"</string>
     <string name="text_a26e25c373b284ff" formatted="false">"Subtype"</string>
+    <string name="text_9bfd4f92fa5fdf20" formatted="false">"Subway"</string>
     <string name="text_e3f63f7122765f73" formatted="false">"Suica · PASMO · ICOCA · T-money · EZL · China T-Union · CEPAS · Macau Pass"</string>
     <string name="text_9c7c53e80a4e74d5" formatted="false">"Sunrise"</string>
     <string name="text_be91940b79f46910" formatted="false">"Support"</string>
@@ -887,6 +890,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"Ticket"</string>
     <string name="text_ae63e705a5a8c2d8" formatted="false">"Ticket Family"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"Ticket Gate"</string>
+    <string name="text_2cbb4752d72ed48a" formatted="false">"Ticket Machine"</string>
     <string name="text_a4a454897222f91f" formatted="false">"Ticket Status"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"Ticket Type"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"Ticket validation"</string>

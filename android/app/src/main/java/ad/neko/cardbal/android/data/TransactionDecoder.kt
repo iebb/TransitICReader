@@ -7,6 +7,7 @@ import ad.neko.cardbal.android.nfc.KoreanCardFormat
 import ad.neko.cardbal.android.nfc.ClipperDecoder
 import ad.neko.cardbal.android.nfc.ClipperUltralightDecoder
 import ad.neko.cardbal.android.nfc.MacauPassDecoder
+import ad.neko.cardbal.android.nfc.CharlieCardProtocol
 import ad.neko.cardbal.android.nfc.ChineseLocalDecoder
 import ad.neko.cardbal.android.nfc.ChineseLocalProtocol
 import org.json.JSONObject
@@ -296,6 +297,8 @@ class TransactionDecoder(context: Context) {
                 else ClipperDecoder.decodeTransaction(data, context.map { it.hexToBytes() }, index, clipperCatalog)
             family == "macau pass" && card.technology == "ISO7816" ->
                 if (kind == RawHistoryKind.Transactions) MacauPassDecoder.decodeTransaction(data) else null
+            family == "charliecard" && card.technology == "MIFARE Classic" ->
+                CharlieCardProtocol.decodeTransaction(data)
             ChineseLocalProtocol.Kind.from(family) != null ->
                 if (card.technology == "ISO7816" && kind == RawHistoryKind.Transactions)
                     ChineseLocalDecoder.decodeRecord(data, ChineseLocalProtocol.Kind.from(family)) { stationDb.cityUnionTerminal(it, null) ?: stationDb.lingnanTerminal(it) } else null

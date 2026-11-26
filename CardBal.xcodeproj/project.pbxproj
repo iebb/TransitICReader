@@ -13,6 +13,8 @@
 		B17000000000000000000004 /* OctopusOnlineDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17000000000000000000003 /* OctopusOnlineDecoder.swift */; };
 		C7A1D0000000000000000002 /* MadridTTPProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A1D0000000000000000001 /* MadridTTPProtocol.swift */; };
 		C7A1D0000000000000000004 /* MadridTTPDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A1D0000000000000000003 /* MadridTTPDecoder.swift */; };
+		C7A1D0000000000000000006 /* CharlieCardProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A1D0000000000000000005 /* CharlieCardProtocol.swift */; };
+		C7A1D0000000000000000008 /* CharlieCardDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A1D0000000000000000007 /* CharlieCardDecoder.swift */; };
 		B15000000000000000000002 /* TianfuTongDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15000000000000000000001 /* TianfuTongDecoder.swift */; };
 		66AB685E384485E90E83358A /* RetailFeliCaRead.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */; };
 		E11FE0D6657FFA25F070CFE0 /* StoredValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */; };
@@ -168,6 +170,8 @@
 		B17000000000000000000003 /* OctopusOnlineDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OctopusOnlineDecoder.swift; sourceTree = "<group>"; };
 		C7A1D0000000000000000001 /* MadridTTPProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MadridTTPProtocol.swift; sourceTree = "<group>"; };
 		C7A1D0000000000000000003 /* MadridTTPDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MadridTTPDecoder.swift; sourceTree = "<group>"; };
+		C7A1D0000000000000000005 /* CharlieCardProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharlieCardProtocol.swift; sourceTree = "<group>"; };
+		C7A1D0000000000000000007 /* CharlieCardDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharlieCardDecoder.swift; sourceTree = "<group>"; };
 		B15000000000000000000001 /* TianfuTongDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TianfuTongDecoder.swift; sourceTree = "<group>"; };
 		B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetailFeliCaRead.swift; sourceTree = "<group>"; };
 		BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredValueDecoder.swift; sourceTree = "<group>"; };
@@ -304,6 +308,7 @@
 			children = (
 				B17000000000000000000001 /* OctopusOnlineProtocol.swift */,
 				C7A1D0000000000000000001 /* MadridTTPProtocol.swift */,
+				C7A1D0000000000000000005 /* CharlieCardProtocol.swift */,
 				B3ADDB76BA1698A7987E371C /* RetailFeliCaRead.swift */,
 				9BCF7E4C2068403798A4A14D /* StoredValueProtocol.swift */,
 				C20290B553C701A8BD665B22 /* CalypsoProtocol.swift */,
@@ -370,6 +375,7 @@
 			children = (
 				B17000000000000000000003 /* OctopusOnlineDecoder.swift */,
 				C7A1D0000000000000000003 /* MadridTTPDecoder.swift */,
+				C7A1D0000000000000000007 /* CharlieCardDecoder.swift */,
 				BD2568A2DA0304FC48A47FD8 /* StoredValueDecoder.swift */,
 				24BE600F5C493DF43BD86505 /* CEPASDecoder.swift */,
 				B15000000000000000000001 /* TianfuTongDecoder.swift */,
@@ -644,6 +650,8 @@
 				B17000000000000000000004 /* OctopusOnlineDecoder.swift in Sources */,
 				C7A1D0000000000000000002 /* MadridTTPProtocol.swift in Sources */,
 				C7A1D0000000000000000004 /* MadridTTPDecoder.swift in Sources */,
+				C7A1D0000000000000000006 /* CharlieCardProtocol.swift in Sources */,
+				C7A1D0000000000000000008 /* CharlieCardDecoder.swift in Sources */,
 				B14000000000000000000002 /* SingaporeTransitCatalog.swift in Sources */,
 				B13000000000000000000006 /* ExternalCardReader.swift in Sources */,
 				B13000000000000000000004 /* CoreNFCCardTransport.swift in Sources */,

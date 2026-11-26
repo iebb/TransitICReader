@@ -19,6 +19,7 @@ reference. Release notes are publishing inputs under `release-notes/`.
 - [Calypso public records](decoding/calypso.md)
 - [Lisboa Viva / navegante Zapping](decoding/lisboa-zapping.md)
 - [Madrid Tarjeta Transporte Público](decoding/madrid-ttp.md)
+- [CharlieCard (Boston)](decoding/charliecard.md)
 
 ## Development
 

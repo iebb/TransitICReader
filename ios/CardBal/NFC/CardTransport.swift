@@ -5,6 +5,7 @@ enum CardTag {
     case feliCa(any FeliCaCard)
     case iso7816(any ISO7816Card)
     case miFare(any MiFareCard)
+    case classic(any ClassicCard)
 }
 
 struct CardPollingOption: OptionSet {
@@ -44,6 +45,19 @@ protocol ISO7816Card {
     /// Core NFC only selects the AIDs listed in Info.plist; external readers can select any application.
     var selectsUnlistedApplications: Bool { get }
     func sendCommand(apdu: CardAPDU) async throws -> (Data, UInt8, UInt8)
+}
+
+/// MIFARE Classic sector access for transit cards whose keys are public.
+/// Reads only: `authenticate` loads a known key, `readBlock` fetches 16 bytes.
+/// Built-in iPhone NFC cannot provide this (Core NFC has no Classic auth), so
+/// it is backed only by external readers and Android's `MifareClassic`.
+protocol ClassicCard {
+    var identifier: Data { get }
+    /// Authenticate the sector that owns `block` with a six-byte key. Returns
+    /// false on an authentication failure so the caller can try another key.
+    func authenticate(block: Int, key: Data, isKeyB: Bool) async throws -> Bool
+    /// Read one authenticated 16-byte block by absolute block index.
+    func readBlock(_ block: Int) async throws -> Data
 }
 
 extension ISO7816Card {

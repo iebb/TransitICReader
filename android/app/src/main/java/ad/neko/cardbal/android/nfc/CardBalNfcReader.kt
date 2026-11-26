@@ -112,7 +112,7 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
         internal fun orderedDecoders(clipperLookup: ClipperLookup, octopusStore: OctopusMetadataStore?, developerMode: Boolean = false,
                                      madridPreferences: SharedPreferences? = null): List<TransitCardDecoder> = listOf(
             CEPASDecoder(), MacauPassDecoder(), ClipperDecoder(clipperLookup), ClipperUltralightDecoder(clipperLookup),
-            StoredValueDecoder(), MadridTtpDecoder(madridPreferences), CalypsoDecoder(), Iso7816Decoder(developerMode), ChineseLocalDecoder(), JapaneseICDecoder(octopusStore),
+            StoredValueDecoder(), MadridTtpDecoder(madridPreferences), CalypsoDecoder(), Iso7816Decoder(developerMode), ChineseLocalDecoder(), CharlieCardDecoder(), JapaneseICDecoder(octopusStore),
         )
 
         /** Reads in order until one decoder succeeds. After a City Union / T-Union read, the local

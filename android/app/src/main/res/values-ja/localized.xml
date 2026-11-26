@@ -181,6 +181,7 @@
     <string name="text_e4a923c76a0c3097" formatted="false">"現金引き出し"</string>
     <string name="text_2678d6a96a225209" formatted="false">"チャージ・振替・受取額"</string>
     <string name="text_f733012fdfc79e1c" formatted="false">"チャージ額"</string>
+    <string name="text_40ebe9683b77b4a4" formatted="false">"チャーリーカード"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"オンライン照会"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"送信前に自動入力されたコードを確認してください。駅の情報は公開リストに表示されますが、カードIDと端末IDは公開されません。"</string>
     <string name="text_f007f43b2b65ac1e" formatted="false">"交通系カードを確認"</string>
@@ -770,6 +771,7 @@
     <string name="text_2614973765bebff6" formatted="false">"スキャンできません"</string>
     <string name="text_60a5547e248dea0b" formatted="false">"読み取りデータはこの端末に保存されます。"</string>
     <string name="text_c4b407ae351ef63b" formatted="false">"定期券"</string>
+    <string name="text_4d2b0ed1f48f84bd" formatted="false">"2枚目のカード番号"</string>
     <string name="text_0e9489650b188cfe" formatted="false">"選択時の応答"</string>
     <string name="text_c37be0f905a37335" formatted="false">"選択時の状態 SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"選択中の AID"</string>
@@ -834,6 +836,7 @@
     <string name="text_14773817bcf0cbbf" formatted="false">"サブタイプ"</string>
     <string name="text_e7e72948c5d52dc6" formatted="false">"報告を送信"</string>
     <string name="text_a26e25c373b284ff" formatted="false">"サブタイプ"</string>
+    <string name="text_9bfd4f92fa5fdf20" formatted="false">"地下鉄"</string>
     <string name="text_e3f63f7122765f73" formatted="false">"Suica · PASMO · ICOCA · T-money · EZL · 中国交通連合 · CEPAS · マカオパス"</string>
     <string name="text_9c7c53e80a4e74d5" formatted="false">"サンライズ"</string>
     <string name="text_be91940b79f46910" formatted="false">"サポート"</string>
@@ -887,6 +890,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"チケット"</string>
     <string name="text_ae63e705a5a8c2d8" formatted="false">"チケットの種類"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"改札機"</string>
+    <string name="text_2cbb4752d72ed48a" formatted="false">"券売機"</string>
     <string name="text_a4a454897222f91f" formatted="false">"乗車券の状態"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"券種"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"乗車券確認"</string>

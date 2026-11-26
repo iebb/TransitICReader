@@ -25,7 +25,10 @@ such case. Android uses `IsoDep` or `NfcF` for the corresponding transport.
 
 MIFARE Classic is a separate hardware and key requirement. Core NFC does not
 expose Classic sector access, and Android support depends on the reader.
-Recognizing DESFire or FeliCa also does not unlock protected files.
+Recognizing DESFire or FeliCa also does not unlock protected files. CardBal
+bundles the public MBTA CharlieCard keys to read that card through an external
+reader or Android, for reading only; it writes no blocks. See
+[CharlieCard](../decoding/charliecard.md).
 The existing reader transports and supported external hardware are described
 in [external NFC readers](external-nfc-readers.md).
 

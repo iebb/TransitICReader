@@ -29,6 +29,7 @@ balance, ticket or travel-record support.
 | Lisboa Viva / navegante Zapping | EUR counter for provider 31 / tariff 33592 | Entry/transfer/exit events in Lisbon local time; no fare inferred |
 | NETS FlashPay / stored-value EZ-Link | Signed SGD-cent purse, CAN | CEPAS payments, MRT/bus transactions, reloads/refunds |
 | Madrid Tarjeta Transporte Público | Online read through CRTM: card number, profile, passes, multi-trip tickets and validity | Last use per ticket; no trip history or purse |
+| CharlieCard | Signed USD-cent purse, serial and second card number | Last 12 trips with bus/subway/ticket-machine mode and fare; issue and expiry dates |
 | Opal DESFire | Signed AUD-cent purse | Last-event summary only; no fare inferred from that summary |
 | HSL V1/V2 / Waltti DESFire | EUR purse and ticket-product validity | Journey logs, last reload and embedded ticket validations |
 | Clipper public DESFire layout | Signed USD-cent purse, serial and optional expiry | Trips and reloads; pending/completed halves reconciled, agency/route/station lookup |
@@ -80,9 +81,11 @@ The project has no watchOS app or WatchConnectivity sync implementation.
 MIFARE Classic cards, including Classic EasyCard and
 Bip!, have not been advertised as iPhone NFC support. Core NFC does not expose
 Classic sector access; Android additionally needs compatible hardware and the
-appropriate keys. No keys or card-writing commands are included. Clipper
-adaptations and their upstream fixture retain GPL-3.0-or-later notices and the
-original station-data attribution; see [Clipper](clipper.md).
+appropriate keys. The only bundled card keys are the public MBTA CharlieCard
+keys, used for reading only; see [CharlieCard](charliecard.md). No
+card-writing commands are included. Clipper adaptations and their upstream
+fixture retain GPL-3.0-or-later notices and the original station-data
+attribution; see [Clipper](clipper.md).
 
 ## Evidence and tests
 

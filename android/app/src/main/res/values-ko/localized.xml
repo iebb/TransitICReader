@@ -181,6 +181,7 @@
     <string name="text_e4a923c76a0c3097" formatted="false">"현금 인출"</string>
     <string name="text_2678d6a96a225209" formatted="false">"충전 / 이체 / 수령 금액"</string>
     <string name="text_f733012fdfc79e1c" formatted="false">"충전 금액"</string>
+    <string name="text_40ebe9683b77b4a4" formatted="false">"찰리카드"</string>
     <string name="text_a38c5517b7c50db6" formatted="false">"온라인 조회"</string>
     <string name="text_8f174692a154f1e2" formatted="false">"제출 전에 자동 입력된 코드를 확인하세요. 역 정보는 공개 목록에 표시되지만 카드와 기기 ID는 공개되지 않습니다."</string>
     <string name="text_f007f43b2b65ac1e" formatted="false">"교통카드 확인"</string>
@@ -770,6 +771,7 @@
     <string name="text_2614973765bebff6" formatted="false">"스캔할 수 없습니다"</string>
     <string name="text_60a5547e248dea0b" formatted="false">"읽은 데이터는 이 기기에 저장됩니다."</string>
     <string name="text_c4b407ae351ef63b" formatted="false">"정기권"</string>
+    <string name="text_4d2b0ed1f48f84bd" formatted="false">"두 번째 카드 번호"</string>
     <string name="text_0e9489650b188cfe" formatted="false">"선택 응답"</string>
     <string name="text_c37be0f905a37335" formatted="false">"선택 상태 SW1SW2"</string>
     <string name="text_ac5b44c2ea27e4d1" formatted="false">"선택된 AID"</string>
@@ -834,6 +836,7 @@
     <string name="text_14773817bcf0cbbf" formatted="false">"하위 유형"</string>
     <string name="text_e7e72948c5d52dc6" formatted="false">"신고 제출"</string>
     <string name="text_a26e25c373b284ff" formatted="false">"하위 유형"</string>
+    <string name="text_9bfd4f92fa5fdf20" formatted="false">"지하철"</string>
     <string name="text_e3f63f7122765f73" formatted="false">"Suica · PASMO · ICOCA · T-money · EZL · 중국 교통연합 · CEPAS · 마카오패스"</string>
     <string name="text_9c7c53e80a4e74d5" formatted="false">"선라이즈"</string>
     <string name="text_be91940b79f46910" formatted="false">"고객 지원"</string>
@@ -887,6 +890,7 @@
     <string name="text_567a8b5f8f5ce3c5" formatted="false">"티켓"</string>
     <string name="text_ae63e705a5a8c2d8" formatted="false">"승차권 종류"</string>
     <string name="text_a9a863d576cb0c43" formatted="false">"개찰구"</string>
+    <string name="text_2cbb4752d72ed48a" formatted="false">"발매기"</string>
     <string name="text_a4a454897222f91f" formatted="false">"승차권 상태"</string>
     <string name="text_5a918ce6f7f22691" formatted="false">"승차권 종류"</string>
     <string name="text_f5251c52c2cb2b7a" formatted="false">"승차권 확인"</string>
