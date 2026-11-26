@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Boston: improved CharlieCard detection with a USB NFC reader or on Android, for cards that were reported as unsupported.",
+  "ja": "• ボストン：USB NFCリーダーおよびAndroidでのCharlieCard（チャーリーカード）の判別を改善し、非対応と表示されていたカードに対応しました。",
+  "ko": "• 보스턴: USB NFC 리더와 Android에서 CharlieCard(찰리카드) 인식을 개선해, 지원하지 않는 카드로 표시되던 카드를 읽을 수 있습니다.",
+  "zh-Hans": "• 波士顿:改进了通过 USB NFC 读卡器和在 Android 上识别 CharlieCard(查理卡)的方式,此前显示为不支持的卡片现可读取。"
+}
