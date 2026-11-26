@@ -39,9 +39,11 @@ object CharlieCardProtocol {
         "F66224EE1E89",
     ).map { it.hexToBytes() }
 
-    /** Sector 0 is read with these known keys, which also identify the card. */
-    val SECTOR0_KEY_A = "F1B9F5669CC8".hexToBytes()
-    val SECTOR0_KEY_B = "3060206F5B0A".hexToBytes()
+    /**
+     * Sector 0 is read with these known keys, which also identify the card.
+     * Either may be key A or key B, so both are tried in both roles.
+     */
+    val SECTOR0_KEYS: List<ByteArray> = listOf("3060206F5B0A", "F1B9F5669CC8").map { it.hexToBytes() }
 
     val REQUIRED_SECTORS = listOf(0, 2, 3, 6, 7, 8)
 

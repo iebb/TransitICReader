@@ -24,10 +24,13 @@ feature). The App Clip, which is built-in NFC only, does not include it.
 - **Android.** `MifareClassic.authenticateSectorWithKeyA/B` then
   `readBlock(sectorToBlock(sector) + n)`.
 
-Sector 0 is authenticated with the known CharlieCard key first (`F1B9F5669CC8`
-as key A, `3060206F5B0A` as key B); a card that refuses it is not a CharlieCard
-and nothing else is tried. Each remaining sector is opened by trying the public
-key pool as key A then key B.
+Sector 0 is authenticated with the two known CharlieCard sector-0 keys first
+(`3060206F5B0A` and `F1B9F5669CC8`). Metrodroid identifies the card when either
+key opens sector 0 as key A or key B, so CardBal tries both keys in both roles;
+a card that refuses all four is not a CharlieCard and nothing else is tried.
+Each remaining sector is opened by trying the public key pool as key A then key
+B. The debug log records a refused sector 0 or any required sector that stays
+closed.
 
 ## Layout
 

@@ -24,8 +24,8 @@ enum CharlieCardProtocol {
 
     /// Sector 0 is read with these specific keys; authenticating with them
     /// identifies a CharlieCard without writing or guessing other sectors.
-    static let sector0KeyA = Data(hexString: "F1B9F5669CC8")
-    static let sector0KeyB = Data(hexString: "3060206F5B0A")
+    /// Either may be key A or key B, so both are tried in both roles.
+    static let sector0Keys = ["3060206F5B0A", "F1B9F5669CC8"].map { Data(hexString: $0) }
 
     /// Sectors whose data blocks the reader needs, in read order.
     static let requiredSectors = [0, 2, 3, 6, 7, 8]
