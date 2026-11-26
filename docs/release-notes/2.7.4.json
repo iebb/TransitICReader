@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Boston: read a CharlieCard with a USB NFC reader or on Android, showing the balance, card number, recent trips with bus, subway or ticket-machine and fare, and the issue and expiry dates. Built-in iPhone NFC cannot read these cards.",
+  "ja": "• ボストン：CharlieCard（チャーリーカード）をUSB NFCリーダーまたはAndroidで読み取れるようになりました。残高、カード番号、直近の利用（バス・地下鉄・券売機と運賃）、発行日と有効期限を表示します。iPhone内蔵NFCでは読み取れません。",
+  "ko": "• 보스턴: CharlieCard(찰리카드)를 USB NFC 리더나 Android에서 읽을 수 있습니다. 잔액, 카드 번호, 최근 이용 내역(버스·지하철·발매기와 요금), 발급일과 만료일을 표시합니다. iPhone 내장 NFC로는 읽을 수 없습니다.",
+  "zh-Hans": "• 波士顿:可通过 USB NFC 读卡器或在 Android 上读取 CharlieCard(查理卡),显示余额、卡号、近期行程(公交、地铁或售票机及票价)以及发行和到期日期。iPhone 内置 NFC 无法读取此卡。"
+}
