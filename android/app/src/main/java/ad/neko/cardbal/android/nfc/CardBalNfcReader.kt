@@ -116,7 +116,8 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
         )
 
         /** Reads in order until one decoder succeeds. After a City Union / T-Union read, the local
-         *  application and the Octopus side of the same card are still read as extra applications. */
+         *  application and the Octopus side of the same card are still read as extra applications;
+         *  after a Macau Pass read, only the local application. */
         internal fun read(decoders: List<TransitCardDecoder>, attempt: (TransitCardDecoder) -> TransitCardSnapshot?): List<TransitCardSnapshot> {
             val results=mutableListOf<TransitCardSnapshot>()
             for(decoder in decoders) {
@@ -124,7 +125,8 @@ class CardBalNfcReader : ViewModel(), NfcAdapter.ReaderCallback {
                     // Lingnan Pass pairs like T-Union: older 岭南通·八达通 cards carry it beside Octopus.
                     val mainland=results.any { s -> s.applications.orEmpty().any { it.isTUnion || it.isCityUnion || it.isLingnan } }
                     val macau=results.any { s -> s.applications.orEmpty().any { it.isMacauPass } }
-                    if(!mainland || macau || (decoder !is JapaneseICDecoder && decoder !is ChineseLocalDecoder)) continue
+                    if(macau) { if(decoder !is ChineseLocalDecoder) continue }
+                    else if(!mainland || (decoder !is JapaneseICDecoder && decoder !is ChineseLocalDecoder)) continue
                 }
                 attempt(decoder)?.let(results::add)
             }

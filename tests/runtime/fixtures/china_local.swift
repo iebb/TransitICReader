@@ -76,6 +76,7 @@
     check(invalidStatus == nil, "Non-9000 success accepted")
     try await testChineseLocalBesideCityUnion(fixture: fixture, histories: histories)
     try await testLingnanPass(fixture: fixture, histories: histories)
+    try await testChineseLocalBesideMacauPass(fixture: fixture, histories: histories)
     try await testChineseLocalDetailsAsTripReader(fixture: fixture)
     print("PASS: China local balances, histories, identities, persistence and APDU procedures")
 }
@@ -266,4 +267,72 @@
     // A Shenzhen Tong read does not pair with Octopus (unchanged).
     check(!TransitApplication(snapshot: snapshot("5041592E535A54", serial: "1")).isLingnan, "Shenzhen counted as Lingnan")
     print("PASS: Lingnan Pass only, PAY.TICL reply, beside T-Union and beside Octopus")
+}
+
+/// Macau Pass co-branded cards: the local purse (Lingnan Pass, Shenzhen Tong) is added after the Macau read; Macau stays primary.
+@MainActor func testChineseLocalBesideMacauPass(fixture: [String: Any], histories: [[String: Any]]) async throws {
+    let macauAID = "B0C4C3C5CDA8C7AEB0FC", tu = TUnionDecoder.applicationAID
+    let ticl = "5041592E5449434C", appy = "5041592E41505059"
+    let cards = fixture["cards"] as! [[String: Any]]
+    let lingnan = cards[3], shenzhen = cards[0], szt = shenzhen["aid"] as! String
+    let info = Data(hexString: lingnan["info"] as! String)
+    let proprietary = Data([0xA5, UInt8(info.count + 3), 0x9F, 0x0C, UInt8(info.count)]) + info
+    let appyFCI = Data([0x6F, UInt8(10 + proprietary.count), 0x84, 0x08]) + Data(hexString: appy) + proprietary
+    let records = histories.prefix(2).map { Data(hexString: $0["hex"] as! String) }
+    // What MacauPassDecoder returns (its own fixture covers the read itself).
+    var macau = TransitCardSnapshot(technology: "ISO7816", cardFamily: "Macau Pass", identifierLabel: "Application Serial",
+        identifierValue: "12ABCDEF", rawIdentifierValue: "01020304", pmm: nil, systemCode: nil, selectedAID: macauAID,
+        balanceText: "MOP 113.40", balanceDetail: "Stored-value balance excluding the MOP 10 reserve.", realSerialNumber: "12ABCDEF",
+        region: "Macau", resultFields: [ResultField(title: "Brand", value: "Macau Pass")], rawSections: [],
+        rawTransactions: [], rawTransitHistory: [], scannedAt: Date(timeIntervalSince1970: 100))
+    macau.applications = [TransitApplication(snapshot: macau, cityCode: "0446", records: [])]
+
+    // (a) 澳门通 with Lingnan Pass: both purses, Macau primary and its MOP balance shown.
+    let card = NFCISO7816Tag(); card.selectsUnlistedApplications = false; card.initialSelectedAID = macauAID
+    card.available = [macauAID, appy, ticl]; card.selectReplies = [appy: appyFCI]
+    card.balances = [ticl: Data(hexString: "00000BB8")]; card.files = [ticl: [24: records]]
+    let both = await ChineseLocalDecoder.addingLocalApplication(to: macau, tag: .iso7816(card))
+    let apps = both.applications ?? []
+    check(apps.count == 2 && apps.filter(\.isMacauPass).count == 1 && apps.filter(\.isLingnan).count == 1, "Macau + Lingnan views")
+    check(both.selectedAID == macauAID && both.cardFamily == "Macau Pass" && both.balanceText == "MOP 113.40"
+          && both.realSerialNumber == "12ABCDEF", "Lingnan replaced the Macau primary")
+    check(TransitApplication.primary(in: apps)?.isMacauPass == true, "Macau not primary")
+    check(both.balanceDetail?.contains("Lingnan Pass: CNY 30") == true && both.balanceDetail?.contains("Macau Pass: MOP 113.40") == true,
+          "Both purses not listed \(both.balanceDetail ?? "nil")")
+    check(both.resultFields.contains { $0.title == "Lingnan Pass · Card Number" && $0.value == "5123456789" }, "Lingnan fields missing")
+    check(!card.selectedAIDs.contains("4F43") && !card.selectedAIDs.contains("50424F43"), "Core NFC selected an unlisted Beijing name")
+    // One physical card: a later Macau-only or Lingnan-only scan updates the same wallet card.
+    let lingnanOnly = try await ChineseLocalDecoder.decode(tag: .iso7816(card), scannedAt: Date(timeIntervalSince1970: 200))
+    let wallet = Wallet(); wallet.upsert(snapshot: both); wallet.upsert(snapshot: macau); wallet.upsert(snapshot: lingnanOnly)
+    check(wallet.cards.count == 1 && wallet.cards[0].applications?.count == 2, "Macau + Lingnan rescans split the wallet card")
+    let stored = try JSONDecoder().decode([TransitApplication].self, from: JSONEncoder().encode(apps))
+    check(stored == apps, "Macau + Lingnan lost in storage")
+
+    // (b) Macau Pass with T-Union and Shenzhen Tong: three separate purses, one wallet card, no duplicate T-Union view.
+    var infoTU = Data(repeating: 0, count: 30); infoTU.replaceSubrange(2..<4, with: Data(hexString: "2900")); infoTU[19] = 1
+    infoTU.replaceSubrange(10..<20, with: Data(hexString: "03100000000000000001"))
+    let triple = NFCISO7816Tag(); triple.selectsUnlistedApplications = false; triple.initialSelectedAID = tu
+    triple.available = [macauAID, tu, szt]; triple.info = [tu: infoTU]
+    triple.balances = [szt: Data(hexString: "800004D2")]
+    triple.binaryFiles = [szt: [shenzhen["sfi"] as! Int: Data(hexString: shenzhen["info"] as! String)]]
+    triple.files = [szt: [24: records]]
+    let tunion = try await ChineseTransitDecoder.decode(tag: .iso7816(triple), scannedAt: Date(timeIntervalSince1970: 100))
+    let macauTU = TransitCardSnapshot.combining([macau, tunion])!
+    let all = await ChineseLocalDecoder.addingLocalApplication(to: macauTU, tag: .iso7816(triple))
+    let tripleApps = all.applications ?? []
+    check(tripleApps.count == 3 && tripleApps.filter(\.isMacauPass).count == 1 && tripleApps.filter(\.isTUnion).count == 1
+          && tripleApps.filter { $0.selectedAID == szt }.count == 1, "Macau + T-Union + Shenzhen views \(tripleApps.map(\.id))")
+    check(all.selectedAID == macauAID && all.balanceText == "MOP 113.40" && all.cardFamily == "Macau Pass", "Shenzhen replaced the Macau primary")
+    check(all.resultFields.filter { $0.title.hasPrefix("T-Union · ") }.count == macauTU.resultFields.filter { $0.title.hasPrefix("T-Union · ") }.count,
+          "T-Union fields duplicated")
+    check(all.resultFields.contains { $0.title == "Shenzhen Tong · Card Number" }, "Shenzhen fields missing")
+    let tripleWallet = Wallet(); tripleWallet.upsert(snapshot: all); tripleWallet.upsert(snapshot: macauTU)
+    check(tripleWallet.cards.count == 1 && tripleWallet.cards[0].applications?.count == 3, "Macau + T-Union + Shenzhen split the wallet card")
+
+    // (c) A Macau card without a local purse is unchanged.
+    let plain = NFCISO7816Tag(); plain.selectsUnlistedApplications = false; plain.initialSelectedAID = macauAID; plain.available = [macauAID]
+    let unchanged = await ChineseLocalDecoder.addingLocalApplication(to: macau, tag: .iso7816(plain))
+    check(unchanged.applications == macau.applications && unchanged.balanceText == macau.balanceText
+          && unchanged.resultFields.map(\.title) == macau.resultFields.map(\.title), "Local reader changed a Macau-only result")
+    print("PASS: local purse added beside Macau Pass (Lingnan, T-Union + Shenzhen); Macau stays primary")
 }

@@ -126,6 +126,10 @@ On every platform the local reader runs after the City Union / T-Union
 reader. When a
 card has both, the local application is read after City Union / T-Union
 succeeded and added as another application; City Union / T-Union stays primary.
+A Macau Pass card (for example 岭南通·澳门通) is handled the same way: after the
+Macau read, only the local reader runs, its purse is added beside Macau Pass
+(and any T-Union purse the Macau reader found), and Macau Pass stays primary.
+Purses are listed separately and never summed.
 
 Trip Reader database import remains limited to its existing City Union/T-Union
 backup layouts. Adding a live NFC reader does not establish a backup schema.

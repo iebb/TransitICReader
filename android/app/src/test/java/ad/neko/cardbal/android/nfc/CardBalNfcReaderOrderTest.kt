@@ -44,12 +44,13 @@ class CardBalNfcReaderOrderTest {
     }
 
     private fun scan(applications: Set<String>, selects: MutableList<String>, calls: MutableList<String>,
-                     octopus: TransitCardSnapshot? = null): List<TransitCardSnapshot> {
+                     octopus: TransitCardSnapshot? = null, macau: TransitCardSnapshot? = null): List<TransitCardSnapshot> {
         val exchange = card(applications, selects)
         val decoders = CardBalNfcReader.orderedDecoders(ClipperLookup.Numeric, null)
         return CardBalNfcReader.read(decoders) { decoder ->
             calls.add(decoder::class.simpleName!!)
             when (decoder) {
+                is MacauPassDecoder -> macau
                 is Iso7816Decoder -> Iso7816Protocol.select(cityUnion, exchange)?.let { decoder.readApplication("01020304", it, scannedAt, exchange) }
                 is ChineseLocalDecoder -> ChineseLocalDecoder.read("01020304", scannedAt, exchange)
                 is JapaneseICDecoder -> octopus
@@ -134,5 +135,64 @@ class CardBalNfcReaderOrderTest {
         val results = scan(setOf(shenzhen), mutableListOf(), mutableListOf(), octopus())
         assertEquals(1, results.size)
         assertEquals("Shenzhen Tong", results.single().cardFamily)
+    }
+
+    /** What MacauPassDecoder returns, optionally with its co-branded T-Union purse (its own test covers the read). */
+    private fun macau(tUnion: Boolean = false): TransitCardSnapshot {
+        val purse = TransitCardSnapshot(
+            technology = "ISO7816", cardFamily = MacauPassDecoder.FAMILY, identifierLabel = "Application Serial", identifierValue = "12ABCDEF",
+            rawIdentifierValue = "01020304", selectedAID = MacauPassDecoder.APPLICATION_AID, balanceText = "MOP 113.40",
+            realSerialNumber = "12ABCDEF", region = "Macau", scannedAt = scannedAt,
+        ).let { it.copy(applications = listOf(TransitApplication.from(it, emptyList(), "0446"))) }
+        if (!tUnion) return purse
+        val tu = TransitCardSnapshot(
+            technology = "ISO7816", cardFamily = "China T-Union", identifierLabel = "UID", identifierValue = "01020304", rawIdentifierValue = "01020304",
+            selectedAID = "A000000632010105", balanceText = "CNY 32.00", realSerialNumber = "3100000000000000001", scannedAt = scannedAt,
+        ).let { it.copy(applications = listOf(TransitApplication.from(it))) }
+        return TransitApplication.combine(listOf(purse, tu))!!
+    }
+
+    @Test fun lingnanBesideMacauPassIsAddedWithMacauPrimary() {
+        val selects = mutableListOf<String>(); val calls = mutableListOf<String>()
+        val results = scan(setOf(appy, ticl), selects, calls, octopus(), macau())
+        assertEquals(2, results.size)
+        // After Macau only the local reader runs: no City Union / T-Union reread, no Octopus.
+        assertEquals(listOf("MacauPassDecoder", "ChineseLocalDecoder"), calls.filter { it != "CEPASDecoder" })
+        val snapshot = TransitApplication.combine(results)!!
+        val apps = snapshot.applications!!
+        assertEquals(2, apps.size)
+        assertEquals(apps.single { it.isMacauPass }, TransitApplication.primary(apps))
+        assertNotNull(apps.single { it.isLingnan }.balanceText)
+        assertEquals(MacauPassDecoder.APPLICATION_AID, snapshot.selectedAID)
+        assertEquals("Macau Pass", snapshot.cardFamily)
+        assertEquals("MOP 113.40", snapshot.balanceText)
+        assertEquals("12ABCDEF", snapshot.realSerialNumber)
+        assertTrue(snapshot.balanceDetail!!.contains("Macau Pass: MOP 113.40") && snapshot.balanceDetail!!.contains("Lingnan Pass: "))
+        // Lingnan pairs with Octopus, but a Macau card never reads an Octopus side.
+        assertFalse(apps.any { it.isOctopus })
+    }
+
+    @Test fun shenzhenBesideMacauPassAndTUnionIsOneCardWithoutDuplicates() {
+        val selects = mutableListOf<String>(); val calls = mutableListOf<String>()
+        val results = scan(setOf(cityUnion, shenzhen), selects, calls, macau = macau(tUnion = true))
+        assertEquals(2, results.size)
+        assertFalse("Iso7816Decoder" in calls)
+        assertFalse(selects.contains(cityUnion))
+        val snapshot = TransitApplication.combine(results)!!
+        val apps = snapshot.applications!!
+        assertEquals(3, apps.size)
+        assertEquals(1, apps.count { it.isMacauPass }); assertEquals(1, apps.count { it.isTUnion })
+        assertEquals(1, apps.count { it.selectedAID == shenzhen })
+        assertEquals(apps.size, apps.map { it.id }.toSet().size)
+        assertEquals(MacauPassDecoder.APPLICATION_AID, snapshot.selectedAID)
+        assertEquals("MOP 113.40", snapshot.balanceText)
+    }
+
+    @Test fun macauPassWithoutLocalPurseIsUnchanged() {
+        val calls = mutableListOf<String>()
+        val results = scan(emptySet(), mutableListOf(), calls, octopus(), macau())
+        assertEquals(1, results.size)
+        assertEquals(listOf("MacauPassDecoder", "ChineseLocalDecoder"), calls.filter { it != "CEPASDecoder" })
+        assertEquals(macau(), TransitApplication.combine(results))
     }
 }

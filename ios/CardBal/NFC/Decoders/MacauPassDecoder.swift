@@ -14,9 +14,18 @@ struct MacauPassDecoder: TransitCardDecoder {
 
     static func decode(tag: CardTag, scannedAt: Date) async throws -> TransitCardSnapshot {
         guard case .iso7816(let card) = tag else { throw NFCTestError.unsupportedCard }
-        let selected = try await read(card, command: CardAPDU(
-            instructionClass: 0, instructionCode: 0xA4, p1Parameter: 4, p2Parameter: 0,
-            data: Data(hexString: applicationAID), expectedResponseLength: 256))
+        // Status words and read outcomes only, as on Android; never card numbers or balances.
+        let selected: Data
+        do {
+            selected = try await read(card, command: CardAPDU(
+                instructionClass: 0, instructionCode: 0xA4, p1Parameter: 4, p2Parameter: 0,
+                data: Data(hexString: applicationAID), expectedResponseLength: 256))
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            DebugLog.shared.log("Macau Pass", "SELECT \(applicationAID): " + (error is ReadError ? String(describing: error) : DebugLog.describe(error)))
+            throw error
+        }
         var sections = [RawDataSection(title: "Macau Pass Application", fields: [
             RawDataField(title: "AID", value: applicationAID),
             RawDataField(title: "Select Response", value: selected.hexString.uppercased())
@@ -88,7 +97,11 @@ struct MacauPassDecoder: TransitCardDecoder {
             guard !bytes.allSatisfy({ $0 == 0 }), !bytes.allSatisfy({ $0 == 0xFF }) else { return nil }
             return bytes.hexString.uppercased()
         }
+        DebugLog.shared.log("Macau Pass", "SELECT \(applicationAID) SW 9000; information " + (info.map { "read (\($0.count) bytes)" } ?? "not read")
+                            + ", balance " + (balance == nil ? "not read" : "read") + ", \(records.count) history record(s)"
+                            + failures.map { "; \($0.title): \($0.value)" }.joined())
         guard serial != nil || balance != nil || records.contains(where: { decodeTransaction($0.data) != nil }) else {
+            DebugLog.shared.log("Macau Pass", "Selected, but no application serial, balance or history; not kept")
             throw NFCTestError.unsupportedCard
         }
         var fields = [ResultField(title: "Brand", value: "Macau Pass"),
@@ -113,7 +126,10 @@ struct MacauPassDecoder: TransitCardDecoder {
         let uid = card.identifier.hexString.uppercased()
         // An external reader may not expose a UID. Without either identifier,
         // different physical cards would share the same empty wallet identity.
-        guard serial != nil || !uid.isEmpty else { throw NFCTestError.unsupportedCard }
+        guard serial != nil || !uid.isEmpty else {
+            DebugLog.shared.log("Macau Pass", "No UID or application serial; not kept")
+            throw NFCTestError.unsupportedCard
+        }
         var snapshot = TransitCardSnapshot(
             technology: "ISO7816", cardFamily: "Macau Pass",
             identifierLabel: serial == nil ? "UID" : "Application Serial",

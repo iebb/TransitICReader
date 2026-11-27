@@ -57,7 +57,9 @@ final class ExternalCardReader {
             // CEPAS selects file 4000 in the default application. Probe before
             // selecting other applications by AID.
             if let snapshot = try? await CEPASDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
-            if let snapshot = try? await MacauPassDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
+            if let snapshot = try? await MacauPassDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) {
+                return await ChineseLocalDecoder.addingLocalApplication(to: snapshot, tag: .iso7816(iso))
+            }
             if let snapshot = try? await ClipperDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             if let snapshot = try? await StoredValueDecoder.decode(tag: .iso7816(iso), scannedAt: Date()) { return snapshot }
             #if !APPCLIP

@@ -48,10 +48,10 @@ struct ChineseLocalDecoder: TransitCardDecoder {
         snapshot.applications = [TransitApplication(snapshot: snapshot, records: records)]
         return snapshot
     }
-    /// Adds the local application of a card that also has City Union / T-Union. Runs only after
-    /// that read succeeded, so these SELECTs cannot disturb it; the City Union / T-Union side stays primary.
+    /// Adds the local application of a card that also has City Union / T-Union or Macau Pass. Runs only after
+    /// that read succeeded, so these SELECTs cannot disturb it; the City Union / T-Union / Macau side stays primary.
     static func addingLocalApplication(to snapshot: TransitCardSnapshot, tag: CardTag) async -> TransitCardSnapshot {
-        guard case .iso7816 = tag, snapshot.applicationSnapshots.contains(where: { $0.isCityUnion || $0.isTUnion }),
+        guard case .iso7816 = tag, snapshot.applicationSnapshots.contains(where: { $0.isCityUnion || $0.isTUnion || $0.isMacauPass }),
               let local = try? await decode(tag: tag, scannedAt: snapshot.scannedAt),
               let combined = TransitCardSnapshot.combining([snapshot, local]) else { return snapshot }
         // The snapshot's fields already list its own applications; add only the local one's.

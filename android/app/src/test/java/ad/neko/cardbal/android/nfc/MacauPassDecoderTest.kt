@@ -1,6 +1,7 @@
 package ad.neko.cardbal.android.nfc
 
 import ad.neko.cardbal.android.data.ChineseHistoryMerge
+import ad.neko.cardbal.android.data.DebugLog
 import ad.neko.cardbal.android.data.TransactionCategory
 import ad.neko.cardbal.android.data.TransitApplication
 import ad.neko.cardbal.android.data.formatCardMoney
@@ -371,5 +372,20 @@ class MacauPassDecoderTest {
         }
         assertSame(failure, thrown)
         card.assertComplete()
+    }
+
+    @Test fun debugLogHasStatusWordsAndOutcomesButNoCardData() {
+        DebugLog.shared.clear()
+        assertNull(read(listOf(Reply(select, status = "6A82"))))
+        assertNull(read(listOf(Reply(select), Reply(infoCommand, status = "6982"), Reply(balanceCommand, status = "6982"), end)))
+        assertNotNull(read(prefix() + listOf(end, noCompanion)))
+        val log = DebugLog.shared.text()
+        val aid = MacauPassDecoder.APPLICATION_AID
+        assertTrue(log, log.contains("[Macau Pass] SELECT $aid: Card status 6A82"))
+        assertTrue(log, log.contains("[Macau Pass] SELECT $aid SW 9000; information not read, balance not read, 0 history record(s)" +
+            "; Information: Card status 6982; Balance: Card status 6982"))
+        assertTrue(log, log.contains("[Macau Pass] Selected, but no application serial, balance or history; not kept"))
+        assertTrue(log, log.contains("[Macau Pass] SELECT $aid SW 9000; information read (28 bytes), balance read, 0 history record(s)"))
+        assertFalse(log, log.contains("12ABCDEF") || log.contains("113.4") || log.contains(uid))
     }
 }

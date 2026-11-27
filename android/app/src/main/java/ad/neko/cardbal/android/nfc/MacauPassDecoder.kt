@@ -40,7 +40,9 @@ class MacauPassDecoder : TransitCardDecoder {
         private const val MAX_RESPONSE_BYTES = 2048
 
         internal fun read(uid: String, scannedAt: Instant, exchange: (ByteArray) -> ByteArray): TransitCardSnapshot? {
-            val selected = runCatching { transmit(Iso7816Protocol.selectCommand(APPLICATION_AID), exchange) }.getOrNull() ?: return null
+            // Status words and read outcomes only, as on iPhone; never card numbers or balances.
+            val selected = runCatching { transmit(Iso7816Protocol.selectCommand(APPLICATION_AID), exchange) }
+                .onFailure { DebugLog.log(FAMILY, "SELECT $APPLICATION_AID: ${describe(it)}") }.getOrNull() ?: return null
             val sections = mutableListOf(RawDataSection("Macau Pass Application", listOf(
                 RawDataField("AID", APPLICATION_AID), RawDataField("Select Response", selected.hexString()))))
             val failures = mutableListOf<RawDataField>()
@@ -74,11 +76,20 @@ class MacauPassDecoder : TransitCardDecoder {
                 }
                 if (payload.any { it != 0.toByte() }) records.add(TransitApplicationRecord("transaction", 0x18, index, payload.hexString()))
             }
+            DebugLog.log(FAMILY, "SELECT $APPLICATION_AID SW 9000; information " + (info?.let { "read (${it.size} bytes)" } ?: "not read") +
+                ", balance " + (if (balanceMinor == null) "not read" else "read") + ", ${records.size} history record(s)" +
+                failures.joinToString("") { "; ${it.title}: ${it.value}" })
             val serial = info?.takeIf { it.size >= 20 }?.copyOfRange(16, 20)
                 ?.takeIf { bytes -> bytes.any { it != 0.toByte() } && bytes.any { it != 0xFF.toByte() } }?.hexString()
-            if (serial == null && balanceMinor == null && records.none { decodeTransaction(it.hex.hexToBytes()) != null }) return null
+            if (serial == null && balanceMinor == null && records.none { decodeTransaction(it.hex.hexToBytes()) != null }) {
+                DebugLog.log(FAMILY, "Selected, but no application serial, balance or history; not kept")
+                return null
+            }
             // Without either identifier, different physical cards would share an empty wallet identity.
-            if (serial == null && uid.isEmpty()) return null
+            if (serial == null && uid.isEmpty()) {
+                DebugLog.log(FAMILY, "No UID or application serial; not kept")
+                return null
+            }
 
             val fields = mutableListOf(ResultField("Brand", FAMILY), ResultField("Region", "Macau"), ResultField("Currency", "MOP"))
             serial?.let { fields.add(ResultField("Application Serial", it)) }

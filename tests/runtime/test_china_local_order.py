@@ -43,8 +43,13 @@ class ChinaLocalOrderTests(unittest.TestCase):
         local = scan.index("try? await ChineseLocalDecoder.decode(")
         self.assertLess(city_union, local)
         self.assertEqual(scan.count("ChineseLocalDecoder.decode("), 1)
-        self.assertLess(scan.index("for aid in aids {"), scan.index("ChineseLocalDecoder.addingLocalApplication("))
-        self.assertLess(scan.index("ChineseLocalDecoder.addingLocalApplication("), local)
+        self.assertLess(scan.index("for aid in aids {"), scan.rindex("ChineseLocalDecoder.addingLocalApplication("))
+        self.assertLess(scan.rindex("ChineseLocalDecoder.addingLocalApplication("), local)
+        # A Macau Pass read also keeps a local purse; nothing else is added after it.
+        macau = scan.index("try? await MacauPassDecoder.decode(")
+        self.assertRegex(scan[macau:], r"^try\? await MacauPassDecoder\.decode\(tag: \.iso7816\(iso\), scannedAt: Date\(\)\) \{\s*"
+                         r"return await ChineseLocalDecoder\.addingLocalApplication\(to: snapshot, tag: \.iso7816\(iso\)\)\s*\}")
+        self.assertEqual(scan.count("ChineseLocalDecoder.addingLocalApplication("), 2)
         self.assertIn("var selectsUnlistedApplications: Bool { true }", source)
 
     def test_beijing_names_only_on_readers_that_can_select_them(self):
@@ -55,6 +60,8 @@ class ChinaLocalOrderTests(unittest.TestCase):
         core = (IOS / "CoreNFCCardTransport.swift").read_text()
         self.assertNotIn("selectsUnlistedApplications", core)
         decoder = (IOS / "Decoders/ChineseLocalDecoder.swift").read_text()
+        # The local purse is added beside City Union / T-Union and beside Macau Pass (Macau stays primary).
+        self.assertIn("contains(where: { $0.isCityUnion || $0.isTUnion || $0.isMacauPass })", decoder)
         self.assertIn("iso.selectsUnlistedApplications ? ChineseLocalProtocol.Kind.allCases : [.shenzhen, .wuhan, .lingnan]", decoder)
         self.assertIn("ChineseLocalProtocol.read(kinds: kinds,", decoder)
         protocol = (IOS / "Profiles/ChineseLocalProtocol.swift").read_text()
@@ -96,6 +103,8 @@ class ChinaLocalOrderTests(unittest.TestCase):
             "StoredValueDecoder", "MadridTtpDecoder", "CalypsoDecoder", "Iso7816Decoder", "ChineseLocalDecoder",
             "CharlieCardDecoder", "JapaneseICDecoder",
         ])
+        # After a Macau Pass read only the local reader runs (no Octopus / Japanese IC side).
+        self.assertIn("if(macau) { if(decoder !is ChineseLocalDecoder) continue }", reader)
 
 
 if __name__ == "__main__":

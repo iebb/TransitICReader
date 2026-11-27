@@ -467,6 +467,25 @@ struct MacauPassTests {
         try await Synthetic.expectFailure([
             Reply(Synthetic.select, Data(repeating: 0x55, count: 16_385)),
         ])
+
+        // Settings › Troubleshooting: status words and read outcomes only, never the serial or balance.
+        DebugLog.shared.clear()
+        try await Synthetic.expectFailure([Reply(Synthetic.select, status: 0x6A82)])
+        try await Synthetic.expectFailure([
+            Reply(Synthetic.select),
+            Reply(Synthetic.infoCommand, status: 0x6982),
+            Reply(Synthetic.balanceCommand, status: 0x6982),
+            Reply(Synthetic.recordCommand(1), status: 0x6A83),
+        ])
+        _ = try await Synthetic.read(Synthetic.prefix() + [Reply(Synthetic.recordCommand(1), status: 0x6A83)])
+        let log = DebugLog.shared.text()
+        try check(log.contains("[Macau Pass] SELECT \(Synthetic.aid): Card status 6A82"), "SELECT status not logged: \(log)")
+        try check(log.contains("[Macau Pass] SELECT \(Synthetic.aid) SW 9000; information not read, balance not read, 0 history record(s)"
+                               + "; Information: Card status 6982; Balance: Card status 6982"), "Read outcome not logged: \(log)")
+        try check(log.contains("[Macau Pass] Selected, but no application serial, balance or history; not kept"), "Empty Macau read not logged: \(log)")
+        try check(log.contains("[Macau Pass] SELECT \(Synthetic.aid) SW 9000; information read (28 bytes), balance read, 0 history record(s)"),
+                  "Successful read not logged: \(log)")
+        try check(!log.contains("12ABCDEF") && !log.contains("113.40") && !log.contains("04DEADBEEF"), "Card data reached the debug log: \(log)")
     }
 
     static func bounds() async throws {
@@ -813,6 +832,7 @@ class MacauPassTests(unittest.TestCase):
         sources = [
             "ios/CardBal/NFC/CardTransport.swift",
             "ios/CardBal/NFC/ScanProgress.swift",
+            "ios/CardBal/Utils/DebugLog.swift",
             "ios/CardBal/NFC/Decoders/TransitCardDecoder.swift",
             "ios/CardBal/NFC/Profiles/SnapperPlusProtocol.swift",
             "ios/CardBal/NFC/Decoders/MacauPassDecoder.swift",
