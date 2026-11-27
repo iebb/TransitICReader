@@ -757,7 +757,7 @@
 				CODE_SIGN_ENTITLEMENTS = ios/CardBal/CardBal.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 80;
+				CURRENT_PROJECT_VERSION = 81;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -768,7 +768,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7.6;
+				MARKETING_VERSION = 2.7.7;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -798,7 +798,7 @@
 				CARDBAL_CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_IDENTITY = "$(CARDBAL_CODE_SIGN_IDENTITY)";
 				CODE_SIGN_STYLE = "$(CARDBAL_CODE_SIGN_STYLE)";
-				CURRENT_PROJECT_VERSION = 80;
+				CURRENT_PROJECT_VERSION = 81;
 				DEVELOPMENT_TEAM = 7P8CLHDH5G;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -809,7 +809,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7.6;
+				MARKETING_VERSION = 2.7.7;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(CARDBAL_PROVISIONING_PROFILE)";
@@ -880,12 +880,12 @@
             CLANG_ENABLE_MODULES = YES;
             CODE_SIGN_ENTITLEMENTS = ios/CardBalClip/CardBalClip.entitlements;
             CODE_SIGN_STYLE = Automatic;
-            CURRENT_PROJECT_VERSION = 80;
+            CURRENT_PROJECT_VERSION = 81;
             DEVELOPMENT_TEAM = 7P8CLHDH5G;
             GENERATE_INFOPLIST_FILE = NO;
             INFOPLIST_FILE = ios/CardBalClip/Info.plist;
             IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-            MARKETING_VERSION = 2.7.6;
+            MARKETING_VERSION = 2.7.7;
             PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal.Clip;
             PRODUCT_NAME = "$(TARGET_NAME)";
             SDKROOT = iphoneos;
@@ -904,12 +904,12 @@
             CLANG_ENABLE_MODULES = YES;
             CODE_SIGN_ENTITLEMENTS = ios/CardBalClip/CardBalClip.entitlements;
             CODE_SIGN_STYLE = Automatic;
-            CURRENT_PROJECT_VERSION = 80;
+            CURRENT_PROJECT_VERSION = 81;
             DEVELOPMENT_TEAM = 7P8CLHDH5G;
             GENERATE_INFOPLIST_FILE = NO;
             INFOPLIST_FILE = ios/CardBalClip/Info.plist;
             IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-            MARKETING_VERSION = 2.7.6;
+            MARKETING_VERSION = 2.7.7;
             PRODUCT_BUNDLE_IDENTIFIER = ad.neko.cardbal.Clip;
             PRODUCT_NAME = "$(TARGET_NAME)";
             SDKROOT = iphoneos;

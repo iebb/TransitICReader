@@ -1,0 +1,6 @@
+{
+  "en-GB": "• Cards that carry Macau Pass together with Lingnan Pass or Shenzhen Tong now also show the Lingnan Pass or Shenzhen Tong balance when it can be read.\n• The debug log in Troubleshooting now records why a Macau Pass read failed.",
+  "ja": "• マカオパスと嶺南通または深圳通が一緒に入ったカードで、読み取れる場合は嶺南通・深圳通の残高も表示するようになりました。\n• トラブルシューティングのデバッグログに、マカオパスを読み取れなかった理由が記録されるようになりました。",
+  "ko": "• 마카오패스와 링난통 또는 선전퉁이 함께 들어 있는 카드에서, 읽을 수 있는 경우 링난통·선전퉁 잔액도 함께 표시됩니다.\n• 문제 해결의 디버그 로그에 마카오패스를 읽지 못한 이유가 기록됩니다.",
+  "zh-Hans": "• 同时带有澳门通和岭南通或深圳通的卡片，在可以读取时也会显示岭南通或深圳通的余额。\n• “故障排除”中的调试日志现在会记录澳门通读取失败的原因。"
+}
